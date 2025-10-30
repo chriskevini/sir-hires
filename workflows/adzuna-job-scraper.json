@@ -1,5 +1,5 @@
 {
-  "name": "adzuna-job-scraper-v0.1",
+  "name": "Adzuna Job Scraper",
   "nodes": [
     {
       "parameters": {
@@ -68,7 +68,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Transform Adzuna response to clean job data\nconst results = $input.item.json.results || [];\n\nconst jobs = results.map(job => {\n  return {\n    job_id: job.id || '',\n    title: job.title || '',\n    company: job.company?.display_name || 'Unknown',\n    location: job.location?.display_name || 'Not specified',\n    salary_min: job.salary_min || -1,\n    salary_max: job.salary_max || -1,\n    salary_display: job.salary_is_predicted ? 'Predicted' : 'Actual',\n    description: job.description || '',\n    url: job.redirect_url || '',\n    posted_date: job.created || '',\n    scraped_date: new Date().toISOString(),\n    category: job.category?.label || '',\n    contract_type: job.contract_type || '',\n    status: 'new'\n  };\n});\n\nreturn jobs"
+        "jsCode": "// Transform Adzuna response to clean job data\nconst results = $input.item.json.results || [];\n\nconst jobs = results.map(job => {\n  return {\n    job_id: job.id || '',\n    title: job.title || '',\n    company: job.company?.display_name || 'Unknown',\n    location: job.location?.display_name || 'Not specified',\n    salary_min: job.salary_min || -1,\n    salary_max: job.salary_max || -1,\n    salary_display: job.salary_is_predicted ? 'Predicted' : 'Actual',\n    description: job.description || '',\n    url: job.redirect_url || '',\n    posted_date: job.created || '',\n    scraped_date: new Date().toISOString(),\n    category: job.category?.label || '',\n    contract_type: job.contract_type || '',\n    status: 'new',\n    full_description: ''\n  };\n});\n\nreturn jobs"
       },
       "id": "f08178ce-5a7e-4ff0-940c-79a0f823bafa",
       "name": "Transform Job Data",

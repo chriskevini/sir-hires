@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Job Board Copy-Paste</title>
+  <link rel="stylesheet" href="styles/popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Job Board Copy-Paste</h1>
+    </header>
+
+    <div id="status" class="status hidden"></div>
+
+    <div id="extractSection">
+      <div class="extraction-options">
+        <label class="checkbox-label">
+          <input type="checkbox" id="useLlmCheckbox">
+          <span>Use LLM for better extraction</span>
+        </label>
+        <button id="settingsBtn" class="btn-icon" title="Settings">⚙️</button>
+      </div>
+      <button id="extractBtn" class="btn btn-primary">Extract Job Data</button>
+    </div>
+
+    <div id="settingsSection" class="hidden">
+      <h3>LLM Settings</h3>
+      <div class="form-group">
+        <label for="llmEndpoint">LLM API Endpoint</label>
+        <input type="text" id="llmEndpoint" placeholder="http://localhost:1234/v1/chat/completions">
+        <small>Default: LM Studio (http://localhost:1234)</small>
+      </div>
+      <div class="form-group">
+        <label for="llmModel">Model Name (optional)</label>
+        <input type="text" id="llmModel" placeholder="local-model">
+        <small>Leave empty to use LM Studio's loaded model</small>
+      </div>
+      <div class="button-group">
+        <button id="saveSettingsBtn" class="btn btn-primary">Save Settings</button>
+        <button id="testLlmBtn" class="btn btn-secondary">Test Connection</button>
+      </div>
+    </div>
+
+    <div id="dataSection" class="hidden">
+      <form id="jobForm">
+        <div class="form-group">
+          <label for="jobTitle">Job Title *</label>
+          <input type="text" id="jobTitle" required>
+        </div>
+
+        <div class="form-group">
+          <label for="company">Company *</label>
+          <input type="text" id="company" required>
+        </div>
+
+        <div class="form-group">
+          <label for="location">Location</label>
+          <input type="text" id="location">
+        </div>
+
+        <div class="form-group">
+          <label for="salary">Salary</label>
+          <input type="text" id="salary">
+        </div>
+
+        <div class="form-group">
+          <label for="jobType">Job Type</label>
+          <input type="text" id="jobType" placeholder="Full-time, Contract, etc.">
+        </div>
+
+        <div class="form-group">
+          <label for="remoteType">Remote Type</label>
+          <select id="remoteType">
+            <option value="">Not specified</option>
+            <option value="Remote">Remote</option>
+            <option value="Hybrid">Hybrid</option>
+            <option value="On-site">On-site</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="postedDate">Posted Date</label>
+          <input type="text" id="postedDate">
+        </div>
+
+        <div class="form-group">
+          <label for="url">URL</label>
+          <input type="text" id="url" readonly>
+        </div>
+
+        <div class="form-group">
+          <label for="source">Source</label>
+          <input type="text" id="source" readonly>
+        </div>
+
+        <!-- Raw description field hidden from UI but kept in backend for fallback/search -->
+        <div class="form-group" style="display: none;">
+          <label for="rawDescription">Raw Description</label>
+          <textarea id="rawDescription" rows="4"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="aboutJob">About the Job</label>
+          <textarea id="aboutJob" rows="3"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="aboutCompany">About the Company</label>
+          <textarea id="aboutCompany" rows="3"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="responsibilities">Responsibilities</label>
+          <textarea id="responsibilities" rows="4"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="requirements">Requirements</label>
+          <textarea id="requirements" rows="4"></textarea>
+        </div>
+
+        <div class="button-group">
+          <button type="submit" class="btn btn-primary">Save Job</button>
+          <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="savedSection" class="hidden">
+      <h2>Saved Jobs (<span id="jobCount">0</span>)</h2>
+      <div class="button-group">
+        <button id="viewJobsBtn" class="btn btn-primary">View All Jobs</button>
+        <button id="exportBtn" class="btn btn-success">Export JSON</button>
+        <button id="exportCsvBtn" class="btn btn-success">Export CSV</button>
+        <button id="clearAllBtn" class="btn btn-danger">Clear All</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

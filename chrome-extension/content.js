@@ -759,7 +759,6 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
       "remote_type": ["Remote", "Hybrid", "On-site", "Not specified"],
       "posted_date": "verbatim-string",
       "deadline": "verbatim-string",
-      "raw_description": "string",
       "about_job": "string",
       "about_company": "string",
       "responsibilities": "string",
@@ -841,7 +840,6 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
       remote_type: extracted.remote_type || '',
       posted_date: extracted.posted_date || '',
       deadline: extracted.deadline || '',
-      raw_description: extracted.raw_description || '',
       about_job: extracted.about_job || '',
       about_company: extracted.about_company || '',
       responsibilities: extracted.responsibilities || '',
@@ -956,6 +954,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             jobData = await extractAllFieldsWithLLM(rawText, llmSettings);
             
             // Add fields that LLM doesn't set
+            jobData.raw_description = rawText;  // Store the actual raw text, not LLM summary
             jobData.url = window.location.href;
             jobData.source = extractSource();
             jobData.extracted_at = new Date().toISOString();

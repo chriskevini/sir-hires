@@ -315,29 +315,103 @@ function findPostedDate() {
 }
 
 function findDescription() {
+  // Strategy 1: Try semantic HTML and common patterns
   const selectors = [
+    // Semantic HTML
+    'main',
+    '[role="main"]',
+    'article',
+    '[role="article"]',
+    // Common job description patterns (substring match)
     '[class*="description"]',
     '[class*="job-detail"]',
+    '[class*="job-content"]',
     '[id*="description"]',
-    '[itemprop="description"]',
-    'article',
-    '[role="article"]'
+    '[id*="job-detail"]',
+    '[itemprop="description"]'
   ];
 
   for (const selector of selectors) {
     const element = document.querySelector(selector);
     if (element) {
-      let text = element.textContent?.trim() || '';
+      // Use innerText for better formatting (respects CSS visibility)
+      let text = element.innerText?.trim() || element.textContent?.trim() || '';
+      
       // Limit description length to keep data manageable
       if (text.length > 5000) {
         text = text.substring(0, 5000) + '...';
       }
-      if (text.length > 100) {
+      
+      if (text.length > 500) {  // Increased threshold to avoid small snippets
+        console.log('[Content] Raw description extracted via selector:', selector, '(length:', text.length, ')');
+        console.log('[Content] First 500 chars:', text.substring(0, 500));
         return text;
       }
     }
   }
 
+  // Strategy 2: Find headings that indicate job description sections
+  const descriptionKeywords = [
+    'job description',
+    'about the role',
+    'about this role',
+    'description',
+    'position description',
+    'role description'
+  ];
+  
+  const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6, strong, b');
+  for (const heading of headings) {
+    const headingText = heading.textContent.toLowerCase().trim();
+    
+    if (descriptionKeywords.some(keyword => headingText === keyword || headingText.includes(keyword))) {
+      // Found a description heading - get the parent container
+      let container = heading.parentElement;
+      if (container) {
+        let text = container.innerText?.trim() || container.textContent?.trim() || '';
+        if (text.length > 5000) {
+          text = text.substring(0, 5000) + '...';
+        }
+        if (text.length > 500) {
+          console.log('[Content] Raw description extracted via heading:', headingText, '(length:', text.length, ')');
+          console.log('[Content] First 500 chars:', text.substring(0, 500));
+          return text;
+        }
+      }
+    }
+  }
+
+  // Strategy 3: Find the largest text block on the page (heuristic)
+  // This catches job descriptions that don't follow common patterns
+  const candidates = document.querySelectorAll('div, section, article, main');
+  let largestText = '';
+  let largestElement = null;
+  
+  for (const candidate of candidates) {
+    // Skip if it contains too many nested containers (likely a wrapper)
+    const nestedDivs = candidate.querySelectorAll('div, section').length;
+    if (nestedDivs > 20) continue;
+    
+    const text = candidate.innerText?.trim() || '';
+    
+    // Must be substantial text (likely job description)
+    if (text.length > largestText.length && text.length > 500 && text.length < 20000) {
+      largestText = text;
+      largestElement = candidate;
+    }
+  }
+  
+  if (largestText.length > 500) {
+    let text = largestText;
+    if (text.length > 5000) {
+      text = text.substring(0, 5000) + '...';
+    }
+    console.log('[Content] Raw description extracted via largest text block (length:', text.length, ')');
+    console.log('[Content] First 500 chars:', text.substring(0, 500));
+    return text;
+  }
+
+  console.log('[Content] No raw description found via DOM');
   return '';
 }
 
@@ -506,21 +580,26 @@ function extractContentAfterHeading(startElement, endElement) {
 
 // Extract raw text from the page for LLM processing
 function extractRawJobText() {
-  // Try to find the main job posting content
+  // Strategy 1: Try semantic HTML and common patterns
   const selectors = [
-    '[class*="description"]',
-    '[class*="job-detail"]',
-    '[id*="description"]',
-    '[itemprop="description"]',
+    // Semantic HTML
+    'main',
+    '[role="main"]',
     'article',
     '[role="article"]',
-    'main',
-    '[role="main"]'
+    // Common description patterns
+    '[class*="description"]',
+    '[class*="job-detail"]',
+    '[class*="job-content"]',
+    '[id*="description"]',
+    '[id*="job-detail"]',
+    '[itemprop="description"]'
   ];
 
   for (const selector of selectors) {
     const element = document.querySelector(selector);
     if (element) {
+      // Use innerText for better formatted text
       let text = element.innerText || element.textContent || '';
       text = text.trim();
       
@@ -529,15 +608,77 @@ function extractRawJobText() {
         text = text.substring(0, 10000);
       }
       
-      if (text.length > 200) {
+      if (text.length > 500) {  // Increased threshold
+        console.log('[Content] Raw text extracted for LLM via selector:', selector, '(length:', text.length, ')');
+        console.log('[Content] First 500 chars:', text.substring(0, 500));
         return text;
       }
     }
   }
 
-  // Fallback: get body text but try to exclude navigation/footer
+  // Strategy 2: Find headings that indicate job description sections
+  const descriptionKeywords = [
+    'job description',
+    'about the role',
+    'about this role',
+    'description',
+    'position description'
+  ];
+  
+  const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6, strong, b');
+  for (const heading of headings) {
+    const headingText = heading.textContent.toLowerCase().trim();
+    
+    if (descriptionKeywords.some(keyword => headingText === keyword || headingText.includes(keyword))) {
+      let container = heading.parentElement;
+      if (container) {
+        let text = container.innerText || container.textContent || '';
+        text = text.trim();
+        if (text.length > 10000) {
+          text = text.substring(0, 10000);
+        }
+        if (text.length > 500) {
+          console.log('[Content] Raw text extracted for LLM via heading:', headingText, '(length:', text.length, ')');
+          console.log('[Content] First 500 chars:', text.substring(0, 500));
+          return text;
+        }
+      }
+    }
+  }
+
+  // Strategy 3: Find the largest text block on the page
+  const candidates = document.querySelectorAll('div, section, article, main');
+  let largestText = '';
+  
+  for (const candidate of candidates) {
+    // Skip if it contains too many nested containers (likely a wrapper)
+    const nestedDivs = candidate.querySelectorAll('div, section').length;
+    if (nestedDivs > 20) continue;
+    
+    const text = candidate.innerText?.trim() || '';
+    
+    // Must be substantial text (likely job description)
+    if (text.length > largestText.length && text.length > 500 && text.length < 20000) {
+      largestText = text;
+    }
+  }
+  
+  if (largestText.length > 500) {
+    let text = largestText;
+    if (text.length > 10000) {
+      text = text.substring(0, 10000);
+    }
+    console.log('[Content] Raw text extracted for LLM via largest text block (length:', text.length, ')');
+    console.log('[Content] First 500 chars:', text.substring(0, 500));
+    return text;
+  }
+
+  // Last resort: get body text
   const bodyText = document.body.innerText || document.body.textContent || '';
-  return bodyText.substring(0, 10000);
+  const truncated = bodyText.substring(0, 10000);
+  console.log('[Content] Raw text extracted for LLM - fallback to body (length:', truncated.length, ')');
+  console.log('[Content] First 500 chars:', truncated.substring(0, 500));
+  return truncated;
 }
 
 // Use LLM to extract ALL fields from raw job posting text
@@ -636,6 +777,8 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
     }
 
     const extracted = JSON.parse(jsonStr);
+
+    console.log('[Content] LLM extracted raw_description (length:', (extracted.raw_description || '').length, '):', extracted.raw_description);
 
     // Return the extracted data
     return {

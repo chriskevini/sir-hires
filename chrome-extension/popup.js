@@ -62,8 +62,21 @@ async function extractJobData() {
         populateForm(response.data);
         showDataSection();
         
+        // Check if this URL was already saved
+        const isDuplicate = await checkDuplicateJob(response.data.url);
+        
+        // Show/hide duplicate badge
+        const duplicateBadge = document.getElementById('duplicateWarning');
+        if (isDuplicate) {
+          duplicateBadge.classList.remove('hidden');
+        } else {
+          duplicateBadge.classList.add('hidden');
+        }
+        
         // Show different message if LLM was used
-        if (response.usedLlm) {
+        if (isDuplicate) {
+          showStatus('⚠️ This job was already saved! You can still save it again if needed.', 'warning');
+        } else if (response.usedLlm) {
           showStatus('Job data extracted with LLM! Review and edit before saving.', 'success');
         } else if (response.data.extraction_note) {
           // Show warning if LLM failed but DOM extraction succeeded
@@ -99,8 +112,21 @@ async function extractJobData() {
         populateForm(response.data);
         showDataSection();
         
+        // Check if this URL was already saved
+        const isDuplicate = await checkDuplicateJob(response.data.url);
+        
+        // Show/hide duplicate badge
+        const duplicateBadge = document.getElementById('duplicateWarning');
+        if (isDuplicate) {
+          duplicateBadge.classList.remove('hidden');
+        } else {
+          duplicateBadge.classList.add('hidden');
+        }
+        
         // Show different message if LLM was used
-        if (response.usedLlm) {
+        if (isDuplicate) {
+          showStatus('⚠️ This job was already saved! You can still save it again if needed.', 'warning');
+        } else if (response.usedLlm) {
           showStatus('Job data extracted with LLM! Review and edit before saving.', 'success');
         } else {
           showStatus('Job data extracted! Review and edit before saving.', 'info');
@@ -143,6 +169,33 @@ function hideDataSection() {
   document.getElementById('dataSection').classList.add('hidden');
 }
 
+// Check if a job with the same URL already exists
+async function checkDuplicateJob(url) {
+  if (!url) return false;
+  
+  try {
+    const result = await chrome.storage.local.get(['jobs']);
+    const jobs = result.jobs || [];
+    
+    // Normalize URLs for comparison (remove trailing slashes, query params that might differ)
+    const normalizeUrl = (u) => {
+      try {
+        const urlObj = new URL(u);
+        // Keep protocol, host, and pathname, ignore search params and hash
+        return urlObj.origin + urlObj.pathname.replace(/\/$/, '');
+      } catch {
+        return u.trim().toLowerCase();
+      }
+    };
+    
+    const normalizedUrl = normalizeUrl(url);
+    return jobs.some(job => normalizeUrl(job.url) === normalizedUrl);
+  } catch (error) {
+    console.error('Error checking for duplicate job:', error);
+    return false;
+  }
+}
+
 async function saveJobData(event) {
   event.preventDefault();
 
@@ -176,6 +229,16 @@ async function saveJobData(event) {
     const result = await chrome.storage.local.get(['jobs']);
     const jobs = result.jobs || [];
 
+    // Check for duplicate (warn but allow saving)
+    const isDuplicate = await checkDuplicateJob(jobData.url);
+    if (isDuplicate) {
+      const confirmSave = confirm('This job URL already exists in your saved jobs. Do you want to save it again anyway?');
+      if (!confirmSave) {
+        showStatus('Save cancelled - job already exists.', 'info');
+        return;
+      }
+    }
+
     // Add new job
     jobs.push(jobData);
 
@@ -186,8 +249,9 @@ async function saveJobData(event) {
     hideDataSection();
     await updateJobCount();
 
-    // Reset form
+    // Reset form and hide duplicate badge
     document.getElementById('jobForm').reset();
+    document.getElementById('duplicateWarning').classList.add('hidden');
     currentJobData = null;
 
   } catch (error) {
@@ -201,6 +265,8 @@ function cancelEdit() {
   document.getElementById('jobForm').reset();
   currentJobData = null;
   hideStatus();
+  // Hide duplicate badge
+  document.getElementById('duplicateWarning').classList.add('hidden');
 }
 
 async function updateJobCount() {

@@ -86,7 +86,10 @@
 
         <div class="form-group">
           <label for="url">URL</label>
-          <input type="text" id="url" readonly>
+          <div class="url-field-container">
+            <input type="text" id="url" readonly>
+            <span id="duplicateWarning" class="duplicate-badge hidden">⚠️ Already Saved</span>
+          </div>
         </div>
 
         <div class="form-group">

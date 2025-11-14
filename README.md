@@ -20,9 +20,11 @@ sir-hires is a Chrome extension that turns any job board into your personal job 
 - Universal extraction from any job board
 - Optional LLM-enhanced extraction (using LM Studio)
 - Local storage - no servers, no accounts
-- Built-in job viewer with search and filtering
+- Built-in job viewer with sidebar navigation, search, filtering, and sorting
+- Application lifecycle tracking with status history
+- Date tracking (posted date and application deadline)
+- Notes for each job posting
 - Export to JSON or CSV anytime
-- Planned: Application tracking and LLM-powered insights
 
 ## Quick Start
 
@@ -79,17 +81,18 @@ sir-hires/
 
 ## Roadmap
 
-**Current (v1.0):**
-- ✅ Universal job extraction
-- ✅ Local storage
-- ✅ Job viewer with search/filtering
+- ✅ Universal job extraction from any job board
+- ✅ Local storage with chrome.storage.local
+- ✅ Job viewer with sidebar + detail panel layout
+- ✅ Search and filtering (by source, status)
+- ✅ Sorting (by date, deadline, company, title)
 - ✅ Export to JSON/CSV
-- ✅ LLM-enhanced extraction (optional)
+- ✅ LLM-enhanced extraction (optional, via LM Studio)
+- ✅ Application lifecycle tracking (Saved → Applied → Screening → Interviewing → Offer → Accepted/Rejected/Withdrawn)
+- ✅ Status history tracking
+- ✅ Date tracking (posted date and application deadline)
+- ✅ Notes for each job posting
 
-**Planned (v2.0):**
-- Application lifecycle tracking (Saved → Applied → Interviewing → Offer)
-- Notes and tags for organization
-- Date tracking (applied date, interview dates)
 - LLM-powered features:
   - Job-resume fit analysis
   - Resume tailoring suggestions

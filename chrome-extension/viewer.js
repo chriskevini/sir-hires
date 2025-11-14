@@ -174,44 +174,36 @@ function renderNormalJob(job, index) {
       ${job.about_job ? `
         <div class="section">
           <div class="section-title">About the Job</div>
-          <div class="section-content" id="about-job-${index}">
+          <div class="section-content">
             ${escapeHtml(job.about_job)}
-            ${job.about_job.length > 150 ? '<div class="section-fade"></div>' : ''}
           </div>
-          ${job.about_job.length > 150 ? `<button class="btn-expand" data-section="about-job-${index}" data-index="${index}" data-field="about_job">Show more</button>` : ''}
         </div>
       ` : ''}
 
       ${job.about_company ? `
         <div class="section">
           <div class="section-title">About the Company</div>
-          <div class="section-content" id="about-company-${index}">
+          <div class="section-content">
             ${escapeHtml(job.about_company)}
-            ${job.about_company.length > 150 ? '<div class="section-fade"></div>' : ''}
           </div>
-          ${job.about_company.length > 150 ? `<button class="btn-expand" data-section="about-company-${index}" data-index="${index}" data-field="about_company">Show more</button>` : ''}
         </div>
       ` : ''}
 
       ${job.responsibilities ? `
         <div class="section">
           <div class="section-title">Responsibilities</div>
-          <div class="section-content" id="resp-${index}">
+          <div class="section-content">
             ${escapeHtml(job.responsibilities)}
-            ${job.responsibilities.length > 150 ? '<div class="section-fade"></div>' : ''}
           </div>
-          ${job.responsibilities.length > 150 ? `<button class="btn-expand" data-section="resp-${index}" data-index="${index}" data-field="responsibilities">Show more</button>` : ''}
         </div>
       ` : ''}
 
       ${job.requirements ? `
         <div class="section">
           <div class="section-title">Requirements</div>
-          <div class="section-content" id="req-${index}">
+          <div class="section-content">
             ${escapeHtml(job.requirements)}
-            ${job.requirements.length > 150 ? '<div class="section-fade"></div>' : ''}
           </div>
-          ${job.requirements.length > 150 ? `<button class="btn-expand" data-section="req-${index}" data-index="${index}" data-field="requirements">Show more</button>` : ''}
         </div>
       ` : ''}
 
@@ -334,16 +326,6 @@ function renderDebugJob(job, index) {
 }
 
 function attachButtonListeners() {
-  // Attach listeners to expand buttons
-  document.querySelectorAll('.btn-expand').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const sectionId = this.dataset.section;
-      const index = parseInt(this.dataset.index);
-      const fieldName = this.dataset.field;
-      toggleSection(sectionId, index, fieldName, this);
-    });
-  });
-  
   // Attach listeners to job link buttons
   document.querySelectorAll('.btn-link').forEach(btn => {
     btn.addEventListener('click', function() {
@@ -392,22 +374,6 @@ function getRemoteIcon(remoteType) {
     'On-site': '🏢'
   };
   return icons[remoteType] || '📍';
-}
-
-function toggleSection(sectionId, index, fieldName, button) {
-  const section = document.getElementById(sectionId);
-  const job = allJobs[index];
-  
-  if (section.classList.contains('expanded')) {
-    section.classList.remove('expanded');
-    section.innerHTML = `${escapeHtml(job[fieldName]).substring(0, 150)}...
-      <div class="section-fade"></div>`;
-    button.textContent = 'Show more';
-  } else {
-    section.classList.add('expanded');
-    section.innerHTML = escapeHtml(job[fieldName]);
-    button.textContent = 'Show less';
-  }
 }
 
 function openJob(url) {

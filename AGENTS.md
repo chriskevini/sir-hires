@@ -100,15 +100,21 @@ Jobs are stored as objects with these fields:
 - **Optional enhancement**: LLM features are opt-in only
 
 ## Out of Scope
-These features are explicitly NOT planned and go against the project's philosophy:
+These features go against the project's core philosophy and are not planned:
 
 - ❌ **Backend servers or databases** - Everything stays local
 - ❌ **User accounts or cloud sync** - No user authentication
 - ❌ **Automated job scraping** - User manually triggers extraction
 - ❌ **Cloud LLM APIs** - User provides their own local LLM
-- ❌ **Mobile app** - Chrome extension is desktop-only by design
 - ❌ **Team collaboration features** - Personal productivity tool
 - ❌ **Paid features or monetization** - Open source, free forever
+
+## Maybe Later
+Features that could be explored in the future if they maintain privacy-first principles:
+
+- 🤔 **Mobile companion app** - Read-only viewer for saved jobs (data synced locally, no cloud)
+- 🤔 **Browser sync** - Local network sync between devices (no cloud servers)
+- 🤔 **Desktop app** - Standalone Electron app with same functionality
 
 ## Future Enhancements (Planned)
 - Application lifecycle tracking

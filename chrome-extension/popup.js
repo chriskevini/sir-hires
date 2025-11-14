@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await updateJobCount();
   await loadSettings();
   await checkCurrentPageDuplicate();
+  await checkIfExtractable();
   setupEventListeners();
 });
 
@@ -191,6 +192,30 @@ async function checkCurrentPageDuplicate() {
     }
   } catch (error) {
     console.error('Error checking current page for duplicate:', error);
+  }
+}
+
+// Check if current page is extractable (disable button on internal pages)
+async function checkIfExtractable() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const extractBtn = document.getElementById('extractBtn');
+    
+    // Disable extraction on Chrome internal pages and extension pages (including viewer.html)
+    if (!tab || !tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+      extractBtn.disabled = true;
+      extractBtn.title = 'Cannot extract from this page';
+      
+      // Show info message if on viewer page
+      if (tab.url && tab.url.includes('viewer.html')) {
+        showStatus('You are viewing your saved jobs. Navigate to a job posting to extract data.', 'info');
+      }
+    } else {
+      extractBtn.disabled = false;
+      extractBtn.title = '';
+    }
+  } catch (error) {
+    console.error('Error checking if page is extractable:', error);
   }
 }
 

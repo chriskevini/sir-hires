@@ -1,62 +1,166 @@
 # Agent Guidelines for sir-hires
 
 ## Project Overview
-Job search assistant built with n8n as the backend. Early-stage project.
+Privacy-first job search assistant built as a Chrome extension. All data stays local on the user's device.
 
 **Architecture:**
-- Backend: n8n workflows (running on VPS)
-- Data storage: Google Sheets (MVP), migrate to PostgreSQL/Supabase later
-- Job data: Adzuna API (legal, stable), add other APIs as needed
-- Frontend: React + TypeScript + shadcn/ui (planned)
+- Chrome extension (Manifest V3)
+- Local storage via chrome.storage.local API
+- Optional: LM Studio integration for LLM-enhanced extraction
+- No backend, no servers, no databases
 
-## Build/Test Commands
-- **n8n workflows**: Export workflows as JSON files to `/workflows/` directory
-- **Testing**: Document API endpoints and test manually via n8n UI or curl
-- **Single test**: Not applicable (n8n workflows tested individually in UI)
-
-## n8n Workflow Management Scripts
-
-**Available Scripts:** Agents can use these scripts to manage n8n workflows programmatically.
-
-### Pull Workflow from n8n
-```bash
-./workflows/copy-from-n8n.sh <workflow_id>
+## Project Structure
 ```
-- Exports a workflow from the remote n8n instance
-- Saves as `<workflow_id>.json` in current directory
-- Use this to pull changes made in the n8n UI back to version control
-- Example: `./workflows/copy-from-n8n.sh fetch-full-description`
-
-### Push Workflow to n8n
-```bash
-./workflows/send-to-n8n.sh <workflow.json>
+sir-hires/
+├── chrome-extension/       # Main Chrome extension
+│   ├── manifest.json      # Extension configuration
+│   ├── content.js         # Job extraction logic (runs on job board pages)
+│   ├── popup.html/js      # Extension popup interface
+│   ├── viewer.html/js     # Job viewer page
+│   ├── background.js      # Background service worker
+│   └── styles/            # CSS styles
+└── README.md              # Project documentation
 ```
-- Uploads and imports a workflow JSON file to the remote n8n instance
-- Use this to deploy local workflow changes to n8n
-- Example: `./workflows/send-to-n8n.sh fetch-full-description.json`
-
-**Prerequisites:**
-- SSH config with "DigitalOcean" host alias configured
-- n8n running via docker-compose on the remote server
-
-**Agent Workflow:**
-1. Make changes in n8n UI and test
-2. Use `copy-from-n8n.sh` to pull the tested workflow
-3. Review and commit the changes
-4. To deploy local changes, use `send-to-n8n.sh` to push to n8n
-
-## Code Style Guidelines
-- **Files**: Store n8n workflow exports as `.json` in `/workflows/` with descriptive names
-- **Documentation**: Add clear comments in workflow descriptions and node notes
-- **Configuration**: Store credentials separately, use environment variables for secrets
-- **Naming**: Use kebab-case for workflow files (e.g., `job-search-assistant.json`)
-- **Structure**: Organize workflows logically; one workflow per major feature
-- **Error Handling**: Include error workflows and fallback paths in n8n nodes
-- **Version Control**: Commit workflow JSON exports after significant changes
 
 ## Development Workflow
-- Test workflows in n8n UI before exporting
-- Use `copy-from-n8n.sh` to pull tested workflows from n8n to version control
-- Use `send-to-n8n.sh` to deploy local workflow changes to n8n
-- Document workflow inputs/outputs in README or workflow descriptions
-- Keep sensitive data out of version control
+
+### Testing the Extension
+1. Load the extension in Chrome:
+   - Navigate to `chrome://extensions/`
+   - Enable "Developer mode"
+   - Click "Load unpacked"
+   - Select the `chrome-extension` folder
+
+2. Test changes:
+   - Make code changes
+   - Go to `chrome://extensions/`
+   - Click the refresh icon on the extension
+   - Test on a job board page
+
+3. Debug:
+   - Popup: Right-click extension icon → "Inspect popup"
+   - Content script: Open DevTools on job board page → Console
+   - Background: `chrome://extensions/` → "Inspect views: background page"
+
+### Code Style Guidelines
+- **JavaScript**: Use modern ES6+ syntax
+- **Storage**: All data goes to `chrome.storage.local`
+- **Privacy**: Never send data to external servers
+- **Error handling**: Always handle extraction failures gracefully
+- **Comments**: Document extraction logic and unusual patterns
+
+### Adding New Features
+1. Consider: Does this feature maintain privacy-first principles?
+2. Test on multiple job boards (LinkedIn, Indeed, Glassdoor)
+3. Ensure graceful degradation (features should fail safely)
+4. Update README.md with new functionality
+
+### Extraction Logic (content.js)
+- Uses DOM selectors and pattern matching
+- Falls back to heuristics when specific selectors fail
+- Optional: Enhanced with local LLM via LM Studio
+- Always editable by user before saving
+
+### Storage Schema
+Jobs are stored as objects with these fields:
+```javascript
+{
+  id: string (UUID),
+  title: string,
+  company: string,
+  location: string,
+  salary: string,
+  jobType: string,
+  postedDate: string,
+  description: string,
+  responsibilities: string,
+  requirements: string,
+  url: string,
+  jobBoard: string,
+  extractedAt: timestamp
+}
+```
+
+## Build/Test Commands
+- **No build step**: Pure JavaScript, HTML, CSS
+- **Testing**: Manual testing in Chrome with Developer mode
+- **Reload**: Refresh extension in `chrome://extensions/` after changes
+
+## LM Studio Integration
+- Optional feature for enhanced extraction
+- Uses local HTTP API: `http://localhost:1234/v1/chat/completions`
+- Recommended models: NuExtract-2.0-2B or NuExtract-2.0-8B
+- Falls back to basic extraction if LLM unavailable
+
+## Philosophy & Constraints
+- **Privacy-first**: No data leaves the device, ever
+- **Local-first**: No backend, no accounts, no tracking
+- **User control**: Manual extraction, editable data, export freedom
+- **Universal**: Works on any job board
+- **Optional enhancement**: LLM features are opt-in only
+
+## Future Enhancements (Planned)
+- Application lifecycle tracking
+- Notes and tags
+- Date tracking
+- LLM-powered insights:
+  - Job-resume fit analysis
+  - Resume tailoring suggestions
+  - Cover letter generation
+  - Company research and insights
+  - Interview prep questions and answers
+  - Skills gap identification
+- Better search and filtering
+- Analytics dashboard
+
+## Testing Checklist
+When making changes, test on:
+- [ ] LinkedIn job postings
+- [ ] Indeed job postings
+- [ ] At least one other job board (Glassdoor, Monster, etc.)
+- [ ] Verify data saves to local storage
+- [ ] Verify export (JSON/CSV) works
+- [ ] Test with LLM enabled and disabled
+
+## Common Tasks
+
+### Adding Support for a New Job Board
+1. Open a job posting on that site
+2. Inspect the HTML structure
+3. Update extraction functions in `content.js`:
+   - `findJobTitle()`
+   - `findCompany()`
+   - `findLocation()`
+   - etc.
+4. Test extraction on multiple postings
+5. Document in README.md
+
+### Improving Extraction Accuracy
+1. Test on problematic job board
+2. Identify which fields are failing
+3. Add site-specific selectors in `content.js`
+4. Consider using LLM extraction for difficult sites
+5. Test on multiple postings
+
+### Adding New Data Fields
+1. Update storage schema documentation
+2. Add extraction logic in `content.js`
+3. Update popup form in `popup.html` and `popup.js`
+4. Update viewer display in `viewer.html` and `viewer.js`
+5. Update export logic for CSV format
+
+## Key Files
+
+- `manifest.json` - Extension configuration and permissions
+- `content.js` - Job extraction logic (runs on web pages)
+- `popup.js` - Popup UI logic (save, export, settings)
+- `viewer.js` - Job viewer logic (display, search, filter)
+- `background.js` - Background service worker (minimal)
+
+## Debugging Tips
+
+- Check console logs in all contexts (popup, content, background)
+- Use `chrome.storage.local.get()` to inspect stored data
+- Test extraction on simple job boards first (Indeed is usually easiest)
+- If LLM extraction fails, check LM Studio server is running
+- Use `debug-storage.html` to inspect storage directly

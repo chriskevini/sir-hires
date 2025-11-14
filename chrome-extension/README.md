@@ -1,17 +1,37 @@
-# Job Board Copy-Paste - Chrome Extension
+# sir-hires - Privacy-First Job Search Assistant
 
-A Chrome extension that helps you extract and save job posting data from any job board. Think of it as an "enhanced copy-paste" tool for your job search.
+A Chrome extension that helps you extract and manage job posting data from any job board. Completely local, private, and under your control. No servers, no accounts, no data collection.
 
-## Features
+## Philosophy
 
+**Your data, your tools, your control.**
+
+- 🔒 **Privacy-first**: All data stays on your device, forever
+- 💻 **Local-first**: No backend servers or databases required
+- 🤖 **Bring your own LLM**: Use your local LLM for intelligent analysis
+- 📤 **Export freedom**: Your data in JSON/CSV anytime
+- 🚫 **No tracking**: We don't collect, store, or transmit your data
+
+## Core Features
+
+### Data Capture
 - **Universal Extraction**: Works on any job board (LinkedIn, Indeed, Glassdoor, etc.)
 - **Manual Control**: You choose what to extract - no automatic scraping
 - **Smart Detection**: Intelligently finds job title, company, salary, location, and more
-- **LLM-Enhanced Extraction** (Optional): Use a local LLM to accurately extract responsibilities and requirements
+- **LLM-Enhanced Extraction** (Optional): Use your local LLM for accurate field extraction
 - **Edit Before Saving**: Review and modify extracted data before saving
-- **Local Storage**: All data stored locally in your browser
-- **Export Options**: Export to JSON or CSV for use in spreadsheets
-- **Job Viewer**: Built-in viewer to browse and search your saved jobs
+
+### Data Management
+- **Local Storage**: All data stored in your browser using Chrome's storage API
+- **Job Viewer**: Built-in viewer to browse, search, and filter your saved jobs
+- **Export Options**: Export to JSON or CSV anytime
+- **Full Control**: Delete individual jobs or clear all data
+
+### Planned: Application Tracking
+- Track application lifecycle (Saved → Applied → Interviewing → Offer)
+- Add notes, dates, and priorities
+- Local LLM-powered analysis and insights
+- Generate cover letters and interview prep
 
 ## Installation
 
@@ -190,11 +210,14 @@ The extension works on any website, but is optimized for common job boards:
 
 ## Privacy & Legal
 
-- **All data stays local**: No data is sent to any server
-- **Manual operation only**: You control what gets extracted
-- **Personal use**: Designed as a personal productivity tool
+- **100% Local**: No data is sent to any server, ever
+- **Your Device Only**: All storage happens in your browser's local storage
+- **Manual Operation**: You control what gets extracted and when
+- **Personal Use**: Designed as a personal productivity tool
 - **Respects ToS**: Functions as an enhanced copy-paste, not automated scraping
-- **No automation**: You must be viewing the page and manually trigger extraction
+- **Export Anytime**: Your data is always portable (JSON/CSV)
+- **No Accounts**: No sign-ups, no tracking, no analytics
+- **Open Source**: Inspect the code yourself
 
 ## Tips for Best Results
 
@@ -252,16 +275,42 @@ Look for functions like:
 
 ### Adding New Features
 
-Some ideas for enhancement:
-- Google Sheets integration
-- Duplicate detection
-- Application status tracking
-- Notes and ratings for each job
-- Browser notifications for new jobs
+Future enhancements planned:
+- **Application lifecycle tracking**: Track jobs through your hiring pipeline
+- **Status management**: Saved → Applied → Interviewing → Offer → Accepted/Rejected
+- **Notes and tags**: Organize jobs your way
+- **Date tracking**: When did you apply? When's the interview?
+- **LLM-powered insights** (using your local LLM):
+  - Analyze job-resume fit
+  - Resume tailoring suggestions
+  - Generate tailored cover letters
+  - Company research and insights
+  - Create interview prep questions and answers
+  - Identify skills gaps
+  - Compare multiple jobs
+- **Better search and filtering**: Advanced queries, saved filters
+- **Analytics**: Track your application success rates
 
 ## License
 
-This is a personal productivity tool. Use responsibly and in accordance with job board terms of service.
+MIT License - This is a personal productivity tool. Use responsibly and in accordance with job board terms of service.
+
+## Architecture
+
+**Local-First Design:**
+```
+Job Boards (LinkedIn, Indeed, etc.)
+    ↓ [User browses and clicks extension]
+Chrome Extension (data extraction)
+    ↓
+Browser Local Storage (chrome.storage.local)
+    ↓
+Enhanced Viewer (job management & tracking)
+    ↓
+User's Local LLM (analysis & insights)
+```
+
+**No servers. No databases. No data leaves your device.**
 
 ## Support
 

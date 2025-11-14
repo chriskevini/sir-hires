@@ -144,8 +144,9 @@ function hideDataSection() {
 }
 
 // Check if a job with the same URL already exists
+// Returns the index of the existing job if found, or -1 if not found
 async function checkDuplicateJob(url) {
-  if (!url) return false;
+  if (!url) return -1;
   
   try {
     const result = await chrome.storage.local.get(['jobs']);
@@ -163,10 +164,10 @@ async function checkDuplicateJob(url) {
     };
     
     const normalizedUrl = normalizeUrl(url);
-    return jobs.some(job => normalizeUrl(job.url) === normalizedUrl);
+    return jobs.findIndex(job => normalizeUrl(job.url) === normalizedUrl);
   } catch (error) {
     console.error('Error checking for duplicate job:', error);
-    return false;
+    return -1;
   }
 }
 
@@ -180,10 +181,10 @@ async function checkCurrentPageDuplicate() {
       return;
     }
     
-    const isDuplicate = await checkDuplicateJob(tab.url);
+    const duplicateIndex = await checkDuplicateJob(tab.url);
     const duplicateBadge = document.getElementById('duplicateWarning');
     
-    if (isDuplicate && duplicateBadge) {
+    if (duplicateIndex >= 0 && duplicateBadge) {
       duplicateBadge.classList.remove('hidden');
     } else if (duplicateBadge) {
       duplicateBadge.classList.add('hidden');
@@ -229,11 +230,6 @@ async function saveJobData(event) {
     remote_type: document.getElementById('remoteType').value.trim(),
     posted_date: document.getElementById('postedDate').value.trim(),
     deadline: document.getElementById('deadline').value.trim(),
-    application_status: 'Saved', // Default status for new jobs
-    status_history: [{
-      status: 'Saved',
-      date: new Date().toISOString()
-    }],
     url: document.getElementById('url').value.trim(),
     source: document.getElementById('source').value.trim(),
     raw_description: document.getElementById('rawDescription').value.trim(),
@@ -241,8 +237,7 @@ async function saveJobData(event) {
     about_company: document.getElementById('aboutCompany').value.trim(),
     responsibilities: document.getElementById('responsibilities').value.trim(),
     requirements: document.getElementById('requirements').value.trim(),
-    extracted_at: currentJobData?.extracted_at || new Date().toISOString(),
-    saved_at: new Date().toISOString()
+    extracted_at: currentJobData?.extracted_at || new Date().toISOString()
   };
 
   // Validate required fields
@@ -256,23 +251,46 @@ async function saveJobData(event) {
     const result = await chrome.storage.local.get(['jobs']);
     const jobs = result.jobs || [];
 
-    // Check for duplicate (warn but allow saving)
-    const isDuplicate = await checkDuplicateJob(jobData.url);
-    if (isDuplicate) {
-      const confirmSave = confirm('This job URL already exists in your saved jobs. Do you want to save it again anyway?');
-      if (!confirmSave) {
+    // Check for duplicate
+    const duplicateIndex = await checkDuplicateJob(jobData.url);
+    
+    if (duplicateIndex >= 0) {
+      // Job already exists - ask user if they want to update it
+      const confirmUpdate = confirm('This job already exists. Update it with the latest data?');
+      if (!confirmUpdate) {
         showStatus('Save cancelled - job already exists.', 'info');
         return;
       }
+      
+      // Update existing job - preserve user's application tracking data
+      const existingJob = jobs[duplicateIndex];
+      jobData.application_status = existingJob.application_status || 'Saved';
+      jobData.status_history = existingJob.status_history || [{
+        status: 'Saved',
+        date: new Date().toISOString()
+      }];
+      jobData.updated_at = new Date().toISOString();
+      
+      // Replace the job at the duplicate index
+      jobs[duplicateIndex] = jobData;
+      
+      await chrome.storage.local.set({ jobs });
+      showStatus('Job updated successfully!', 'success');
+    } else {
+      // New job - add default status tracking
+      jobData.application_status = 'Saved';
+      jobData.status_history = [{
+        status: 'Saved',
+        date: new Date().toISOString()
+      }];
+      jobData.updated_at = new Date().toISOString();
+      
+      // Add new job
+      jobs.push(jobData);
+      
+      await chrome.storage.local.set({ jobs });
+      showStatus('Job saved successfully!', 'success');
     }
-
-    // Add new job
-    jobs.push(jobData);
-
-    // Save back to storage
-    await chrome.storage.local.set({ jobs });
-
-    showStatus('Job saved successfully!', 'success');
     hideDataSection();
     await updateJobCount();
 

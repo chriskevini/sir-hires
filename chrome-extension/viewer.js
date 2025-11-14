@@ -251,7 +251,7 @@ async function updateJobStatus(index, newStatus) {
   if (!job.status_history) {
     job.status_history = [{
       status: oldStatus,
-      date: job.saved_at || new Date().toISOString()
+      date: job.updated_at || new Date().toISOString()
     }];
   }
   
@@ -334,7 +334,7 @@ async function exportCSV() {
     }
 
     // Create CSV headers
-    const headers = ['Job Title', 'Company', 'Location', 'Salary', 'Job Type', 'Remote Type', 'Posted Date', 'Deadline', 'Application Status', 'URL', 'Source', 'Raw Description', 'About the Job', 'About the Company', 'Responsibilities', 'Requirements', 'Extracted At', 'Saved At'];
+    const headers = ['Job Title', 'Company', 'Location', 'Salary', 'Job Type', 'Remote Type', 'Posted Date', 'Deadline', 'Application Status', 'URL', 'Source', 'Raw Description', 'About the Job', 'About the Company', 'Responsibilities', 'Requirements', 'Extracted At', 'Updated At'];
     
     // Create CSV rows
     const rows = allJobs.map(job => [
@@ -355,7 +355,7 @@ async function exportCSV() {
       escapeCsvValue(job.responsibilities),
       escapeCsvValue(job.requirements),
       escapeCsvValue(job.extracted_at),
-      escapeCsvValue(job.saved_at)
+      escapeCsvValue(job.updated_at)
     ]);
 
     // Combine headers and rows

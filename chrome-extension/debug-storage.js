@@ -43,7 +43,8 @@ async function addTestJob() {
       responsibilities: 'Test responsibilities',
       requirements: 'Test requirements',
       extracted_at: new Date().toISOString(),
-      saved_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      application_status: 'Saved'
     });
 
     await chrome.storage.local.set({ jobs });

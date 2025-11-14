@@ -329,7 +329,7 @@ This error occurs when the content script isn't loaded on the page. The updated 
 
 **Solution 2: Reload the extension**
 1. Go to `chrome://extensions/`
-2. Find "Job Board Copy-Paste"
+2. Find the extension
 3. Click the refresh/reload icon
 4. Go back to the job posting
 5. Refresh the page
@@ -339,6 +339,60 @@ This error occurs when the content script isn't loaded on the page. The updated 
 - The extension cannot run on Chrome internal pages (`chrome://`, `chrome-extension://`)
 - Make sure you're on an actual job board website
 
+### LLM Extraction Issues
+
+If you're experiencing issues with LLM-enhanced extraction:
+
+#### LM Studio Not Running or Model Not Loaded
+**Solution:**
+- Open LM Studio
+- Load a model (click on a model to load it)
+- Go to the "Developer" or "Local Server" tab
+- Make sure the server is running on port 1234
+- You should see "Server running on http://localhost:1234"
+
+#### Wrong Endpoint URL
+**Solution:**
+- Open extension settings
+- Verify endpoint is: `http://localhost:1234/v1/chat/completions`
+- Click "Test Connection" to verify it works
+
+#### Model Taking Too Long to Respond
+**Cause:** First request after loading model can be slow
+
+**Solution:**
+- Wait for the model to "warm up" (first response can take 30-60 seconds)
+- Extension has a 60-second timeout
+- Try again if it times out the first time
+- Use a smaller/faster model in LM Studio (Phi-3 Mini, Llama 3.2 3B)
+
+#### Channel Error or Timeout
+**Cause:** LLM takes too long and Chrome closes the message channel
+
+**Solution:**
+- Use a smaller/faster model in LM Studio
+- Check browser console for detailed error messages:
+  - Right-click extension icon → Inspect popup
+  - Or go to `chrome://extensions/` → Click "service worker" link
+- Test LM Studio directly with curl:
+  ```bash
+  curl -X POST http://localhost:1234/v1/chat/completions \
+    -H "Content-Type: application/json" \
+    -d '{"messages": [{"role": "user", "content": "Hello"}], "max_tokens": 50}'
+  ```
+
+#### Recommended LM Studio Settings
+- **Model**: Use a small-to-medium model (3B-7B parameters) for faster responses
+- **Context Length**: 4096 or higher
+- **GPU Acceleration**: Enable if available
+- **Server Port**: 1234 (default)
+
+#### Fallback Strategy
+If LLM continues to fail:
+1. Disable "Use LLM for extraction" checkbox in settings
+2. Use traditional DOM extraction
+3. Manually edit the extracted data if needed
+
 ### Extraction Returns Empty Fields
 
 If some fields are empty after extraction:
@@ -346,6 +400,7 @@ If some fields are empty after extraction:
 1. **This is normal** - not all job postings have all fields
 2. **Manually fill them in** - all fields are editable before saving
 3. **Site-specific issue** - some job boards use unusual layouts
+4. **Try enabling LLM extraction** - Often provides better results than DOM extraction
 
 To improve extraction for a specific site:
 1. Open an issue with the site URL
@@ -356,3 +411,20 @@ To improve extraction for a specific site:
 1. Make sure Developer Mode is enabled in `chrome://extensions/`
 2. Check that the extension is enabled (toggle should be blue/on)
 3. Try clicking the puzzle piece icon in Chrome toolbar and pin the extension
+
+### Debugging Tips
+
+**Open Browser Console:**
+- Right-click extension icon → Inspect popup
+- Check for errors in Console tab
+
+**Check Background Script Logs:**
+- Go to `chrome://extensions/`
+- Find the extension
+- Click "service worker" link
+- Check console for `[Background]` log messages
+
+**Check Content Script Logs:**
+- Open the job posting page
+- Press F12 to open DevTools
+- Check console for `[Content]` log messages

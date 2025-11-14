@@ -99,6 +99,17 @@ Jobs are stored as objects with these fields:
 - **Universal**: Works on any job board
 - **Optional enhancement**: LLM features are opt-in only
 
+## Out of Scope
+These features are explicitly NOT planned and go against the project's philosophy:
+
+- ❌ **Backend servers or databases** - Everything stays local
+- ❌ **User accounts or cloud sync** - No user authentication
+- ❌ **Automated job scraping** - User manually triggers extraction
+- ❌ **Cloud LLM APIs** - User provides their own local LLM
+- ❌ **Mobile app** - Chrome extension is desktop-only by design
+- ❌ **Team collaboration features** - Personal productivity tool
+- ❌ **Paid features or monetization** - Open source, free forever
+
 ## Future Enhancements (Planned)
 - Application lifecycle tracking
 - Notes and tags

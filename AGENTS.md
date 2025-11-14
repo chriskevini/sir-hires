@@ -160,6 +160,47 @@ When making changes, test on:
 4. Update viewer display in `viewer.html` and `viewer.js`
 5. Update export logic for CSV format
 
+### CRITICAL: Schema Synchronization
+
+When adding or removing fields from the job data schema, you MUST update ALL of the following locations to keep them in sync:
+
+1. **`content.js` - DOM Extraction (`extractJobData()` function, ~line 5-21)**
+   - Initialize the field in the `data` object
+   - Call the appropriate finder function (e.g., `data.deadline = findDeadline()`)
+
+2. **`content.js` - LLM Extraction Template (`extractAllFieldsWithLLM()`, ~line 753-766)**
+   - Add the field to `extractionTemplate` object with appropriate type annotation
+   - Use NuExtract type system: "verbatim-string", "string", ["enum", "values"], etc.
+
+3. **`content.js` - LLM Return Object (`extractAllFieldsWithLLM()`, ~line 833-849)**
+   - Add the field to the return object: `field_name: extracted.field_name || ''`
+
+4. **`popup.html` - Form Fields (~line 50-130)**
+   - Add HTML input/textarea for the field with appropriate id
+
+5. **`popup.js` - Form Population (`populateForm()`, ~line 123-139)**
+   - Add line to populate: `document.getElementById('fieldId').value = data.field_name || '';`
+
+6. **`popup.js` - Save Data (`saveJobData()`, ~line 226-249)**
+   - Add line to save: `field_name: document.getElementById('fieldId').value.trim(),`
+
+7. **`popup.js` - CSV Export (`exportCSV()`, ~line 374-396)**
+   - Add field to CSV headers array
+   - Add field to CSV rows mapping
+
+8. **`viewer.html` - Display (~line varies)**
+   - Add display element for the field if needed
+
+9. **`viewer.js` - Job Card/Display (~line varies)**
+   - Add logic to display the field if needed
+
+10. **`AGENTS.md` - Storage Schema Documentation (~line 76-93)**
+    - Update the schema documentation to reflect the new field
+
+**Example**: When adding a `deadline` field, search the codebase for `posted_date` and add `deadline` in similar locations.
+
+**Verification**: After changes, test with BOTH DOM and LLM extraction modes to ensure the field is captured, displayed, saved, and exported correctly.
+
 ## Key Files
 
 - `manifest.json` - Extension configuration and permissions

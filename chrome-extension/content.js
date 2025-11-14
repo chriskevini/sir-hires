@@ -41,6 +41,9 @@ function extractJobData() {
   // Find posted date
   data.posted_date = findPostedDate();
   
+  // Find application deadline
+  data.deadline = findDeadline();
+  
   // Extract job description (limit to reasonable length)
   data.raw_description = findDescription();
   
@@ -306,6 +309,52 @@ function findPostedDate() {
       
       const text = element.textContent?.trim();
       if (text && text.match(/\d/)) {
+        return text;
+      }
+    }
+  }
+
+  return '';
+}
+
+function findDeadline() {
+  // Search for deadline/application closing date patterns
+  const deadlineKeywords = [
+    'apply by', 'deadline', 'closing date', 'application deadline',
+    'apply before', 'applications close', 'close date', 'expires on',
+    'application closes', 'applications accepted until', 'due date'
+  ];
+
+  const pageText = document.body.innerText;
+  
+  // Look for deadline patterns in the text
+  for (const keyword of deadlineKeywords) {
+    const regex = new RegExp(`${keyword}[:\\s-]*([^\\n.]+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|january|february|march|april|may|june|july|august|september|october|november|december|\\d{1,2}[,/\\-\\s]\\d{1,2}|\\d{4})[^\\n.]*)`, 'i');
+    const match = pageText.match(regex);
+    if (match && match[1]) {
+      // Clean up and return the deadline text
+      const deadline = match[1].trim();
+      // Limit length to reasonable deadline text
+      if (deadline.length > 0 && deadline.length < 100) {
+        return deadline;
+      }
+    }
+  }
+
+  // Also check for specific selectors that might contain deadline
+  const selectors = [
+    '[class*="deadline"]',
+    '[class*="closing"]',
+    '[class*="expir"]',
+    '[id*="deadline"]',
+    '[id*="closing"]'
+  ];
+
+  for (const selector of selectors) {
+    const element = document.querySelector(selector);
+    if (element) {
+      const text = element.textContent?.trim();
+      if (text && text.length > 0 && text.length < 100) {
         return text;
       }
     }
@@ -709,6 +758,7 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
       "job_type": ["Full-time", "Part-time", "Contract", "Temporary", "Internship", "Freelance"],
       "remote_type": ["Remote", "Hybrid", "On-site", "Not specified"],
       "posted_date": "verbatim-string",
+      "deadline": "verbatim-string",
       "raw_description": "string",
       "about_job": "string",
       "about_company": "string",
@@ -720,6 +770,8 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
     // NuExtract expects: # Template:\n{template}\n# Context:\n{context}
     const templateStr = JSON.stringify(extractionTemplate, null, 2);
     const promptContent = `# Template:\n${templateStr}\n# Context:\n${rawText}`;
+
+    console.log('[Content] Extraction template being sent to LLM:', extractionTemplate);
 
     const requestBody = {
       model: llmSettings.model || 'local-model',
@@ -759,8 +811,6 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
       throw new Error('Empty response from LLM');
     }
 
-    console.log('LLM Response:', llmResponse); // Debug
-
     // NuExtract returns clean JSON directly (no markdown formatting)
     // But we'll still handle edge cases
     let jsonStr = llmResponse.trim();
@@ -778,7 +828,8 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
 
     const extracted = JSON.parse(jsonStr);
 
-    console.log('[Content] LLM extracted raw_description (length:', (extracted.raw_description || '').length, '):', extracted.raw_description);
+    // Log the parsed JSON object for easy inspection in Chrome DevTools
+    console.log('[Content] LLM extracted object:', extracted);
 
     // Return the extracted data
     return {
@@ -789,6 +840,7 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
       job_type: extracted.job_type || '',
       remote_type: extracted.remote_type || '',
       posted_date: extracted.posted_date || '',
+      deadline: extracted.deadline || '',
       raw_description: extracted.raw_description || '',
       about_job: extracted.about_job || '',
       about_company: extracted.about_company || '',

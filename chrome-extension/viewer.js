@@ -93,7 +93,8 @@ function renderJobs(jobs) {
           ${job.salary ? `<div class="job-meta-item">💰 ${escapeHtml(job.salary)}</div>` : ''}
           ${job.job_type ? `<div class="job-meta-item">💼 ${escapeHtml(job.job_type)}</div>` : ''}
           ${job.remote_type && job.remote_type !== 'Not specified' ? `<div class="job-meta-item">${getRemoteIcon(job.remote_type)} ${escapeHtml(job.remote_type)}</div>` : ''}
-          ${job.posted_date ? `<div class="job-meta-item">📅 ${escapeHtml(job.posted_date)}</div>` : ''}
+          ${job.posted_date ? `<div class="job-meta-item">📅 Posted: ${escapeHtml(job.posted_date)}</div>` : ''}
+          ${job.deadline ? `<div class="job-meta-item">⏰ Deadline: ${escapeHtml(job.deadline)}</div>` : ''}
         </div>
 
         ${job.about_job ? `

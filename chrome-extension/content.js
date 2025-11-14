@@ -292,6 +292,89 @@ function findRemoteType() {
   return 'Not specified';
 }
 
+// Helper function to parse various date formats and return YYYY-MM-DD
+// Returns dates in local timezone to avoid timezone shift issues
+function parseToISODate(dateStr) {
+  if (!dateStr || dateStr.trim() === '') return '';
+  
+  try {
+    // If it's already YYYY-MM-DD format, return as-is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return dateStr;
+    }
+    
+    // If it's a full ISO timestamp, extract just the date part
+    if (/^\d{4}-\d{2}-\d{2}T/.test(dateStr)) {
+      return dateStr.split('T')[0];
+    }
+    
+    // Handle relative dates like "2 days ago", "1 week ago", etc.
+    const relativeMatch = dateStr.match(/(\d+)\s*(second|minute|hour|day|week|month|year)s?\s*ago/i);
+    if (relativeMatch) {
+      const amount = parseInt(relativeMatch[1]);
+      const unit = relativeMatch[2].toLowerCase();
+      const now = new Date();
+      
+      switch (unit) {
+        case 'second': now.setSeconds(now.getSeconds() - amount); break;
+        case 'minute': now.setMinutes(now.getMinutes() - amount); break;
+        case 'hour': now.setHours(now.getHours() - amount); break;
+        case 'day': now.setDate(now.getDate() - amount); break;
+        case 'week': now.setDate(now.getDate() - (amount * 7)); break;
+        case 'month': now.setMonth(now.getMonth() - amount); break;
+        case 'year': now.setFullYear(now.getFullYear() - amount); break;
+      }
+      
+      // Return YYYY-MM-DD format using local timezone
+      return formatLocalDate(now);
+    }
+    
+    // Handle "today", "yesterday"
+    if (/^today$/i.test(dateStr.trim())) {
+      return formatLocalDate(new Date());
+    }
+    if (/^yesterday$/i.test(dateStr.trim())) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      return formatLocalDate(yesterday);
+    }
+    
+    // Check if date string lacks a year (e.g., "Nov 13", "December 25")
+    // Pattern: month name/abbreviation followed by day, no 4-digit year
+    const hasYear = /\b(19|20)\d{2}\b/.test(dateStr);
+    
+    if (!hasYear) {
+      // Add current year to the date string - user can correct via date picker if wrong
+      const currentYear = new Date().getFullYear();
+      const parsed = new Date(dateStr + ', ' + currentYear);
+      
+      if (!isNaN(parsed.getTime())) {
+        return formatLocalDate(parsed);
+      }
+    }
+    
+    // Try to parse as a standard date string
+    const parsed = new Date(dateStr);
+    if (!isNaN(parsed.getTime())) {
+      return formatLocalDate(parsed);
+    }
+    
+    // If all else fails, return empty string
+    return '';
+  } catch (error) {
+    console.warn('Failed to parse date:', dateStr, error);
+    return '';
+  }
+}
+
+// Helper to format a Date object as YYYY-MM-DD in local timezone
+function formatLocalDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function findPostedDate() {
   const selectors = [
     '[class*="date"]',
@@ -304,11 +387,13 @@ function findPostedDate() {
     const element = document.querySelector(selector);
     if (element) {
       const datetime = element.getAttribute('datetime');
-      if (datetime) return datetime;
+      if (datetime) {
+        return parseToISODate(datetime);
+      }
       
       const text = element.textContent?.trim();
       if (text && text.match(/\d/)) {
-        return text;
+        return parseToISODate(text);
       }
     }
   }
@@ -335,7 +420,7 @@ function findDeadline() {
       const deadline = match[1].trim();
       // Limit length to reasonable deadline text
       if (deadline.length > 0 && deadline.length < 100) {
-        return deadline;
+        return parseToISODate(deadline);
       }
     }
   }
@@ -354,7 +439,7 @@ function findDeadline() {
     if (element) {
       const text = element.textContent?.trim();
       if (text && text.length > 0 && text.length < 100) {
-        return text;
+        return parseToISODate(text);
       }
     }
   }
@@ -829,6 +914,12 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
     // Log the parsed JSON object for easy inspection in Chrome DevTools
     console.log('[Content] LLM extracted object:', extracted);
 
+    // Parse dates through parseToISODate() to convert to YYYY-MM-DD format
+    const posted_date = parseToISODate(extracted.posted_date || '');
+    const deadline = parseToISODate(extracted.deadline || '');
+    
+    console.log('[Content] Parsed dates - posted_date:', posted_date, 'deadline:', deadline);
+
     // Return the extracted data
     return {
       job_title: extracted.job_title || '',
@@ -837,8 +928,8 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
       salary: extracted.salary || '',
       job_type: extracted.job_type || '',
       remote_type: extracted.remote_type || '',
-      posted_date: extracted.posted_date || '',
-      deadline: extracted.deadline || '',
+      posted_date: posted_date,
+      deadline: deadline,
       about_job: extracted.about_job || '',
       about_company: extracted.about_company || '',
       responsibilities: extracted.responsibilities || '',

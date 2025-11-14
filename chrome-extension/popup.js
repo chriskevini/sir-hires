@@ -124,8 +124,11 @@ function populateForm(data) {
   document.getElementById('salary').value = data.salary || '';
   document.getElementById('jobType').value = data.job_type || '';
   document.getElementById('remoteType').value = data.remote_type || '';
-  document.getElementById('postedDate').value = data.posted_date || '';
-  document.getElementById('deadline').value = data.deadline || '';
+  
+  // Convert ISO timestamps to YYYY-MM-DD format for date inputs
+  document.getElementById('postedDate').value = isoToDateInput(data.posted_date) || '';
+  document.getElementById('deadline').value = isoToDateInput(data.deadline) || '';
+  
   document.getElementById('url').value = data.url || '';
   document.getElementById('source').value = data.source || '';
   document.getElementById('rawDescription').value = data.raw_description || '';
@@ -133,6 +136,37 @@ function populateForm(data) {
   document.getElementById('aboutCompany').value = data.about_company || '';
   document.getElementById('responsibilities').value = data.responsibilities || '';
   document.getElementById('requirements').value = data.requirements || '';
+}
+
+// Helper function to convert date string to YYYY-MM-DD for date input
+// Now handles YYYY-MM-DD format directly (no timezone conversion needed)
+function isoToDateInput(dateString) {
+  if (!dateString) return '';
+  
+  // If it's already YYYY-MM-DD format, return as-is
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return dateString;
+  }
+  
+  // If it's an ISO timestamp, extract the date part without timezone conversion
+  if (/^\d{4}-\d{2}-\d{2}T/.test(dateString)) {
+    return dateString.split('T')[0];
+  }
+  
+  return '';
+}
+
+// Helper function to keep date input (YYYY-MM-DD) as-is
+// No conversion needed since we store dates as YYYY-MM-DD strings
+function dateInputToISO(dateString) {
+  if (!dateString) return '';
+  
+  // Validate YYYY-MM-DD format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return dateString;
+  }
+  
+  return '';
 }
 
 function showDataSection() {
@@ -228,8 +262,9 @@ async function saveJobData(event) {
     salary: document.getElementById('salary').value.trim(),
     job_type: document.getElementById('jobType').value.trim(),
     remote_type: document.getElementById('remoteType').value.trim(),
-    posted_date: document.getElementById('postedDate').value.trim(),
-    deadline: document.getElementById('deadline').value.trim(),
+    // Convert date inputs (YYYY-MM-DD) to ISO timestamps
+    posted_date: dateInputToISO(document.getElementById('postedDate').value.trim()),
+    deadline: dateInputToISO(document.getElementById('deadline').value.trim()),
     url: document.getElementById('url').value.trim(),
     source: document.getElementById('source').value.trim(),
     raw_description: document.getElementById('rawDescription').value.trim(),

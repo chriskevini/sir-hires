@@ -75,6 +75,23 @@ function renderJobs(jobs) {
 }
 
 function renderNormalJob(job, index) {
+  // Helper to format YYYY-MM-DD dates for display without timezone conversion
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    
+    // If it's YYYY-MM-DD format, parse manually without timezone conversion
+    const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      const [, year, month, day] = match;
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${monthNames[parseInt(month) - 1]} ${parseInt(day)}, ${year}`;
+    }
+    
+    // Fallback: return original string if format is unexpected
+    return dateString;
+  };
+
   return `
     <div class="job-card">
       <div class="job-header">
@@ -106,8 +123,8 @@ function renderNormalJob(job, index) {
         ${job.salary ? `<div class="job-meta-item">💰 ${escapeHtml(job.salary)}</div>` : ''}
         ${job.job_type ? `<div class="job-meta-item">💼 ${escapeHtml(job.job_type)}</div>` : ''}
         ${job.remote_type && job.remote_type !== 'Not specified' ? `<div class="job-meta-item">${getRemoteIcon(job.remote_type)} ${escapeHtml(job.remote_type)}</div>` : ''}
-        ${job.posted_date ? `<div class="job-meta-item">📅 Posted: ${escapeHtml(job.posted_date)}</div>` : ''}
-        ${job.deadline ? `<div class="job-meta-item">⏰ Deadline: ${escapeHtml(job.deadline)}</div>` : ''}
+        ${job.posted_date ? `<div class="job-meta-item">📅 Posted: ${escapeHtml(formatDate(job.posted_date))}</div>` : ''}
+        ${job.deadline ? `<div class="job-meta-item">⏰ Deadline: ${escapeHtml(formatDate(job.deadline))}</div>` : ''}
       </div>
 
       ${job.about_job ? `

@@ -82,8 +82,8 @@ Jobs are stored as objects with these fields:
   salary: string,
   job_type: string,
   remote_type: string,
-  posted_date: string,
-  deadline: string,
+  posted_date: string (YYYY-MM-DD format, local timezone),
+  deadline: string (YYYY-MM-DD format, local timezone),
   application_status: string,
   status_history: array,
   url: string,
@@ -93,7 +93,7 @@ Jobs are stored as objects with these fields:
   about_company: string,
   responsibilities: string,
   requirements: string,
-  updated_at: timestamp
+  updated_at: string (ISO 8601 timestamp with time)
 }
 ```
 

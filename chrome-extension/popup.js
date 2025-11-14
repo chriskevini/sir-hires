@@ -16,9 +16,6 @@ function setupEventListeners() {
   document.getElementById('jobForm').addEventListener('submit', saveJobData);
   document.getElementById('cancelBtn').addEventListener('click', cancelEdit);
   document.getElementById('viewJobsBtn').addEventListener('click', viewAllJobs);
-  document.getElementById('exportBtn').addEventListener('click', exportJSON);
-  document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);
-  document.getElementById('clearAllBtn').addEventListener('click', clearAllJobs);
   document.getElementById('settingsBtn').addEventListener('click', toggleSettings);
   document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
   document.getElementById('testLlmBtn').addEventListener('click', testLlmConnection);
@@ -325,121 +322,6 @@ async function viewAllJobs() {
     chrome.tabs.create({ url: 'viewer.html' });
   } catch (error) {
     console.error('Error viewing jobs:', error);
-    showStatus('Error: ' + error.message, 'error');
-  }
-}
-
-async function exportJSON() {
-  try {
-    const result = await chrome.storage.local.get(['jobs']);
-    const jobs = result.jobs || [];
-
-    if (jobs.length === 0) {
-      showStatus('No jobs to export.', 'info');
-      return;
-    }
-
-    const dataStr = JSON.stringify(jobs, null, 2);
-    const blob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-
-    const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `jobs-export-${timestamp}.json`;
-
-    // Download the file
-    chrome.downloads.download({
-      url: url,
-      filename: filename,
-      saveAs: true
-    });
-
-    showStatus(`Exporting ${jobs.length} jobs as JSON...`, 'success');
-  } catch (error) {
-    console.error('Error exporting JSON:', error);
-    showStatus('Error: ' + error.message, 'error');
-  }
-}
-
-async function exportCSV() {
-  try {
-    const result = await chrome.storage.local.get(['jobs']);
-    const jobs = result.jobs || [];
-
-    if (jobs.length === 0) {
-      showStatus('No jobs to export.', 'info');
-      return;
-    }
-
-    // Create CSV headers
-    const headers = ['Job Title', 'Company', 'Location', 'Salary', 'Job Type', 'Remote Type', 'Posted Date', 'Deadline', 'Application Status', 'URL', 'Source', 'Raw Description', 'About the Job', 'About the Company', 'Responsibilities', 'Requirements', 'Extracted At', 'Saved At'];
-    
-    // Create CSV rows
-    const rows = jobs.map(job => [
-      escapeCsvValue(job.job_title),
-      escapeCsvValue(job.company),
-      escapeCsvValue(job.location),
-      escapeCsvValue(job.salary),
-      escapeCsvValue(job.job_type),
-      escapeCsvValue(job.remote_type),
-      escapeCsvValue(job.posted_date),
-      escapeCsvValue(job.deadline),
-      escapeCsvValue(job.application_status || 'Saved'),
-      escapeCsvValue(job.url),
-      escapeCsvValue(job.source),
-      escapeCsvValue(job.raw_description),
-      escapeCsvValue(job.about_job),
-      escapeCsvValue(job.about_company),
-      escapeCsvValue(job.responsibilities),
-      escapeCsvValue(job.requirements),
-      escapeCsvValue(job.extracted_at),
-      escapeCsvValue(job.saved_at)
-    ]);
-
-    // Combine headers and rows
-    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-
-    const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `jobs-export-${timestamp}.csv`;
-
-    // Download the file
-    chrome.downloads.download({
-      url: url,
-      filename: filename,
-      saveAs: true
-    });
-
-    showStatus(`Exporting ${jobs.length} jobs as CSV...`, 'success');
-  } catch (error) {
-    console.error('Error exporting CSV:', error);
-    showStatus('Error: ' + error.message, 'error');
-  }
-}
-
-function escapeCsvValue(value) {
-  if (!value) return '';
-  const str = String(value);
-  // If the value contains comma, quote, or newline, wrap it in quotes and escape quotes
-  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
-}
-
-async function clearAllJobs() {
-  if (!confirm('Are you sure you want to delete all saved jobs? This cannot be undone.')) {
-    return;
-  }
-
-  try {
-    await chrome.storage.local.set({ jobs: [] });
-    await updateJobCount();
-    document.getElementById('savedSection').classList.add('hidden');
-    showStatus('All jobs cleared.', 'success');
-  } catch (error) {
-    console.error('Error clearing jobs:', error);
     showStatus('Error: ' + error.message, 'error');
   }
 }

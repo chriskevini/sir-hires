@@ -298,11 +298,125 @@ function filterJobs() {
   renderJobs(filtered);
 }
 
+async function exportJSON() {
+  try {
+    if (allJobs.length === 0) {
+      alert('No jobs to export.');
+      return;
+    }
+
+    const dataStr = JSON.stringify(allJobs, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `jobs-export-${timestamp}.json`;
+
+    // Download the file
+    chrome.downloads.download({
+      url: url,
+      filename: filename,
+      saveAs: true
+    });
+
+    console.log(`Exported ${allJobs.length} jobs as JSON`);
+  } catch (error) {
+    console.error('Error exporting JSON:', error);
+    alert('Error exporting JSON: ' + error.message);
+  }
+}
+
+async function exportCSV() {
+  try {
+    if (allJobs.length === 0) {
+      alert('No jobs to export.');
+      return;
+    }
+
+    // Create CSV headers
+    const headers = ['Job Title', 'Company', 'Location', 'Salary', 'Job Type', 'Remote Type', 'Posted Date', 'Deadline', 'Application Status', 'URL', 'Source', 'Raw Description', 'About the Job', 'About the Company', 'Responsibilities', 'Requirements', 'Extracted At', 'Saved At'];
+    
+    // Create CSV rows
+    const rows = allJobs.map(job => [
+      escapeCsvValue(job.job_title),
+      escapeCsvValue(job.company),
+      escapeCsvValue(job.location),
+      escapeCsvValue(job.salary),
+      escapeCsvValue(job.job_type),
+      escapeCsvValue(job.remote_type),
+      escapeCsvValue(job.posted_date),
+      escapeCsvValue(job.deadline),
+      escapeCsvValue(job.application_status || 'Saved'),
+      escapeCsvValue(job.url),
+      escapeCsvValue(job.source),
+      escapeCsvValue(job.raw_description),
+      escapeCsvValue(job.about_job),
+      escapeCsvValue(job.about_company),
+      escapeCsvValue(job.responsibilities),
+      escapeCsvValue(job.requirements),
+      escapeCsvValue(job.extracted_at),
+      escapeCsvValue(job.saved_at)
+    ]);
+
+    // Combine headers and rows
+    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `jobs-export-${timestamp}.csv`;
+
+    // Download the file
+    chrome.downloads.download({
+      url: url,
+      filename: filename,
+      saveAs: true
+    });
+
+    console.log(`Exported ${allJobs.length} jobs as CSV`);
+  } catch (error) {
+    console.error('Error exporting CSV:', error);
+    alert('Error exporting CSV: ' + error.message);
+  }
+}
+
+function escapeCsvValue(value) {
+  if (!value) return '';
+  const str = String(value);
+  // If the value contains comma, quote, or newline, wrap it in quotes and escape quotes
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+async function clearAllJobs() {
+  if (!confirm('Are you sure you want to delete all saved jobs? This cannot be undone.')) {
+    return;
+  }
+
+  try {
+    await chrome.storage.local.set({ jobs: [] });
+    allJobs = [];
+    document.getElementById('emptyState').classList.remove('hidden');
+    document.getElementById('jobsList').innerHTML = '';
+    updateStats();
+    console.log('All jobs cleared');
+  } catch (error) {
+    console.error('Error clearing jobs:', error);
+    alert('Error clearing jobs: ' + error.message);
+  }
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('searchInput').addEventListener('input', filterJobs);
   document.getElementById('sourceFilter').addEventListener('change', filterJobs);
   document.getElementById('statusFilter').addEventListener('change', filterJobs);
+  document.getElementById('exportJsonBtn').addEventListener('click', exportJSON);
+  document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);
+  document.getElementById('clearAllBtn').addEventListener('click', clearAllJobs);
   
   // Load jobs on page load
   loadJobs();

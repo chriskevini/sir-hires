@@ -24,6 +24,17 @@ sir-hires/
 
 ## Development Workflow
 
+### CRITICAL: Git Commit Policy
+**NEVER commit changes without user testing first.**
+
+When making code changes:
+1. Make the changes
+2. Inform the user that changes are complete (no instructions needed)
+3. Wait for the user to test
+4. Only commit after user explicitly asks you to commit
+
+The user will test the changes and ask you to commit when ready.
+
 ### Testing the Extension
 1. Load the extension in Chrome:
    - Navigate to `chrome://extensions/`

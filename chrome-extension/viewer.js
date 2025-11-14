@@ -74,23 +74,67 @@ function renderJobs(jobs) {
   }
 }
 
+// Helper to format YYYY-MM-DD dates as absolute date strings (e.g., "Jan 15, 2025")
+function formatAbsoluteDate(dateString) {
+  if (!dateString) return '';
+  
+  // If it's YYYY-MM-DD format, parse manually without timezone conversion
+  const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    const [, year, month, day] = match;
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${monthNames[parseInt(month) - 1]} ${parseInt(day)}, ${year}`;
+  }
+  
+  // Fallback: return original string if format is unexpected
+  return dateString;
+}
+
+// Helper to format YYYY-MM-DD dates as relative time (e.g., "3 days ago", "In 5 days")
+function formatRelativeDate(dateString) {
+  if (!dateString) return '';
+  
+  // Parse YYYY-MM-DD manually to avoid timezone issues
+  const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return dateString; // Fallback to original if format unexpected
+  
+  const [, year, month, day] = match;
+  const jobDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Reset to start of day for accurate comparison
+  jobDate.setHours(0, 0, 0, 0);
+  
+  // Calculate difference in days
+  const diffTime = jobDate - today;
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  
+  // Format based on difference
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Tomorrow';
+  if (diffDays === -1) return 'Yesterday';
+  
+  // Future dates (deadlines)
+  if (diffDays > 0) {
+    if (diffDays < 7) return `In ${diffDays} days`;
+    if (diffDays < 14) return 'In 1 week';
+    if (diffDays < 30) return `In ${Math.round(diffDays / 7)} weeks`;
+    if (diffDays < 60) return 'In 1 month';
+    if (diffDays < 365) return `In ${Math.round(diffDays / 30)} months`;
+    return `In ${Math.round(diffDays / 365)} years`;
+  }
+  
+  // Past dates (posted dates)
+  const absDays = Math.abs(diffDays);
+  if (absDays < 7) return `${absDays} days ago`;
+  if (absDays < 14) return '1 week ago';
+  if (absDays < 30) return `${Math.round(absDays / 7)} weeks ago`;
+  if (absDays < 60) return '1 month ago';
+  if (absDays < 365) return `${Math.round(absDays / 30)} months ago`;
+  return `${Math.round(absDays / 365)} years ago`;
+}
+
 function renderNormalJob(job, index) {
-  // Helper to format YYYY-MM-DD dates for display without timezone conversion
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
-    
-    // If it's YYYY-MM-DD format, parse manually without timezone conversion
-    const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (match) {
-      const [, year, month, day] = match;
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      return `${monthNames[parseInt(month) - 1]} ${parseInt(day)}, ${year}`;
-    }
-    
-    // Fallback: return original string if format is unexpected
-    return dateString;
-  };
 
   return `
     <div class="job-card">
@@ -123,8 +167,8 @@ function renderNormalJob(job, index) {
         ${job.salary ? `<div class="job-meta-item">💰 ${escapeHtml(job.salary)}</div>` : ''}
         ${job.job_type ? `<div class="job-meta-item">💼 ${escapeHtml(job.job_type)}</div>` : ''}
         ${job.remote_type && job.remote_type !== 'Not specified' ? `<div class="job-meta-item">${getRemoteIcon(job.remote_type)} ${escapeHtml(job.remote_type)}</div>` : ''}
-        ${job.posted_date ? `<div class="job-meta-item">📅 Posted: ${escapeHtml(formatDate(job.posted_date))}</div>` : ''}
-        ${job.deadline ? `<div class="job-meta-item">⏰ Deadline: ${escapeHtml(formatDate(job.deadline))}</div>` : ''}
+        ${job.posted_date ? `<div class="job-meta-item">📅 Posted: <span title="${escapeHtml(formatAbsoluteDate(job.posted_date))}">${escapeHtml(formatRelativeDate(job.posted_date))}</span></div>` : ''}
+        ${job.deadline ? `<div class="job-meta-item">⏰ Deadline: <span title="${escapeHtml(formatAbsoluteDate(job.deadline))}">${escapeHtml(formatRelativeDate(job.deadline))}</span></div>` : ''}
       </div>
 
       ${job.about_job ? `

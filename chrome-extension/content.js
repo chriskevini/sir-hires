@@ -16,7 +16,6 @@ function extractJobData() {
     about_company: '',
     responsibilities: '',
     requirements: '',
-    extracted_at: new Date().toISOString(),
     source: extractSource()
   };
 
@@ -845,8 +844,7 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
       responsibilities: extracted.responsibilities || '',
       requirements: extracted.requirements || '',
       url: '',  // Will be set by caller
-      source: '', // Will be set by caller
-      extracted_at: '' // Will be set by caller
+      source: '' // Will be set by caller
     };
 
   } catch (error) {
@@ -957,7 +955,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             jobData.raw_description = rawText;  // Store the actual raw text, not LLM summary
             jobData.url = window.location.href;
             jobData.source = extractSource();
-            jobData.extracted_at = new Date().toISOString();
             
             usedLlm = true;
             console.log('[Content] LLM extraction successful');

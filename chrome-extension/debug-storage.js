@@ -42,7 +42,6 @@ async function addTestJob() {
       about_company: 'Test company details',
       responsibilities: 'Test responsibilities',
       requirements: 'Test requirements',
-      extracted_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       application_status: 'Saved'
     });

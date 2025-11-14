@@ -236,8 +236,7 @@ async function saveJobData(event) {
     about_job: document.getElementById('aboutJob').value.trim(),
     about_company: document.getElementById('aboutCompany').value.trim(),
     responsibilities: document.getElementById('responsibilities').value.trim(),
-    requirements: document.getElementById('requirements').value.trim(),
-    extracted_at: currentJobData?.extracted_at || new Date().toISOString()
+    requirements: document.getElementById('requirements').value.trim()
   };
 
   // Validate required fields

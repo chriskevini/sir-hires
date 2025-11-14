@@ -76,19 +76,24 @@ The user will test the changes and ask you to commit when ready.
 Jobs are stored as objects with these fields:
 ```javascript
 {
-  id: string (UUID),
-  title: string,
+  job_title: string,
   company: string,
   location: string,
   salary: string,
-  jobType: string,
-  postedDate: string,
-  description: string,
+  job_type: string,
+  remote_type: string,
+  posted_date: string,
+  deadline: string,
+  application_status: string,
+  status_history: array,
+  url: string,
+  source: string,
+  raw_description: string,
+  about_job: string,
+  about_company: string,
   responsibilities: string,
   requirements: string,
-  url: string,
-  jobBoard: string,
-  extractedAt: timestamp
+  updated_at: timestamp
 }
 ```
 

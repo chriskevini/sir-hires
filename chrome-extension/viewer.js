@@ -1,5 +1,6 @@
 // Viewer script for displaying saved jobs
 let allJobs = [];
+let debugMode = false;
 
 async function loadJobs() {
   console.log('loadJobs() called');
@@ -62,91 +63,7 @@ function renderJobs(jobs) {
   }
 
   try {
-    jobsList.innerHTML = jobs.map((job, index) => `
-      <div class="job-card">
-        <div class="job-header">
-          <div>
-            <div class="job-title">${escapeHtml(job.job_title)}</div>
-            <div class="company">${escapeHtml(job.company)}</div>
-          </div>
-          <div>
-            ${job.source ? `<span class="badge">${escapeHtml(job.source)}</span>` : ''}
-          </div>
-        </div>
-        
-        <div class="status-selector">
-          <label>Status:</label>
-          <select class="status-select" data-index="${index}">
-            <option value="Saved" ${(job.application_status || 'Saved') === 'Saved' ? 'selected' : ''}>Saved</option>
-            <option value="Applied" ${job.application_status === 'Applied' ? 'selected' : ''}>Applied</option>
-            <option value="Screening" ${job.application_status === 'Screening' ? 'selected' : ''}>Screening</option>
-            <option value="Interviewing" ${job.application_status === 'Interviewing' ? 'selected' : ''}>Interviewing</option>
-            <option value="Offer" ${job.application_status === 'Offer' ? 'selected' : ''}>Offer</option>
-            <option value="Accepted" ${job.application_status === 'Accepted' ? 'selected' : ''}>Accepted</option>
-            <option value="Rejected" ${job.application_status === 'Rejected' ? 'selected' : ''}>Rejected</option>
-            <option value="Withdrawn" ${job.application_status === 'Withdrawn' ? 'selected' : ''}>Withdrawn</option>
-          </select>
-        </div>
-        
-        <div class="job-meta">
-          ${job.location ? `<div class="job-meta-item">📍 ${escapeHtml(job.location)}</div>` : ''}
-          ${job.salary ? `<div class="job-meta-item">💰 ${escapeHtml(job.salary)}</div>` : ''}
-          ${job.job_type ? `<div class="job-meta-item">💼 ${escapeHtml(job.job_type)}</div>` : ''}
-          ${job.remote_type && job.remote_type !== 'Not specified' ? `<div class="job-meta-item">${getRemoteIcon(job.remote_type)} ${escapeHtml(job.remote_type)}</div>` : ''}
-          ${job.posted_date ? `<div class="job-meta-item">📅 Posted: ${escapeHtml(job.posted_date)}</div>` : ''}
-          ${job.deadline ? `<div class="job-meta-item">⏰ Deadline: ${escapeHtml(job.deadline)}</div>` : ''}
-        </div>
-
-        ${job.about_job ? `
-          <div class="section">
-            <div class="section-title">About the Job</div>
-            <div class="section-content" id="about-job-${index}">
-              ${escapeHtml(job.about_job)}
-              ${job.about_job.length > 150 ? '<div class="section-fade"></div>' : ''}
-            </div>
-            ${job.about_job.length > 150 ? `<button class="btn-expand" data-section="about-job-${index}" data-index="${index}" data-field="about_job">Show more</button>` : ''}
-          </div>
-        ` : ''}
-
-        ${job.about_company ? `
-          <div class="section">
-            <div class="section-title">About the Company</div>
-            <div class="section-content" id="about-company-${index}">
-              ${escapeHtml(job.about_company)}
-              ${job.about_company.length > 150 ? '<div class="section-fade"></div>' : ''}
-            </div>
-            ${job.about_company.length > 150 ? `<button class="btn-expand" data-section="about-company-${index}" data-index="${index}" data-field="about_company">Show more</button>` : ''}
-          </div>
-        ` : ''}
-
-        ${job.responsibilities ? `
-          <div class="section">
-            <div class="section-title">Responsibilities</div>
-            <div class="section-content" id="resp-${index}">
-              ${escapeHtml(job.responsibilities)}
-              ${job.responsibilities.length > 150 ? '<div class="section-fade"></div>' : ''}
-            </div>
-            ${job.responsibilities.length > 150 ? `<button class="btn-expand" data-section="resp-${index}" data-index="${index}" data-field="responsibilities">Show more</button>` : ''}
-          </div>
-        ` : ''}
-
-        ${job.requirements ? `
-          <div class="section">
-            <div class="section-title">Requirements</div>
-            <div class="section-content" id="req-${index}">
-              ${escapeHtml(job.requirements)}
-              ${job.requirements.length > 150 ? '<div class="section-fade"></div>' : ''}
-            </div>
-            ${job.requirements.length > 150 ? `<button class="btn-expand" data-section="req-${index}" data-index="${index}" data-field="requirements">Show more</button>` : ''}
-          </div>
-        ` : ''}
-
-        <div class="job-actions">
-          ${job.url ? `<button class="btn btn-link" data-url="${escapeHtml(job.url)}">View Job Posting</button>` : ''}
-          <button class="btn btn-delete" data-index="${index}">Delete</button>
-        </div>
-      </div>
-    `).join('');
+    jobsList.innerHTML = jobs.map((job, index) => debugMode ? renderDebugJob(job, index) : renderNormalJob(job, index)).join('');
     console.log('Jobs rendered successfully');
     
     // Add event listeners to dynamically created buttons
@@ -155,6 +72,194 @@ function renderJobs(jobs) {
     console.error('Error rendering jobs:', error);
     jobsList.innerHTML = '<div style="color: red; padding: 20px;">Error rendering jobs: ' + error.message + '</div>';
   }
+}
+
+function renderNormalJob(job, index) {
+  return `
+    <div class="job-card">
+      <div class="job-header">
+        <div>
+          <div class="job-title">${escapeHtml(job.job_title)}</div>
+          <div class="company">${escapeHtml(job.company)}</div>
+        </div>
+        <div>
+          ${job.source ? `<span class="badge">${escapeHtml(job.source)}</span>` : ''}
+        </div>
+      </div>
+      
+      <div class="status-selector">
+        <label>Status:</label>
+        <select class="status-select" data-index="${index}">
+          <option value="Saved" ${(job.application_status || 'Saved') === 'Saved' ? 'selected' : ''}>Saved</option>
+          <option value="Applied" ${job.application_status === 'Applied' ? 'selected' : ''}>Applied</option>
+          <option value="Screening" ${job.application_status === 'Screening' ? 'selected' : ''}>Screening</option>
+          <option value="Interviewing" ${job.application_status === 'Interviewing' ? 'selected' : ''}>Interviewing</option>
+          <option value="Offer" ${job.application_status === 'Offer' ? 'selected' : ''}>Offer</option>
+          <option value="Accepted" ${job.application_status === 'Accepted' ? 'selected' : ''}>Accepted</option>
+          <option value="Rejected" ${job.application_status === 'Rejected' ? 'selected' : ''}>Rejected</option>
+          <option value="Withdrawn" ${job.application_status === 'Withdrawn' ? 'selected' : ''}>Withdrawn</option>
+        </select>
+      </div>
+      
+      <div class="job-meta">
+        ${job.location ? `<div class="job-meta-item">📍 ${escapeHtml(job.location)}</div>` : ''}
+        ${job.salary ? `<div class="job-meta-item">💰 ${escapeHtml(job.salary)}</div>` : ''}
+        ${job.job_type ? `<div class="job-meta-item">💼 ${escapeHtml(job.job_type)}</div>` : ''}
+        ${job.remote_type && job.remote_type !== 'Not specified' ? `<div class="job-meta-item">${getRemoteIcon(job.remote_type)} ${escapeHtml(job.remote_type)}</div>` : ''}
+        ${job.posted_date ? `<div class="job-meta-item">📅 Posted: ${escapeHtml(job.posted_date)}</div>` : ''}
+        ${job.deadline ? `<div class="job-meta-item">⏰ Deadline: ${escapeHtml(job.deadline)}</div>` : ''}
+      </div>
+
+      ${job.about_job ? `
+        <div class="section">
+          <div class="section-title">About the Job</div>
+          <div class="section-content" id="about-job-${index}">
+            ${escapeHtml(job.about_job)}
+            ${job.about_job.length > 150 ? '<div class="section-fade"></div>' : ''}
+          </div>
+          ${job.about_job.length > 150 ? `<button class="btn-expand" data-section="about-job-${index}" data-index="${index}" data-field="about_job">Show more</button>` : ''}
+        </div>
+      ` : ''}
+
+      ${job.about_company ? `
+        <div class="section">
+          <div class="section-title">About the Company</div>
+          <div class="section-content" id="about-company-${index}">
+            ${escapeHtml(job.about_company)}
+            ${job.about_company.length > 150 ? '<div class="section-fade"></div>' : ''}
+          </div>
+          ${job.about_company.length > 150 ? `<button class="btn-expand" data-section="about-company-${index}" data-index="${index}" data-field="about_company">Show more</button>` : ''}
+        </div>
+      ` : ''}
+
+      ${job.responsibilities ? `
+        <div class="section">
+          <div class="section-title">Responsibilities</div>
+          <div class="section-content" id="resp-${index}">
+            ${escapeHtml(job.responsibilities)}
+            ${job.responsibilities.length > 150 ? '<div class="section-fade"></div>' : ''}
+          </div>
+          ${job.responsibilities.length > 150 ? `<button class="btn-expand" data-section="resp-${index}" data-index="${index}" data-field="responsibilities">Show more</button>` : ''}
+        </div>
+      ` : ''}
+
+      ${job.requirements ? `
+        <div class="section">
+          <div class="section-title">Requirements</div>
+          <div class="section-content" id="req-${index}">
+            ${escapeHtml(job.requirements)}
+            ${job.requirements.length > 150 ? '<div class="section-fade"></div>' : ''}
+          </div>
+          ${job.requirements.length > 150 ? `<button class="btn-expand" data-section="req-${index}" data-index="${index}" data-field="requirements">Show more</button>` : ''}
+        </div>
+      ` : ''}
+
+      <div class="job-actions">
+        ${job.url ? `<button class="btn btn-link" data-url="${escapeHtml(job.url)}">View Job Posting</button>` : ''}
+        <button class="btn btn-delete" data-index="${index}">Delete</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderDebugJob(job, index) {
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    try {
+      return new Date(dateStr).toLocaleString();
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const formatValue = (value) => {
+    if (value === null || value === undefined || value === '') return 'N/A';
+    return escapeHtml(String(value));
+  };
+
+  return `
+    <div class="job-card">
+      <div class="debug-info">
+        <div class="debug-info-row">
+          <span class="debug-label">job_title:</span>
+          <span class="debug-value">${formatValue(job.job_title)}</span>
+        </div>
+        <div class="debug-info-row">
+          <span class="debug-label">company:</span>
+          <span class="debug-value">${formatValue(job.company)}</span>
+        </div>
+        <div class="debug-info-row">
+          <span class="debug-label">location:</span>
+          <span class="debug-value">${formatValue(job.location)}</span>
+        </div>
+        <div class="debug-info-row">
+          <span class="debug-label">salary:</span>
+          <span class="debug-value">${formatValue(job.salary)}</span>
+        </div>
+        <div class="debug-info-row">
+          <span class="debug-label">job_type:</span>
+          <span class="debug-value">${formatValue(job.job_type)}</span>
+        </div>
+        <div class="debug-info-row">
+          <span class="debug-label">remote_type:</span>
+          <span class="debug-value">${formatValue(job.remote_type)}</span>
+        </div>
+        <div class="debug-info-row">
+          <span class="debug-label">posted_date:</span>
+          <span class="debug-value">${formatValue(job.posted_date)}</span>
+        </div>
+        <div class="debug-info-row">
+          <span class="debug-label">deadline:</span>
+          <span class="debug-value">${formatValue(job.deadline)}</span>
+        </div>
+        <div class="debug-info-row">
+          <span class="debug-label">application_status:</span>
+          <span class="debug-value">${formatValue(job.application_status)}</span>
+        </div>
+        <div class="debug-info-row">
+          <span class="debug-label">url:</span>
+          <span class="debug-value">${formatValue(job.url)}</span>
+        </div>
+        <div class="debug-info-row">
+          <span class="debug-label">source:</span>
+          <span class="debug-value">${formatValue(job.source)}</span>
+        </div>
+        <div class="debug-info-row">
+          <span class="debug-label">about_job:</span>
+          <span class="debug-value">${formatValue(job.about_job)}</span>
+        </div>
+        <div class="debug-info-row">
+          <span class="debug-label">about_company:</span>
+          <span class="debug-value">${formatValue(job.about_company)}</span>
+        </div>
+        <div class="debug-info-row">
+          <span class="debug-label">responsibilities:</span>
+          <span class="debug-value">${formatValue(job.responsibilities)}</span>
+        </div>
+        <div class="debug-info-row">
+          <span class="debug-label">requirements:</span>
+          <span class="debug-value">${formatValue(job.requirements)}</span>
+        </div>
+        <div class="debug-info-row">
+          <span class="debug-label">raw_description:</span>
+          <span class="debug-value">${formatValue(job.raw_description)}</span>
+        </div>
+        <div class="debug-info-row">
+          <span class="debug-label">updated_at:</span>
+          <span class="debug-value">${formatDate(job.updated_at)}</span>
+        </div>
+        <div class="debug-info-row">
+          <span class="debug-label">status_history:</span>
+          <span class="debug-value">${job.status_history ? JSON.stringify(job.status_history) : 'N/A'}</span>
+        </div>
+      </div>
+      
+      <div class="job-actions">
+        ${job.url ? `<button class="btn btn-link" data-url="${escapeHtml(job.url)}">View Job Posting</button>` : ''}
+        <button class="btn btn-delete" data-index="${index}">Delete</button>
+      </div>
+    </div>
+  `;
 }
 
 function attachButtonListeners() {
@@ -334,7 +439,7 @@ async function exportCSV() {
     }
 
     // Create CSV headers
-    const headers = ['Job Title', 'Company', 'Location', 'Salary', 'Job Type', 'Remote Type', 'Posted Date', 'Deadline', 'Application Status', 'URL', 'Source', 'Raw Description', 'About the Job', 'About the Company', 'Responsibilities', 'Requirements', 'Extracted At', 'Updated At'];
+    const headers = ['Job Title', 'Company', 'Location', 'Salary', 'Job Type', 'Remote Type', 'Posted Date', 'Deadline', 'Application Status', 'URL', 'Source', 'Raw Description', 'About the Job', 'About the Company', 'Responsibilities', 'Requirements', 'Updated At'];
     
     // Create CSV rows
     const rows = allJobs.map(job => [
@@ -354,7 +459,6 @@ async function exportCSV() {
       escapeCsvValue(job.about_company),
       escapeCsvValue(job.responsibilities),
       escapeCsvValue(job.requirements),
-      escapeCsvValue(job.extracted_at),
       escapeCsvValue(job.updated_at)
     ]);
 
@@ -409,11 +513,26 @@ async function clearAllJobs() {
   }
 }
 
+function toggleDebugMode() {
+  debugMode = document.getElementById('debugToggle').checked;
+  
+  // Toggle body class for compact styling
+  if (debugMode) {
+    document.body.classList.add('debug-mode');
+  } else {
+    document.body.classList.remove('debug-mode');
+  }
+  
+  // Re-render jobs with debug info
+  filterJobs();
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('searchInput').addEventListener('input', filterJobs);
   document.getElementById('sourceFilter').addEventListener('change', filterJobs);
   document.getElementById('statusFilter').addEventListener('change', filterJobs);
+  document.getElementById('debugToggle').addEventListener('change', toggleDebugMode);
   document.getElementById('exportJsonBtn').addEventListener('click', exportJSON);
   document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);
   document.getElementById('clearAllBtn').addEventListener('click', clearAllJobs);

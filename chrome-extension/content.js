@@ -844,10 +844,10 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
       "remote_type": ["Remote", "Hybrid", "On-site", "Not specified"],
       "posted_date": "verbatim-string",
       "deadline": "verbatim-string",
-      "about_job": "string",
-      "about_company": "string",
-      "responsibilities": "string",
-      "requirements": "string"
+      "about_job": "verbatim-string",
+      "about_company": "verbatim-string",
+      "responsibilities": "verbatim-string",
+      "requirements": "verbatim-string"
     };
 
     // Format for NuExtract: use the template in the prompt structure

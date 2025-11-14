@@ -437,6 +437,7 @@ function filterJobs() {
   const searchTerm = document.getElementById('searchInput').value.toLowerCase();
   const sourceFilter = document.getElementById('sourceFilter').value;
   const statusFilter = document.getElementById('statusFilter').value;
+  const sortFilter = document.getElementById('sortFilter').value;
 
   let filtered = allJobs;
 
@@ -461,7 +462,94 @@ function filterJobs() {
     filtered = filtered.filter(job => (job.application_status || 'Saved') === statusFilter);
   }
 
+  // Apply sorting
+  filtered = sortJobs(filtered, sortFilter);
+
   renderJobs(filtered);
+}
+
+function sortJobs(jobs, sortBy) {
+  const sorted = [...jobs]; // Create a copy to avoid mutating the original array
+  
+  switch(sortBy) {
+    case 'newest':
+      sorted.sort((a, b) => {
+        const dateA = a.updated_at || a.posted_date || '';
+        const dateB = b.updated_at || b.posted_date || '';
+        return dateB.localeCompare(dateA);
+      });
+      break;
+    
+    case 'oldest':
+      sorted.sort((a, b) => {
+        const dateA = a.updated_at || a.posted_date || '';
+        const dateB = b.updated_at || b.posted_date || '';
+        return dateA.localeCompare(dateB);
+      });
+      break;
+    
+    case 'deadline-soon':
+      sorted.sort((a, b) => {
+        // Jobs with deadlines come first, then by date ascending
+        if (!a.deadline && !b.deadline) return 0;
+        if (!a.deadline) return 1; // Move jobs without deadline to end
+        if (!b.deadline) return -1; // Move jobs without deadline to end
+        return a.deadline.localeCompare(b.deadline);
+      });
+      break;
+    
+    case 'deadline-latest':
+      sorted.sort((a, b) => {
+        // Jobs with deadlines come first, then by date descending
+        if (!a.deadline && !b.deadline) return 0;
+        if (!a.deadline) return 1; // Move jobs without deadline to end
+        if (!b.deadline) return -1; // Move jobs without deadline to end
+        return b.deadline.localeCompare(a.deadline);
+      });
+      break;
+    
+    case 'company-az':
+      sorted.sort((a, b) => {
+        const companyA = (a.company || '').toLowerCase();
+        const companyB = (b.company || '').toLowerCase();
+        return companyA.localeCompare(companyB);
+      });
+      break;
+    
+    case 'company-za':
+      sorted.sort((a, b) => {
+        const companyA = (a.company || '').toLowerCase();
+        const companyB = (b.company || '').toLowerCase();
+        return companyB.localeCompare(companyA);
+      });
+      break;
+    
+    case 'title-az':
+      sorted.sort((a, b) => {
+        const titleA = (a.job_title || '').toLowerCase();
+        const titleB = (b.job_title || '').toLowerCase();
+        return titleA.localeCompare(titleB);
+      });
+      break;
+    
+    case 'title-za':
+      sorted.sort((a, b) => {
+        const titleA = (a.job_title || '').toLowerCase();
+        const titleB = (b.job_title || '').toLowerCase();
+        return titleB.localeCompare(titleA);
+      });
+      break;
+    
+    default:
+      // Default to newest first
+      sorted.sort((a, b) => {
+        const dateA = a.updated_at || a.posted_date || '';
+        const dateB = b.updated_at || b.posted_date || '';
+        return dateB.localeCompare(dateA);
+      });
+  }
+  
+  return sorted;
 }
 
 async function exportJSON() {
@@ -593,6 +681,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('searchInput').addEventListener('input', filterJobs);
   document.getElementById('sourceFilter').addEventListener('change', filterJobs);
   document.getElementById('statusFilter').addEventListener('change', filterJobs);
+  document.getElementById('sortFilter').addEventListener('change', filterJobs);
   document.getElementById('debugToggle').addEventListener('change', toggleDebugMode);
   document.getElementById('exportJsonBtn').addEventListener('click', exportJSON);
   document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);

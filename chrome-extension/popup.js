@@ -136,6 +136,7 @@ function populateForm(data) {
   document.getElementById('aboutCompany').value = data.about_company || '';
   document.getElementById('responsibilities').value = data.responsibilities || '';
   document.getElementById('requirements').value = data.requirements || '';
+  document.getElementById('notes').value = data.notes || '';
 }
 
 // Helper function to convert date string to YYYY-MM-DD for date input
@@ -271,7 +272,8 @@ async function saveJobData(event) {
     about_job: document.getElementById('aboutJob').value.trim(),
     about_company: document.getElementById('aboutCompany').value.trim(),
     responsibilities: document.getElementById('responsibilities').value.trim(),
-    requirements: document.getElementById('requirements').value.trim()
+    requirements: document.getElementById('requirements').value.trim(),
+    notes: document.getElementById('notes').value.trim()
   };
 
   // Validate required fields

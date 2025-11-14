@@ -93,6 +93,7 @@ Jobs are stored as objects with these fields:
   about_company: string,
   responsibilities: string,
   requirements: string,
+  notes: string,
   updated_at: string (ISO 8601 timestamp with time)
 }
 ```

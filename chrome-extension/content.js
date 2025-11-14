@@ -16,6 +16,7 @@ function extractJobData() {
     about_company: '',
     responsibilities: '',
     requirements: '',
+    notes: '',
     source: extractSource()
   };
 
@@ -934,6 +935,7 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
       about_company: extracted.about_company || '',
       responsibilities: extracted.responsibilities || '',
       requirements: extracted.requirements || '',
+      notes: '',  // User-generated field, not extracted from page
       url: '',  // Will be set by caller
       source: '' // Will be set by caller
     };

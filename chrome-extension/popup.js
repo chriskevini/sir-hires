@@ -6,6 +6,7 @@ let currentJobData = null;
 document.addEventListener('DOMContentLoaded', async () => {
   await updateJobCount();
   await loadSettings();
+  await checkCurrentPageDuplicate();
   setupEventListeners();
 });
 
@@ -143,6 +144,56 @@ function hideDataSection() {
   document.getElementById('dataSection').classList.add('hidden');
 }
 
+// Check if a job with the same URL already exists
+async function checkDuplicateJob(url) {
+  if (!url) return false;
+  
+  try {
+    const result = await chrome.storage.local.get(['jobs']);
+    const jobs = result.jobs || [];
+    
+    // Normalize URLs for comparison (remove trailing slashes, query params that might differ)
+    const normalizeUrl = (u) => {
+      try {
+        const urlObj = new URL(u);
+        // Keep protocol, host, and pathname, ignore search params and hash
+        return urlObj.origin + urlObj.pathname.replace(/\/$/, '');
+      } catch {
+        return u.trim().toLowerCase();
+      }
+    };
+    
+    const normalizedUrl = normalizeUrl(url);
+    return jobs.some(job => normalizeUrl(job.url) === normalizedUrl);
+  } catch (error) {
+    console.error('Error checking for duplicate job:', error);
+    return false;
+  }
+}
+
+// Check if the current page URL is already saved (runs on popup load)
+async function checkCurrentPageDuplicate() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    // Skip Chrome internal pages
+    if (!tab || !tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+      return;
+    }
+    
+    const isDuplicate = await checkDuplicateJob(tab.url);
+    const duplicateBadge = document.getElementById('duplicateWarning');
+    
+    if (isDuplicate && duplicateBadge) {
+      duplicateBadge.classList.remove('hidden');
+    } else if (duplicateBadge) {
+      duplicateBadge.classList.add('hidden');
+    }
+  } catch (error) {
+    console.error('Error checking current page for duplicate:', error);
+  }
+}
+
 async function saveJobData(event) {
   event.preventDefault();
 
@@ -175,6 +226,16 @@ async function saveJobData(event) {
     // Get existing jobs from storage
     const result = await chrome.storage.local.get(['jobs']);
     const jobs = result.jobs || [];
+
+    // Check for duplicate (warn but allow saving)
+    const isDuplicate = await checkDuplicateJob(jobData.url);
+    if (isDuplicate) {
+      const confirmSave = confirm('This job URL already exists in your saved jobs. Do you want to save it again anyway?');
+      if (!confirmSave) {
+        showStatus('Save cancelled - job already exists.', 'info');
+        return;
+      }
+    }
 
     // Add new job
     jobs.push(jobData);

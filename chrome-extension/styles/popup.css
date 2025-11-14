@@ -258,3 +258,37 @@ h2 {
 #settingsSection .button-group {
   margin-top: 16px;
 }
+
+/* Duplicate warning in extract section */
+.duplicate-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  animation: slideDown 0.3s ease-out;
+}
+
+.duplicate-warning .warning-icon {
+  font-size: 16px;
+}
+
+.duplicate-warning .warning-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: #856404;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

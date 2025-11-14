@@ -1,5 +1,7 @@
 // Viewer script for displaying saved jobs
 let allJobs = [];
+let filteredJobs = [];
+let selectedJobIndex = -1;
 let debugMode = false;
 
 async function loadJobs() {
@@ -14,12 +16,14 @@ async function loadJobs() {
     if (allJobs.length === 0) {
       console.log('No jobs found, showing empty state');
       document.getElementById('emptyState').classList.remove('hidden');
+      document.querySelector('.main-content').style.display = 'none';
       document.getElementById('jobsList').innerHTML = '';
     } else {
       console.log('Jobs found, rendering...');
       document.getElementById('emptyState').classList.add('hidden');
+      document.querySelector('.main-content').style.display = 'flex';
       populateSourceFilter();
-      renderJobs(allJobs);
+      filterJobs(); // This will render sidebar and select first job
     }
     
     updateStats();
@@ -50,6 +54,25 @@ function populateSourceFilter() {
 
 function renderJobs(jobs) {
   console.log('renderJobs() called with', jobs.length, 'jobs');
+  filteredJobs = jobs;
+  renderSidebar(jobs);
+  
+  // Auto-select first job if none selected or selected job no longer exists
+  if (jobs.length > 0) {
+    if (selectedJobIndex === -1 || selectedJobIndex >= jobs.length) {
+      selectJob(0);
+    } else {
+      // Re-render the currently selected job
+      selectJob(selectedJobIndex);
+    }
+  } else {
+    document.getElementById('detailPanel').innerHTML = '<div class="detail-panel-empty">No jobs match your filters</div>';
+    selectedJobIndex = -1;
+  }
+}
+
+function renderSidebar(jobs) {
+  console.log('renderSidebar() called with', jobs.length, 'jobs');
   const jobsList = document.getElementById('jobsList');
   
   if (!jobsList) {
@@ -58,19 +81,71 @@ function renderJobs(jobs) {
   }
   
   if (jobs.length === 0) {
-    jobsList.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No jobs match your filters.</div>';
+    jobsList.innerHTML = '<div style="text-align: center; padding: 20px; color: #666; font-size: 13px;">No jobs found</div>';
     return;
   }
 
   try {
-    jobsList.innerHTML = jobs.map((job, index) => debugMode ? renderDebugJob(job, index) : renderNormalJob(job, index)).join('');
-    console.log('Jobs rendered successfully');
+    jobsList.innerHTML = jobs.map((job, index) => renderCompactJobCard(job, index)).join('');
+    console.log('Sidebar rendered successfully');
+  } catch (error) {
+    console.error('Error rendering sidebar:', error);
+    jobsList.innerHTML = '<div style="color: red; padding: 20px;">Error rendering jobs: ' + error.message + '</div>';
+  }
+}
+
+function renderCompactJobCard(job, index) {
+  const status = job.application_status || 'Saved';
+  const isActive = index === selectedJobIndex;
+  
+  return `
+    <div class="job-card-compact ${isActive ? 'active' : ''}" data-index="${index}">
+      <div class="job-title-compact">${escapeHtml(job.job_title)}</div>
+      <div class="company-compact">${escapeHtml(job.company)}</div>
+      <div class="meta-compact">
+        ${status !== 'Saved' ? `<span class="status-badge-compact status-${status}">${status}</span>` : ''}
+        ${job.deadline ? `<span>⏰ ${escapeHtml(formatRelativeDate(job.deadline))}</span>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function selectJob(index) {
+  console.log('selectJob() called with index:', index);
+  selectedJobIndex = index;
+  
+  // Update active state in sidebar
+  document.querySelectorAll('.job-card-compact').forEach((card, i) => {
+    if (i === index) {
+      card.classList.add('active');
+    } else {
+      card.classList.remove('active');
+    }
+  });
+  
+  // Render job detail
+  const job = filteredJobs[index];
+  const globalIndex = allJobs.indexOf(job);
+  renderJobDetail(job, globalIndex);
+}
+
+function renderJobDetail(job, index) {
+  console.log('renderJobDetail() called for job at index:', index);
+  const detailPanel = document.getElementById('detailPanel');
+  
+  if (!detailPanel) {
+    console.error('detailPanel element not found!');
+    return;
+  }
+  
+  try {
+    detailPanel.innerHTML = debugMode ? renderDebugJob(job, index) : renderNormalJob(job, index);
     
-    // Add event listeners to dynamically created buttons
+    // Attach event listeners to the detail panel buttons
     attachButtonListeners();
   } catch (error) {
-    console.error('Error rendering jobs:', error);
-    jobsList.innerHTML = '<div style="color: red; padding: 20px;">Error rendering jobs: ' + error.message + '</div>';
+    console.error('Error rendering job detail:', error);
+    detailPanel.innerHTML = '<div style="color: red; padding: 20px;">Error rendering job detail: ' + error.message + '</div>';
   }
 }
 
@@ -690,8 +765,12 @@ function toggleDebugMode() {
     document.body.classList.remove('debug-mode');
   }
   
-  // Re-render jobs with debug info
-  filterJobs();
+  // Re-render the selected job detail
+  if (selectedJobIndex >= 0 && selectedJobIndex < filteredJobs.length) {
+    const job = filteredJobs[selectedJobIndex];
+    const globalIndex = allJobs.indexOf(job);
+    renderJobDetail(job, globalIndex);
+  }
 }
 
 // Event listeners
@@ -704,6 +783,17 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('exportJsonBtn').addEventListener('click', exportJSON);
   document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);
   document.getElementById('clearAllBtn').addEventListener('click', clearAllJobs);
+  
+  // Event delegation for sidebar job cards
+  document.getElementById('jobsList').addEventListener('click', function(event) {
+    const card = event.target.closest('.job-card-compact');
+    if (card) {
+      const index = parseInt(card.dataset.index);
+      if (!isNaN(index)) {
+        selectJob(index);
+      }
+    }
+  });
   
   // Load jobs on page load
   loadJobs();

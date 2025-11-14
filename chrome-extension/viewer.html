@@ -13,35 +13,37 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       background-color: #f5f5f5;
-      padding: 20px;
+      padding: 0;
+      margin: 0;
     }
 
     .container {
-      max-width: 1200px;
-      margin: 0 auto;
+      max-width: 100%;
+      height: 100vh;
+      margin: 0;
       background-color: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      padding: 24px;
+      display: flex;
+      flex-direction: column;
     }
 
     header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 24px;
-      padding-bottom: 16px;
+      padding: 16px 24px;
       border-bottom: 2px solid #e0e0e0;
+      background-color: white;
+      flex-shrink: 0;
     }
 
     h1 {
-      font-size: 24px;
+      font-size: 20px;
       color: #1a73e8;
     }
 
     .stats {
       color: #666;
-      font-size: 14px;
+      font-size: 13px;
     }
 
     .header-actions {
@@ -81,15 +83,16 @@
     }
 
     .job-card {
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 16px;
-      transition: box-shadow 0.2s;
+      border: none;
+      border-radius: 0;
+      padding: 0;
+      margin-bottom: 0;
+      transition: none;
+      box-shadow: none;
     }
 
     .job-card:hover {
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      box-shadow: none;
     }
 
     .job-header {
@@ -436,6 +439,164 @@
     .btn-save-notes:hover {
       background-color: #2d8e47;
     }
+
+    /* Main content layout */
+    .main-content {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Sidebar styles */
+    .sidebar {
+      width: 320px;
+      border-right: 1px solid #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      background-color: #f9f9f9;
+      flex-shrink: 0;
+    }
+
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid #e0e0e0;
+      background-color: white;
+    }
+
+    .filters {
+      margin-bottom: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .filter-input {
+      padding: 8px 12px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 13px;
+      width: 100%;
+    }
+
+    .jobs-list-sidebar {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    /* Compact job card for sidebar */
+    .job-card-compact {
+      background-color: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .job-card-compact:hover {
+      background-color: #f0f7ff;
+      border-color: #1a73e8;
+    }
+
+    .job-card-compact.active {
+      background-color: #e8f0fe;
+      border-color: #1a73e8;
+      box-shadow: 0 2px 4px rgba(26, 115, 232, 0.2);
+    }
+
+    .job-card-compact .job-title-compact {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    .job-card-compact .company-compact {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 6px;
+    }
+
+    .job-card-compact .meta-compact {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 11px;
+      color: #888;
+    }
+
+    .job-card-compact .status-badge-compact {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    /* Status badge colors for compact cards */
+    .status-badge-compact.status-Saved {
+      background-color: #e8f0fe;
+      color: #1967d2;
+    }
+
+    .status-badge-compact.status-Applied {
+      background-color: #e6f4ea;
+      color: #137333;
+    }
+
+    .status-badge-compact.status-Screening {
+      background-color: #fef7e0;
+      color: #ea8600;
+    }
+
+    .status-badge-compact.status-Interviewing {
+      background-color: #fce8e6;
+      color: #c5221f;
+    }
+
+    .status-badge-compact.status-Offer {
+      background-color: #f3e8fd;
+      color: #7627bb;
+    }
+
+    .status-badge-compact.status-Accepted {
+      background-color: #ceead6;
+      color: #0d652d;
+    }
+
+    .status-badge-compact.status-Rejected {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .status-badge-compact.status-Withdrawn {
+      background-color: #e2e3e5;
+      color: #383d41;
+    }
+
+    /* Detail panel styles */
+    .detail-panel {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      background-color: white;
+    }
+
+    .detail-panel-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: #999;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -454,40 +615,51 @@
       </div>
     </header>
 
-    <div class="filters">
-      <input type="text" id="searchInput" class="filter-input" placeholder="Search jobs...">
-      <select id="sourceFilter" class="filter-input">
-        <option value="">All Sources</option>
-      </select>
-      <select id="statusFilter" class="filter-input">
-        <option value="">All Statuses</option>
-        <option value="Saved">Saved</option>
-        <option value="Applied">Applied</option>
-        <option value="Screening">Screening</option>
-        <option value="Interviewing">Interviewing</option>
-        <option value="Offer">Offer</option>
-        <option value="Accepted">Accepted</option>
-        <option value="Rejected">Rejected</option>
-        <option value="Withdrawn">Withdrawn</option>
-      </select>
-      <select id="sortFilter" class="filter-input">
-        <option value="newest">Newest First</option>
-        <option value="oldest">Oldest First</option>
-        <option value="deadline-soon">Deadline Soonest</option>
-        <option value="deadline-latest">Deadline Latest</option>
-        <option value="company-az">Company A-Z</option>
-        <option value="company-za">Company Z-A</option>
-        <option value="title-az">Job Title A-Z</option>
-        <option value="title-za">Job Title Z-A</option>
-      </select>
-      <label class="debug-toggle">
-        <input type="checkbox" id="debugToggle">
-        <span>Debug Mode</span>
-      </label>
+    <div class="main-content">
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <div class="filters">
+            <input type="text" id="searchInput" class="filter-input" placeholder="Search jobs...">
+            <select id="sourceFilter" class="filter-input">
+              <option value="">All Sources</option>
+            </select>
+            <select id="statusFilter" class="filter-input">
+              <option value="">All Statuses</option>
+              <option value="Saved">Saved</option>
+              <option value="Applied">Applied</option>
+              <option value="Screening">Screening</option>
+              <option value="Interviewing">Interviewing</option>
+              <option value="Offer">Offer</option>
+              <option value="Accepted">Accepted</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Withdrawn">Withdrawn</option>
+            </select>
+            <select id="sortFilter" class="filter-input">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="deadline-soon">Deadline Soonest</option>
+              <option value="deadline-latest">Deadline Latest</option>
+              <option value="company-az">Company A-Z</option>
+              <option value="company-za">Company Z-A</option>
+              <option value="title-az">Job Title A-Z</option>
+              <option value="title-za">Job Title Z-A</option>
+            </select>
+            <label class="debug-toggle">
+              <input type="checkbox" id="debugToggle">
+              <span>Debug Mode</span>
+            </label>
+          </div>
+        </div>
+        <div class="jobs-list-sidebar" id="jobsList"></div>
+      </div>
+
+      <div class="detail-panel" id="detailPanel">
+        <div class="detail-panel-empty">
+          Select a job to view details
+        </div>
+      </div>
     </div>
 
-    <div id="jobsList"></div>
-    
     <div id="emptyState" class="empty-state hidden">
       <h2>No saved jobs yet</h2>
       <p>Start by visiting a job posting and clicking the extension icon to extract and save job data.</p>

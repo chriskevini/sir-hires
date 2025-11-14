@@ -230,6 +230,11 @@ async function saveJobData(event) {
     job_type: document.getElementById('jobType').value.trim(),
     remote_type: document.getElementById('remoteType').value.trim(),
     posted_date: document.getElementById('postedDate').value.trim(),
+    application_status: 'Saved', // Default status for new jobs
+    status_history: [{
+      status: 'Saved',
+      date: new Date().toISOString()
+    }],
     url: document.getElementById('url').value.trim(),
     source: document.getElementById('source').value.trim(),
     raw_description: document.getElementById('rawDescription').value.trim(),
@@ -364,7 +369,7 @@ async function exportCSV() {
     }
 
     // Create CSV headers
-    const headers = ['Job Title', 'Company', 'Location', 'Salary', 'Job Type', 'Remote Type', 'Posted Date', 'URL', 'Source', 'Raw Description', 'About the Job', 'About the Company', 'Responsibilities', 'Requirements', 'Extracted At', 'Saved At'];
+    const headers = ['Job Title', 'Company', 'Location', 'Salary', 'Job Type', 'Remote Type', 'Posted Date', 'Application Status', 'URL', 'Source', 'Raw Description', 'About the Job', 'About the Company', 'Responsibilities', 'Requirements', 'Extracted At', 'Saved At'];
     
     // Create CSV rows
     const rows = jobs.map(job => [
@@ -375,6 +380,7 @@ async function exportCSV() {
       escapeCsvValue(job.job_type),
       escapeCsvValue(job.remote_type),
       escapeCsvValue(job.posted_date),
+      escapeCsvValue(job.application_status || 'Saved'),
       escapeCsvValue(job.url),
       escapeCsvValue(job.source),
       escapeCsvValue(job.raw_description),

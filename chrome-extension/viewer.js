@@ -69,7 +69,23 @@ function renderJobs(jobs) {
             <div class="job-title">${escapeHtml(job.job_title)}</div>
             <div class="company">${escapeHtml(job.company)}</div>
           </div>
-          ${job.source ? `<span class="badge">${escapeHtml(job.source)}</span>` : ''}
+          <div>
+            ${job.source ? `<span class="badge">${escapeHtml(job.source)}</span>` : ''}
+          </div>
+        </div>
+        
+        <div class="status-selector">
+          <label>Status:</label>
+          <select class="status-select" data-index="${index}">
+            <option value="Saved" ${(job.application_status || 'Saved') === 'Saved' ? 'selected' : ''}>Saved</option>
+            <option value="Applied" ${job.application_status === 'Applied' ? 'selected' : ''}>Applied</option>
+            <option value="Screening" ${job.application_status === 'Screening' ? 'selected' : ''}>Screening</option>
+            <option value="Interviewing" ${job.application_status === 'Interviewing' ? 'selected' : ''}>Interviewing</option>
+            <option value="Offer" ${job.application_status === 'Offer' ? 'selected' : ''}>Offer</option>
+            <option value="Accepted" ${job.application_status === 'Accepted' ? 'selected' : ''}>Accepted</option>
+            <option value="Rejected" ${job.application_status === 'Rejected' ? 'selected' : ''}>Rejected</option>
+            <option value="Withdrawn" ${job.application_status === 'Withdrawn' ? 'selected' : ''}>Withdrawn</option>
+          </select>
         </div>
         
         <div class="job-meta">
@@ -166,6 +182,15 @@ function attachButtonListeners() {
       deleteJob(index);
     });
   });
+
+  // Attach listeners to status selectors
+  document.querySelectorAll('.status-select').forEach(select => {
+    select.addEventListener('change', function() {
+      const index = parseInt(this.dataset.index);
+      const newStatus = this.value;
+      updateJobStatus(index, newStatus);
+    });
+  });
 }
 
 function escapeHtml(text) {
@@ -214,9 +239,37 @@ async function deleteJob(index) {
   await loadJobs();
 }
 
+async function updateJobStatus(index, newStatus) {
+  const job = allJobs[index];
+  const oldStatus = job.application_status || 'Saved';
+  
+  // Update the status
+  job.application_status = newStatus;
+  
+  // Update or initialize status history
+  if (!job.status_history) {
+    job.status_history = [{
+      status: oldStatus,
+      date: job.saved_at || new Date().toISOString()
+    }];
+  }
+  
+  // Add new status to history
+  job.status_history.push({
+    status: newStatus,
+    date: new Date().toISOString()
+  });
+  
+  // Save to storage
+  await chrome.storage.local.set({ jobs: allJobs });
+  
+  console.log(`Updated job status from ${oldStatus} to ${newStatus}`);
+}
+
 function filterJobs() {
   const searchTerm = document.getElementById('searchInput').value.toLowerCase();
   const sourceFilter = document.getElementById('sourceFilter').value;
+  const statusFilter = document.getElementById('statusFilter').value;
 
   let filtered = allJobs;
 
@@ -237,6 +290,10 @@ function filterJobs() {
     filtered = filtered.filter(job => job.source === sourceFilter);
   }
 
+  if (statusFilter) {
+    filtered = filtered.filter(job => (job.application_status || 'Saved') === statusFilter);
+  }
+
   renderJobs(filtered);
 }
 
@@ -244,6 +301,7 @@ function filterJobs() {
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('searchInput').addEventListener('input', filterJobs);
   document.getElementById('sourceFilter').addEventListener('change', filterJobs);
+  document.getElementById('statusFilter').addEventListener('change', filterJobs);
   
   // Load jobs on page load
   loadJobs();

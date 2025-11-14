@@ -101,6 +101,86 @@
       font-weight: 500;
     }
 
+    .status-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-Saved {
+      background-color: #e8f0fe;
+      color: #1967d2;
+    }
+
+    .status-Applied {
+      background-color: #e6f4ea;
+      color: #137333;
+    }
+
+    .status-Screening {
+      background-color: #fef7e0;
+      color: #ea8600;
+    }
+
+    .status-Interviewing {
+      background-color: #fce8e6;
+      color: #c5221f;
+    }
+
+    .status-Offer {
+      background-color: #f3e8fd;
+      color: #7627bb;
+    }
+
+    .status-Accepted {
+      background-color: #ceead6;
+      color: #0d652d;
+    }
+
+    .status-Rejected {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    .status-Withdrawn {
+      background-color: #e2e3e5;
+      color: #383d41;
+    }
+
+    .status-selector {
+      margin-top: 12px;
+      padding: 12px;
+      background-color: #f9f9f9;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-selector label {
+      font-weight: 600;
+      color: #333;
+      font-size: 14px;
+    }
+
+    .status-selector select {
+      flex: 1;
+      padding: 6px 10px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 14px;
+      background-color: white;
+    }
+
+    .status-selector select:focus {
+      outline: none;
+      border-color: #1a73e8;
+    }
+
     .section {
       margin-top: 12px;
       padding: 12px;
@@ -240,6 +320,17 @@
       <input type="text" id="searchInput" class="filter-input" placeholder="Search jobs...">
       <select id="sourceFilter" class="filter-input">
         <option value="">All Sources</option>
+      </select>
+      <select id="statusFilter" class="filter-input">
+        <option value="">All Statuses</option>
+        <option value="Saved">Saved</option>
+        <option value="Applied">Applied</option>
+        <option value="Screening">Screening</option>
+        <option value="Interviewing">Interviewing</option>
+        <option value="Offer">Offer</option>
+        <option value="Accepted">Accepted</option>
+        <option value="Rejected">Rejected</option>
+        <option value="Withdrawn">Withdrawn</option>
       </select>
     </div>
 

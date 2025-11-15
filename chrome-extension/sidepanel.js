@@ -65,7 +65,7 @@ function setupStorageListener() {
 async function loadJobInFocus() {
   try {
     const result = await chrome.storage.local.get(['jobInFocus', 'jobs']);
-    const jobInFocusId = result.jobInFocus;
+    let jobInFocusId = result.jobInFocus;
     const jobs = result.jobs || {};
 
     // Don't reload if user is currently in the edit form
@@ -75,8 +75,27 @@ async function loadJobInFocus() {
       return;
     }
 
+    // If no job in focus or job was deleted, but there are saved jobs
+    if ((!jobInFocusId || !jobs[jobInFocusId]) && Object.keys(jobs).length > 0) {
+      console.log('[Side Panel] No job in focus but jobs exist, setting newest job as focus');
+      
+      // Find the newest job (by updated_at timestamp)
+      const jobEntries = Object.entries(jobs);
+      jobEntries.sort((a, b) => {
+        const timeA = new Date(a[1].updated_at || 0).getTime();
+        const timeB = new Date(b[1].updated_at || 0).getTime();
+        return timeB - timeA; // Descending order (newest first)
+      });
+      
+      // Set the newest job as focus
+      const newestJobId = jobEntries[0][0];
+      jobInFocusId = newestJobId;
+      await chrome.storage.local.set({ jobInFocus: newestJobId });
+      console.log('[Side Panel] Set newest job as focus:', newestJobId);
+    }
+
     if (!jobInFocusId || !jobs[jobInFocusId]) {
-      // No job in focus or job was deleted - show empty state
+      // Still no job in focus - show empty state
       showEmptyState();
       return;
     }

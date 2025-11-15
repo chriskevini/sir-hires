@@ -354,3 +354,234 @@ The side panel feature is now fully functional with:
 - ✅ Quick navigation to viewer and resume editor
 - ✅ Ability to change focus from viewer with visual indicator
 - ✅ Persistent job-in-focus across tabs and browser sessions
+
+---
+
+## Sprint 7: Popup Redesign - Separation of Concerns (2-3 hours)
+
+### Overview
+Simplify the popup to be a launcher/extractor only. All editing happens in the side panel. Make LLM extraction the default.
+
+### Design Philosophy
+- **Popup**: Quick actions only - extract and navigate
+- **Side Panel**: Full editing interface
+- **Separation**: Popup extracts → Side panel edits
+
+### New Popup Flow
+```
+┌─────────────────────────────────┐
+│  📋 Sir Hires            ⚙️     │ ← Settings cog
+├─────────────────────────────────┤
+│                                  │
+│  ┌───────────────────────────┐  │
+│  │  Extract Job Data         │  │ ← Main action
+│  └───────────────────────────┘  │
+│                                  │
+│  ┌───────────────────────────┐  │
+│  │  Open Side Panel          │  │ ← Direct access
+│  └───────────────────────────┘  │
+│                                  │
+│  💡 Tip: Press Ctrl+Shift+H     │
+│     to toggle the side panel    │
+│                                  │
+│  📊 Saved Jobs: 12              │ ← Status info
+└─────────────────────────────────┘
+```
+
+### Settings Panel (Hidden by Default)
+```
+┌─────────────────────────────────┐
+│  ⚙️ Settings                     │
+├─────────────────────────────────┤
+│                                  │
+│  ☑ Use LLM for extraction       │ ← Default: ON
+│     (Recommended)                │
+│                                  │
+│  LLM Endpoint:                   │
+│  [http://localhost:1234/v1/...]  │
+│                                  │
+│  Model:                          │
+│  [NuExtract-2.0]                │
+│                                  │
+│  [Test Connection]               │
+│                                  │
+│  [Save Settings]                 │
+└─────────────────────────────────┘
+```
+
+### Tasks
+
+#### 1. Update `popup.html` (30 min)
+- [x] Remove all form fields (job title, company, location, etc.)
+- [x] Remove "Save Job" and "Cancel" buttons
+- [x] Keep settings section but move "Use LLM" checkbox into it
+- [x] Simplify to 2 main buttons:
+  - "Extract Job Data" (prominent, primary action)
+  - "Open Side Panel" (secondary style)
+- [x] Add keyboard shortcut tip (Ctrl+Shift+H)
+- [x] Keep job count display
+- [x] Remove duplicate warning badge (not needed in simple view)
+
+#### 2. Update `popup.js` (1 hour)
+- [x] Remove `populateForm()` function
+- [x] Remove `saveJobData()` function
+- [x] Remove `cancelEdit()` function
+- [x] Remove `showDataSection()` / `hideDataSection()` functions
+- [x] Remove `checkCurrentPageDuplicate()` function
+- [x] Update `extractJobData()`:
+  - Extract job data (keep existing logic)
+  - Immediately save to storage with `jobInFocus` set
+  - Open side panel automatically if not already open
+  - Show toast: "Job extracted! Opening side panel..."
+  - Close popup after extraction (let user edit in side panel)
+- [x] Add `openSidePanel()` function:
+  ```javascript
+  async function openSidePanel() {
+    const window = await chrome.windows.getCurrent();
+    await chrome.sidePanel.open({ windowId: window.id });
+  }
+  ```
+- [x] Update `loadSettings()`: Keep existing
+- [x] Update `saveSettings()`: Keep existing, set LLM default to true
+- [x] Update settings to default LLM to ON
+
+#### 3. Update `popup.css` (15 min)
+- [x] Remove form field styles (no longer needed)
+- [x] Simplify layout for 2-button interface
+- [x] Make "Extract Job Data" button more prominent
+- [x] Style "Open Side Panel" as secondary button
+- [x] Clean up unused styles
+
+#### 4. Update `sidepanel.html` (15 min)
+- [x] Remove "Extract Job Data" button from all states:
+  - Remove from empty state
+  - Remove from subtle button (when job exists)
+  - Remove from edit form
+- [x] Keep all editing functionality
+- [x] Keep footer buttons (View All Jobs, Edit Master Resume)
+
+#### 5. Update `sidepanel.js` (30 min)
+- [x] Remove `extractJobData()` function (no longer needed)
+- [x] Remove extract button event listeners
+- [x] Keep all other functionality:
+  - Display job in focus
+  - Inline editing
+  - Save changes
+  - Multi-tab sync
+  - Footer actions
+- [x] Simplify empty state message:
+  ```
+  👋 Welcome to Sir Hires!
+  
+  To get started:
+  1. Click the extension icon
+  2. Navigate to a job posting
+  3. Click "Extract Job Data"
+  
+  The job will appear here for editing.
+  
+  💡 Tip: Press Ctrl+Shift+H to toggle
+     this panel anytime
+  ```
+
+#### 6. Update `sidepanel.css` (10 min) ✓
+- [x] Remove extract button styles (no longer needed)
+- [x] Clean up unused edit form styles
+- [x] Keep all editing UI styles
+
+#### 7. Set LLM as Default (10 min) ✓
+- [x] Update default settings object in `popup.js`:
+  ```javascript
+  const llmSettings = result.llmSettings || {
+    enabled: true,  // Changed from false to true
+    endpoint: 'http://localhost:1234/v1/chat/completions',
+    model: 'NuExtract-2.0'
+  };
+  ```
+- [x] Update `background.js` initialization (if needed)
+
+### Implementation Strategy
+
+**Phase 1: Popup Simplification (1 hour)**
+1. Update popup.html - remove form fields
+2. Update popup.js - remove form logic, implement auto-save + auto-open
+3. Update popup.css - simplify styles
+
+**Phase 2: Side Panel Cleanup (45 min)**
+4. Update sidepanel.html - remove extract button
+5. Update sidepanel.js - remove extraction logic
+6. Update sidepanel.css - clean up styles
+
+**Phase 3: Defaults & Testing (30 min)**
+7. Set LLM as default
+8. Test full flow: Extract → Auto-save → Auto-open → Edit
+9. Test settings panel
+10. Test keyboard shortcuts
+
+### User Flow After Sprint 7
+
+1. **User clicks extension icon** → Popup opens
+2. **User on job posting, clicks "Extract Job Data"**:
+   - Popup extracts job data (using LLM by default)
+   - Job is immediately saved to storage
+   - Job is set as `jobInFocus`
+   - Side panel auto-opens (if not already open)
+   - Popup closes (or stays open for next extraction)
+   - User sees job in side panel, ready to edit
+3. **User clicks "Open Side Panel"**:
+   - Side panel opens
+   - Shows current job in focus (if any)
+   - Shows empty state with instructions (if none)
+4. **User edits fields in side panel**:
+   - All fields are inline-editable
+   - Auto-saves on blur
+   - Visual feedback (💾 → ✓)
+
+### Benefits
+
+✅ **Clearer separation**: Popup = extract, Side panel = edit
+✅ **Faster workflow**: Extract → Auto-open → Edit (no extra clicks)
+✅ **Less confusion**: One interface for editing (side panel only)
+✅ **Better defaults**: LLM extraction ON by default
+✅ **Simpler popup**: Fewer buttons, clearer purpose
+✅ **More accessible**: Direct "Open Side Panel" button
+
+### Testing Checklist
+
+- [ ] Popup shows only 2 buttons + settings cog
+- [ ] Settings panel has "Use LLM" checkbox (default: ON)
+- [ ] Extract button works and auto-saves job
+- [ ] Extract button auto-opens side panel
+- [ ] Extracted job appears in side panel immediately
+- [ ] Side panel has no extract button
+- [ ] Side panel inline editing still works
+- [ ] "Open Side Panel" button works
+- [ ] Ctrl+Shift+H keyboard shortcut works
+- [ ] Job count displays correctly
+- [ ] LLM is used by default for extraction
+- [ ] Settings can disable LLM if desired
+- [ ] Multi-tab sync still works
+- [ ] All footer buttons in side panel still work
+
+### Edge Cases to Handle
+
+- [ ] **Extract when side panel already open**: Just update the job in focus
+- [ ] **Extract when user editing in side panel**: Show warning or save current edits first
+- [ ] **Side panel fails to open**: Show error message in popup
+- [ ] **LLM extraction fails**: Fall back to DOM extraction (existing behavior)
+- [ ] **No job boards open**: Disable extract button or show helpful message
+
+---
+
+## Status Update
+
+- [x] Sprint 1: Basic Side Panel Structure ✓
+- [x] Sprint 2: Extraction Integration ✓
+- [x] Sprint 3: Job in Focus Logic ✓
+- [x] Sprint 4: Full Job Details + Inline Editing ✓
+- [x] Sprint 5: Multi-Tab Sync ✓
+- [x] Sprint 6: Quick Actions ✓
+- [x] Sprint 7: Popup Redesign - Separation of Concerns ✓
+
+**Current Focus:** Simplifying popup to launcher-only, moving all editing to side panel, making LLM default.
+

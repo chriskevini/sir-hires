@@ -11,11 +11,11 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     }
   });
 
-  // Enable side panel behavior (open on action icon click)
-  await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
+  // Disable side panel on action click (we want popup to open instead)
+  await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false })
     .catch((error) => console.error('Error setting side panel behavior:', error));
 
-  // Auto-open side panel on first install
+  // Auto-open side panel on first install to show instructions
   if (details.reason === 'install') {
     try {
       const windows = await chrome.windows.getAll();

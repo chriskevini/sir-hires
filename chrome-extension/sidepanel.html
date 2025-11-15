@@ -15,17 +15,19 @@
         <div class="instructions">
           <p><strong>To get started:</strong></p>
           <ol>
-            <li>Navigate to a job listing</li>
-            <li>Click "Extract Job Data" below</li>
-            <li>Review and save</li>
+            <li>Pin this extension for quick access (click the puzzle piece icon 🧩 in your toolbar, then pin Sir Hires)</li>
+            <li>Navigate to a job posting (LinkedIn, Indeed, etc.)</li>
+            <li>Click the extension icon</li>
+            <li>Click "Extract Job Data" in the popup</li>
           </ol>
+          <p class="instructions-note">The job will appear here for editing.</p>
         </div>
 
         <div class="tips">
           <p><strong>💡 Tips:</strong></p>
           <ul>
             <li>Press <kbd>Ctrl+Shift+H</kbd> (<kbd>Cmd+Shift+H</kbd> on Mac) to toggle this panel anytime</li>
-            <li>Click the pin icon 📌 at the top right for easy access to Sir Hires</li>
+            <li>All job fields are editable - just click to edit!</li>
           </ul>
         </div>
 
@@ -33,123 +35,10 @@
           <p>Works on LinkedIn, Indeed, Glassdoor, and more!</p>
         </div>
       </div>
-
-      <div class="extract-section">
-        <button id="extractBtnEmpty" class="btn btn-primary btn-large">Extract Job Data</button>
-      </div>
-    </div>
-
-    <!-- Edit Form (shown after extraction for review) -->
-    <div id="editForm" class="edit-form hidden">
-      <div class="form-header">
-        <h3>Review & Save Job</h3>
-        <button id="extractBtnForm" class="btn btn-subtle">Extract Again</button>
-      </div>
-
-      <form id="jobForm">
-        <div class="form-group">
-          <label for="jobTitle">Job Title *</label>
-          <input type="text" id="jobTitle" required>
-        </div>
-
-        <div class="form-group">
-          <label for="company">Company *</label>
-          <input type="text" id="company" required>
-        </div>
-
-        <div class="form-group">
-          <label for="location">Location</label>
-          <input type="text" id="location">
-        </div>
-
-        <div class="form-group">
-          <label for="salary">Salary</label>
-          <input type="text" id="salary">
-        </div>
-
-        <div class="form-group">
-          <label for="jobType">Job Type</label>
-          <input type="text" id="jobType" placeholder="Full-time, Contract, etc.">
-        </div>
-
-        <div class="form-group">
-          <label for="remoteType">Remote Type</label>
-          <select id="remoteType">
-            <option value="">Not specified</option>
-            <option value="Remote">Remote</option>
-            <option value="Hybrid">Hybrid</option>
-            <option value="On-site">On-site</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="postedDate">Posted Date</label>
-          <input type="date" id="postedDate">
-        </div>
-
-        <div class="form-group">
-          <label for="deadline">Application Deadline</label>
-          <input type="date" id="deadline">
-        </div>
-
-        <div class="form-group">
-          <label for="url">URL</label>
-          <input type="text" id="url" readonly>
-        </div>
-
-        <div class="form-group">
-          <label for="source">Source</label>
-          <input type="text" id="source" readonly>
-        </div>
-
-        <div class="form-group" style="display: none;">
-          <label for="rawDescription">Raw Description</label>
-          <textarea id="rawDescription" rows="4"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label for="aboutJob">About the Job</label>
-          <textarea id="aboutJob" rows="3"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label for="aboutCompany">About the Company</label>
-          <textarea id="aboutCompany" rows="3"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label for="responsibilities">Responsibilities</label>
-          <textarea id="responsibilities" rows="4"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label for="requirements">Requirements</label>
-          <textarea id="requirements" rows="4"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label for="notes">Notes</label>
-          <textarea id="notes" rows="3" placeholder="Add your own notes..."></textarea>
-        </div>
-
-        <div class="form-group">
-          <label for="narrativeStrategy">Narrative Strategy</label>
-          <textarea id="narrativeStrategy" rows="3" placeholder="How to tailor your resume/cover letter..."></textarea>
-        </div>
-
-        <div class="button-group">
-          <button type="submit" class="btn btn-primary">Save Job</button>
-          <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>
-        </div>
-      </form>
     </div>
 
     <!-- Job Details (shown when job is in focus) -->
     <div id="jobDetails" class="job-details hidden">
-      <div class="extract-header">
-        <button id="extractBtnSubtle" class="btn btn-subtle">Extract Job Data</button>
-      </div>
-
       <div id="jobContent" class="job-content">
         <!-- Job details will be dynamically inserted here -->
         <div class="loading">Loading job details...</div>
@@ -159,7 +48,6 @@
     <!-- Footer Actions -->
     <footer id="footer" class="footer hidden">
       <button id="viewAllJobsBtn" class="btn btn-secondary">View All Jobs</button>
-      <button id="editResumeBtn" class="btn btn-secondary">Edit Master Resume</button>
     </footer>
   </div>
 

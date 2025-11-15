@@ -205,10 +205,10 @@ Implementing a persistent side panel for Sir Hires that tracks a "job in focus" 
 
 ---
 
-## Sprint 5: Multi-Tab Sync (30 min)
+## Sprint 5: Multi-Tab Sync (30 min) ✓ COMPLETE
 
 ### Tasks
-- [ ] Add storage change listener in `sidepanel.js`:
+- [x] Add storage change listener in `sidepanel.js`:
   ```javascript
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local') {
@@ -218,10 +218,22 @@ Implementing a persistent side panel for Sir Hires that tracks a "job in focus" 
     }
   });
   ```
-- [ ] Test: Open multiple tabs, edit in one, verify others update
-- [ ] Handle edge cases:
-  - Focused job deleted in another tab
-  - Multiple simultaneous edits
+- [x] Test: Open multiple tabs, edit in one, verify others update
+- [x] Handle edge cases:
+  - Focused job deleted in another tab → Shows empty state
+  - Multiple simultaneous edits → Always reloads latest data
+  - User currently editing → Defers reload until edit completes
+  - User in edit form → Skips reload to avoid interrupting
+
+### Implementation Details
+- **Storage listener**: Monitors `jobInFocus` and `jobs` changes (already implemented in Sprint 2)
+- **Smart reload**: Checks if user is actively editing before reloading
+  - If editing inline field: Defers reload until blur event
+  - If in edit form: Skips reload entirely
+- **Edge case handling**: 
+  - Job deletion detected by checking if `!jobs[jobInFocusId]` → shows empty state
+  - All updates trigger reload to ensure latest data is displayed
+- **User experience**: Prevents jarring interruptions while user is typing or editing
 
 ---
 
@@ -297,9 +309,10 @@ Implementing a persistent side panel for Sir Hires that tracks a "job in focus" 
 - [ ] Layout is scrollable
 
 ### Sprint 5
-- [ ] Changes sync across tabs
-- [ ] Multiple tabs stay in sync
-- [ ] Handle job deletion gracefully
+- [x] Changes sync across tabs
+- [x] Multiple tabs stay in sync
+- [x] Handle job deletion gracefully
+- [x] Don't interrupt user while editing
 
 ### Sprint 6
 - [ ] "View All Jobs" button works
@@ -314,5 +327,5 @@ Implementing a persistent side panel for Sir Hires that tracks a "job in focus" 
 - [x] Sprint 2: Extraction Integration ✓
 - [x] Sprint 3: Job in Focus Logic ✓
 - [x] Sprint 4: Full Job Details + Inline Editing ✓
-- [ ] Sprint 5: Multi-Tab Sync
+- [x] Sprint 5: Multi-Tab Sync ✓
 - [ ] Sprint 6: Quick Actions

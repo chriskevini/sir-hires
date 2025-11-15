@@ -37,7 +37,25 @@ function setupStorageListener() {
     if (area === 'local') {
       if (changes.jobInFocus || changes.jobs) {
         console.log('[Side Panel] Storage changed, reloading job in focus');
-        loadJobInFocus();
+        
+        // Check if user is currently editing a field
+        const activeElement = document.activeElement;
+        const isEditing = activeElement && (
+          activeElement.contentEditable === 'true' ||
+          activeElement.classList.contains('inline-input') ||
+          activeElement.classList.contains('inline-select')
+        );
+        
+        if (isEditing) {
+          console.log('[Side Panel] User is editing, deferring reload');
+          // Defer reload until after the current edit is done
+          activeElement.addEventListener('blur', () => {
+            // Add small delay to allow save to complete
+            setTimeout(() => loadJobInFocus(), 100);
+          }, { once: true });
+        } else {
+          loadJobInFocus();
+        }
       }
     }
   });
@@ -50,8 +68,15 @@ async function loadJobInFocus() {
     const jobInFocusId = result.jobInFocus;
     const jobs = result.jobs || {};
 
+    // Don't reload if user is currently in the edit form
+    const editForm = document.getElementById('editForm');
+    if (editForm && !editForm.classList.contains('hidden')) {
+      console.log('[Side Panel] User is in edit form, skipping reload');
+      return;
+    }
+
     if (!jobInFocusId || !jobs[jobInFocusId]) {
-      // No job in focus - show empty state
+      // No job in focus or job was deleted - show empty state
       showEmptyState();
       return;
     }

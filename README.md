@@ -93,6 +93,11 @@ sir-hires/
 - ✅ Date tracking (posted date and application deadline)
 - ✅ Notes for each job posting
 
+- UX improvements:
+  - Speed up LLM data extraction
+  - Show better loading screen during data extraction
+  - Add job selector in side panel (slides current contents left to expose job list, clicking a job sets it as job_in_focus and closes selector)
+
 - LLM-powered features:
   - Job-resume fit analysis
   - Resume tailoring suggestions

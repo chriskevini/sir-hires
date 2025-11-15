@@ -9,7 +9,10 @@ async function loadJobs() {
   try {
     const result = await chrome.storage.local.get(['jobs', 'masterResume']);
     console.log('Storage result:', result);
-    allJobs = result.jobs || [];
+    
+    // Convert object-based storage to array for viewer compatibility
+    const jobsObj = result.jobs || {};
+    allJobs = Object.values(jobsObj);
     console.log('allJobs:', allJobs);
     console.log('allJobs.length:', allJobs.length);
     
@@ -523,8 +526,18 @@ async function deleteJob(index) {
     return;
   }
 
+  const jobToDelete = allJobs[index];
   allJobs.splice(index, 1);
-  await chrome.storage.local.set({ jobs: allJobs });
+  
+  // Convert array back to object format for storage
+  const jobsObj = {};
+  allJobs.forEach(job => {
+    if (job.id) {
+      jobsObj[job.id] = job;
+    }
+  });
+  
+  await chrome.storage.local.set({ jobs: jobsObj });
   await loadJobs();
 }
 
@@ -549,8 +562,16 @@ async function updateJobStatus(index, newStatus) {
     date: new Date().toISOString()
   });
   
+  // Convert array back to object format for storage
+  const jobsObj = {};
+  allJobs.forEach(j => {
+    if (j.id) {
+      jobsObj[j.id] = j;
+    }
+  });
+  
   // Save to storage
-  await chrome.storage.local.set({ jobs: allJobs });
+  await chrome.storage.local.set({ jobs: jobsObj });
   
   console.log(`Updated job status from ${oldStatus} to ${newStatus}`);
 }
@@ -569,8 +590,16 @@ async function saveNotes(index) {
   job.notes = newNotes;
   job.updated_at = new Date().toISOString();
   
+  // Convert array back to object format for storage
+  const jobsObj = {};
+  allJobs.forEach(j => {
+    if (j.id) {
+      jobsObj[j.id] = j;
+    }
+  });
+  
   // Save to storage
-  await chrome.storage.local.set({ jobs: allJobs });
+  await chrome.storage.local.set({ jobs: jobsObj });
   
   // Visual feedback
   const button = document.querySelector(`.btn-save-notes[data-index="${index}"]`);
@@ -602,8 +631,16 @@ async function saveNarrativeStrategy(index) {
   job.narrative_strategy = newStrategy;
   job.updated_at = new Date().toISOString();
   
+  // Convert array back to object format for storage
+  const jobsObj = {};
+  allJobs.forEach(j => {
+    if (j.id) {
+      jobsObj[j.id] = j;
+    }
+  });
+  
   // Save to storage
-  await chrome.storage.local.set({ jobs: allJobs });
+  await chrome.storage.local.set({ jobs: jobsObj });
   
   // Visual feedback
   const button = document.querySelector(`.btn-save-narrative[data-index="${index}"]`);
@@ -843,7 +880,7 @@ async function clearAllJobs() {
   }
 
   try {
-    await chrome.storage.local.set({ jobs: [] });
+    await chrome.storage.local.set({ jobs: {} });
     allJobs = [];
     document.getElementById('emptyState').classList.remove('hidden');
     document.getElementById('jobsList').innerHTML = '';

@@ -180,16 +180,16 @@ function hideDataSection() {
 }
 
 // Check if a job with the same URL already exists
-// Returns the index of the existing job if found, or -1 if not found
+// Returns the job ID if found, or null if not found
 async function checkDuplicateJob(url) {
-  if (!url) return -1;
+  if (!url) return null;
   
   try {
     const result = await chrome.storage.local.get(['jobs']);
-    const jobs = result.jobs || [];
+    const jobs = result.jobs || {};
     
     // Normalize URLs for comparison (remove trailing slashes, query params that might differ)
-    const normalizeUrl = (u) => {
+    const normalizeUrlLocal = (u) => {
       try {
         const urlObj = new URL(u);
         // Keep protocol, host, and pathname, ignore search params and hash
@@ -199,11 +199,11 @@ async function checkDuplicateJob(url) {
       }
     };
     
-    const normalizedUrl = normalizeUrl(url);
-    return jobs.findIndex(job => normalizeUrl(job.url) === normalizedUrl);
+    const normalizedUrl = normalizeUrlLocal(url);
+    return Object.keys(jobs).find(id => normalizeUrlLocal(jobs[id].url) === normalizedUrl) || null;
   } catch (error) {
     console.error('Error checking for duplicate job:', error);
-    return -1;
+    return null;
   }
 }
 
@@ -217,10 +217,10 @@ async function checkCurrentPageDuplicate() {
       return;
     }
     
-    const duplicateIndex = await checkDuplicateJob(tab.url);
+    const duplicateJobId = await checkDuplicateJob(tab.url);
     const duplicateBadge = document.getElementById('duplicateWarning');
     
-    if (duplicateIndex >= 0 && duplicateBadge) {
+    if (duplicateJobId && duplicateBadge) {
       duplicateBadge.classList.remove('hidden');
     } else if (duplicateBadge) {
       duplicateBadge.classList.add('hidden');
@@ -285,14 +285,20 @@ async function saveJobData(event) {
   }
 
   try {
-    // Get existing jobs from storage
+    // Get existing jobs from storage (object format)
     const result = await chrome.storage.local.get(['jobs']);
-    const jobs = result.jobs || [];
+    const jobs = result.jobs || {};
 
-    // Check for duplicate
-    const duplicateIndex = await checkDuplicateJob(jobData.url);
+    // Check for duplicate by URL
+    let existingJobId = null;
+    if (jobData.url) {
+      existingJobId = Object.keys(jobs).find(id => {
+        const job = jobs[id];
+        return job.url && normalizeUrl(job.url) === normalizeUrl(jobData.url);
+      });
+    }
     
-    if (duplicateIndex >= 0) {
+    if (existingJobId) {
       // Job already exists - ask user if they want to update it
       const confirmUpdate = confirm('This job already exists. Update it with the latest data?');
       if (!confirmUpdate) {
@@ -301,33 +307,48 @@ async function saveJobData(event) {
       }
       
       // Update existing job - preserve user's application tracking data
-      const existingJob = jobs[duplicateIndex];
-      jobData.application_status = existingJob.application_status || 'Saved';
-      jobData.status_history = existingJob.status_history || [{
-        status: 'Saved',
-        date: new Date().toISOString()
-      }];
-      jobData.updated_at = new Date().toISOString();
+      const existingJob = jobs[existingJobId];
+      const updatedJob = {
+        id: existingJobId,
+        ...jobData,
+        application_status: existingJob.application_status || 'Saved',
+        status_history: existingJob.status_history || [{
+          status: 'Saved',
+          timestamp: new Date().toISOString()
+        }],
+        updated_at: new Date().toISOString()
+      };
       
-      // Replace the job at the duplicate index
-      jobs[duplicateIndex] = jobData;
+      jobs[existingJobId] = updatedJob;
       
-      await chrome.storage.local.set({ jobs });
-      showStatus('Job updated successfully!', 'success');
+      // Update jobs and set as jobInFocus
+      await chrome.storage.local.set({ 
+        jobs: jobs,
+        jobInFocus: existingJobId 
+      });
+      showStatus('Job updated successfully and set as focus!', 'success');
     } else {
-      // New job - add default status tracking
-      jobData.application_status = 'Saved';
-      jobData.status_history = [{
-        status: 'Saved',
-        date: new Date().toISOString()
-      }];
-      jobData.updated_at = new Date().toISOString();
+      // New job - generate ID and add default status tracking
+      const jobId = generateJobId();
+      const newJob = {
+        id: jobId,
+        ...jobData,
+        application_status: 'Saved',
+        status_history: [{
+          status: 'Saved',
+          timestamp: new Date().toISOString()
+        }],
+        updated_at: new Date().toISOString()
+      };
       
-      // Add new job
-      jobs.push(jobData);
+      jobs[jobId] = newJob;
       
-      await chrome.storage.local.set({ jobs });
-      showStatus('Job saved successfully!', 'success');
+      // Save jobs and set as jobInFocus
+      await chrome.storage.local.set({ 
+        jobs: jobs,
+        jobInFocus: jobId 
+      });
+      showStatus('Job saved successfully and set as focus!', 'success');
     }
     hideDataSection();
     await updateJobCount();
@@ -342,6 +363,23 @@ async function saveJobData(event) {
   }
 }
 
+// Helper function to normalize URLs for comparison
+function normalizeUrl(url) {
+  if (!url) return '';
+  try {
+    const urlObj = new URL(url);
+    // Keep protocol, host, and pathname, ignore search params and hash
+    return urlObj.origin + urlObj.pathname.replace(/\/$/, '');
+  } catch {
+    return url.trim().toLowerCase();
+  }
+}
+
+// Generate unique job ID
+function generateJobId() {
+  return 'job_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
 function cancelEdit() {
   hideDataSection();
   document.getElementById('jobForm').reset();
@@ -352,11 +390,12 @@ function cancelEdit() {
 async function updateJobCount() {
   try {
     const result = await chrome.storage.local.get(['jobs']);
-    const jobs = result.jobs || [];
-    document.getElementById('jobCount').textContent = jobs.length;
+    const jobs = result.jobs || {};
+    const jobCount = Object.keys(jobs).length;
+    document.getElementById('jobCount').textContent = jobCount;
     
     // Show saved section if there are jobs
-    if (jobs.length > 0) {
+    if (jobCount > 0) {
       document.getElementById('savedSection').classList.remove('hidden');
     }
   } catch (error) {
@@ -367,9 +406,10 @@ async function updateJobCount() {
 async function viewAllJobs() {
   try {
     const result = await chrome.storage.local.get(['jobs']);
-    const jobs = result.jobs || [];
+    const jobs = result.jobs || {};
+    const jobCount = Object.keys(jobs).length;
 
-    if (jobs.length === 0) {
+    if (jobCount === 0) {
       showStatus('No saved jobs yet.', 'info');
       return;
     }

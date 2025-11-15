@@ -91,29 +91,42 @@ Implementing a persistent side panel for Sir Hires that tracks a "job in focus" 
 
 ---
 
-## Sprint 3: Job in Focus Logic (30 min)
+## Sprint 3: Job in Focus Logic (30 min) ✓ COMPLETE
 
 ### Storage Schema Addition
 ```javascript
 {
-  jobInFocus: string | null,  // ID of currently focused job
-  // existing job data...
+  jobInFocus: string | null,           // ID of currently focused job
+  jobs: { [id: string]: JobData },    // MIGRATED from array to object format
+  // existing fields...
 }
 ```
 
 ### Tasks
-- [ ] Update `sidepanel.js`:
-  - On extraction/save: Set `jobInFocus` to new job's ID
-  - On load: Fetch `jobInFocus` ID and display job
-  - Handle case where focused job no longer exists
-- [ ] Update `popup.js`:
-  - After saving job, also set it as `jobInFocus`
-  - Ensures consistency between popup and side panel
+- [x] Update storage schema from array to object format:
+  - `jobs: []` → `jobs: { [id]: job }`
+  - All jobs now have unique IDs
+  - Side panel already implemented with object format
+- [x] Update `popup.js`:
+  - Migrated to object-based storage
+  - Added `generateJobId()` function
+  - After saving job, sets it as `jobInFocus`
+  - Updated `checkDuplicateJob()` for object storage
+  - Updated `updateJobCount()` for object storage
+  - Updated `viewAllJobs()` for object storage
+- [x] Update `viewer.js`:
+  - Converts object storage to array on load (backward compatibility)
+  - Converts array back to object on save
+  - All save operations updated (delete, status, notes, narrative)
+- [x] Update `sidepanel.js`:
+  - On extraction/save: Set `jobInFocus` to new job's ID ✓ (already done)
+  - On load: Fetch `jobInFocus` ID and display job ✓ (already done)
+  - Handle case where focused job no longer exists ✓ (already done)
 
 ### Logic Flow
-1. **On extraction/save:** Save job → Set `jobInFocus` → Update display
-2. **On side panel load:** Fetch `jobInFocus` → Load job data → Display
-3. **On storage change:** Update display if `jobInFocus` changes
+1. **On extraction/save:** Save job → Set `jobInFocus` → Update display ✓
+2. **On side panel load:** Fetch `jobInFocus` → Load job data → Display ✓
+3. **On storage change:** Update display if `jobInFocus` changes ✓
 
 ---
 
@@ -292,7 +305,7 @@ Implementing a persistent side panel for Sir Hires that tracks a "job in focus" 
 
 - [x] Sprint 1: Basic Side Panel Structure ✓
 - [x] Sprint 2: Extraction Integration ✓
-- [ ] Sprint 3: Job in Focus Logic
+- [x] Sprint 3: Job in Focus Logic ✓
 - [ ] Sprint 4: Full Job Details + Inline Editing
 - [ ] Sprint 5: Multi-Tab Sync
 - [ ] Sprint 6: Quick Actions

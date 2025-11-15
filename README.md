@@ -87,6 +87,7 @@ sir-hires/
 - ✅ Search and filtering (by source, status)
 - ✅ Sorting (by date, deadline, company, title)
 - ✅ Export to JSON/CSV
+- ✅ Backup and restore (full data export/import)
 - ✅ LLM-enhanced extraction (optional, via LM Studio)
 - ✅ Application lifecycle tracking (Saved → Applied → Screening → Interviewing → Offer → Accepted/Rejected/Withdrawn)
 - ✅ Status history tracking
@@ -97,6 +98,7 @@ sir-hires/
   - Speed up LLM data extraction
   - Show better loading screen during data extraction
   - Add job selector in side panel (slides current contents left to expose job list, clicking a job sets it as job_in_focus and closes selector)
+  - Interactive merging of data when restoring backup
 
 - LLM-powered features:
   - Job-resume fit analysis

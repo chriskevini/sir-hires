@@ -17,6 +17,9 @@ function setupEventListeners() {
     // Close the side panel after opening viewer
     window.close();
   });
+
+  // Restore backup button (in welcome state)
+  document.getElementById('restoreBackupBtn')?.addEventListener('click', restoreBackup);
 }
 
 // Setup storage change listener for multi-tab sync
@@ -510,5 +513,64 @@ async function saveFieldValue(field, value, element) {
         saveIndicator.textContent = '';
       }, 2000);
     }
+  }
+}
+
+// Restore backup function
+async function restoreBackup() {
+  try {
+    // Create file input element
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json,.json';
+    
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const backup = JSON.parse(text);
+
+        // Validate backup structure
+        if (!backup.version || !backup.data) {
+          showError('Invalid backup file format.');
+          return;
+        }
+
+        // Confirm overwrite
+        const jobCount = Object.keys(backup.data.jobs || {}).length;
+        const confirmMsg = `This will overwrite all your current data with the backup from ${new Date(backup.exportDate).toLocaleString()}.\n\nBackup contains ${jobCount} job(s).\n\nThis cannot be undone. Continue?`;
+        
+        if (!confirm(confirmMsg)) {
+          return;
+        }
+
+        // Restore all data
+        await chrome.storage.local.set({
+          jobs: backup.data.jobs || {},
+          masterResume: backup.data.masterResume || null,
+          llmSettings: backup.data.llmSettings || null,
+          jobInFocus: backup.data.jobInFocus || null
+        });
+
+        console.log('[Side Panel] Backup restored successfully');
+        showSuccess('Backup restored successfully! Reloading...');
+        
+        // Reload after a brief delay to show the success message
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } catch (error) {
+        console.error('[Side Panel] Error restoring backup:', error);
+        showError('Error restoring backup: ' + error.message);
+      }
+    };
+
+    // Trigger file picker
+    input.click();
+  } catch (error) {
+    console.error('[Side Panel] Error in restore backup:', error);
+    showError('Error in restore backup: ' + error.message);
   }
 }

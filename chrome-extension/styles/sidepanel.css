@@ -78,6 +78,7 @@ body {
   align-items: center;
   overflow-y: auto;
   padding: 16px 0;
+  position: relative;
 }
 
 .welcome-content {
@@ -154,6 +155,25 @@ body {
   font-size: 13px;
   font-style: italic;
   margin-top: 16px;
+}
+
+/* Restore Backup Button (Welcome State) */
+.btn-restore-backup {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: #999;
+  padding: 8px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.2s;
+  font-weight: normal;
+}
+
+.btn-restore-backup:hover {
+  color: #666;
 }
 
 /* Job Details */

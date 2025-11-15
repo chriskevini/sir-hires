@@ -843,19 +843,29 @@ function sortJobs(jobs, sortBy) {
   return sorted;
 }
 
-async function exportJSON() {
+async function createBackup() {
   try {
-    if (allJobs.length === 0) {
-      alert('No jobs to export.');
-      return;
-    }
+    // Get ALL data from storage
+    const result = await chrome.storage.local.get(['jobs', 'masterResume', 'llmSettings', 'jobInFocus']);
+    
+    // Create backup object with version info
+    const backup = {
+      version: "0.1.0",
+      exportDate: new Date().toISOString(),
+      data: {
+        jobs: result.jobs || {},
+        masterResume: result.masterResume || null,
+        llmSettings: result.llmSettings || null,
+        jobInFocus: result.jobInFocus || null
+      }
+    };
 
-    const dataStr = JSON.stringify(allJobs, null, 2);
+    const dataStr = JSON.stringify(backup, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
 
     const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `jobs-export-${timestamp}.json`;
+    const filename = `sir-hires-backup-${timestamp}.json`;
 
     // Download the file
     chrome.downloads.download({
@@ -864,94 +874,88 @@ async function exportJSON() {
       saveAs: true
     });
 
-    console.log(`Exported ${allJobs.length} jobs as JSON`);
+    const jobCount = Object.keys(backup.data.jobs).length;
+    console.log(`Created backup with ${jobCount} jobs`);
   } catch (error) {
-    console.error('Error exporting JSON:', error);
-    alert('Error exporting JSON: ' + error.message);
+    console.error('Error creating backup:', error);
+    alert('Error creating backup: ' + error.message);
   }
 }
 
-async function exportCSV() {
+async function restoreBackup() {
   try {
-    if (allJobs.length === 0) {
-      alert('No jobs to export.');
-      return;
-    }
-
-    // Create CSV headers
-    const headers = ['Job Title', 'Company', 'Location', 'Salary', 'Job Type', 'Remote Type', 'Posted Date', 'Deadline', 'Application Status', 'URL', 'Source', 'Raw Description', 'About the Job', 'About the Company', 'Responsibilities', 'Requirements', 'Notes', 'Narrative Strategy', 'Updated At'];
+    // Create file input element
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json,.json';
     
-    // Create CSV rows
-    const rows = allJobs.map(job => [
-      escapeCsvValue(job.job_title),
-      escapeCsvValue(job.company),
-      escapeCsvValue(job.location),
-      escapeCsvValue(job.salary),
-      escapeCsvValue(job.job_type),
-      escapeCsvValue(job.remote_type),
-      escapeCsvValue(job.posted_date),
-      escapeCsvValue(job.deadline),
-      escapeCsvValue(job.application_status || 'Saved'),
-      escapeCsvValue(job.url),
-      escapeCsvValue(job.source),
-      escapeCsvValue(job.raw_description),
-      escapeCsvValue(job.about_job),
-      escapeCsvValue(job.about_company),
-      escapeCsvValue(job.responsibilities),
-      escapeCsvValue(job.requirements),
-      escapeCsvValue(job.notes),
-      escapeCsvValue(job.narrative_strategy),
-      escapeCsvValue(job.updated_at)
-    ]);
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
 
-    // Combine headers and rows
-    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+      try {
+        const text = await file.text();
+        const backup = JSON.parse(text);
 
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
+        // Validate backup structure
+        if (!backup.version || !backup.data) {
+          alert('Invalid backup file format.');
+          return;
+        }
 
-    const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `jobs-export-${timestamp}.csv`;
+        // Confirm overwrite
+        const jobCount = Object.keys(backup.data.jobs || {}).length;
+        const confirmMsg = `This will overwrite all your current data with the backup from ${new Date(backup.exportDate).toLocaleString()}.\n\nBackup contains ${jobCount} job(s).\n\nThis cannot be undone. Continue?`;
+        
+        if (!confirm(confirmMsg)) {
+          return;
+        }
 
-    // Download the file
-    chrome.downloads.download({
-      url: url,
-      filename: filename,
-      saveAs: true
-    });
+        // Restore all data
+        await chrome.storage.local.set({
+          jobs: backup.data.jobs || {},
+          masterResume: backup.data.masterResume || null,
+          llmSettings: backup.data.llmSettings || null,
+          jobInFocus: backup.data.jobInFocus || null
+        });
 
-    console.log(`Exported ${allJobs.length} jobs as CSV`);
+        console.log('Backup restored successfully');
+        alert('Backup restored successfully! Reloading page...');
+        
+        // Reload page to reflect changes
+        window.location.reload();
+      } catch (error) {
+        console.error('Error restoring backup:', error);
+        alert('Error restoring backup: ' + error.message);
+      }
+    };
+
+    // Trigger file picker
+    input.click();
   } catch (error) {
-    console.error('Error exporting CSV:', error);
-    alert('Error exporting CSV: ' + error.message);
+    console.error('Error in restore backup:', error);
+    alert('Error in restore backup: ' + error.message);
   }
-}
-
-function escapeCsvValue(value) {
-  if (!value) return '';
-  const str = String(value);
-  // If the value contains comma, quote, or newline, wrap it in quotes and escape quotes
-  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  return str;
 }
 
 async function clearAllJobs() {
-  if (!confirm('Are you sure you want to delete all saved jobs? This cannot be undone.')) {
+  if (!confirm('Are you sure you want to delete ALL data (jobs, resume, settings)? This cannot be undone.')) {
     return;
   }
 
   try {
-    await chrome.storage.local.set({ jobs: {} });
+    // Clear ALL storage data
+    await chrome.storage.local.clear();
     allJobs = [];
     document.getElementById('emptyState').classList.remove('hidden');
     document.getElementById('jobsList').innerHTML = '';
     updateStats();
-    console.log('All jobs cleared');
+    console.log('All data cleared');
+    alert('All data deleted successfully! Reloading page...');
+    window.location.reload();
   } catch (error) {
-    console.error('Error clearing jobs:', error);
-    alert('Error clearing jobs: ' + error.message);
+    console.error('Error clearing data:', error);
+    alert('Error clearing data: ' + error.message);
   }
 }
 
@@ -981,8 +985,8 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('sortFilter').addEventListener('change', filterJobs);
   document.getElementById('debugToggle').addEventListener('change', toggleDebugMode);
   document.getElementById('masterResumeBtn').addEventListener('click', openMasterResume);
-  document.getElementById('exportJsonBtn').addEventListener('click', exportJSON);
-  document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);
+  document.getElementById('createBackupBtn').addEventListener('click', createBackup);
+  document.getElementById('restoreBackupBtn').addEventListener('click', restoreBackup);
   document.getElementById('clearAllBtn').addEventListener('click', clearAllJobs);
   
   // Event delegation for sidebar job cards

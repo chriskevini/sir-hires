@@ -76,14 +76,14 @@ Implementing a persistent side panel for Sir Hires that tracks a "job in focus" 
 ## Sprint 2: Extraction Integration (1 hour)
 
 ### Tasks
-- [ ] Update `sidepanel.js`:
+- [x] Update `sidepanel.js`:
   - Extract button sends message to content script
   - Reuse existing extraction logic from popup.js
   - Show inline form in side panel
   - After save, set as job in focus
   - Show success message with edit options
   - Update extract button to be subtle when job exists
-- [ ] Verify `content.js` works with side panel (should already work)
+- [x] Verify `content.js` works with side panel (should already work)
 
 ### Extract Button Styling
 - **Empty state:** Large, prominent, centered
@@ -291,7 +291,7 @@ Implementing a persistent side panel for Sir Hires that tracks a "job in focus" 
 ## Status
 
 - [x] Sprint 1: Basic Side Panel Structure ✓
-- [ ] Sprint 2: Extraction Integration
+- [x] Sprint 2: Extraction Integration ✓
 - [ ] Sprint 3: Job in Focus Logic
 - [ ] Sprint 4: Full Job Details + Inline Editing
 - [ ] Sprint 5: Multi-Tab Sync

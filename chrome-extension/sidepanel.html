@@ -39,6 +39,111 @@
       </div>
     </div>
 
+    <!-- Edit Form (shown after extraction for review) -->
+    <div id="editForm" class="edit-form hidden">
+      <div class="form-header">
+        <h3>Review & Save Job</h3>
+        <button id="extractBtnForm" class="btn btn-subtle">Extract Again</button>
+      </div>
+
+      <form id="jobForm">
+        <div class="form-group">
+          <label for="jobTitle">Job Title *</label>
+          <input type="text" id="jobTitle" required>
+        </div>
+
+        <div class="form-group">
+          <label for="company">Company *</label>
+          <input type="text" id="company" required>
+        </div>
+
+        <div class="form-group">
+          <label for="location">Location</label>
+          <input type="text" id="location">
+        </div>
+
+        <div class="form-group">
+          <label for="salary">Salary</label>
+          <input type="text" id="salary">
+        </div>
+
+        <div class="form-group">
+          <label for="jobType">Job Type</label>
+          <input type="text" id="jobType" placeholder="Full-time, Contract, etc.">
+        </div>
+
+        <div class="form-group">
+          <label for="remoteType">Remote Type</label>
+          <select id="remoteType">
+            <option value="">Not specified</option>
+            <option value="Remote">Remote</option>
+            <option value="Hybrid">Hybrid</option>
+            <option value="On-site">On-site</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="postedDate">Posted Date</label>
+          <input type="date" id="postedDate">
+        </div>
+
+        <div class="form-group">
+          <label for="deadline">Application Deadline</label>
+          <input type="date" id="deadline">
+        </div>
+
+        <div class="form-group">
+          <label for="url">URL</label>
+          <input type="text" id="url" readonly>
+        </div>
+
+        <div class="form-group">
+          <label for="source">Source</label>
+          <input type="text" id="source" readonly>
+        </div>
+
+        <div class="form-group" style="display: none;">
+          <label for="rawDescription">Raw Description</label>
+          <textarea id="rawDescription" rows="4"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="aboutJob">About the Job</label>
+          <textarea id="aboutJob" rows="3"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="aboutCompany">About the Company</label>
+          <textarea id="aboutCompany" rows="3"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="responsibilities">Responsibilities</label>
+          <textarea id="responsibilities" rows="4"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="requirements">Requirements</label>
+          <textarea id="requirements" rows="4"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="notes">Notes</label>
+          <textarea id="notes" rows="3" placeholder="Add your own notes..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="narrativeStrategy">Narrative Strategy</label>
+          <textarea id="narrativeStrategy" rows="3" placeholder="How to tailor your resume/cover letter..."></textarea>
+        </div>
+
+        <div class="button-group">
+          <button type="submit" class="btn btn-primary">Save Job</button>
+          <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>
+        </div>
+      </form>
+    </div>
+
     <!-- Job Details (shown when job is in focus) -->
     <div id="jobDetails" class="job-details hidden">
       <div class="extract-header">
@@ -57,6 +162,9 @@
       <button id="editResumeBtn" class="btn btn-secondary">Edit Master Resume</button>
     </footer>
   </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast hidden"></div>
 
   <script src="sidepanel.js"></script>
 </body>

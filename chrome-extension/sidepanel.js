@@ -2,6 +2,7 @@
 
 let currentJobId = null;
 let currentJob = null;
+let extractedData = null;
 
 // Initialize side panel
 document.addEventListener('DOMContentLoaded', async () => {
@@ -14,6 +15,11 @@ function setupEventListeners() {
   // Extract buttons
   document.getElementById('extractBtnEmpty')?.addEventListener('click', extractJobData);
   document.getElementById('extractBtnSubtle')?.addEventListener('click', extractJobData);
+  document.getElementById('extractBtnForm')?.addEventListener('click', extractJobData);
+  
+  // Form buttons
+  document.getElementById('jobForm')?.addEventListener('submit', saveJobData);
+  document.getElementById('cancelBtn')?.addEventListener('click', cancelEdit);
   
   // Footer buttons
   document.getElementById('viewAllJobsBtn')?.addEventListener('click', () => {
@@ -63,15 +69,27 @@ async function loadJobInFocus() {
 // Show empty state (no job in focus)
 function showEmptyState() {
   document.getElementById('emptyState').classList.remove('hidden');
+  document.getElementById('editForm').classList.add('hidden');
   document.getElementById('jobDetails').classList.add('hidden');
   document.getElementById('footer').classList.add('hidden');
   currentJobId = null;
   currentJob = null;
 }
 
+// Show edit form with extracted data
+function showEditForm(data) {
+  document.getElementById('emptyState').classList.add('hidden');
+  document.getElementById('editForm').classList.remove('hidden');
+  document.getElementById('jobDetails').classList.add('hidden');
+  document.getElementById('footer').classList.add('hidden');
+  
+  populateForm(data);
+}
+
 // Display job details
 function displayJob(job) {
   document.getElementById('emptyState').classList.add('hidden');
+  document.getElementById('editForm').classList.add('hidden');
   document.getElementById('jobDetails').classList.remove('hidden');
   document.getElementById('footer').classList.remove('hidden');
 
@@ -128,7 +146,13 @@ function createSection(title, content, isEditable = false) {
 async function extractJobData() {
   const btnEmpty = document.getElementById('extractBtnEmpty');
   const btnSubtle = document.getElementById('extractBtnSubtle');
-  const activeBtn = btnEmpty?.classList.contains('hidden') ? btnSubtle : btnEmpty;
+  const btnForm = document.getElementById('extractBtnForm');
+  
+  // Find which button was clicked
+  let activeBtn = null;
+  if (btnEmpty && !btnEmpty.classList.contains('hidden')) activeBtn = btnEmpty;
+  else if (btnSubtle && !btnSubtle.parentElement.classList.contains('hidden')) activeBtn = btnSubtle;
+  else if (btnForm && !btnForm.parentElement.parentElement.classList.contains('hidden')) activeBtn = btnForm;
   
   if (!activeBtn) return;
   
@@ -137,11 +161,30 @@ async function extractJobData() {
   activeBtn.textContent = 'Extracting...';
 
   try {
-    // Get the active tab
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    // Get the active tab - for side panels, we need to query differently
+    let tab;
+    try {
+      // First try: Get active tab in the current window
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      tab = tabs[0];
+      
+      // If that didn't work, try getting active tab in last focused window
+      if (!tab) {
+        const tabs2 = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+        tab = tabs2[0];
+      }
+    } catch (error) {
+      console.error('[Side Panel] Error querying tabs:', error);
+    }
+
+    // Check if we have a valid tab
+    if (!tab || !tab.url) {
+      showError('Cannot access current tab. Make sure you have a tab open with a job posting.');
+      return;
+    }
 
     // Check if we can access this tab
-    if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+    if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('about:')) {
       showError('Cannot extract from Chrome internal pages. Please navigate to a job posting.');
       return;
     }
@@ -162,9 +205,20 @@ async function extractJobData() {
       });
 
       if (response && response.success) {
-        // Save the job and set it as job in focus
-        await saveExtractedJob(response.data);
-        showSuccess('Job extracted and saved successfully!');
+        extractedData = response.data;
+        showEditForm(response.data);
+        
+        // Show appropriate info message based on extraction method
+        if (response.usedLlm) {
+          showInfo('✨ Job extracted with LLM! Review and edit before saving.');
+        } else if (response.data.extraction_note) {
+          // LLM failed but DOM extraction succeeded - show warning
+          showWarning(response.data.extraction_note);
+          // Remove the note from data so it doesn't get saved
+          delete response.data.extraction_note;
+        } else {
+          showInfo('Job data extracted! Review and edit before saving.');
+        }
       } else {
         showError('Failed to extract job data. Make sure you are on a job posting page.');
       }
@@ -185,8 +239,14 @@ async function extractJobData() {
       });
 
       if (response && response.success) {
-        await saveExtractedJob(response.data);
-        showSuccess('Job extracted and saved successfully!');
+        extractedData = response.data;
+        showEditForm(response.data);
+        
+        if (response.usedLlm) {
+          showInfo('✨ Job extracted with LLM! Review and edit before saving.');
+        } else {
+          showInfo('Job data extracted! Review and edit before saving.');
+        }
       } else {
         showError('Failed to extract job data.');
       }
@@ -200,36 +260,145 @@ async function extractJobData() {
   }
 }
 
-// Save extracted job and set as job in focus
-async function saveExtractedJob(jobData) {
-  const jobId = generateJobId();
-  const now = new Date().toISOString();
+// Populate form with extracted data
+function populateForm(data) {
+  document.getElementById('jobTitle').value = data.job_title || '';
+  document.getElementById('company').value = data.company || '';
+  document.getElementById('location').value = data.location || '';
+  document.getElementById('salary').value = data.salary || '';
+  document.getElementById('jobType').value = data.job_type || '';
+  document.getElementById('remoteType').value = data.remote_type || '';
   
-  const job = {
-    id: jobId,
-    ...jobData,
-    application_status: jobData.application_status || 'Saved',
-    status_history: [{
-      status: jobData.application_status || 'Saved',
-      timestamp: now
-    }],
-    updated_at: now
+  // Convert ISO timestamps to YYYY-MM-DD format for date inputs
+  document.getElementById('postedDate').value = isoToDateInput(data.posted_date) || '';
+  document.getElementById('deadline').value = isoToDateInput(data.deadline) || '';
+  
+  document.getElementById('url').value = data.url || '';
+  document.getElementById('source').value = data.source || '';
+  document.getElementById('rawDescription').value = data.raw_description || '';
+  document.getElementById('aboutJob').value = data.about_job || '';
+  document.getElementById('aboutCompany').value = data.about_company || '';
+  document.getElementById('responsibilities').value = data.responsibilities || '';
+  document.getElementById('requirements').value = data.requirements || '';
+  document.getElementById('notes').value = data.notes || '';
+  document.getElementById('narrativeStrategy').value = data.narrative_strategy || '';
+}
+
+// Helper function to convert date string to YYYY-MM-DD for date input
+function isoToDateInput(dateString) {
+  if (!dateString) return '';
+  
+  // If it's already YYYY-MM-DD format, return as-is
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return dateString;
+  }
+  
+  // If it's an ISO timestamp, extract the date part without timezone conversion
+  if (/^\d{4}-\d{2}-\d{2}T/.test(dateString)) {
+    return dateString.split('T')[0];
+  }
+  
+  return '';
+}
+
+// Helper function to keep date input (YYYY-MM-DD) as-is
+function dateInputToISO(dateString) {
+  if (!dateString) return '';
+  
+  // Validate YYYY-MM-DD format
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return dateString;
+  }
+  
+  return '';
+}
+
+// Save job data and set as job in focus
+async function saveJobData(event) {
+  event.preventDefault();
+
+  const jobData = {
+    job_title: document.getElementById('jobTitle').value.trim(),
+    company: document.getElementById('company').value.trim(),
+    location: document.getElementById('location').value.trim(),
+    salary: document.getElementById('salary').value.trim(),
+    job_type: document.getElementById('jobType').value.trim(),
+    remote_type: document.getElementById('remoteType').value.trim(),
+    posted_date: dateInputToISO(document.getElementById('postedDate').value.trim()),
+    deadline: dateInputToISO(document.getElementById('deadline').value.trim()),
+    url: document.getElementById('url').value.trim(),
+    source: document.getElementById('source').value.trim(),
+    raw_description: document.getElementById('rawDescription').value.trim(),
+    about_job: document.getElementById('aboutJob').value.trim(),
+    about_company: document.getElementById('aboutCompany').value.trim(),
+    responsibilities: document.getElementById('responsibilities').value.trim(),
+    requirements: document.getElementById('requirements').value.trim(),
+    notes: document.getElementById('notes').value.trim(),
+    narrative_strategy: document.getElementById('narrativeStrategy').value.trim()
   };
 
-  // Get existing jobs
-  const result = await chrome.storage.local.get(['jobs']);
-  const jobs = result.jobs || {};
-  
-  // Save job
-  jobs[jobId] = job;
-  
-  // Set as job in focus and save
-  await chrome.storage.local.set({ 
-    jobs: jobs,
-    jobInFocus: jobId 
-  });
+  // Validate required fields
+  if (!jobData.job_title || !jobData.company) {
+    showError('Job Title and Company are required fields.');
+    return;
+  }
 
-  console.log('[Side Panel] Job saved and set as focus:', jobId);
+  try {
+    const jobId = generateJobId();
+    const now = new Date().toISOString();
+    
+    const job = {
+      id: jobId,
+      ...jobData,
+      application_status: 'Saved',
+      status_history: [{
+        status: 'Saved',
+        timestamp: now
+      }],
+      updated_at: now
+    };
+
+    // Get existing jobs
+    const result = await chrome.storage.local.get(['jobs']);
+    const jobs = result.jobs || {};
+    
+    // Save job
+    jobs[jobId] = job;
+    
+    // Set as job in focus and save
+    await chrome.storage.local.set({ 
+      jobs: jobs,
+      jobInFocus: jobId 
+    });
+
+    console.log('[Side Panel] Job saved and set as focus:', jobId);
+    
+    // Update UI
+    currentJobId = jobId;
+    currentJob = job;
+    displayJob(job);
+    
+    showSuccess('✓ Job saved and set as focus!');
+    
+    // Clear extracted data
+    extractedData = null;
+  } catch (error) {
+    console.error('[Side Panel] Error saving job:', error);
+    showError('Error saving job: ' + error.message);
+  }
+}
+
+// Cancel editing and return to previous state
+function cancelEdit() {
+  extractedData = null;
+  document.getElementById('jobForm').reset();
+  
+  // Return to job details if we have a job in focus, otherwise empty state
+  if (currentJobId && currentJob) {
+    displayJob(currentJob);
+  } else {
+    showEmptyState();
+  }
 }
 
 // Generate unique job ID
@@ -258,13 +427,35 @@ function escapeHtml(text) {
 
 // Show success message
 function showSuccess(message) {
-  // TODO: Implement toast notification
-  console.log('[Side Panel] Success:', message);
+  showToast(message, 'success');
 }
 
 // Show error message
 function showError(message) {
-  // TODO: Implement toast notification
-  console.error('[Side Panel] Error:', message);
-  alert(message);
+  showToast(message, 'error');
+}
+
+// Show warning message
+function showWarning(message) {
+  showToast(message, 'warning');
+}
+
+// Show info message
+function showInfo(message) {
+  showToast(message, 'info');
+}
+
+// Show toast notification
+function showToast(message, type = 'info') {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  
+  toast.textContent = message;
+  toast.className = `toast ${type}`;
+  toast.classList.remove('hidden');
+  
+  // Auto-hide after 4 seconds
+  setTimeout(() => {
+    toast.classList.add('hidden');
+  }, 4000);
 }

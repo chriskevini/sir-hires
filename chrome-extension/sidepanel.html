@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Sir Hires</title>
+  <link rel="stylesheet" href="styles/sidepanel.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Empty State (shown when no job in focus) -->
+    <div id="emptyState" class="empty-state">
+      <div class="welcome-content">
+        <h2>👋 Welcome to Sir Hires!</h2>
+        
+        <div class="instructions">
+          <p><strong>To get started:</strong></p>
+          <ol>
+            <li>Navigate to a job listing</li>
+            <li>Click "Extract Job Data" below</li>
+            <li>Review and save</li>
+          </ol>
+        </div>
+
+        <div class="tips">
+          <p><strong>💡 Tips:</strong></p>
+          <ul>
+            <li>Press <kbd>Ctrl+Shift+H</kbd> (<kbd>Cmd+Shift+H</kbd> on Mac) to toggle this panel anytime</li>
+            <li>Click the pin icon 📌 at the top right for easy access to Sir Hires</li>
+          </ul>
+        </div>
+
+        <div class="supported-sites">
+          <p>Works on LinkedIn, Indeed, Glassdoor, and more!</p>
+        </div>
+      </div>
+
+      <div class="extract-section">
+        <button id="extractBtnEmpty" class="btn btn-primary btn-large">Extract Job Data</button>
+      </div>
+    </div>
+
+    <!-- Job Details (shown when job is in focus) -->
+    <div id="jobDetails" class="job-details hidden">
+      <div class="extract-header">
+        <button id="extractBtnSubtle" class="btn btn-subtle">Extract Job Data</button>
+      </div>
+
+      <div id="jobContent" class="job-content">
+        <!-- Job details will be dynamically inserted here -->
+        <div class="loading">Loading job details...</div>
+      </div>
+    </div>
+
+    <!-- Footer Actions -->
+    <footer id="footer" class="footer hidden">
+      <button id="viewAllJobsBtn" class="btn btn-secondary">View All Jobs</button>
+      <button id="editResumeBtn" class="btn btn-secondary">Edit Master Resume</button>
+    </footer>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

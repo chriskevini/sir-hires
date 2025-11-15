@@ -3,18 +3,23 @@ let allJobs = [];
 let filteredJobs = [];
 let selectedJobIndex = -1;
 let debugMode = false;
+let jobInFocusId = null; // Track which job is currently in focus
 
 async function loadJobs() {
   console.log('loadJobs() called');
   try {
-    const result = await chrome.storage.local.get(['jobs', 'masterResume']);
+    const result = await chrome.storage.local.get(['jobs', 'masterResume', 'jobInFocus']);
     console.log('Storage result:', result);
+    
+    // Store the job in focus ID
+    jobInFocusId = result.jobInFocus || null;
     
     // Convert object-based storage to array for viewer compatibility
     const jobsObj = result.jobs || {};
     allJobs = Object.values(jobsObj);
     console.log('allJobs:', allJobs);
     console.log('allJobs.length:', allJobs.length);
+    console.log('jobInFocusId:', jobInFocusId);
     
     // Check if master resume exists and show hint if not
     checkResumeStatus(result.masterResume);
@@ -145,10 +150,14 @@ function renderSidebar(jobs) {
 function renderCompactJobCard(job, index) {
   const status = job.application_status || 'Saved';
   const isActive = index === selectedJobIndex;
+  const isFocused = job.id === jobInFocusId;
   
   return `
-    <div class="job-card-compact ${isActive ? 'active' : ''}" data-index="${index}">
-      <div class="job-title-compact">${escapeHtml(job.job_title)}</div>
+    <div class="job-card-compact ${isActive ? 'active' : ''} ${isFocused ? 'focused' : ''}" data-index="${index}">
+      <div class="job-card-header-compact">
+        <div class="job-title-compact">${escapeHtml(job.job_title)}</div>
+        ${isFocused ? '<span class="focus-indicator" title="Currently in focus">📌</span>' : ''}
+      </div>
       <div class="company-compact">${escapeHtml(job.company)}</div>
       <div class="meta-compact">
         ${status !== 'Saved' ? `<span class="status-badge-compact status-${status}">${status}</span>` : ''}
@@ -158,7 +167,7 @@ function renderCompactJobCard(job, index) {
   `;
 }
 
-function selectJob(index) {
+async function selectJob(index) {
   console.log('selectJob() called with index:', index);
   selectedJobIndex = index;
   
@@ -175,6 +184,12 @@ function selectJob(index) {
   const job = filteredJobs[index];
   const globalIndex = allJobs.indexOf(job);
   renderJobDetail(job, globalIndex);
+  
+  // Set this job as the job in focus
+  if (job.id) {
+    await chrome.storage.local.set({ jobInFocus: job.id });
+    console.log(`Set job ${job.id} as job in focus`);
+  }
 }
 
 function renderJobDetail(job, index) {
@@ -929,6 +944,22 @@ document.addEventListener('DOMContentLoaded', function() {
       const index = parseInt(card.dataset.index);
       if (!isNaN(index)) {
         selectJob(index);
+      }
+    }
+  });
+  
+  // Storage change listener for multi-tab sync
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local') {
+      if (changes.jobInFocus) {
+        console.log('[Viewer] Job in focus changed, updating indicator');
+        jobInFocusId = changes.jobInFocus.newValue || null;
+        // Re-render sidebar to update focus indicator
+        renderSidebar(filteredJobs);
+      }
+      if (changes.jobs) {
+        console.log('[Viewer] Jobs changed, reloading');
+        loadJobs();
       }
     }
   });

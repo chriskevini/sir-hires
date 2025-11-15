@@ -225,12 +225,34 @@ When adding or removing fields from the job data schema, you MUST update ALL of 
 - `content.js` - Job extraction logic (runs on web pages)
 - `popup.js` - Popup UI logic (save, export, settings)
 - `viewer.js` - Job viewer logic (display, search, filter)
+- `sidepanel.js` - Side panel UI logic (job in focus, inline editing)
 - `background.js` - Background service worker (minimal)
+
+## Chrome API Limitations & Known Issues
+
+### Side Panel Auto-Reopen (Not Possible)
+**Attempted:** Automatically reopen the side panel when user navigates away from viewer.html  
+**Result:** Not possible with current Chrome Extension APIs  
+**Reason:** 
+- `chrome.sidePanel.open()` requires a user gesture (click, keyboard shortcut, etc.)
+- Navigation events (`beforeunload`, `visibilitychange`) are NOT user gestures
+- No API exists to detect side panel close events or programmatically reopen without user action
+
+**Workaround:** Users must manually reopen the side panel using:
+- Extension icon click (if `openPanelOnActionClick` is enabled)
+- Keyboard shortcut: `Ctrl+Shift+H` (Windows/Linux) or `Cmd+Shift+H` (Mac)
+- Chrome's side panel menu
+
+**Current Behavior:** 
+- Side panel automatically closes when user clicks "View All Jobs" or "Edit Resume" buttons
+- User must manually reopen side panel when returning from viewer/resume pages
+- This is a Chrome API limitation, not a bug
 
 ## Debugging Tips
 
-- Check console logs in all contexts (popup, content, background)
+- Check console logs in all contexts (popup, content, background, side panel)
 - Use `chrome.storage.local.get()` to inspect stored data
 - Test extraction on simple job boards first (Indeed is usually easiest)
 - If LLM extraction fails, check LM Studio server is running
 - Use `debug-storage.html` to inspect storage directly
+- Side panel can be inspected by right-clicking in the side panel and selecting "Inspect"

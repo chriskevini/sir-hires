@@ -17,6 +17,28 @@ async function loadJobs() {
     // Convert object-based storage to array for viewer compatibility
     const jobsObj = result.jobs || {};
     allJobs = Object.values(jobsObj);
+    
+    // Migration: Ensure all jobs have IDs (for backward compatibility)
+    let needsMigration = false;
+    const migratedJobs = {};
+    
+    Object.entries(jobsObj).forEach(([key, job]) => {
+      if (!job.id) {
+        // Old job without ID - use the storage key as the ID
+        console.log('Migrating job without ID, using key:', key);
+        job.id = key;
+        needsMigration = true;
+      }
+      migratedJobs[job.id] = job;
+    });
+    
+    // If we migrated any jobs, save them back
+    if (needsMigration) {
+      console.log('Saving migrated jobs with IDs');
+      await chrome.storage.local.set({ jobs: migratedJobs });
+      allJobs = Object.values(migratedJobs);
+    }
+    
     console.log('allJobs:', allJobs);
     console.log('allJobs.length:', allJobs.length);
     console.log('jobInFocusId:', jobInFocusId);
@@ -107,17 +129,43 @@ function populateSourceFilter() {
 
 function renderJobs(jobs) {
   console.log('renderJobs() called with', jobs.length, 'jobs');
+  console.log('jobInFocusId:', jobInFocusId);
   filteredJobs = jobs;
   renderSidebar(jobs);
   
-  // Auto-select first job if none selected or selected job no longer exists
+  // Auto-select job based on priority:
+  // 1. Job in focus (if it exists in filtered jobs)
+  // 2. Currently selected job (if valid)
+  // 3. First job in list
   if (jobs.length > 0) {
-    if (selectedJobIndex === -1 || selectedJobIndex >= jobs.length) {
-      selectJob(0);
-    } else {
-      // Re-render the currently selected job
-      selectJob(selectedJobIndex);
+    let indexToSelect = -1;
+    
+    // Try to find and select the job in focus
+    if (jobInFocusId) {
+      console.log('Looking for job with ID:', jobInFocusId);
+      console.log('First job in list:', jobs[0]);
+      const focusIndex = jobs.findIndex(job => job.id === jobInFocusId);
+      console.log('Found job in focus at index:', focusIndex);
+      if (focusIndex !== -1) {
+        console.log('Auto-selecting job in focus at index:', focusIndex);
+        indexToSelect = focusIndex;
+      }
     }
+    
+    // Fallback to current selection if job in focus not found
+    if (indexToSelect === -1 && selectedJobIndex >= 0 && selectedJobIndex < jobs.length) {
+      console.log('Falling back to current selection:', selectedJobIndex);
+      indexToSelect = selectedJobIndex;
+    }
+    
+    // Fallback to first job if no valid selection
+    if (indexToSelect === -1) {
+      console.log('Falling back to first job');
+      indexToSelect = 0;
+    }
+    
+    console.log('Final index to select:', indexToSelect);
+    selectJob(indexToSelect);
   } else {
     document.getElementById('detailPanel').innerHTML = '<div class="detail-panel-empty">No jobs match your filters</div>';
     selectedJobIndex = -1;

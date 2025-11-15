@@ -22,12 +22,16 @@ function setupEventListeners() {
   document.getElementById('cancelBtn')?.addEventListener('click', cancelEdit);
   
   // Footer buttons
-  document.getElementById('viewAllJobsBtn')?.addEventListener('click', () => {
-    chrome.tabs.create({ url: 'viewer.html' });
+  document.getElementById('viewAllJobsBtn')?.addEventListener('click', async () => {
+    await chrome.tabs.create({ url: 'viewer.html' });
+    // Close the side panel after opening viewer
+    window.close();
   });
   
-  document.getElementById('editResumeBtn')?.addEventListener('click', () => {
-    chrome.tabs.create({ url: 'resume.html' });
+  document.getElementById('editResumeBtn')?.addEventListener('click', async () => {
+    await chrome.tabs.create({ url: 'resume.html' });
+    // Close the side panel after opening resume editor
+    window.close();
   });
 }
 

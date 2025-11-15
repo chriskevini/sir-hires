@@ -7,11 +7,14 @@ let debugMode = false;
 async function loadJobs() {
   console.log('loadJobs() called');
   try {
-    const result = await chrome.storage.local.get(['jobs']);
+    const result = await chrome.storage.local.get(['jobs', 'masterResume']);
     console.log('Storage result:', result);
     allJobs = result.jobs || [];
     console.log('allJobs:', allJobs);
     console.log('allJobs.length:', allJobs.length);
+    
+    // Check if master resume exists and show hint if not
+    checkResumeStatus(result.masterResume);
     
     if (allJobs.length === 0) {
       console.log('No jobs found, showing empty state');
@@ -31,6 +34,22 @@ async function loadJobs() {
     console.error('Error loading jobs:', error);
     document.getElementById('jobsList').innerHTML = '<div style="color: red; padding: 20px;">Error loading jobs: ' + error.message + '</div>';
   }
+}
+
+function checkResumeStatus(masterResume) {
+  const resumeHint = document.getElementById('resumeHint');
+  
+  if (!masterResume || !masterResume.content || masterResume.content.trim() === '') {
+    // No resume exists, show hint
+    resumeHint.classList.remove('hidden');
+  } else {
+    // Resume exists, hide hint
+    resumeHint.classList.add('hidden');
+  }
+}
+
+function openMasterResume() {
+  window.location.href = 'resume.html';
 }
 
 function updateStats() {
@@ -780,6 +799,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('statusFilter').addEventListener('change', filterJobs);
   document.getElementById('sortFilter').addEventListener('change', filterJobs);
   document.getElementById('debugToggle').addEventListener('change', toggleDebugMode);
+  document.getElementById('masterResumeBtn').addEventListener('click', openMasterResume);
   document.getElementById('exportJsonBtn').addEventListener('click', exportJSON);
   document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);
   document.getElementById('clearAllBtn').addEventListener('click', clearAllJobs);

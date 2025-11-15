@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Master Resume - Sir Hires</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: #f5f5f5;
+      padding: 0;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .container {
+      max-width: 100%;
+      height: 100vh;
+      margin: 0;
+      background-color: white;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      border-bottom: 2px solid #e0e0e0;
+      background-color: white;
+      flex-shrink: 0;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .btn-back {
+      background-color: #f1f3f4;
+      color: #333;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-back:hover {
+      background-color: #e8eaed;
+    }
+
+    h1 {
+      font-size: 20px;
+      color: #1a73e8;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .last-saved {
+      color: #666;
+      font-size: 13px;
+    }
+
+    .unsaved-indicator {
+      color: #ea8600;
+      font-weight: 600;
+    }
+
+    .btn-save {
+      background-color: #34a853;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background-color 0.2s;
+      font-weight: 500;
+    }
+
+    .btn-save:hover {
+      background-color: #2d8e47;
+    }
+
+    .btn-save:disabled {
+      background-color: #a8dab5;
+      cursor: not-allowed;
+    }
+
+    .editor-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 24px;
+    }
+
+    .editor-help {
+      background-color: #e8f0fe;
+      border: 1px solid #d2e3fc;
+      border-radius: 4px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: #1967d2;
+      line-height: 1.5;
+    }
+
+    .editor-help strong {
+      font-weight: 600;
+    }
+
+    textarea {
+      flex: 1;
+      width: 100%;
+      padding: 16px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: 'Courier New', Monaco, monospace;
+      line-height: 1.6;
+      resize: none;
+      background-color: white;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
+    }
+
+    textarea::placeholder {
+      color: #999;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    footer {
+      border-top: 1px solid #e0e0e0;
+      padding: 16px 24px;
+      background-color: #f9f9f9;
+      flex-shrink: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .markdown-guide-toggle {
+      background-color: transparent;
+      color: #1a73e8;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+
+    .markdown-guide-toggle:hover {
+      background-color: #e8f0fe;
+    }
+
+    .markdown-guide {
+      position: fixed;
+      bottom: 70px;
+      left: 24px;
+      background-color: white;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      max-width: 400px;
+      z-index: 1000;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .markdown-guide.hidden {
+      display: none;
+    }
+
+    .markdown-guide h3 {
+      font-size: 14px;
+      margin-bottom: 12px;
+      color: #333;
+    }
+
+    .markdown-guide h4 {
+      font-size: 12px;
+      margin-top: 12px;
+      margin-bottom: 6px;
+      color: #555;
+      font-weight: 600;
+    }
+
+    .markdown-guide code {
+      background-color: #f1f3f4;
+      padding: 1px 4px;
+      border-radius: 2px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+    }
+
+    .markdown-guide pre {
+      background-color: #f1f3f4;
+      padding: 8px;
+      border-radius: 4px;
+      margin: 4px 0;
+      overflow-x: auto;
+    }
+
+    .export-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-export {
+      background-color: #1a73e8;
+      color: white;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background-color 0.2s;
+    }
+
+    .btn-export:hover {
+      background-color: #1765cc;
+    }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+      font-size: 14px;
+      text-align: center;
+      padding: 40px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-left">
+        <button id="backBtn" class="btn-back">← Back to Jobs</button>
+        <h1>Master Resume</h1>
+      </div>
+      <div class="header-right">
+        <span id="lastSaved" class="last-saved"></span>
+        <button id="saveBtn" class="btn-save">Save</button>
+      </div>
+    </header>
+
+    <div class="editor-container">
+      <div class="editor-help">
+        <strong>💡 Tip:</strong> Format your resume using Markdown for best results. Use headers (<code>#</code>) for sections, lists (<code>-</code>) for bullet points, and <code>**bold**</code> for emphasis.
+      </div>
+      <textarea id="resumeEditor" placeholder="# Your Name
+email@example.com | linkedin.com/in/yourprofile | github.com/yourusername
+
+## Summary
+Brief professional summary highlighting your key strengths and experience...
+
+## Experience
+### Job Title | Company Name | Dates
+- Key achievement or responsibility
+- Another achievement with quantifiable results
+- Technical skills or tools used
+
+### Previous Job Title | Previous Company | Dates
+- Achievement or responsibility
+- Impact you made
+
+## Education
+### Degree | University | Year
+- Relevant coursework, honors, or achievements
+
+## Skills
+- **Programming Languages:** Python, JavaScript, Java
+- **Frameworks/Tools:** React, Node.js, Docker
+- **Other Skills:** Project management, technical writing
+
+## Certifications & Projects
+- Certification Name | Issuing Organization | Year
+- Notable project description"></textarea>
+    </div>
+
+    <footer>
+      <button id="markdownGuideBtn" class="markdown-guide-toggle">📖 Markdown Guide ▼</button>
+      <div class="export-buttons">
+        <button id="exportMdBtn" class="btn-export">Export .md</button>
+        <button id="exportTxtBtn" class="btn-export">Export .txt</button>
+      </div>
+    </footer>
+
+    <div id="markdownGuide" class="markdown-guide hidden">
+      <h3>Markdown Quick Reference</h3>
+      
+      <h4>Headers</h4>
+      <pre># H1 - Your Name
+## H2 - Section Title
+### H3 - Subsection</pre>
+      
+      <h4>Lists</h4>
+      <pre>- Bullet point
+- Another bullet
+  - Nested bullet</pre>
+      
+      <h4>Emphasis</h4>
+      <pre>**Bold text**
+*Italic text*</pre>
+      
+      <h4>Links</h4>
+      <pre>[LinkedIn](https://linkedin.com/in/yourprofile)</pre>
+    </div>
+  </div>
+
+  <script src="resume.js"></script>
+</body>
+</html>

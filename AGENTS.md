@@ -94,7 +94,18 @@ Jobs are stored as objects with these fields:
   responsibilities: string,
   requirements: string,
   notes: string,
-  updated_at: string (ISO 8601 timestamp with time)
+  updated_at: string (ISO 8601 timestamp with time),
+  targeted_resume: string (future: per-job tailored resume)
+}
+```
+
+Master resume is stored separately:
+```javascript
+{
+  masterResume: {
+    content: string (markdown-formatted text),
+    updated_at: string (ISO 8601 timestamp)
+  }
 }
 ```
 

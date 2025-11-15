@@ -17,6 +17,7 @@ function extractJobData() {
     responsibilities: '',
     requirements: '',
     notes: '',
+    narrative_strategy: '',
     source: extractSource()
   };
 
@@ -847,7 +848,8 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
       "about_job": "verbatim-string",
       "about_company": "verbatim-string",
       "responsibilities": "verbatim-string",
-      "requirements": "verbatim-string"
+      "requirements": "verbatim-string",
+      "narrative_strategy": "verbatim-string"
     };
 
     // Format for NuExtract: use the template in the prompt structure
@@ -935,6 +937,7 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
       about_company: extracted.about_company || '',
       responsibilities: extracted.responsibilities || '',
       requirements: extracted.requirements || '',
+      narrative_strategy: extracted.narrative_strategy || '',
       notes: '',  // User-generated field, not extracted from page
       url: '',  // Will be set by caller
       source: '' // Will be set by caller

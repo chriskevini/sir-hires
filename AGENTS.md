@@ -94,6 +94,7 @@ Jobs are stored as objects with these fields:
   responsibilities: string,
   requirements: string,
   notes: string,
+  narrative_strategy: string,
   updated_at: string (ISO 8601 timestamp with time),
   targeted_resume: string (future: per-job tailored resume)
 }

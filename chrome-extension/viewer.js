@@ -333,6 +333,12 @@ function renderNormalJob(job, index) {
         <button class="btn-save-notes" data-index="${index}">Save Notes</button>
       </div>
 
+      <div class="section">
+        <div class="section-title">Narrative Strategy</div>
+        <textarea class="notes-textarea" id="narrative-textarea-${index}" rows="3" placeholder="How to tailor your resume/cover letter for this job...">${escapeHtml(job.narrative_strategy || '')}</textarea>
+        <button class="btn-save-narrative" data-index="${index}">Save Strategy</button>
+      </div>
+
       <div class="job-actions">
         ${job.url ? `<button class="btn btn-link" data-url="${escapeHtml(job.url)}">View Job Posting</button>` : ''}
         <button class="btn btn-delete" data-index="${index}">Delete</button>
@@ -424,6 +430,10 @@ function renderDebugJob(job, index) {
           <span class="debug-value">${formatValue(job.notes)}</span>
         </div>
         <div class="debug-info-row">
+          <span class="debug-label">narrative_strategy:</span>
+          <span class="debug-value">${formatValue(job.narrative_strategy)}</span>
+        </div>
+        <div class="debug-info-row">
           <span class="debug-label">raw_description:</span>
           <span class="debug-value">${formatValue(job.raw_description)}</span>
         </div>
@@ -476,6 +486,14 @@ function attachButtonListeners() {
     btn.addEventListener('click', function() {
       const index = parseInt(this.dataset.index);
       saveNotes(index);
+    });
+  });
+  
+  // Attach listeners to save narrative strategy buttons
+  document.querySelectorAll('.btn-save-narrative').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const index = parseInt(this.dataset.index);
+      saveNarrativeStrategy(index);
     });
   });
 }
@@ -568,6 +586,39 @@ async function saveNotes(index) {
   }
   
   console.log(`Updated notes for job at index ${index}`);
+}
+
+async function saveNarrativeStrategy(index) {
+  const textarea = document.getElementById(`narrative-textarea-${index}`);
+  if (!textarea) {
+    console.error(`Narrative strategy textarea not found for index ${index}`);
+    return;
+  }
+  
+  const newStrategy = textarea.value.trim();
+  const job = allJobs[index];
+  
+  // Update the narrative strategy
+  job.narrative_strategy = newStrategy;
+  job.updated_at = new Date().toISOString();
+  
+  // Save to storage
+  await chrome.storage.local.set({ jobs: allJobs });
+  
+  // Visual feedback
+  const button = document.querySelector(`.btn-save-narrative[data-index="${index}"]`);
+  if (button) {
+    const originalText = button.textContent;
+    button.textContent = 'Saved!';
+    button.style.backgroundColor = '#1a73e8';
+    
+    setTimeout(() => {
+      button.textContent = originalText;
+      button.style.backgroundColor = '';
+    }, 2000);
+  }
+  
+  console.log(`Updated narrative strategy for job at index ${index}`);
 }
 
 function filterJobs() {
@@ -728,7 +779,7 @@ async function exportCSV() {
     }
 
     // Create CSV headers
-    const headers = ['Job Title', 'Company', 'Location', 'Salary', 'Job Type', 'Remote Type', 'Posted Date', 'Deadline', 'Application Status', 'URL', 'Source', 'Raw Description', 'About the Job', 'About the Company', 'Responsibilities', 'Requirements', 'Notes', 'Updated At'];
+    const headers = ['Job Title', 'Company', 'Location', 'Salary', 'Job Type', 'Remote Type', 'Posted Date', 'Deadline', 'Application Status', 'URL', 'Source', 'Raw Description', 'About the Job', 'About the Company', 'Responsibilities', 'Requirements', 'Notes', 'Narrative Strategy', 'Updated At'];
     
     // Create CSV rows
     const rows = allJobs.map(job => [
@@ -749,6 +800,7 @@ async function exportCSV() {
       escapeCsvValue(job.responsibilities),
       escapeCsvValue(job.requirements),
       escapeCsvValue(job.notes),
+      escapeCsvValue(job.narrative_strategy),
       escapeCsvValue(job.updated_at)
     ]);
 

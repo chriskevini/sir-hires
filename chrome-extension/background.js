@@ -1,15 +1,45 @@
 // Background service worker for the extension
 
 // Listen for installation
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('Job Board Copy-Paste extension installed');
+chrome.runtime.onInstalled.addListener(async (details) => {
+  console.log('Sir Hires extension installed');
   
   // Initialize storage if needed
   chrome.storage.local.get(['jobs'], (result) => {
     if (!result.jobs) {
-      chrome.storage.local.set({ jobs: [] });
+      chrome.storage.local.set({ jobs: {} });
     }
   });
+
+  // Disable side panel on action click (we want popup to open instead)
+  await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: false })
+    .catch((error) => console.error('Error setting side panel behavior:', error));
+
+  // Auto-open side panel on first install to show instructions
+  if (details.reason === 'install') {
+    try {
+      const windows = await chrome.windows.getAll();
+      if (windows.length > 0) {
+        await chrome.sidePanel.open({ windowId: windows[0].id });
+        console.log('Side panel opened on first install');
+      }
+    } catch (error) {
+      console.error('Error opening side panel on install:', error);
+    }
+  }
+});
+
+// Listen for keyboard shortcut to toggle side panel
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command === 'toggle-side-panel') {
+    try {
+      const window = await chrome.windows.getCurrent();
+      await chrome.sidePanel.open({ windowId: window.id });
+      console.log('Side panel toggled via keyboard shortcut');
+    } catch (error) {
+      console.error('Error toggling side panel:', error);
+    }
+  }
 });
 
 // Handle messages from other parts of the extension

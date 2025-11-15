@@ -564,6 +564,17 @@
       box-shadow: 0 2px 4px rgba(26, 115, 232, 0.2);
     }
 
+    .job-card-compact.focused {
+      border-left: 3px solid #fbbc04;
+    }
+
+    .job-card-header-compact {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 4px;
+    }
+
     .job-card-compact .job-title-compact {
       font-size: 14px;
       font-weight: 600;
@@ -574,6 +585,13 @@
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
+      flex: 1;
+    }
+
+    .focus-indicator {
+      font-size: 12px;
+      flex-shrink: 0;
+      opacity: 0.8;
     }
 
     .job-card-compact .company-compact {

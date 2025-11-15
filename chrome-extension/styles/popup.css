@@ -8,8 +8,8 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   font-size: 14px;
   color: #333;
-  width: 400px;
-  min-height: 300px;
+  width: 380px;
+  min-height: 250px;
 }
 
 .container {
@@ -17,6 +17,9 @@ body {
 }
 
 header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 16px;
   padding-bottom: 12px;
   border-bottom: 2px solid #e0e0e0;
@@ -28,10 +31,11 @@ h1 {
   color: #1a73e8;
 }
 
-h2 {
-  font-size: 16px;
+h3 {
+  font-size: 14px;
   font-weight: 600;
   margin-bottom: 12px;
+  color: #333;
 }
 
 .status {
@@ -69,6 +73,7 @@ h2 {
   display: none !important;
 }
 
+/* Buttons */
 .btn {
   padding: 10px 16px;
   border: none;
@@ -77,6 +82,7 @@ h2 {
   font-size: 14px;
   font-weight: 500;
   transition: background-color 0.2s;
+  width: 100%;
 }
 
 .btn:disabled {
@@ -93,31 +99,20 @@ h2 {
   background-color: #1765cc;
 }
 
+.btn-large {
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
 .btn-secondary {
   background-color: #f1f3f4;
   color: #333;
+  margin-top: 8px;
 }
 
 .btn-secondary:hover:not(:disabled) {
   background-color: #e8eaed;
-}
-
-.btn-success {
-  background-color: #34a853;
-  color: white;
-}
-
-.btn-success:hover:not(:disabled) {
-  background-color: #2d8e47;
-}
-
-.btn-danger {
-  background-color: #ea4335;
-  color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background-color: #d33426;
 }
 
 .button-group {
@@ -130,12 +125,90 @@ h2 {
   flex: 1;
 }
 
-#extractSection {
-  margin-bottom: 16px;
+.btn-icon {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
 }
 
-#extractBtn {
-  width: 100%;
+.btn-icon:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Main Actions */
+#mainActions {
+  margin-top: 16px;
+}
+
+/* Tip Box */
+.tip-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  margin-top: 16px;
+  background-color: #e8f0fe;
+  border-radius: 4px;
+  border-left: 3px solid #1a73e8;
+}
+
+.tip-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.tip-text {
+  font-size: 12px;
+  color: #1967d2;
+  line-height: 1.4;
+}
+
+kbd {
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-family: monospace;
+  font-size: 11px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Job Stats */
+.job-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  margin-top: 16px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.stats-icon {
+  font-size: 16px;
+}
+
+.stats-text {
+  font-size: 13px;
+  color: #555;
+}
+
+#jobCount {
+  color: #1a73e8;
+  font-weight: 600;
+}
+
+/* Settings Section */
+#settingsSection {
+  background-color: #f8f9fa;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  padding: 16px;
+  margin-bottom: 16px;
 }
 
 .form-group {
@@ -150,8 +223,7 @@ h2 {
   color: #555;
 }
 
-.form-group input,
-.form-group textarea {
+.form-group input {
   width: 100%;
   padding: 8px;
   border: 1px solid #dadce0;
@@ -160,43 +232,17 @@ h2 {
   font-family: inherit;
 }
 
-.form-group input:focus,
-.form-group textarea:focus {
+.form-group input:focus {
   outline: none;
   border-color: #1a73e8;
   box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
 }
 
-.form-group input[readonly] {
-  background-color: #f1f3f4;
+.form-group small {
+  display: block;
+  margin-top: 4px;
   color: #666;
-}
-
-.form-group textarea {
-  resize: vertical;
-  min-height: 100px;
-}
-
-#savedSection {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid #e0e0e0;
-}
-
-#jobCount {
-  color: #1a73e8;
-  font-weight: 600;
-}
-
-/* Extraction Options */
-.extraction-options {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-  padding: 8px;
-  background-color: #f8f9fa;
-  border-radius: 4px;
+  font-size: 11px;
 }
 
 .checkbox-label {
@@ -216,79 +262,4 @@ h2 {
 
 .checkbox-label span {
   color: #333;
-}
-
-.btn-icon {
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
-
-.btn-icon:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-/* Settings Section */
-#settingsSection {
-  background-color: #f8f9fa;
-  border: 1px solid #dadce0;
-  border-radius: 4px;
-  padding: 16px;
-  margin-bottom: 16px;
-}
-
-#settingsSection h3 {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  color: #333;
-}
-
-#settingsSection .form-group small {
-  display: block;
-  margin-top: 4px;
-  color: #666;
-  font-size: 11px;
-}
-
-#settingsSection .button-group {
-  margin-top: 16px;
-}
-
-/* Duplicate warning in extract section */
-.duplicate-warning {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  margin-bottom: 12px;
-  background-color: #fff3cd;
-  border: 1px solid #ffeaa7;
-  border-radius: 4px;
-  animation: slideDown 0.3s ease-out;
-}
-
-.duplicate-warning .warning-icon {
-  font-size: 16px;
-}
-
-.duplicate-warning .warning-text {
-  font-size: 13px;
-  font-weight: 500;
-  color: #856404;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }

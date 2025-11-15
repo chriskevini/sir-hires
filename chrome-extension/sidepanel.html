@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Sir Hires</title>
+  <link rel="stylesheet" href="styles/sidepanel.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Empty State (shown when no job in focus) -->
+    <div id="emptyState" class="empty-state">
+      <div class="welcome-content">
+        <h2>👋 Welcome to Sir Hires!</h2>
+        
+        <div class="instructions">
+          <p><strong>To get started:</strong></p>
+          <ol>
+            <li>Pin this extension for quick access (click the puzzle piece icon 🧩 in your toolbar, then pin Sir Hires)</li>
+            <li>Navigate to a job posting (LinkedIn, Indeed, etc.)</li>
+            <li>Click the extension icon</li>
+            <li>Click "Extract Job Data" in the popup</li>
+          </ol>
+          <p class="instructions-note">The job will appear here for editing.</p>
+        </div>
+
+        <div class="tips">
+          <p><strong>💡 Tips:</strong></p>
+          <ul>
+            <li>Press <kbd>Ctrl+Shift+H</kbd> (<kbd>Cmd+Shift+H</kbd> on Mac) to toggle this panel anytime</li>
+            <li>All job fields are editable - just click to edit!</li>
+          </ul>
+        </div>
+
+        <div class="supported-sites">
+          <p>Works on LinkedIn, Indeed, Glassdoor, and more!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Job Details (shown when job is in focus) -->
+    <div id="jobDetails" class="job-details hidden">
+      <div id="jobContent" class="job-content">
+        <!-- Job details will be dynamically inserted here -->
+        <div class="loading">Loading job details...</div>
+      </div>
+    </div>
+
+    <!-- Footer Actions -->
+    <footer id="footer" class="footer hidden">
+      <button id="viewAllJobsBtn" class="btn btn-secondary">View All Jobs</button>
+    </footer>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

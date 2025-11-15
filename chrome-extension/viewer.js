@@ -26,6 +26,7 @@ async function loadJobs() {
       document.getElementById('emptyState').classList.add('hidden');
       document.querySelector('.main-content').style.display = 'flex';
       populateSourceFilter();
+      restoreFilters(); // Restore saved filter states
       filterJobs(); // This will render sidebar and select first job
     }
     
@@ -50,6 +51,31 @@ function checkResumeStatus(masterResume) {
 
 function openMasterResume() {
   window.location.href = 'resume.html';
+}
+
+function saveFilters() {
+  const filters = {
+    search: document.getElementById('searchInput').value,
+    source: document.getElementById('sourceFilter').value,
+    status: document.getElementById('statusFilter').value,
+    sort: document.getElementById('sortFilter').value
+  };
+  localStorage.setItem('jobViewerFilters', JSON.stringify(filters));
+}
+
+function restoreFilters() {
+  const saved = localStorage.getItem('jobViewerFilters');
+  if (saved) {
+    try {
+      const filters = JSON.parse(saved);
+      document.getElementById('searchInput').value = filters.search || '';
+      document.getElementById('sourceFilter').value = filters.source || '';
+      document.getElementById('statusFilter').value = filters.status || '';
+      document.getElementById('sortFilter').value = filters.sort || 'newest';
+    } catch (error) {
+      console.error('Error restoring filters:', error);
+    }
+  }
 }
 
 function updateStats() {
@@ -549,6 +575,9 @@ function filterJobs() {
   const sourceFilter = document.getElementById('sourceFilter').value;
   const statusFilter = document.getElementById('statusFilter').value;
   const sortFilter = document.getElementById('sortFilter').value;
+
+  // Save filters to localStorage
+  saveFilters();
 
   let filtered = allJobs;
 

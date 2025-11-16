@@ -5,6 +5,159 @@ let selectedJobIndex = -1;
 let debugMode = false;
 let jobInFocusId = null; // Track which job is currently in focus
 
+// Status progression order for state-based navigation
+const STATUS_ORDER = [
+  'Saved',
+  'Drafting',
+  'Applied',
+  'Screening',
+  'Interviewing',
+  'Offer',
+  'Accepted',
+  'Rejected',
+  'Withdrawn'
+];
+
+// Helper function to get the order index of a status
+function getStatusOrder(status) {
+  const index = STATUS_ORDER.indexOf(status);
+  return index === -1 ? 0 : index; // Default to 'Saved' if not found
+}
+
+// Navigate to a new state (status) with animation and confirmation
+async function navigateToState(jobIndex, newStatus, direction) {
+  const job = allJobs[jobIndex];
+  const oldStatus = job.application_status || 'Saved';
+  
+  // Check if moving backwards
+  const isBackward = getStatusOrder(newStatus) < getStatusOrder(oldStatus);
+  
+  if (isBackward) {
+    const confirmMsg = `Move back to '${newStatus}'? This may discard progress.`;
+    if (!confirm(confirmMsg)) {
+      return;
+    }
+  }
+  
+  // Update status
+  job.application_status = newStatus;
+  
+  // Update or initialize status history
+  if (!job.status_history) {
+    job.status_history = [{
+      status: oldStatus,
+      date: job.updated_at || new Date().toISOString()
+    }];
+  }
+  
+  // Add new status to history
+  job.status_history.push({
+    status: newStatus,
+    date: new Date().toISOString()
+  });
+  
+  job.updated_at = new Date().toISOString();
+  
+  // Convert array back to object format for storage
+  const jobsObj = {};
+  allJobs.forEach(j => {
+    if (j.id) {
+      jobsObj[j.id] = j;
+    }
+  });
+  
+  // Save to storage
+  await chrome.storage.local.set({ jobs: jobsObj });
+  
+  console.log(`Navigated from ${oldStatus} to ${newStatus}`);
+  
+  // Animate panel transition
+  slideToPanel(job, jobIndex, newStatus, direction);
+}
+
+// Get navigation buttons for the current status
+function getNavigationButtons(status) {
+  const buttons = { left: null, right: [] };
+  
+  switch(status) {
+    case 'Saved':
+      buttons.right = [{ label: 'Draft', target: 'Drafting' }];
+      break;
+    
+    case 'Drafting':
+      buttons.left = { label: 'Saved', target: 'Saved' };
+      buttons.right = [{ label: 'Applied', target: 'Applied' }];
+      break;
+    
+    case 'Applied':
+      buttons.left = { label: 'Drafting', target: 'Drafting' };
+      buttons.right = [{ label: 'Screening', target: 'Screening' }];
+      break;
+    
+    case 'Screening':
+      buttons.left = { label: 'Applied', target: 'Applied' };
+      buttons.right = [{ label: 'Interviewing', target: 'Interviewing' }];
+      break;
+    
+    case 'Interviewing':
+      buttons.left = { label: 'Screening', target: 'Screening' };
+      buttons.right = [{ label: 'Offer', target: 'Offer' }];
+      break;
+    
+    case 'Offer':
+      buttons.left = { label: 'Interviewing', target: 'Interviewing' };
+      buttons.right = [
+        { label: 'Accepted', target: 'Accepted' },
+        { label: 'Rejected', target: 'Rejected' }
+      ];
+      break;
+    
+    case 'Accepted':
+      buttons.left = { label: 'Offer', target: 'Offer' };
+      break;
+    
+    case 'Rejected':
+      buttons.left = { label: 'Offer', target: 'Offer' };
+      break;
+    
+    case 'Withdrawn':
+      // For withdrawn, we need to figure out the previous state from history
+      buttons.left = { label: 'Previous', target: 'Saved' }; // Default fallback
+      break;
+    
+    default:
+      // Default case: treat as 'Saved'
+      buttons.right = [{ label: 'Draft', target: 'Drafting' }];
+  }
+  
+  return buttons;
+}
+
+// Slide to a new panel with animation (placeholder for now)
+function slideToPanel(job, jobIndex, status, direction) {
+  const panel = document.getElementById('detailPanel');
+  
+  // Add exit animation class
+  const exitClass = direction === 'forward' ? 'slide-out-left' : 'slide-out-right';
+  panel.classList.add(exitClass);
+  
+  // Wait for exit animation
+  setTimeout(() => {
+    // Update content
+    renderJobDetail(job, jobIndex);
+    
+    // Add enter animation class
+    panel.classList.remove('slide-out-left', 'slide-out-right');
+    const enterClass = direction === 'forward' ? 'slide-in-right' : 'slide-in-left';
+    panel.classList.add(enterClass);
+    
+    // Clean up animation classes
+    setTimeout(() => {
+      panel.classList.remove('slide-in-left', 'slide-in-right');
+    }, 400);
+  }, 400);
+}
+
 async function loadJobs() {
   console.log('loadJobs() called');
   try {

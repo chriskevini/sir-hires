@@ -110,65 +110,53 @@ export class ResearchingView extends BaseView {
     metaItems.push(salaryMeta.render());
     
     // Job Type
-    if (job.jobType) {
-      const jobTypeMeta = new EditableMeta({
-        icon: '💼',
-        label: 'Job Type',
-        fieldName: 'jobType',
-        value: job.jobType,
-        type: 'text',
-        onSave: (fieldName, newValue) => this.handleSaveField(index, fieldName, newValue)
-      });
-      this.editableMetaItems.push({ component: jobTypeMeta, field: 'jobType' });
-      metaItems.push(jobTypeMeta.render());
-    }
+    const jobTypeMeta = new EditableMeta({
+      icon: '💼',
+      label: 'Job Type',
+      fieldName: 'jobType',
+      value: job.jobType || '',
+      type: 'text',
+      onSave: (fieldName, newValue) => this.handleSaveField(index, fieldName, newValue)
+    });
+    this.editableMetaItems.push({ component: jobTypeMeta, field: 'jobType' });
+    metaItems.push(jobTypeMeta.render());
     
     // Remote Type
-    if (job.remoteType && job.remoteType !== 'Not specified') {
-      const remoteTypeMeta = new EditableMeta({
-        icon: this.getRemoteIcon(job.remoteType),
-        label: 'Remote Type',
-        fieldName: 'remoteType',
-        value: job.remoteType,
-        type: 'select',
-        options: ['On-site', 'Remote', 'Hybrid'],
-        onSave: (fieldName, newValue) => this.handleSaveField(index, fieldName, newValue)
-      });
-      this.editableMetaItems.push({ component: remoteTypeMeta, field: 'remoteType' });
-      metaItems.push(remoteTypeMeta.render());
-    }
+    const remoteTypeMeta = new EditableMeta({
+      icon: this.getRemoteIcon(job.remoteType),
+      label: 'Remote Type',
+      fieldName: 'remoteType',
+      value: job.remoteType && job.remoteType !== 'Not specified' ? job.remoteType : '',
+      type: 'select',
+      options: ['On-site', 'Remote', 'Hybrid'],
+      onSave: (fieldName, newValue) => this.handleSaveField(index, fieldName, newValue)
+    });
+    this.editableMetaItems.push({ component: remoteTypeMeta, field: 'remoteType' });
+    metaItems.push(remoteTypeMeta.render());
     
     // Posted Date
-    if (job.postedDate) {
-      const absolute = this.formatAbsoluteDate(job.postedDate);
-      const relative = this.formatRelativeDate(job.postedDate);
-      const postedDateMeta = new EditableMeta({
-        icon: '📅',
-        label: 'Posted',
-        fieldName: 'postedDate',
-        value: job.postedDate,
-        type: 'date',
-        onSave: (fieldName, newValue) => this.handleSaveField(index, fieldName, newValue)
-      });
-      this.editableMetaItems.push({ component: postedDateMeta, field: 'postedDate' });
-      metaItems.push(postedDateMeta.render());
-    }
+    const postedDateMeta = new EditableMeta({
+      icon: '📅',
+      label: 'Posted',
+      fieldName: 'postedDate',
+      value: job.postedDate || '',
+      type: 'date',
+      onSave: (fieldName, newValue) => this.handleSaveField(index, fieldName, newValue)
+    });
+    this.editableMetaItems.push({ component: postedDateMeta, field: 'postedDate' });
+    metaItems.push(postedDateMeta.render());
     
     // Deadline
-    if (job.deadline) {
-      const absolute = this.formatAbsoluteDate(job.deadline);
-      const relative = this.formatRelativeDate(job.deadline);
-      const deadlineMeta = new EditableMeta({
-        icon: '⏰',
-        label: 'Deadline',
-        fieldName: 'deadline',
-        value: job.deadline,
-        type: 'date',
-        onSave: (fieldName, newValue) => this.handleSaveField(index, fieldName, newValue)
-      });
-      this.editableMetaItems.push({ component: deadlineMeta, field: 'deadline' });
-      metaItems.push(deadlineMeta.render());
-    }
+    const deadlineMeta = new EditableMeta({
+      icon: '⏰',
+      label: 'Deadline',
+      fieldName: 'deadline',
+      value: job.deadline || '',
+      type: 'date',
+      onSave: (fieldName, newValue) => this.handleSaveField(index, fieldName, newValue)
+    });
+    this.editableMetaItems.push({ component: deadlineMeta, field: 'deadline' });
+    metaItems.push(deadlineMeta.render());
     
     if (metaItems.length === 0) return '';
     

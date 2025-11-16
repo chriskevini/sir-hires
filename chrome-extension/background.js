@@ -1,8 +1,84 @@
 // Background service worker for the extension
 
+// Migration function: Convert snake_case properties to camelCase
+async function migrateStorageSchema() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['jobs', 'masterResume', 'schemaMigrated'], (result) => {
+      // Check if migration already completed
+      if (result.schemaMigrated) {
+        console.log('[Migration] Schema already migrated to camelCase');
+        resolve();
+        return;
+      }
+
+      console.log('[Migration] Starting snake_case to camelCase migration...');
+      let migrationCount = 0;
+
+      // Migrate jobs
+      const jobs = result.jobs || {};
+      const migratedJobs = {};
+      
+      Object.entries(jobs).forEach(([key, job]) => {
+        migratedJobs[key] = {
+          id: job.id,
+          jobTitle: job.job_title || job.jobTitle || '',
+          company: job.company || '',
+          location: job.location || '',
+          salary: job.salary || '',
+          jobType: job.job_type || job.jobType || '',
+          remoteType: job.remote_type || job.remoteType || '',
+          postedDate: job.posted_date || job.postedDate || '',
+          deadline: job.deadline || '',
+          applicationStatus: job.application_status || job.applicationStatus || 'Saved',
+          statusHistory: job.status_history || job.statusHistory || [],
+          url: job.url || '',
+          source: job.source || '',
+          rawDescription: job.raw_description || job.rawDescription || '',
+          aboutJob: job.about_job || job.aboutJob || '',
+          aboutCompany: job.about_company || job.aboutCompany || '',
+          responsibilities: job.responsibilities || '',
+          requirements: job.requirements || '',
+          notes: job.notes || '',
+          narrativeStrategy: job.narrative_strategy || job.narrativeStrategy || '',
+          updatedAt: job.updated_at || job.updatedAt || new Date().toISOString(),
+          targetedResume: job.targeted_resume || job.targetedResume || ''
+        };
+        migrationCount++;
+      });
+
+      // Migrate master resume (if it exists)
+      let migratedMasterResume = null;
+      if (result.masterResume) {
+        migratedMasterResume = {
+          content: result.masterResume.content || '',
+          updatedAt: result.masterResume.updated_at || result.masterResume.updatedAt || new Date().toISOString()
+        };
+      }
+
+      // Save migrated data
+      const dataToSave = {
+        jobs: migratedJobs,
+        schemaMigrated: true
+      };
+      
+      if (migratedMasterResume) {
+        dataToSave.masterResume = migratedMasterResume;
+      }
+
+      chrome.storage.local.set(dataToSave, () => {
+        console.log(`[Migration] Successfully migrated ${migrationCount} jobs to camelCase`);
+        resolve();
+      });
+    });
+  });
+}
+
 // Listen for installation
 chrome.runtime.onInstalled.addListener(async (details) => {
   console.log('Sir Hires extension installed');
+  
+  // Run migration first
+  await migrateStorageSchema();
   
   // Initialize storage if needed
   chrome.storage.local.get(['jobs'], (result) => {

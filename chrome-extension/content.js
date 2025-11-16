@@ -3,26 +3,26 @@
 // Smart extraction logic for job postings
 function extractJobData() {
   const data = {
-    job_title: '',
+    jobTitle: '',
     company: '',
     location: '',
     salary: '',
-    job_type: '',
-    remote_type: '',
-    posted_date: '',
+    jobType: '',
+    remoteType: '',
+    postedDate: '',
     url: window.location.href,
-    raw_description: '',
-    about_job: '',
-    about_company: '',
+    rawDescription: '',
+    aboutJob: '',
+    aboutCompany: '',
     responsibilities: '',
     requirements: '',
     notes: '',
-    narrative_strategy: '',
+    narrativeStrategy: '',
     source: extractSource()
   };
 
   // Try multiple strategies to find job title
-  data.job_title = findJobTitle();
+  data.jobTitle = findJobTitle();
   
   // Try multiple strategies to find company name
   data.company = findCompany();
@@ -34,24 +34,24 @@ function extractJobData() {
   data.salary = findSalary();
   
   // Find job type (Full-time, Part-time, Contract, etc.)
-  data.job_type = findJobType();
+  data.jobType = findJobType();
   
   // Find remote type (Remote, Hybrid, On-site)
-  data.remote_type = findRemoteType();
+  data.remoteType = findRemoteType();
   
   // Find posted date
-  data.posted_date = findPostedDate();
+  data.postedDate = findPostedDate();
   
   // Find application deadline
   data.deadline = findDeadline();
   
   // Extract job description (limit to reasonable length)
-  data.raw_description = findDescription();
+  data.rawDescription = findDescription();
   
   // Extract about sections
   const aboutSections = extractAboutSections();
-  data.about_job = aboutSections.about_job;
-  data.about_company = aboutSections.about_company;
+  data.aboutJob = aboutSections.aboutJob;
+  data.aboutCompany = aboutSections.aboutCompany;
   
   // Extract responsibilities and requirements
   const sections = extractResponsibilitiesAndRequirements();
@@ -552,8 +552,8 @@ function findDescription() {
 
 function extractAboutSections() {
   const result = {
-    about_job: '',
-    about_company: ''
+    aboutJob: '',
+    aboutCompany: ''
   };
 
   // Keywords that indicate sections
@@ -608,8 +608,8 @@ function extractAboutSections() {
     }
   });
 
-  result.about_job = aboutJobText.join('\n\n').substring(0, 3000);
-  result.about_company = aboutCompanyText.join('\n\n').substring(0, 3000);
+  result.aboutJob = aboutJobText.join('\n\n').substring(0, 3000);
+  result.aboutCompany = aboutCompanyText.join('\n\n').substring(0, 3000);
 
   return result;
 }
@@ -837,19 +837,19 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
   try {
     // Define the extraction template using NuExtract's type system
     const extractionTemplate = {
-      "job_title": "verbatim-string",
+      "jobTitle": "verbatim-string",
       "company": "verbatim-string",
       "location": "verbatim-string",
       "salary": "verbatim-string",
-      "job_type": ["Full-time", "Part-time", "Contract", "Temporary", "Internship", "Freelance"],
-      "remote_type": ["Remote", "Hybrid", "On-site", "Not specified"],
-      "posted_date": "verbatim-string",
+      "jobType": ["Full-time", "Part-time", "Contract", "Temporary", "Internship", "Freelance"],
+      "remoteType": ["Remote", "Hybrid", "On-site", "Not specified"],
+      "postedDate": "verbatim-string",
       "deadline": "verbatim-string",
-      "about_job": "verbatim-string",
-      "about_company": "verbatim-string",
+      "aboutJob": "verbatim-string",
+      "aboutCompany": "verbatim-string",
       "responsibilities": "verbatim-string",
       "requirements": "verbatim-string",
-      "narrative_strategy": "verbatim-string"
+      "narrativeStrategy": "verbatim-string"
     };
 
     // Format for NuExtract: use the template in the prompt structure
@@ -918,26 +918,26 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
     console.log('[Content] LLM extracted object:', extracted);
 
     // Parse dates through parseToISODate() to convert to YYYY-MM-DD format
-    const posted_date = parseToISODate(extracted.posted_date || '');
+    const postedDate = parseToISODate(extracted.postedDate || '');
     const deadline = parseToISODate(extracted.deadline || '');
     
-    console.log('[Content] Parsed dates - posted_date:', posted_date, 'deadline:', deadline);
+    console.log('[Content] Parsed dates - postedDate:', postedDate, 'deadline:', deadline);
 
     // Return the extracted data
     return {
-      job_title: extracted.job_title || '',
+      jobTitle: extracted.jobTitle || '',
       company: extracted.company || '',
       location: extracted.location || '',
       salary: extracted.salary || '',
-      job_type: extracted.job_type || '',
-      remote_type: extracted.remote_type || '',
-      posted_date: posted_date,
+      jobType: extracted.jobType || '',
+      remoteType: extracted.remoteType || '',
+      postedDate: postedDate,
       deadline: deadline,
-      about_job: extracted.about_job || '',
-      about_company: extracted.about_company || '',
+      aboutJob: extracted.aboutJob || '',
+      aboutCompany: extracted.aboutCompany || '',
       responsibilities: extracted.responsibilities || '',
       requirements: extracted.requirements || '',
-      narrative_strategy: extracted.narrative_strategy || '',
+      narrativeStrategy: extracted.narrativeStrategy || '',
       notes: '',  // User-generated field, not extracted from page
       url: '',  // Will be set by caller
       source: '' // Will be set by caller
@@ -955,7 +955,7 @@ async function extractWithLLM(jobData, llmSettings) {
     const prompt = `You are a job posting analyzer. Extract the responsibilities and requirements from this job posting.
 
 Job Description:
-${jobData.raw_description}
+${jobData.rawDescription}
 
 Please analyze the above job description and provide:
 1. A list of key responsibilities (what the person will do in this role)
@@ -1048,7 +1048,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             jobData = await extractAllFieldsWithLLM(rawText, llmSettings);
             
             // Add fields that LLM doesn't set
-            jobData.raw_description = rawText;  // Store the actual raw text, not LLM summary
+            jobData.rawDescription = rawText;  // Store the actual raw text, not LLM summary
             jobData.url = window.location.href;
             jobData.source = extractSource();
             
@@ -1062,7 +1062,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             jobData = extractJobData();
             
             // Add a note about the failure
-            jobData.extraction_note = `LLM extraction failed: ${error.message}. Using DOM extraction instead.`;
+            jobData.extractionNote = `LLM extraction failed: ${error.message}. Using DOM extraction instead.`;
           }
         } else {
           // Use traditional DOM extraction

@@ -28,22 +28,22 @@ async function addTestJob() {
     const jobs = result.jobs || [];
     
     jobs.push({
-      job_title: 'Test Software Engineer',
+      jobTitle: 'Test Software Engineer',
       company: 'Test Company Inc',
       location: 'Remote',
       salary: '$100k-$150k',
-      job_type: 'Full-time',
-      remote_type: 'Remote',
-      posted_date: '2025-11-13',
+      jobType: 'Full-time',
+      remoteType: 'Remote',
+      postedDate: '2025-11-13',
       url: 'https://example.com/job/123',
       source: 'Test Source',
-      raw_description: 'This is a test job description',
-      about_job: 'Test job details',
-      about_company: 'Test company details',
+      rawDescription: 'This is a test job description',
+      aboutJob: 'Test job details',
+      aboutCompany: 'Test company details',
       responsibilities: 'Test responsibilities',
       requirements: 'Test requirements',
-      updated_at: new Date().toISOString(),
-      application_status: 'Saved'
+      updatedAt: new Date().toISOString(),
+      applicationStatus: 'Saved'
     });
 
     await chrome.storage.local.set({ jobs });

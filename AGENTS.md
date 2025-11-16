@@ -55,6 +55,10 @@ The user will test the changes and ask you to commit when ready.
 
 ### Code Style Guidelines
 - **JavaScript**: Use modern ES6+ syntax
+- **Naming conventions**: 
+  - Use **camelCase** for all JavaScript variables, functions, and object properties
+  - Use **kebab-case** for HTML element IDs and CSS classes
+  - Never mix naming conventions within JavaScript code
 - **Storage**: All data goes to `chrome.storage.local`
 - **Privacy**: Never send data to external servers
 - **Error handling**: Always handle extraction failures gracefully
@@ -76,27 +80,27 @@ The user will test the changes and ask you to commit when ready.
 Jobs are stored as objects with these fields:
 ```javascript
 {
-  job_title: string,
+  jobTitle: string,
   company: string,
   location: string,
   salary: string,
-  job_type: string,
-  remote_type: string,
-  posted_date: string (YYYY-MM-DD format, local timezone),
+  jobType: string,
+  remoteType: string,
+  postedDate: string (YYYY-MM-DD format, local timezone),
   deadline: string (YYYY-MM-DD format, local timezone),
-  application_status: string,
-  status_history: array,
+  applicationStatus: string,
+  statusHistory: array,
   url: string,
   source: string,
-  raw_description: string,
-  about_job: string,
-  about_company: string,
+  rawDescription: string,
+  aboutJob: string,
+  aboutCompany: string,
   responsibilities: string,
   requirements: string,
   notes: string,
-  narrative_strategy: string,
-  updated_at: string (ISO 8601 timestamp with time),
-  targeted_resume: string (future: per-job tailored resume)
+  narrativeStrategy: string,
+  updatedAt: string (ISO 8601 timestamp with time),
+  targetedResume: string (future: per-job tailored resume)
 }
 ```
 
@@ -105,7 +109,7 @@ Master resume is stored separately:
 {
   masterResume: {
     content: string (markdown-formatted text),
-    updated_at: string (ISO 8601 timestamp)
+    updatedAt: string (ISO 8601 timestamp)
   }
 }
 ```
@@ -191,16 +195,16 @@ When adding or removing fields from the job data schema, you MUST update ALL of 
    - Use NuExtract type system: "verbatim-string", "string", ["enum", "values"], etc.
 
 3. **`content.js` - LLM Return Object (`extractAllFieldsWithLLM()`, ~line 833-849)**
-   - Add the field to the return object: `field_name: extracted.field_name || ''`
+   - Add the field to the return object: `fieldName: extracted.fieldName || ''`
 
 4. **`popup.html` - Form Fields (~line 50-130)**
-   - Add HTML input/textarea for the field with appropriate id
+   - Add HTML input/textarea for the field with appropriate id (use kebab-case for id)
 
 5. **`popup.js` - Form Population (`populateForm()`, ~line 123-139)**
-   - Add line to populate: `document.getElementById('fieldId').value = data.field_name || '';`
+   - Add line to populate: `document.getElementById('field-id').value = data.fieldName || '';`
 
 6. **`popup.js` - Save Data (`saveJobData()`, ~line 226-249)**
-   - Add line to save: `field_name: document.getElementById('fieldId').value.trim(),`
+   - Add line to save: `fieldName: document.getElementById('field-id').value.trim(),`
 
 7. **`popup.js` - CSV Export (`exportCSV()`, ~line 374-396)**
    - Add field to CSV headers array
@@ -215,7 +219,7 @@ When adding or removing fields from the job data schema, you MUST update ALL of 
 10. **`AGENTS.md` - Storage Schema Documentation (~line 76-93)**
     - Update the schema documentation to reflect the new field
 
-**Example**: When adding a `deadline` field, search the codebase for `posted_date` and add `deadline` in similar locations.
+**Example**: When adding a `deadline` field, search the codebase for `postedDate` and add `deadline` in similar locations.
 
 **Verification**: After changes, test with BOTH DOM and LLM extraction modes to ensure the field is captured, displayed, saved, and exported correctly.
 

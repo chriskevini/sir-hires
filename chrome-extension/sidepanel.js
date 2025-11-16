@@ -66,8 +66,8 @@ async function loadJobInFocus() {
       // Find the newest job (by updated_at timestamp)
       const jobEntries = Object.entries(jobs);
       jobEntries.sort((a, b) => {
-        const timeA = new Date(a[1].updated_at || 0).getTime();
-        const timeB = new Date(b[1].updated_at || 0).getTime();
+        const timeA = new Date(a[1].updatedAt || 0).getTime();
+        const timeB = new Date(b[1].updatedAt || 0).getTime();
         return timeB - timeA; // Descending order (newest first)
       });
       
@@ -112,8 +112,8 @@ function displayJob(job) {
   const jobContent = document.getElementById('jobContent');
   jobContent.innerHTML = `
     <div class="job-header">
-      <h2 class="job-title editable-field" data-field="job_title" contenteditable="true">
-        ${escapeHtml(job.job_title || 'Untitled Position')}
+      <h2 class="job-title editable-field" data-field="jobTitle" contenteditable="true">
+        ${escapeHtml(job.jobTitle || 'Untitled Position')}
       </h2>
       <p class="job-company-label">at 
         <span class="editable-field" data-field="company" contenteditable="true">
@@ -125,22 +125,22 @@ function displayJob(job) {
     <div class="job-meta">
       ${createEditableMetaItem('📍', job.location, 'location', 'text', 'Location')}
       ${createEditableMetaItem('💰', job.salary, 'salary', 'text', 'Salary')}
-      ${createEditableMetaItem('🏢', job.job_type, 'job_type', 'text', 'Job Type')}
-      ${createEditableSelectMetaItem('🏠', job.remote_type, 'remote_type', ['On-site', 'Remote', 'Hybrid'], 'Remote Type')}
-      ${createEditableDateMetaItem('🗓️', job.posted_date, 'posted_date', 'Posted')}
+      ${createEditableMetaItem('🏢', job.jobType, 'jobType', 'text', 'Job Type')}
+      ${createEditableSelectMetaItem('🏠', job.remoteType, 'remoteType', ['On-site', 'Remote', 'Hybrid'], 'Remote Type')}
+      ${createEditableDateMetaItem('🗓️', job.postedDate, 'postedDate', 'Posted')}
       ${createEditableDateMetaItem('⏰', job.deadline, 'deadline', 'Deadline')}
-      ${createEditableSelectMetaItem('📊', job.application_status, 'application_status', ['Saved', 'Applying', 'Applied', 'Interview', 'Offer', 'Rejected', 'Accepted', 'Declined'], 'Status')}
+      ${createEditableSelectMetaItem('📊', job.applicationStatus, 'applicationStatus', ['Saved', 'Applying', 'Applied', 'Interview', 'Offer', 'Rejected', 'Accepted', 'Declined'], 'Status')}
     </div>
 
     ${job.url ? `<div class="job-url"><a href="${escapeHtml(job.url)}" target="_blank">🔗 View Original Posting</a></div>` : ''}
 
     <div class="job-sections">
-      ${createEditableSection('About the Job', job.about_job, 'about_job')}
-      ${createEditableSection('About the Company', job.about_company, 'about_company')}
+      ${createEditableSection('About the Job', job.aboutJob, 'aboutJob')}
+      ${createEditableSection('About the Company', job.aboutCompany, 'aboutCompany')}
       ${createEditableSection('Responsibilities', job.responsibilities, 'responsibilities')}
       ${createEditableSection('Requirements', job.requirements, 'requirements')}
       ${createEditableSection('Notes', job.notes, 'notes')}
-      ${createEditableSection('Narrative Strategy', job.narrative_strategy, 'narrative_strategy')}
+      ${createEditableSection('Narrative Strategy', job.narrativeStrategy, 'narrativeStrategy')}
     </div>
   `;
   
@@ -381,7 +381,7 @@ async function saveFieldValue(field, value, element) {
   try {
     // Update current job object
     currentJob[field] = value;
-    currentJob.updated_at = new Date().toISOString();
+    currentJob.updatedAt = new Date().toISOString();
     
     // Get all jobs from storage
     const result = await chrome.storage.local.get(['jobs']);

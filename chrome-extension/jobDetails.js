@@ -29,7 +29,7 @@ function getStatusOrder(status) {
 // Navigate to a new state (status) with animation and confirmation
 async function navigateToState(jobIndex, newStatus, direction) {
   const job = allJobs[jobIndex];
-  const oldStatus = job.application_status || 'Saved';
+  const oldStatus = job.applicationStatus || 'Saved';
   
   // Check if moving backwards (disabled for now)
   // const isBackward = getStatusOrder(newStatus) < getStatusOrder(oldStatus);
@@ -42,23 +42,23 @@ async function navigateToState(jobIndex, newStatus, direction) {
   // }
   
   // Update status
-  job.application_status = newStatus;
+  job.applicationStatus = newStatus;
   
   // Update or initialize status history
-  if (!job.status_history) {
-    job.status_history = [{
+  if (!job.statusHistory) {
+    job.statusHistory = [{
       status: oldStatus,
-      date: job.updated_at || new Date().toISOString()
+      date: job.updatedAt || new Date().toISOString()
     }];
   }
   
   // Add new status to history
-  job.status_history.push({
+  job.statusHistory.push({
     status: newStatus,
     date: new Date().toISOString()
   });
   
-  job.updated_at = new Date().toISOString();
+  job.updatedAt = new Date().toISOString();
   
   // Set animation flag BEFORE saving to storage to prevent reload interruption
   isAnimating = true;
@@ -551,14 +551,14 @@ function renderSidebar(jobs) {
 }
 
 function renderCompactJobCard(job, index) {
-  const status = job.application_status || 'Saved';
+  const status = job.applicationStatus || 'Saved';
   const isActive = index === selectedJobIndex;
   const isFocused = job.id === jobInFocusId;
   
   return `
     <div class="job-card-compact ${isActive ? 'active' : ''} ${isFocused ? 'focused' : ''}" data-index="${index}">
       <div class="job-card-header-compact">
-        <div class="job-title-compact">${escapeHtml(job.job_title)}</div>
+        <div class="job-title-compact">${escapeHtml(job.jobTitle)}</div>
         ${isFocused ? '<span class="focus-indicator" title="Currently in focus">📌</span>' : ''}
       </div>
       <div class="company-compact">${escapeHtml(job.company)}</div>
@@ -608,7 +608,7 @@ function renderJobDetail(job, index) {
     detailPanel.innerHTML = getJobDetailHTML(job, index);
     
     // Update progress bar (no animation when switching jobs)
-    const status = job.application_status || 'Saved';
+    const status = job.applicationStatus || 'Saved';
     updateProgressBar(status, false);
     
     // Update navigation buttons
@@ -624,7 +624,7 @@ function renderJobDetail(job, index) {
 
 // Helper function that returns HTML without modifying DOM
 function getJobDetailHTML(job, index) {
-  const status = job.application_status || 'Saved';
+  const status = job.applicationStatus || 'Saved';
   
   if (debugMode) {
     return renderDebugJob(job, index);
@@ -658,7 +658,7 @@ function renderWIPPanel(job, index, status) {
       <div class="detail-panel-content">
         <div class="job-header">
           <div>
-            <div class="job-title">${escapeHtml(job.job_title)}</div>
+            <div class="job-title">${escapeHtml(job.jobTitle)}</div>
             <div class="company">${escapeHtml(job.company)}</div>
           </div>
           <div>
@@ -692,7 +692,7 @@ function renderCoverLetterPanel(job, index) {
       <div class="detail-panel-content">
         <div class="job-header">
           <div>
-            <div class="job-title">${escapeHtml(job.job_title)}</div>
+            <div class="job-title">${escapeHtml(job.jobTitle)}</div>
             <div class="company">${escapeHtml(job.company)}</div>
           </div>
           <div>
@@ -727,7 +727,7 @@ function renderJobDataPanel(job, index) {
       <div class="detail-panel-content">
         <div class="job-header">
           <div>
-            <div class="job-title">${escapeHtml(job.job_title)}</div>
+            <div class="job-title">${escapeHtml(job.jobTitle)}</div>
             <div class="company">${escapeHtml(job.company)}</div>
           </div>
           <div>
@@ -738,26 +738,26 @@ function renderJobDataPanel(job, index) {
         <div class="job-meta">
           ${job.location ? `<div class="job-meta-item">📍 ${escapeHtml(job.location)}</div>` : ''}
           ${job.salary ? `<div class="job-meta-item">💰 ${escapeHtml(job.salary)}</div>` : ''}
-          ${job.job_type ? `<div class="job-meta-item">💼 ${escapeHtml(job.job_type)}</div>` : ''}
-          ${job.remote_type && job.remote_type !== 'Not specified' ? `<div class="job-meta-item">${getRemoteIcon(job.remote_type)} ${escapeHtml(job.remote_type)}</div>` : ''}
-          ${job.posted_date ? `<div class="job-meta-item">📅 Posted: <span title="${escapeHtml(formatAbsoluteDate(job.posted_date))}">${escapeHtml(formatRelativeDate(job.posted_date))}</span></div>` : ''}
+          ${job.jobType ? `<div class="job-meta-item">💼 ${escapeHtml(job.jobType)}</div>` : ''}
+          ${job.remoteType && job.remoteType !== 'Not specified' ? `<div class="job-meta-item">${getRemoteIcon(job.remoteType)} ${escapeHtml(job.remoteType)}</div>` : ''}
+          ${job.postedDate ? `<div class="job-meta-item">📅 Posted: <span title="${escapeHtml(formatAbsoluteDate(job.postedDate))}">${escapeHtml(formatRelativeDate(job.postedDate))}</span></div>` : ''}
           ${job.deadline ? `<div class="job-meta-item">⏰ Deadline: <span title="${escapeHtml(formatAbsoluteDate(job.deadline))}">${escapeHtml(formatRelativeDate(job.deadline))}</span></div>` : ''}
         </div>
 
-        ${job.about_job ? `
+        ${job.aboutJob ? `
           <div class="section">
             <div class="section-title">About the Job</div>
             <div class="section-content">
-              ${escapeHtml(job.about_job)}
+              ${escapeHtml(job.aboutJob)}
             </div>
           </div>
         ` : ''}
 
-        ${job.about_company ? `
+        ${job.aboutCompany ? `
           <div class="section">
             <div class="section-title">About the Company</div>
             <div class="section-content">
-              ${escapeHtml(job.about_company)}
+              ${escapeHtml(job.aboutCompany)}
             </div>
           </div>
         ` : ''}
@@ -788,7 +788,7 @@ function renderJobDataPanel(job, index) {
 
         <div class="section">
           <div class="section-title">Narrative Strategy</div>
-          <textarea class="notes-textarea" id="narrative-textarea-${index}" rows="3" placeholder="How to tailor your resume/cover letter for this job...">${escapeHtml(job.narrative_strategy || '')}</textarea>
+          <textarea class="notes-textarea" id="narrative-textarea-${index}" rows="3" placeholder="How to tailor your resume/cover letter for this job...">${escapeHtml(job.narrativeStrategy || '')}</textarea>
           <button class="btn-save-narrative" data-index="${index}">Save Strategy</button>
         </div>
 
@@ -821,7 +821,7 @@ function renderDebugJob(job, index) {
       <div class="debug-info">
         <div class="debug-info-row">
           <span class="debug-label">job_title:</span>
-          <span class="debug-value">${formatValue(job.job_title)}</span>
+          <span class="debug-value">${formatValue(job.jobTitle)}</span>
         </div>
         <div class="debug-info-row">
           <span class="debug-label">company:</span>
@@ -837,15 +837,15 @@ function renderDebugJob(job, index) {
         </div>
         <div class="debug-info-row">
           <span class="debug-label">job_type:</span>
-          <span class="debug-value">${formatValue(job.job_type)}</span>
+          <span class="debug-value">${formatValue(job.jobType)}</span>
         </div>
         <div class="debug-info-row">
           <span class="debug-label">remote_type:</span>
-          <span class="debug-value">${formatValue(job.remote_type)}</span>
+          <span class="debug-value">${formatValue(job.remoteType)}</span>
         </div>
         <div class="debug-info-row">
           <span class="debug-label">posted_date:</span>
-          <span class="debug-value">${formatValue(job.posted_date)}</span>
+          <span class="debug-value">${formatValue(job.postedDate)}</span>
         </div>
         <div class="debug-info-row">
           <span class="debug-label">deadline:</span>
@@ -853,7 +853,7 @@ function renderDebugJob(job, index) {
         </div>
         <div class="debug-info-row">
           <span class="debug-label">application_status:</span>
-          <span class="debug-value">${formatValue(job.application_status)}</span>
+          <span class="debug-value">${formatValue(job.applicationStatus)}</span>
         </div>
         <div class="debug-info-row">
           <span class="debug-label">url:</span>
@@ -865,11 +865,11 @@ function renderDebugJob(job, index) {
         </div>
         <div class="debug-info-row">
           <span class="debug-label">about_job:</span>
-          <span class="debug-value">${formatValue(job.about_job)}</span>
+          <span class="debug-value">${formatValue(job.aboutJob)}</span>
         </div>
         <div class="debug-info-row">
           <span class="debug-label">about_company:</span>
-          <span class="debug-value">${formatValue(job.about_company)}</span>
+          <span class="debug-value">${formatValue(job.aboutCompany)}</span>
         </div>
         <div class="debug-info-row">
           <span class="debug-label">responsibilities:</span>
@@ -885,19 +885,19 @@ function renderDebugJob(job, index) {
         </div>
         <div class="debug-info-row">
           <span class="debug-label">narrative_strategy:</span>
-          <span class="debug-value">${formatValue(job.narrative_strategy)}</span>
+          <span class="debug-value">${formatValue(job.narrativeStrategy)}</span>
         </div>
         <div class="debug-info-row">
           <span class="debug-label">raw_description:</span>
-          <span class="debug-value">${formatValue(job.raw_description)}</span>
+          <span class="debug-value">${formatValue(job.rawDescription)}</span>
         </div>
         <div class="debug-info-row">
           <span class="debug-label">updated_at:</span>
-          <span class="debug-value">${formatDate(job.updated_at)}</span>
+          <span class="debug-value">${formatDate(job.updatedAt)}</span>
         </div>
         <div class="debug-info-row">
           <span class="debug-label">status_history:</span>
-          <span class="debug-value">${job.status_history ? JSON.stringify(job.status_history) : 'N/A'}</span>
+          <span class="debug-value">${job.statusHistory ? JSON.stringify(job.statusHistory) : 'N/A'}</span>
         </div>
       </div>
       
@@ -1000,21 +1000,21 @@ async function deleteJob(index) {
 // This function was used by the old status dropdown (removed in Phase 6)
 async function updateJobStatus(index, newStatus) {
   const job = allJobs[index];
-  const oldStatus = job.application_status || 'Saved';
+  const oldStatus = job.applicationStatus || 'Saved';
   
   // Update the status
-  job.application_status = newStatus;
+  job.applicationStatus = newStatus;
   
   // Update or initialize status history
-  if (!job.status_history) {
-    job.status_history = [{
+  if (!job.statusHistory) {
+    job.statusHistory = [{
       status: oldStatus,
-      date: job.updated_at || new Date().toISOString()
+      date: job.updatedAt || new Date().toISOString()
     }];
   }
   
   // Add new status to history
-  job.status_history.push({
+  job.statusHistory.push({
     status: newStatus,
     date: new Date().toISOString()
   });
@@ -1045,7 +1045,7 @@ async function saveNotes(index) {
   
   // Update the notes
   job.notes = newNotes;
-  job.updated_at = new Date().toISOString();
+  job.updatedAt = new Date().toISOString();
   
   // Convert array back to object format for storage
   const jobsObj = {};
@@ -1085,8 +1085,8 @@ async function saveNarrativeStrategy(index) {
   const job = allJobs[index];
   
   // Update the narrative strategy
-  job.narrative_strategy = newStrategy;
-  job.updated_at = new Date().toISOString();
+  job.narrativeStrategy = newStrategy;
+  job.updatedAt = new Date().toISOString();
   
   // Convert array back to object format for storage
   const jobsObj = {};
@@ -1128,12 +1128,12 @@ function filterJobs() {
 
   if (searchTerm) {
     filtered = filtered.filter(job => 
-      job.job_title?.toLowerCase().includes(searchTerm) ||
+      job.jobTitle?.toLowerCase().includes(searchTerm) ||
       job.company?.toLowerCase().includes(searchTerm) ||
       job.location?.toLowerCase().includes(searchTerm) ||
-      job.raw_description?.toLowerCase().includes(searchTerm) ||
-      job.about_job?.toLowerCase().includes(searchTerm) ||
-      job.about_company?.toLowerCase().includes(searchTerm) ||
+      job.rawDescription?.toLowerCase().includes(searchTerm) ||
+      job.aboutJob?.toLowerCase().includes(searchTerm) ||
+      job.aboutCompany?.toLowerCase().includes(searchTerm) ||
       job.responsibilities?.toLowerCase().includes(searchTerm) ||
       job.requirements?.toLowerCase().includes(searchTerm)
     );
@@ -1144,7 +1144,7 @@ function filterJobs() {
   }
 
   if (statusFilter) {
-    filtered = filtered.filter(job => (job.application_status || 'Saved') === statusFilter);
+    filtered = filtered.filter(job => (job.applicationStatus || 'Saved') === statusFilter);
   }
 
   // Apply sorting
@@ -1159,16 +1159,16 @@ function sortJobs(jobs, sortBy) {
   switch(sortBy) {
     case 'newest':
       sorted.sort((a, b) => {
-        const dateA = a.updated_at || a.posted_date || '';
-        const dateB = b.updated_at || b.posted_date || '';
+        const dateA = a.updatedAt || a.postedDate || '';
+        const dateB = b.updatedAt || b.postedDate || '';
         return dateB.localeCompare(dateA);
       });
       break;
     
     case 'oldest':
       sorted.sort((a, b) => {
-        const dateA = a.updated_at || a.posted_date || '';
-        const dateB = b.updated_at || b.posted_date || '';
+        const dateA = a.updatedAt || a.postedDate || '';
+        const dateB = b.updatedAt || b.postedDate || '';
         return dateA.localeCompare(dateB);
       });
       break;
@@ -1211,16 +1211,16 @@ function sortJobs(jobs, sortBy) {
     
     case 'title-az':
       sorted.sort((a, b) => {
-        const titleA = (a.job_title || '').toLowerCase();
-        const titleB = (b.job_title || '').toLowerCase();
+        const titleA = (a.jobTitle || '').toLowerCase();
+        const titleB = (b.jobTitle || '').toLowerCase();
         return titleA.localeCompare(titleB);
       });
       break;
     
     case 'title-za':
       sorted.sort((a, b) => {
-        const titleA = (a.job_title || '').toLowerCase();
-        const titleB = (b.job_title || '').toLowerCase();
+        const titleA = (a.jobTitle || '').toLowerCase();
+        const titleB = (b.jobTitle || '').toLowerCase();
         return titleB.localeCompare(titleA);
       });
       break;
@@ -1228,8 +1228,8 @@ function sortJobs(jobs, sortBy) {
     default:
       // Default to newest first
       sorted.sort((a, b) => {
-        const dateA = a.updated_at || a.posted_date || '';
-        const dateB = b.updated_at || b.posted_date || '';
+        const dateA = a.updatedAt || a.postedDate || '';
+        const dateB = b.updatedAt || b.postedDate || '';
         return dateB.localeCompare(dateA);
       });
   }

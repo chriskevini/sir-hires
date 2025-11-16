@@ -12,7 +12,7 @@ async function loadResume() {
     
     if (result.masterResume && result.masterResume.content) {
       savedContent = result.masterResume.content;
-      lastSavedTime = result.masterResume.updated_at;
+      lastSavedTime = result.masterResume.updatedAt;
       document.getElementById('resumeEditor').value = savedContent;
       updateLastSavedText();
     } else {
@@ -61,13 +61,13 @@ async function saveResume() {
     
     const resumeData = {
       content: content,
-      updated_at: new Date().toISOString()
+      updatedAt: new Date().toISOString()
     };
     
     await chrome.storage.local.set({ masterResume: resumeData });
     
     savedContent = content;
-    lastSavedTime = resumeData.updated_at;
+    lastSavedTime = resumeData.updatedAt;
     
     // Clear draft from localStorage since it's now saved
     localStorage.removeItem('masterResumeDraft');

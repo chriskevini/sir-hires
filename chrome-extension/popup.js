@@ -57,8 +57,8 @@ async function extractJobData() {
         // Show success message
         if (response.usedLlm) {
           showStatus('✨ Job extracted with LLM and saved!', 'success');
-        } else if (response.data.extraction_note) {
-          showStatus('⚠️ Job extracted and saved. ' + response.data.extraction_note, 'warning');
+        } else if (response.data.extractionNote) {
+          showStatus('⚠️ Job extracted and saved. ' + response.data.extractionNote, 'warning');
         } else {
           showStatus('✓ Job extracted and saved!', 'success');
         }
@@ -116,12 +116,12 @@ async function extractJobData() {
 // Save extracted job immediately
 async function saveExtractedJob(jobData, usedLlm) {
   // Remove extraction note if present
-  if (jobData.extraction_note) {
-    delete jobData.extraction_note;
+  if (jobData.extractionNote) {
+    delete jobData.extractionNote;
   }
 
   // Validate required fields
-  if (!jobData.job_title || !jobData.company) {
+  if (!jobData.jobTitle || !jobData.company) {
     throw new Error('Job Title and Company are required fields.');
   }
 
@@ -145,12 +145,12 @@ async function saveExtractedJob(jobData, usedLlm) {
       const updatedJob = {
         id: existingJobId,
         ...jobData,
-        application_status: existingJob.application_status || 'Saved',
-        status_history: existingJob.status_history || [{
+        applicationStatus: existingJob.applicationStatus || 'Saved',
+        statusHistory: existingJob.statusHistory || [{
           status: 'Saved',
           timestamp: new Date().toISOString()
         }],
-        updated_at: new Date().toISOString()
+        updatedAt: new Date().toISOString()
       };
       
       jobs[existingJobId] = updatedJob;
@@ -168,12 +168,12 @@ async function saveExtractedJob(jobData, usedLlm) {
       const newJob = {
         id: jobId,
         ...jobData,
-        application_status: 'Saved',
-        status_history: [{
+        applicationStatus: 'Saved',
+        statusHistory: [{
           status: 'Saved',
           timestamp: new Date().toISOString()
         }],
-        updated_at: new Date().toISOString()
+        updatedAt: new Date().toISOString()
       };
       
       jobs[jobId] = newJob;

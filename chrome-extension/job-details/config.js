@@ -28,7 +28,7 @@ export const statusColors = {
 
 // Progress bar visual configuration for each status (v0.2.0)
 export const progressConfig = {
-  'Researching': { fill: 0, color: '#e0e0e0', textColor: '#666' },
+  'Researching': { fill: 0, color: '#757575', textColor: '#666' },
   'Drafting': { fill: 15, color: '#4caf50', textColor: '#fff' },
   'Awaiting Review': { fill: 35, color: '#2196f3', textColor: '#fff' },
   'Interviewing': { fill: 60, color: '#ff9800', textColor: '#fff' },

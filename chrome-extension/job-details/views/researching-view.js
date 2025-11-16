@@ -1,7 +1,13 @@
 // View for "Researching" state - displays full job details with notes and narrative strategy
 import { BaseView } from '../base-view.js';
+import { EditableSection } from '../components/editable-section.js';
 
 export class ResearchingView extends BaseView {
+  constructor() {
+    super();
+    this.editableSections = [];
+  }
+
   /**
    * Render the Researching state view
    * @param {Object} job - The job object
@@ -9,12 +15,15 @@ export class ResearchingView extends BaseView {
    * @returns {string} HTML string
    */
   render(job, index) {
+    // Clear previous editable sections
+    this.editableSections = [];
+
     return `
       <div class="job-card">
         <div class="detail-panel-content">
           ${this.renderJobHeader(job)}
           ${this.renderJobMeta(job)}
-          ${this.renderJobSections(job)}
+          ${this.renderJobSections(job, index)}
           ${this.renderNotesSection(job, index)}
           ${this.renderNarrativeSection(job, index)}
           ${this.renderJobActions(job, index)}
@@ -25,111 +34,92 @@ export class ResearchingView extends BaseView {
 
   /**
    * Render job detail sections (About, Company, Responsibilities, Requirements)
+   * Now with inline editing support!
    * @param {Object} job - The job object
+   * @param {number} index - The global index of the job
    * @returns {string} HTML string
    */
-  renderJobSections(job) {
+  renderJobSections(job, index) {
     const sections = [];
+    const sectionsData = [
+      { field: 'aboutJob', title: 'About the Job', value: job.aboutJob },
+      { field: 'aboutCompany', title: 'About the Company', value: job.aboutCompany },
+      { field: 'responsibilities', title: 'Responsibilities', value: job.responsibilities },
+      { field: 'requirements', title: 'Requirements', value: job.requirements }
+    ];
 
-    if (job.aboutJob) {
-      sections.push(`
-        <div class="section">
-          <div class="section-title">About the Job</div>
-          <div class="section-content">
-            ${this.escapeHtml(job.aboutJob)}
-          </div>
-        </div>
-      `);
-    }
-
-    if (job.aboutCompany) {
-      sections.push(`
-        <div class="section">
-          <div class="section-title">About the Company</div>
-          <div class="section-content">
-            ${this.escapeHtml(job.aboutCompany)}
-          </div>
-        </div>
-      `);
-    }
-
-    if (job.responsibilities) {
-      sections.push(`
-        <div class="section">
-          <div class="section-title">Responsibilities</div>
-          <div class="section-content">
-            ${this.escapeHtml(job.responsibilities)}
-          </div>
-        </div>
-      `);
-    }
-
-    if (job.requirements) {
-      sections.push(`
-        <div class="section">
-          <div class="section-title">Requirements</div>
-          <div class="section-content">
-            ${this.escapeHtml(job.requirements)}
-          </div>
-        </div>
-      `);
-    }
+    sectionsData.forEach(({ field, title, value }) => {
+      if (value) {
+        const editableSection = new EditableSection({
+          fieldName: field,
+          value: value,
+          title: title,
+          onSave: (fieldName, newValue) => this.handleSaveField(index, fieldName, newValue),
+          readonly: false
+        });
+        
+        this.editableSections.push({ component: editableSection, field });
+        sections.push(editableSection.render());
+      }
+    });
 
     return sections.join('');
   }
 
   /**
-   * Render notes section with textarea
+   * Render notes section with inline editing
    * @param {Object} job - The job object
    * @param {number} index - The global index of the job
    * @returns {string} HTML string
    */
   renderNotesSection(job, index) {
-    return `
-      <div class="section">
-        <div class="section-title">Notes</div>
-        <textarea class="notes-textarea" id="notes-textarea-${index}" rows="3" placeholder="Add your notes about this job...">${this.escapeHtml(job.notes || '')}</textarea>
-        <button class="btn-save-notes" data-index="${index}">Save Notes</button>
-      </div>
-    `;
+    const editableSection = new EditableSection({
+      fieldName: 'notes',
+      value: job.notes || '',
+      title: 'Notes',
+      placeholder: 'Click to add your notes about this job...',
+      onSave: (fieldName, newValue) => this.handleSaveField(index, fieldName, newValue),
+      readonly: false
+    });
+    
+    this.editableSections.push({ component: editableSection, field: 'notes' });
+    return editableSection.render();
   }
 
   /**
-   * Render narrative strategy section with textarea
+   * Render narrative strategy section with inline editing
    * @param {Object} job - The job object
    * @param {number} index - The global index of the job
    * @returns {string} HTML string
    */
   renderNarrativeSection(job, index) {
-    return `
-      <div class="section">
-        <div class="section-title">Narrative Strategy</div>
-        <textarea class="notes-textarea" id="narrative-textarea-${index}" rows="3" placeholder="How to tailor your resume/cover letter for this job...">${this.escapeHtml(job.narrativeStrategy || '')}</textarea>
-        <button class="btn-save-narrative" data-index="${index}">Save Strategy</button>
-      </div>
-    `;
+    const editableSection = new EditableSection({
+      fieldName: 'narrativeStrategy',
+      value: job.narrativeStrategy || '',
+      title: 'Narrative Strategy',
+      placeholder: 'Click to add how to tailor your resume/cover letter for this job...',
+      onSave: (fieldName, newValue) => this.handleSaveField(index, fieldName, newValue),
+      readonly: false
+    });
+    
+    this.editableSections.push({ component: editableSection, field: 'narrativeStrategy' });
+    return editableSection.render();
   }
 
   /**
-   * Attach event listeners for notes and narrative buttons
+   * Attach event listeners for editable sections and buttons
    * @param {HTMLElement} container - The container element
    * @param {Object} job - The job object
    * @param {number} index - The global index of the job
    */
   attachListeners(container, job, index) {
-    // Save notes button
-    const saveNotesBtn = container.querySelector('.btn-save-notes');
-    if (saveNotesBtn) {
-      const saveNotesHandler = () => this.handleSaveNotes(index);
-      this.trackListener(saveNotesBtn, 'click', saveNotesHandler);
-    }
-
-    // Save narrative button
-    const saveNarrativeBtn = container.querySelector('.btn-save-narrative');
-    if (saveNarrativeBtn) {
-      const saveNarrativeHandler = () => this.handleSaveNarrative(index);
-      this.trackListener(saveNarrativeBtn, 'click', saveNarrativeHandler);
-    }
+    // Attach listeners for all editable sections
+    this.editableSections.forEach(({ component, field }) => {
+      const sectionElement = container.querySelector(`.editable-section[data-field="${field}"]`);
+      if (sectionElement) {
+        component.attachListeners(sectionElement);
+      }
+    });
 
     // View job posting button (handled by parent)
     const viewPostingBtn = container.querySelector('.btn-link');
@@ -147,37 +137,22 @@ export class ResearchingView extends BaseView {
   }
 
   /**
-   * Handle save notes button click
+   * Handle save field - dispatches custom event for app to handle
    * @param {number} index - The global index of the job
+   * @param {string} fieldName - The field name being saved
+   * @param {string} newValue - The new value
+   * @returns {Promise} Promise that resolves when save is complete
    */
-  async handleSaveNotes(index) {
-    const textarea = document.getElementById(`notes-textarea-${index}`);
-    if (!textarea) return;
-
-    const notes = textarea.value.trim();
-
+  async handleSaveField(index, fieldName, newValue) {
     // Dispatch custom event for parent to handle
-    const event = new CustomEvent('view:saveNotes', {
-      detail: { index, notes }
+    const event = new CustomEvent('view:saveField', {
+      detail: { index, fieldName, value: newValue }
     });
     document.dispatchEvent(event);
-  }
-
-  /**
-   * Handle save narrative button click
-   * @param {number} index - The global index of the job
-   */
-  async handleSaveNarrative(index) {
-    const textarea = document.getElementById(`narrative-textarea-${index}`);
-    if (!textarea) return;
-
-    const narrativeStrategy = textarea.value.trim();
-
-    // Dispatch custom event for parent to handle
-    const event = new CustomEvent('view:saveNarrative', {
-      detail: { index, narrativeStrategy }
-    });
-    document.dispatchEvent(event);
+    
+    // Return a promise that resolves after a short delay
+    // This gives the storage time to update
+    return new Promise((resolve) => setTimeout(resolve, 100));
   }
 
   /**
@@ -202,5 +177,18 @@ export class ResearchingView extends BaseView {
       detail: { index }
     });
     document.dispatchEvent(event);
+  }
+
+  /**
+   * Cleanup - remove event listeners and clean up editable sections
+   */
+  cleanup() {
+    super.cleanup();
+    
+    // Cleanup all editable sections
+    this.editableSections.forEach(({ component }) => {
+      component.cleanup();
+    });
+    this.editableSections = [];
   }
 }

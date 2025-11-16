@@ -38,6 +38,7 @@ export class JobDetailsApp {
 
     // Bind methods to preserve context
     this.handleStorageChange = this.handleStorageChange.bind(this);
+    this.handleSaveField = this.handleSaveField.bind(this);
     this.handleSaveNotes = this.handleSaveNotes.bind(this);
     this.handleSaveNarrative = this.handleSaveNarrative.bind(this);
     this.handleOpenUrl = this.handleOpenUrl.bind(this);
@@ -90,6 +91,7 @@ export class JobDetailsApp {
     });
 
     // Custom events from views
+    document.addEventListener('view:saveField', this.handleSaveField);
     document.addEventListener('view:saveNotes', this.handleSaveNotes);
     document.addEventListener('view:saveNarrative', this.handleSaveNarrative);
     document.addEventListener('view:openUrl', this.handleOpenUrl);
@@ -427,6 +429,29 @@ export class JobDetailsApp {
   }
 
   /**
+   * Handle save field event (generic field save from editable components)
+   * @param {CustomEvent} event - Custom event with detail: { index, fieldName, value }
+   */
+  async handleSaveField(event) {
+    const { index, fieldName, value } = event.detail;
+    const jobs = this.state.getAllJobs();
+    const job = jobs[index];
+
+    if (!job) {
+      console.error('Job not found at index:', index);
+      return;
+    }
+
+    // Update the field
+    job[fieldName] = value;
+    job.updatedAt = new Date().toISOString();
+
+    await this.storage.updateJob(job.id, job);
+
+    console.log(`Updated ${fieldName} for job at index ${index}`);
+  }
+
+  /**
    * Handle save notes event
    * @param {CustomEvent} event - Custom event with detail: { index, notes }
    */
@@ -658,6 +683,7 @@ export class JobDetailsApp {
   cleanup() {
     // Remove event listeners
     chrome.storage.onChanged.removeListener(this.handleStorageChange);
+    document.removeEventListener('view:saveField', this.handleSaveField);
     document.removeEventListener('view:saveNotes', this.handleSaveNotes);
     document.removeEventListener('view:saveNarrative', this.handleSaveNarrative);
     document.removeEventListener('view:openUrl', this.handleOpenUrl);

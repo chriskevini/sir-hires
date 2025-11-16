@@ -403,7 +403,35 @@ function renderJobDetail(job, index) {
   }
   
   try {
-    detailPanel.innerHTML = debugMode ? renderDebugJob(job, index) : renderNormalJob(job, index);
+    // Route to appropriate panel based on status
+    const status = job.application_status || 'Saved';
+    
+    if (debugMode) {
+      detailPanel.innerHTML = renderDebugJob(job, index);
+    } else {
+      switch(status) {
+        case 'Saved':
+          detailPanel.innerHTML = renderJobDataPanel(job, index);
+          break;
+        
+        case 'Drafting':
+          detailPanel.innerHTML = renderCoverLetterPanel(job, index);
+          break;
+        
+        case 'Applied':
+        case 'Screening':
+        case 'Interviewing':
+        case 'Offer':
+        case 'Accepted':
+        case 'Rejected':
+        case 'Withdrawn':
+          detailPanel.innerHTML = renderWIPPanel(job, index, status);
+          break;
+        
+        default:
+          detailPanel.innerHTML = renderJobDataPanel(job, index);
+      }
+    }
     
     // Attach event listeners to the detail panel buttons
     attachButtonListeners();
@@ -473,7 +501,72 @@ function formatRelativeDate(dateString) {
   return `${Math.round(absDays / 365)} years ago`;
 }
 
-function renderNormalJob(job, index) {
+// Render WIP panel for states that are not yet implemented
+function renderWIPPanel(job, index, status) {
+  return `
+    <div class="job-card">
+      <div class="job-header">
+        <div>
+          <div class="job-title">${escapeHtml(job.job_title)}</div>
+          <div class="company">${escapeHtml(job.company)}</div>
+        </div>
+        <div>
+          ${job.source ? `<span class="badge">${escapeHtml(job.source)}</span>` : ''}
+        </div>
+      </div>
+      
+      <div style="text-align: center; padding: 60px 20px; color: #666;">
+        <div style="font-size: 48px; margin-bottom: 20px;">🚧</div>
+        <div style="font-size: 18px; font-weight: 500; margin-bottom: 10px;">
+          ${status} Panel - Work in Progress
+        </div>
+        <div style="font-size: 14px;">
+          This panel is coming soon!
+        </div>
+      </div>
+      
+      <div class="job-actions">
+        ${job.url ? `<button class="btn btn-link" data-url="${escapeHtml(job.url)}">View Job Posting</button>` : ''}
+        <button class="btn btn-delete" data-index="${index}">Delete</button>
+      </div>
+    </div>
+  `;
+}
+
+// Render cover letter panel for Drafting state
+function renderCoverLetterPanel(job, index) {
+  return `
+    <div class="job-card">
+      <div class="job-header">
+        <div>
+          <div class="job-title">${escapeHtml(job.job_title)}</div>
+          <div class="company">${escapeHtml(job.company)}</div>
+        </div>
+        <div>
+          ${job.source ? `<span class="badge">${escapeHtml(job.source)}</span>` : ''}
+        </div>
+      </div>
+      
+      <div style="text-align: center; padding: 60px 20px; color: #666;">
+        <div style="font-size: 48px; margin-bottom: 20px;">✍️</div>
+        <div style="font-size: 18px; font-weight: 500; margin-bottom: 10px;">
+          Cover Letter Panel
+        </div>
+        <div style="font-size: 14px;">
+          Cover letter generation coming soon!
+        </div>
+      </div>
+      
+      <div class="job-actions">
+        ${job.url ? `<button class="btn btn-link" data-url="${escapeHtml(job.url)}">View Job Posting</button>` : ''}
+        <button class="btn btn-delete" data-index="${index}">Delete</button>
+      </div>
+    </div>
+  `;
+}
+
+// Render job data panel for Saved state (main job details)
+function renderJobDataPanel(job, index) {
 
   return `
     <div class="job-card">

@@ -97,8 +97,7 @@ Jobs are stored as objects with these fields:
   applicationStatus: string (v0.2.0: Researching|Drafting|Awaiting Review|Interviewing|Deciding|Accepted|Rejected|Withdrawn),
   statusHistory: array of {status: string, date: ISO 8601 timestamp},
   checklist: {
-    items: array of {id: string, text: string, checked: boolean, order: number},
-    isExpanded: boolean
+    items: array of {id: string, text: string, checked: boolean, order: number}
   },
   url: string,
   source: string,
@@ -135,6 +134,13 @@ Job in focus (for side panel):
 ```javascript
 {
   jobInFocus: string (job ID of currently focused job)
+}
+```
+
+Checklist UI preference (global):
+```javascript
+{
+  checklistExpanded: boolean (default: false, controls whether checklist UI is expanded or collapsed)
 }
 ```
 

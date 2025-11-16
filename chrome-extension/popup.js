@@ -192,23 +192,6 @@ async function saveExtractedJob(jobData, usedLlm) {
   }
 }
 
-// Helper function to normalize URLs for comparison
-function normalizeUrl(url) {
-  if (!url) return '';
-  try {
-    const urlObj = new URL(url);
-    // Keep protocol, host, and pathname, ignore search params and hash
-    return urlObj.origin + urlObj.pathname.replace(/\/$/, '');
-  } catch {
-    return url.trim().toLowerCase();
-  }
-}
-
-// Generate unique job ID
-function generateJobId() {
-  return 'job_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-}
-
 // Open side panel
 async function openSidePanel(closePopup = true) {
   try {
@@ -250,22 +233,6 @@ async function checkIfExtractable() {
   } catch (error) {
     console.error('Error checking if page is extractable:', error);
   }
-}
-
-function showStatus(message, type) {
-  const statusDiv = document.getElementById('status');
-  statusDiv.textContent = message;
-  statusDiv.className = `status ${type}`;
-  statusDiv.classList.remove('hidden');
-
-  // Auto-hide after 5 seconds for success messages
-  if (type === 'success') {
-    setTimeout(() => hideStatus(), 5000);
-  }
-}
-
-function hideStatus() {
-  document.getElementById('status').classList.add('hidden');
 }
 
 // Settings Management

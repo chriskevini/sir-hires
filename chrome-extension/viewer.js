@@ -651,66 +651,6 @@ function getJobDetailHTML(job, index) {
   }
 }
 
-// Helper to format YYYY-MM-DD dates as absolute date strings (e.g., "Jan 15, 2025")
-function formatAbsoluteDate(dateString) {
-  if (!dateString) return '';
-  
-  // If it's YYYY-MM-DD format, parse manually without timezone conversion
-  const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (match) {
-    const [, year, month, day] = match;
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${monthNames[parseInt(month) - 1]} ${parseInt(day)}, ${year}`;
-  }
-  
-  // Fallback: return original string if format is unexpected
-  return dateString;
-}
-
-// Helper to format YYYY-MM-DD dates as relative time (e.g., "3 days ago", "In 5 days")
-function formatRelativeDate(dateString) {
-  if (!dateString) return '';
-  
-  // Parse YYYY-MM-DD manually to avoid timezone issues
-  const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!match) return dateString; // Fallback to original if format unexpected
-  
-  const [, year, month, day] = match;
-  const jobDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Reset to start of day for accurate comparison
-  jobDate.setHours(0, 0, 0, 0);
-  
-  // Calculate difference in days
-  const diffTime = jobDate - today;
-  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-  
-  // Format based on difference
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Tomorrow';
-  if (diffDays === -1) return 'Yesterday';
-  
-  // Future dates (deadlines)
-  if (diffDays > 0) {
-    if (diffDays < 7) return `In ${diffDays} days`;
-    if (diffDays < 14) return 'In 1 week';
-    if (diffDays < 30) return `In ${Math.round(diffDays / 7)} weeks`;
-    if (diffDays < 60) return 'In 1 month';
-    if (diffDays < 365) return `In ${Math.round(diffDays / 30)} months`;
-    return `In ${Math.round(diffDays / 365)} years`;
-  }
-  
-  // Past dates (posted dates)
-  const absDays = Math.abs(diffDays);
-  if (absDays < 7) return `${absDays} days ago`;
-  if (absDays < 14) return '1 week ago';
-  if (absDays < 30) return `${Math.round(absDays / 7)} weeks ago`;
-  if (absDays < 60) return '1 month ago';
-  if (absDays < 365) return `${Math.round(absDays / 30)} months ago`;
-  return `${Math.round(absDays / 365)} years ago`;
-}
-
 // Render WIP panel for states that are not yet implemented
 function renderWIPPanel(job, index, status) {
   return `
@@ -1030,22 +970,6 @@ function attachButtonListeners() {
       saveNarrativeStrategy(index);
     });
   });
-}
-
-function escapeHtml(text) {
-  if (!text) return '';
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-function getRemoteIcon(remoteType) {
-  const icons = {
-    'Remote': '🏠',
-    'Hybrid': '🔄',
-    'On-site': '🏢'
-  };
-  return icons[remoteType] || '📍';
 }
 
 function openJob(url) {

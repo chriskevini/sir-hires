@@ -1,40 +1,19 @@
 # State-Based Panel Navigation - Implementation Plan
 
 ## Overview
-Refactor viewer to use state-based navigation where each application status has its own panel view. Users navigate between states using left/right buttons that change the job status and slide to the appropriate panel.
+State-based navigation where each application status has its own panel view. Users navigate between states using left/right buttons that change the job status and slide to the appropriate panel.
 
 ## State Machine
 
-### Status Progression & Panel Views
-
 ```
 Saved → Drafting → Applied → Screening → Interviewing → Offer → Accepted/Rejected/Withdrawn
-  ↓         ↓         ↓          ↓             ↓           ↓              ↓
-Job Data  Cover    WIP        WIP           WIP         WIP            WIP
- Panel    Letter
-          Panel
 ```
 
-### State Definitions
-
-| Status | Panel Content | Left Button | Right Button(s) |
-|--------|--------------|-------------|----------------|
-| **Saved** | Job Data (fields, notes, narrative) | None | "Draft" → Drafting |
-| **Drafting** | Cover Letter (generation/editing) | "Saved" → Saved | "Applied" → Applied |
-| **Applied** | WIP placeholder | "Drafting" → Drafting | "Screening" → Screening |
-| **Screening** | WIP placeholder | "Applied" → Applied | "Interviewing" → Interviewing |
-| **Interviewing** | WIP placeholder | "Screening" → Screening | "Offer" → Offer |
-| **Offer** | WIP placeholder | "Interviewing" → Interviewing | "Accepted" → Accepted<br>"Rejected" → Rejected |
-| **Accepted** | WIP placeholder | "Offer" → Offer (confirm) | None |
-| **Rejected** | WIP placeholder | "Offer" → Offer (confirm) | None |
-| **Withdrawn** | WIP placeholder | Previous state (confirm) | None |
-
-### Navigation Rules
-
-1. **Forward navigation** (→): Changes status and slides new panel in from right
-2. **Backward navigation** (←): Requires confirmation, changes status, slides panel in from left
-3. **Only show buttons for valid transitions** (e.g., no left button on Saved state)
-4. **Status dropdown is deprecated** - navigation buttons are the primary way to change status
+**Navigation Rules:**
+- Forward (→): Slides new panel in from right
+- Backward (←): Requires confirmation, slides panel in from left
+- Buttons only show valid transitions
+- Status dropdown deprecated (will be removed in Phase 6)
 
 ## UI Architecture
 
@@ -96,7 +75,7 @@ Job Data  Cover    WIP        WIP           WIP         WIP            WIP
 
 ### Status Change Logic
 ```javascript
-function navigateToState(jobIndex, newStatus, direction) {
+async function navigateToState(jobIndex, newStatus, direction) {
   const job = allJobs[jobIndex];
   const oldStatus = job.application_status || 'Saved';
   
@@ -109,37 +88,78 @@ function navigateToState(jobIndex, newStatus, direction) {
     }
   }
   
-  // Update status
+  // CRITICAL: Set animation flag BEFORE storage save
+  isAnimating = true;
+  
+  // Update status and save (triggers storage listener)
   job.application_status = newStatus;
-  await saveJob(job);
+  await chrome.storage.local.set({ jobs: allJobs });
   
   // Animate panel transition
   slideToPanel(newStatus, direction);
 }
 ```
 
-### Slide Animation
+**Race Condition Prevention:**
+The storage change listener is modified to check `isAnimating` flag:
+```javascript
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'local' && changes.jobs) {
+    if (isAnimating) {
+      // Queue reload until animation completes
+      pendingReload = true;
+    } else {
+      loadJobs();
+    }
+  }
+});
+```
+
+This ensures animations complete smoothly without DOM interruption while still processing external changes after the animation.
+
+### Slide Animation (Two-Panel Approach)
 ```javascript
 function slideToPanel(status, direction) {
   const panel = document.getElementById('detailPanel');
   
-  // Add exit animation class
-  panel.classList.add(direction === 'forward' ? 'slide-out-left' : 'slide-out-right');
+  // Get new panel content
+  const newContent = getJobDetailHTML(currentJobIndex, status);
   
-  // Wait for exit animation
+  // Create wrapper with old and new panels
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position: relative; width: 100%; height: 100%; overflow: hidden;';
+  
+  // Old panel (current content)
+  const oldPanel = document.createElement('div');
+  oldPanel.innerHTML = panel.innerHTML;
+  oldPanel.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);';
+  
+  // New panel (offscreen)
+  const newPanel = document.createElement('div');
+  newPanel.innerHTML = newContent;
+  newPanel.style.cssText = `position: absolute; top: 0; left: 0; width: 100%; transform: translateX(${direction === 'forward' ? '100%' : '-100%'}); transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);`;
+  
+  wrapper.appendChild(oldPanel);
+  wrapper.appendChild(newPanel);
+  panel.innerHTML = '';
+  panel.appendChild(wrapper);
+  
+  // Trigger animation
   setTimeout(() => {
-    // Update content
-    renderPanelForStatus(status);
-    
-    // Add enter animation class
-    panel.classList.remove('slide-out-left', 'slide-out-right');
-    panel.classList.add(direction === 'forward' ? 'slide-in-right' : 'slide-in-left');
-    
-    // Clean up animation classes
-    setTimeout(() => {
-      panel.classList.remove('slide-in-left', 'slide-in-right');
-    }, 400);
-  }, 400);
+    const slideAmount = direction === 'forward' ? '-100%' : '100%';
+    oldPanel.style.transform = `translateX(${slideAmount})`;
+    newPanel.style.transform = 'translateX(0)';
+  }, 50);
+  
+  // Clean up after animation
+  setTimeout(() => {
+    panel.innerHTML = newContent;
+    isAnimating = false; // Allow storage listener to process queued reloads
+    if (pendingReload) {
+      pendingReload = false;
+      loadJobs();
+    }
+  }, 450);
 }
 ```
 
@@ -170,35 +190,13 @@ function getNavigationButtons(status) {
 }
 ```
 
-## CSS Animation Classes
+## Animation Implementation
 
-```css
-/* Slide animations */
-@keyframes slideOutLeft {
-  from { transform: translateX(0); opacity: 1; }
-  to { transform: translateX(-100%); opacity: 0; }
-}
-
-@keyframes slideOutRight {
-  from { transform: translateX(0); opacity: 1; }
-  to { transform: translateX(100%); opacity: 0; }
-}
-
-@keyframes slideInLeft {
-  from { transform: translateX(-100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
-@keyframes slideInRight {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
-.slide-out-left { animation: slideOutLeft 0.4s cubic-bezier(0.4, 0.0, 0.2, 1); }
-.slide-out-right { animation: slideOutRight 0.4s cubic-bezier(0.4, 0.0, 0.2, 1); }
-.slide-in-left { animation: slideInLeft 0.4s cubic-bezier(0.4, 0.0, 0.2, 1); }
-.slide-in-right { animation: slideInRight 0.4s cubic-bezier(0.4, 0.0, 0.2, 1); }
-```
+**Method:** Inline CSS transitions with two-panel approach (not CSS keyframe animations)
+- Old panel and new panel positioned absolutely in wrapper
+- Both panels use `transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1)`
+- Animate via `transform: translateX()` changes
+- 50ms delay before triggering, 450ms total duration
 
 ## Implementation Checklist
 
@@ -227,6 +225,9 @@ function getNavigationButtons(status) {
 - [x] Test slide-left for forward navigation
 - [x] Test slide-right for backward navigation
 - [x] Ensure smooth transitions
+- [x] Fix storage change listener race condition
+
+**Critical Issue Fixed:** Storage change listener was interrupting animations by re-rendering the DOM mid-transition. Solution: Added animation state management with `isAnimating` and `pendingReload` flags to queue storage updates until after animation completes (450ms). This prevents race conditions while ensuring no data loss from external changes.
 
 ### Phase 5: Cover Letter Integration
 - [ ] Move existing cover letter HTML to `renderCoverLetterPanel()`

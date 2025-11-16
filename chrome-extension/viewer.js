@@ -4,6 +4,8 @@ let filteredJobs = [];
 let selectedJobIndex = -1;
 let debugMode = false;
 let jobInFocusId = null; // Track which job is currently in focus
+let isAnimating = false; // Flag to prevent reloads during animations
+let pendingReload = false; // Flag to indicate a reload is needed after animation
 
 // Status progression order for state-based navigation
 const STATUS_ORDER = [
@@ -57,6 +59,9 @@ async function navigateToState(jobIndex, newStatus, direction) {
   });
   
   job.updated_at = new Date().toISOString();
+  
+  // Set animation flag BEFORE saving to storage to prevent reload interruption
+  isAnimating = true;
   
   // Convert array back to object format for storage
   const jobsObj = {};
@@ -133,29 +138,101 @@ function getNavigationButtons(status) {
   return buttons;
 }
 
-// Slide to a new panel with animation (placeholder for now)
+// Slide to a new panel with animation
 function slideToPanel(job, jobIndex, status, direction) {
-  const panel = document.getElementById('detailPanel');
+  console.log('slideToPanel called:', { direction, status });
+  const panelContainer = document.getElementById('detailPanel');
   
-  // Add exit animation class
-  const exitClass = direction === 'forward' ? 'slide-out-left' : 'slide-out-right';
-  panel.classList.add(exitClass);
+  // Save current scroll position
+  const currentScrollTop = panelContainer.scrollTop;
   
-  // Wait for exit animation
+  // Get new content
+  const newContent = getJobDetailHTML(job, jobIndex);
+  
+  // Create wrapper with fixed positioning
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden;';
+  
+  // Create old panel
+  const oldPanel = document.createElement('div');
+  oldPanel.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 24px;
+    background-color: white;
+    transform: translateX(0);
+    transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+  `;
+  oldPanel.innerHTML = panelContainer.innerHTML;
+  oldPanel.scrollTop = currentScrollTop;
+  
+  // Create new panel
+  const newPanel = document.createElement('div');
+  const startPos = direction === 'forward' ? '100%' : '-100%';
+  newPanel.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 24px;
+    background-color: white;
+    transform: translateX(${startPos});
+    transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+  `;
+  newPanel.innerHTML = newContent;
+  
+  // Add panels to wrapper
+  wrapper.appendChild(oldPanel);
+  wrapper.appendChild(newPanel);
+  
+  // Temporarily modify container
+  const originalPosition = panelContainer.style.position;
+  const originalOverflow = panelContainer.style.overflow;
+  const originalPadding = panelContainer.style.padding;
+  
+  panelContainer.style.position = 'relative';
+  panelContainer.style.overflow = 'hidden';
+  panelContainer.style.padding = '0';
+  
+  // Replace content with wrapper
+  panelContainer.innerHTML = '';
+  panelContainer.appendChild(wrapper);
+  
+  console.log('Panels created, starting animation in 50ms');
+  
+  // Start animation after a small delay
   setTimeout(() => {
-    // Update content
-    renderJobDetail(job, jobIndex);
+    const endPos = direction === 'forward' ? '-100%' : '100%';
+    oldPanel.style.transform = `translateX(${endPos})`;
+    newPanel.style.transform = 'translateX(0)';
+    console.log('Animation triggered');
     
-    // Add enter animation class
-    panel.classList.remove('slide-out-left', 'slide-out-right');
-    const enterClass = direction === 'forward' ? 'slide-in-right' : 'slide-in-left';
-    panel.classList.add(enterClass);
-    
-    // Clean up animation classes
+    // After animation, replace with final content
     setTimeout(() => {
-      panel.classList.remove('slide-in-left', 'slide-in-right');
-    }, 400);
-  }, 400);
+      console.log('Animation complete, cleaning up');
+      panelContainer.style.position = originalPosition;
+      panelContainer.style.overflow = originalOverflow || '';
+      panelContainer.style.padding = originalPadding || '24px';
+      panelContainer.innerHTML = newContent;
+      attachButtonListeners();
+      
+      // Clear animation flag
+      isAnimating = false;
+      
+      // If a reload was requested during animation, execute it now
+      if (pendingReload) {
+        console.log('[Viewer] Executing pending reload after animation');
+        pendingReload = false;
+        loadJobs();
+      }
+    }, 450);
+  }, 50);
 }
 
 // Render navigation buttons for state-based navigation
@@ -442,41 +519,42 @@ function renderJobDetail(job, index) {
   }
   
   try {
-    // Route to appropriate panel based on status
-    const status = job.application_status || 'Saved';
-    
-    if (debugMode) {
-      detailPanel.innerHTML = renderDebugJob(job, index);
-    } else {
-      switch(status) {
-        case 'Saved':
-          detailPanel.innerHTML = renderJobDataPanel(job, index);
-          break;
-        
-        case 'Drafting':
-          detailPanel.innerHTML = renderCoverLetterPanel(job, index);
-          break;
-        
-        case 'Applied':
-        case 'Screening':
-        case 'Interviewing':
-        case 'Offer':
-        case 'Accepted':
-        case 'Rejected':
-        case 'Withdrawn':
-          detailPanel.innerHTML = renderWIPPanel(job, index, status);
-          break;
-        
-        default:
-          detailPanel.innerHTML = renderJobDataPanel(job, index);
-      }
-    }
+    detailPanel.innerHTML = getJobDetailHTML(job, index);
     
     // Attach event listeners to the detail panel buttons
     attachButtonListeners();
   } catch (error) {
     console.error('Error rendering job detail:', error);
     detailPanel.innerHTML = '<div style="color: red; padding: 20px;">Error rendering job detail: ' + error.message + '</div>';
+  }
+}
+
+// Helper function that returns HTML without modifying DOM
+function getJobDetailHTML(job, index) {
+  const status = job.application_status || 'Saved';
+  
+  if (debugMode) {
+    return renderDebugJob(job, index);
+  }
+  
+  switch(status) {
+    case 'Saved':
+      return renderJobDataPanel(job, index);
+    
+    case 'Drafting':
+      return renderCoverLetterPanel(job, index);
+    
+    case 'Applied':
+    case 'Screening':
+    case 'Interviewing':
+    case 'Offer':
+    case 'Accepted':
+    case 'Rejected':
+    case 'Withdrawn':
+      return renderWIPPanel(job, index, status);
+    
+    default:
+      return renderJobDataPanel(job, index);
   }
 }
 
@@ -1318,7 +1396,13 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       if (changes.jobs) {
         console.log('[Viewer] Jobs changed, reloading');
-        loadJobs();
+        // Don't reload if an animation is in progress
+        if (!isAnimating) {
+          loadJobs();
+        } else {
+          console.log('[Viewer] Animation in progress, queuing reload for after animation');
+          pendingReload = true;
+        }
       }
     }
   });

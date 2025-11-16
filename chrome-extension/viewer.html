@@ -796,6 +796,48 @@
     .slide-in-right { 
       animation: slideInRight 0.4s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
     }
+
+    /* Panel transition styles */
+    .panel-transition-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .panel-slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      padding: 24px;
+      background-color: white;
+      transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+
+    .panel-slide.start-left {
+      transform: translateX(-100%);
+    }
+
+    .panel-slide.start-right {
+      transform: translateX(100%);
+    }
+
+    .panel-slide.end-left {
+      transform: translateX(-100%);
+    }
+
+    .panel-slide.end-right {
+      transform: translateX(100%);
+    }
+
+    .panel-slide.center {
+      transform: translateX(0);
+    }
   </style>
 </head>
 <body>

@@ -2,6 +2,7 @@
 // Coordinates between state-specific views, sidebar, and navigation
 
 import { ResearchingView } from './views/researching-view.js';
+import { ChecklistComponent } from './components/checklist.js';
 import { defaults } from './config.js';
 
 export class MainView {
@@ -88,6 +89,42 @@ export class MainView {
    * @returns {Object} A view-like object
    */
   createWIPView() {
+    const checklistComponent = new ChecklistComponent();
+    
+    // Helper function to render checklist (needs to be defined outside the returned object)
+    const renderChecklist = (job, index, isExpanded = false) => {
+      const checklistContainer = document.getElementById('checklistContainer');
+      if (!checklistContainer) {
+        console.error('Checklist container not found');
+        return;
+      }
+
+      // Render checklist with current status
+      checklistContainer.innerHTML = checklistComponent.render(
+        job.checklist, 
+        job.applicationStatus, 
+        index, 
+        isExpanded
+      );
+      
+      // Set up callbacks
+      checklistComponent.setOnToggleExpand((jobIndex, isExpanded) => {
+        const event = new CustomEvent('checklist:toggleExpand', {
+          detail: { index: jobIndex, isExpanded }
+        });
+        document.dispatchEvent(event);
+      });
+      
+      checklistComponent.setOnToggleItem((jobIndex, itemId) => {
+        const event = new CustomEvent('checklist:toggleItem', {
+          detail: { index: jobIndex, itemId }
+        });
+        document.dispatchEvent(event);
+      });
+      
+      checklistComponent.attachListeners(checklistContainer);
+    };
+    
     return {
       render: (job, index) => {
         const status = job.applicationStatus || 'Unknown';
@@ -144,9 +181,20 @@ export class MainView {
             document.dispatchEvent(event);
           });
         }
+        
+        // Render checklist in the fixed container
+        renderChecklist(job, index, isExpanded);
       },
+      renderChecklist: renderChecklist,
       cleanup: () => {
-        // No cleanup needed for WIP view (uses delegated listeners)
+        // Cleanup checklist
+        checklistComponent.cleanup();
+        
+        // Clear checklist container
+        const checklistContainer = document.getElementById('checklistContainer');
+        if (checklistContainer) {
+          checklistContainer.innerHTML = '';
+        }
       }
     };
   }

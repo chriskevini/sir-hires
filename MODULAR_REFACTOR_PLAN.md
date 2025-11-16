@@ -141,7 +141,6 @@ export const domIds = {
 - Handle animation state (`isAnimating`, `pendingReload`)
 - Handle job selection state (`selectedJobIndex`, `jobInFocusId`)
 - Handle filter/sort state
-- Handle debug mode state
 
 **Example API:**
 ```javascript
@@ -1088,7 +1087,7 @@ export class NavigationService {
 
 **Tasks:**
 - Set up filter event listeners (search, source, status, sort)
-- Set up toolbar button listeners (backup, restore, clear, debug toggle, master resume)
+- Set up toolbar button listeners (backup, restore, clear, master resume)
 - Handle custom events from views (job-selected, job-deleted)
 - Coordinate re-rendering after global actions
 
@@ -1488,7 +1487,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const app = new JobDetailsApp();
   await app.init();
   
-  // Expose app globally for debugging
+  // Expose app globally for console debugging
   window.__jobDetailsApp = app;
 });
 ```
@@ -1570,10 +1569,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 8. **Backup/Restore** - Test export and import
 9. **Multi-tab sync** - Open multiple tabs, verify storage listener works
 10. **Master resume integration** - Test navigation to resume page
-11. **Debug mode** - Toggle debug mode, verify raw data display
-12. **Empty state** - Clear all jobs, verify empty state displays
-13. **Edge cases** - Test with 0 jobs, 1 job, 100+ jobs
-14. **Animations** - Verify smooth transitions, no animation conflicts
+11. **Empty state** - Clear all jobs, verify empty state displays
+12. **Edge cases** - Test with 0 jobs, 1 job, 100+ jobs
+13. **Animations** - Verify smooth transitions, no animation conflicts
 
 ### Browser Testing
 - Test in Chrome (primary target)

@@ -550,7 +550,7 @@
       z-index: 11; /* Above nav buttons */
     }
 
-    /* Wrapper contains both minimized dots and expanded dropdown when expanded */
+    /* Wrapper contains both expander and expanded dropdown when expanded */
     .checklist-wrapper {
       position: relative;
       display: flex;
@@ -559,27 +559,18 @@
       gap: 12px;
     }
 
-    .checklist-container {
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    /* Minimized state (3 dots) - always visible */
-    .checklist-container.minimized {
+    /* Expander (3 dots) - always visible toggle control */
+    .checklist-expander {
       display: flex;
       align-items: center;
       justify-content: center;
       width: 40px;
       height: 40px;
       background-color: white;
-      border: 2px solid #e0e0e0;
+      border: none;
       border-radius: 20px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    .checklist-container.minimized:hover {
-      border-color: #1a73e8;
-      box-shadow: 0 4px 12px rgba(26, 115, 232, 0.2);
+      cursor: pointer;
+      transition: all 0.2s ease;
     }
 
     .checklist-dots {
@@ -590,7 +581,7 @@
     }
 
     .checklist-dot {
-      font-size: 8px;
+      font-size: 14px;
       color: #666;
       line-height: 1;
     }
@@ -600,9 +591,9 @@
       min-width: 280px;
       max-width: 320px;
       background-color: white;
-      border: 2px solid #1a73e8;
+      border: none;
       border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      box-shadow: none;
       overflow: hidden;
     }
 
@@ -615,6 +606,7 @@
     .checklist-item {
       display: flex;
       align-items: flex-start;
+      justify-content: space-between;
       gap: 10px;
       padding: 10px 16px;
       cursor: pointer;
@@ -626,23 +618,25 @@
       background-color: #f8f9fa;
     }
 
+    .checklist-text {
+      font-size: 13px;
+      color: #333;
+      line-height: 1.4;
+      flex: 1;
+      text-align: right;
+    }
+
     .checklist-bullet {
       font-size: 14px;
       color: #999;
       line-height: 1.4;
       flex-shrink: 0;
       transition: color 0.15s;
+      margin-left: 8px;
     }
 
     .checklist-bullet.checked {
       color: #1a73e8;
-    }
-
-    .checklist-text {
-      font-size: 13px;
-      color: #333;
-      line-height: 1.4;
-      flex: 1;
     }
 
     /* Navigation button styles */

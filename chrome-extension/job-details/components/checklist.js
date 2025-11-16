@@ -19,30 +19,30 @@ export class ChecklistComponent extends BaseView {
    * @returns {string} HTML string
    */
   render(checklist, status, jobIndex, isExpanded = false) {
-    // Always show minimized dots, with expanded dropdown above if isExpanded is true
-    const minimizedHtml = this.renderMinimized(jobIndex);
+    // Always show expander (3 dots), with expanded dropdown above if isExpanded is true
+    const expanderHtml = this.renderExpander(jobIndex);
     
     if (isExpanded) {
       const expandedHtml = this.renderExpandedDropdown(checklist, status, jobIndex);
       return `
         <div class="checklist-wrapper">
           ${expandedHtml}
-          ${minimizedHtml}
+          ${expanderHtml}
         </div>
       `;
     }
     
-    return minimizedHtml;
+    return expanderHtml;
   }
 
   /**
-   * Render minimized state (3 dots)
+   * Render expander (3 dots) - always visible toggle control
    * @param {number} jobIndex - Global index of the job
    * @returns {string} HTML string
    */
-  renderMinimized(jobIndex) {
+  renderExpander(jobIndex) {
     return `
-      <div class="checklist-container minimized" data-index="${jobIndex}">
+      <div class="checklist-expander" data-index="${jobIndex}">
         <div class="checklist-dots">
           <span class="checklist-dot">•</span>
           <span class="checklist-dot">•</span>
@@ -80,8 +80,8 @@ export class ChecklistComponent extends BaseView {
 
     const itemsHtml = sortedItems.map(item => `
       <div class="checklist-item" data-item-id="${item.id}" data-index="${jobIndex}">
-        <span class="checklist-bullet ${item.checked ? 'checked' : ''}">${item.checked ? '●' : '○'}</span>
         <span class="checklist-text">${this.escapeHtml(item.text)}</span>
+        <span class="checklist-bullet ${item.checked ? 'checked' : ''}">${item.checked ? '●' : '○'}</span>
       </div>
     `).join('');
 
@@ -123,23 +123,23 @@ export class ChecklistComponent extends BaseView {
    * @param {HTMLElement} container - The container element
    */
   attachListeners(container) {
-    // Handle minimized dots - always present
+    // Handle expander (3 dots) - always present
     // When collapsed: click to expand
     // When expanded: click to collapse
-    const minimizedContainer = container.querySelector('.checklist-container.minimized');
-    if (minimizedContainer) {
+    const expanderContainer = container.querySelector('.checklist-expander');
+    if (expanderContainer) {
       const toggleHandler = (e) => {
         e.stopPropagation();
-        const index = parseInt(minimizedContainer.dataset.index, 10);
+        const index = parseInt(expanderContainer.dataset.index, 10);
         // Check if currently expanded by looking for dropdown sibling
-        const wrapper = minimizedContainer.closest('.checklist-wrapper');
+        const wrapper = expanderContainer.closest('.checklist-wrapper');
         const isCurrentlyExpanded = wrapper !== null;
         if (this.onToggleExpand) {
           // Toggle to opposite state
           this.onToggleExpand(index, !isCurrentlyExpanded);
         }
       };
-      this.trackListener(minimizedContainer, 'click', toggleHandler);
+      this.trackListener(expanderContainer, 'click', toggleHandler);
     }
     
     // Handle expanded dropdown

@@ -1,14 +1,17 @@
 // Side panel script that manages the job in focus
 
-import { ResearchingView } from './job-details/views/researching-view.js';
+import { MainView } from './job-details/main-view.js';
 
 let currentJobId = null;
 let currentJob = null;
-let currentView = null; // Track the ResearchingView instance
+let mainView = null; // MainView instance for rendering state-based views
 let isSavingLocally = false; // Flag to prevent reload loops
 
 // Initialize side panel
 document.addEventListener('DOMContentLoaded', async () => {
+  // Create MainView instance
+  mainView = new MainView();
+  
   await loadJobInFocus();
   setupEventListeners();
   setupStorageListener();
@@ -27,7 +30,7 @@ function setupEventListeners() {
   document.getElementById('restoreBackupBtn')?.addEventListener('click', restoreBackup);
 }
 
-// Setup event listeners for ResearchingView custom events
+// Setup event listeners for view custom events
 function setupViewEventListeners() {
   // Handle field save from view
   document.addEventListener('view:saveField', async (event) => {
@@ -126,38 +129,26 @@ function showEmptyState() {
   document.getElementById('jobDetails').classList.add('hidden');
   document.getElementById('footer').classList.add('hidden');
   
-  // Cleanup current view
-  if (currentView) {
-    currentView.cleanup();
-    currentView = null;
+  // Cleanup MainView
+  if (mainView) {
+    mainView.cleanup();
   }
   
   currentJobId = null;
   currentJob = null;
 }
 
-// Display job details using ResearchingView
+// Display job details using MainView (state-based view selection)
 function displayJob(job) {
-  // Cleanup previous view
-  if (currentView) {
-    currentView.cleanup();
-  }
-  
   document.getElementById('emptyState').classList.add('hidden');
   document.getElementById('jobDetails').classList.remove('hidden');
   document.getElementById('footer').classList.remove('hidden');
 
   const jobContent = document.getElementById('jobContent');
   
-  // Create ResearchingView instance
-  currentView = new ResearchingView();
-  
-  // Render the view (pass index as 0 since sidepanel only shows one job)
-  const html = currentView.render(job, 0);
-  jobContent.innerHTML = html;
-  
-  // Attach event listeners
-  currentView.attachListeners(jobContent, job, 0);
+  // Use MainView to render the appropriate view based on job status
+  // Pass index as 0 since sidepanel only shows one job at a time
+  mainView.render(jobContent, job, 0);
 }
 
 // Save field value to storage

@@ -253,7 +253,7 @@ chrome-extension/
 ├── content.js            # Content script for data extraction
 ├── popup.html            # Popup UI
 ├── popup.js              # Popup logic
-├── viewer.html           # Job viewer page
+├── job-details.html      # Job details viewer page
 ├── background.js         # Background service worker
 ├── styles/
 │   └── popup.css         # Popup styles

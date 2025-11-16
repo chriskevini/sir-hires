@@ -217,13 +217,13 @@ async function checkIfExtractable() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     const extractBtn = document.getElementById('extractBtn');
     
-    // Disable extraction on Chrome internal pages and extension pages (including viewer.html)
+    // Disable extraction on Chrome internal pages and extension pages (including job-details.html)
     if (!tab || !tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
       extractBtn.disabled = true;
       extractBtn.title = 'Cannot extract from this page';
       
       // Show info message if on viewer page
-      if (tab.url && tab.url.includes('viewer.html')) {
+      if (tab.url && tab.url.includes('job-details.html')) {
         showStatus('You are viewing your saved jobs. Navigate to a job posting to extract data.', 'info');
       }
     } else {

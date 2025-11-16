@@ -47,7 +47,7 @@ export class Sidebar extends BaseView {
         </div>
         <div class="company-compact">${this.escapeHtml(job.company)}</div>
         <div class="meta-compact">
-          ${status !== 'Researching' ? `<span class="status-badge-compact status-${status.replace(/\s+/g, '-')}">${status}</span>` : ''}
+          ${status !== 'Researching' ? `<span class="status-badge status-${status.replace(/\s+/g, '-')}">${status}</span>` : ''}
           ${job.deadline ? `<span>⏰ ${this.escapeHtml(this.formatRelativeDate(job.deadline))}</span>` : ''}
         </div>
       </div>

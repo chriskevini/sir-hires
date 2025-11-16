@@ -13,6 +13,19 @@ export const statusOrder = [
   'Withdrawn'
 ];
 
+// Status badge color configuration (v0.2.0)
+// Used for both badge styling and progress bar colors
+export const statusColors = {
+  'Researching': { bg: '#f5f5f5', text: '#666' }, // Gray to match progress bar
+  'Drafting': { bg: '#d4edda', text: '#155724' },
+  'Awaiting Review': { bg: '#e8f0fe', text: '#1967d2' }, // Blue to match progress bar
+  'Interviewing': { bg: '#fff3cd', text: '#856404' },
+  'Deciding': { bg: '#f3e8fd', text: '#7627bb' },
+  'Accepted': { bg: '#ceead6', text: '#0d652d' },
+  'Rejected': { bg: '#f8d7da', text: '#721c24' },
+  'Withdrawn': { bg: '#e2e3e5', text: '#383d41' }
+};
+
 // Progress bar visual configuration for each status (v0.2.0)
 export const progressConfig = {
   'Researching': { fill: 0, color: '#e0e0e0', textColor: '#666' },

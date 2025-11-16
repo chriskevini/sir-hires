@@ -76,10 +76,16 @@ The user will test the changes and ask you to commit when ready.
 - Optional: Enhanced with local LLM via LM Studio
 - Always editable by user before saving
 
-### Storage Schema
+### Storage Schema (Version 0.2.0)
+
+**Schema Versions:**
+- **v0.1.0**: Initial schema with old status names (Saved, Applied, Screening, Offer)
+- **v0.2.0**: New status names (Researching, Awaiting Review, Deciding) + modular architecture
+
 Jobs are stored as objects with these fields:
 ```javascript
 {
+  id: string (unique job ID, format: job_<timestamp>_<random>),
   jobTitle: string,
   company: string,
   location: string,
@@ -88,8 +94,8 @@ Jobs are stored as objects with these fields:
   remoteType: string,
   postedDate: string (YYYY-MM-DD format, local timezone),
   deadline: string (YYYY-MM-DD format, local timezone),
-  applicationStatus: string,
-  statusHistory: array,
+  applicationStatus: string (v0.2.0: Researching|Drafting|Awaiting Review|Interviewing|Deciding|Accepted|Rejected|Withdrawn),
+  statusHistory: array of {status: string, date: ISO 8601 timestamp},
   url: string,
   source: string,
   rawDescription: string,
@@ -111,6 +117,20 @@ Master resume is stored separately:
     content: string (markdown-formatted text),
     updatedAt: string (ISO 8601 timestamp)
   }
+}
+```
+
+Version tracking:
+```javascript
+{
+  dataVersion: number (current: 2 for v0.2.0)
+}
+```
+
+Job in focus (for side panel):
+```javascript
+{
+  jobInFocus: string (job ID of currently focused job)
 }
 ```
 

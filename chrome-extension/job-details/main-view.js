@@ -8,10 +8,12 @@ export class MainView {
   constructor() {
     // View instances
     this.views = {
-      'Saved': new ResearchingView(),
+      'Researching': new ResearchingView(),
       // Other views would be added here as they're implemented:
       // 'Drafting': new DraftingView(),
-      // 'Applied': new AppliedView(),
+      // 'Awaiting Review': new AwaitingReviewView(),
+      // 'Interviewing': new InterviewingView(),
+      // 'Deciding': new DecidingView(),
       // etc.
     };
 

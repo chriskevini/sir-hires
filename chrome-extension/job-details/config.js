@@ -1,61 +1,55 @@
 // Configuration and constants for job details viewer
+// Schema version: 0.2.0
 
-// Status progression order for state-based navigation
+// Status progression order for state-based navigation (v0.2.0)
 export const statusOrder = [
-  'Saved',
+  'Researching',
   'Drafting',
-  'Applied',
-  'Screening',
+  'Awaiting Review',
   'Interviewing',
-  'Offer',
+  'Deciding',
   'Accepted',
   'Rejected',
   'Withdrawn'
 ];
 
-// Progress bar visual configuration for each status
+// Progress bar visual configuration for each status (v0.2.0)
 export const progressConfig = {
-  'Saved': { fill: 0, color: '#e0e0e0', textColor: '#666' },
-  'Drafting': { fill: 20, color: '#4caf50', textColor: '#fff' },
-  'Applied': { fill: 40, color: '#2196f3', textColor: '#fff' },
-  'Screening': { fill: 60, color: '#9c27b0', textColor: '#fff' },
-  'Interviewing': { fill: 80, color: '#ff9800', textColor: '#fff' },
-  'Offer': { fill: 100, color: '#f44336', textColor: '#fff' },
+  'Researching': { fill: 0, color: '#e0e0e0', textColor: '#666' },
+  'Drafting': { fill: 15, color: '#4caf50', textColor: '#fff' },
+  'Awaiting Review': { fill: 35, color: '#2196f3', textColor: '#fff' },
+  'Interviewing': { fill: 60, color: '#ff9800', textColor: '#fff' },
+  'Deciding': { fill: 85, color: '#9c27b0', textColor: '#fff' },
   'Accepted': { fill: 100, color: '#4caf50', textColor: '#fff' },
   'Rejected': { fill: 100, color: '#f44336', textColor: '#fff' },
   'Withdrawn': { fill: 100, color: '#757575', textColor: '#fff' }
 };
 
-// Navigation button configuration for each status
+// Navigation button configuration for each status (v0.2.0)
 export function getNavigationButtons(status) {
   const buttons = { left: null, right: [] };
   
   switch(status) {
-    case 'Saved':
+    case 'Researching':
       buttons.right = [{ label: 'Draft', target: 'Drafting' }];
       break;
     
     case 'Drafting':
-      buttons.left = { label: 'Saved', target: 'Saved' };
-      buttons.right = [{ label: 'Applied', target: 'Applied' }];
+      buttons.left = { label: 'Researching', target: 'Researching' };
+      buttons.right = [{ label: 'Awaiting Review', target: 'Awaiting Review' }];
       break;
     
-    case 'Applied':
+    case 'Awaiting Review':
       buttons.left = { label: 'Drafting', target: 'Drafting' };
-      buttons.right = [{ label: 'Screening', target: 'Screening' }];
-      break;
-    
-    case 'Screening':
-      buttons.left = { label: 'Applied', target: 'Applied' };
       buttons.right = [{ label: 'Interviewing', target: 'Interviewing' }];
       break;
     
     case 'Interviewing':
-      buttons.left = { label: 'Screening', target: 'Screening' };
-      buttons.right = [{ label: 'Offer', target: 'Offer' }];
+      buttons.left = { label: 'Awaiting Review', target: 'Awaiting Review' };
+      buttons.right = [{ label: 'Deciding', target: 'Deciding' }];
       break;
     
-    case 'Offer':
+    case 'Deciding':
       buttons.left = { label: 'Interviewing', target: 'Interviewing' };
       buttons.right = [
         { label: 'Accepted', target: 'Accepted' },
@@ -64,20 +58,20 @@ export function getNavigationButtons(status) {
       break;
     
     case 'Accepted':
-      buttons.left = { label: 'Offer', target: 'Offer' };
+      buttons.left = { label: 'Deciding', target: 'Deciding' };
       break;
     
     case 'Rejected':
-      buttons.left = { label: 'Offer', target: 'Offer' };
+      buttons.left = { label: 'Deciding', target: 'Deciding' };
       break;
     
     case 'Withdrawn':
       // For withdrawn, we need to figure out the previous state from history
-      buttons.left = { label: 'Previous', target: 'Saved' }; // Default fallback
+      buttons.left = { label: 'Previous', target: 'Researching' }; // Default fallback
       break;
     
     default:
-      // Default case: treat as 'Saved'
+      // Default case: treat as 'Researching'
       buttons.right = [{ label: 'Draft', target: 'Drafting' }];
   }
   
@@ -122,9 +116,9 @@ export const animationConfig = {
   easing: 'cubic-bezier(0.4, 0.0, 0.2, 1)'
 };
 
-// Default values
+// Default values (v0.2.0)
 export const defaults = {
-  status: 'Saved',
+  status: 'Researching',
   filters: {
     search: '',
     source: 'all',

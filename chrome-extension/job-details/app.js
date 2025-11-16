@@ -10,6 +10,7 @@ import { Navigation } from './navigation.js';
 import { Sidebar } from './sidebar.js';
 import { MainView } from './main-view.js';
 import { NavigationService } from './navigation-service.js';
+import { MigrationService } from './migration.js';
 import * as config from './config.js';
 
 export class JobDetailsApp {
@@ -48,6 +49,10 @@ export class JobDetailsApp {
    */
   async init() {
     console.log('Initializing JobDetailsApp...');
+
+    // Run data migration if needed (v0.1.0 → v0.2.0 status names)
+    const migration = new MigrationService(this.storage);
+    await migration.checkAndMigrate();
 
     // Setup event listeners
     this.setupEventListeners();
@@ -537,7 +542,22 @@ export class JobDetailsApp {
    * Create backup of all data
    */
   async createBackup() {
-    const backup = await this.storage.createBackup();
+    const storageData = await this.storage.createBackup();
+    
+    // Get version from manifest
+    const manifestData = chrome.runtime.getManifest();
+    const version = manifestData.version;
+    
+    // Create V1 format backup with metadata wrapper
+    // Note: dataVersion is excluded from backup data (it's internal migration tracking)
+    const { dataVersion, ...cleanData } = storageData;
+    
+    const backup = {
+      version: version,  // Use semantic version from manifest (e.g., "0.2.0")
+      exportDate: new Date().toISOString(),
+      data: cleanData
+    };
+    
     const dataStr = JSON.stringify(backup, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
@@ -563,7 +583,48 @@ export class JobDetailsApp {
       try {
         const text = await file.text();
         const backup = JSON.parse(text);
-        await this.storage.restoreBackup(backup);
+        
+        // Validate and extract data based on format
+        let dataToRestore;
+        let backupVersion;
+        let exportDate;
+        
+        if (backup.version && backup.data) {
+          // V1 format with metadata wrapper
+          backupVersion = backup.version;
+          exportDate = backup.exportDate;
+          dataToRestore = backup.data;
+          
+          // Show confirmation with metadata
+          const jobCount = Object.keys(dataToRestore.jobs || {}).length;
+          const dateStr = exportDate ? new Date(exportDate).toLocaleString() : 'Unknown';
+          const confirmMsg = `Restore backup from ${dateStr}?\n\nVersion: ${backupVersion}\nJobs: ${jobCount}\n\nThis will overwrite all current data.`;
+          
+          if (!confirm(confirmMsg)) {
+            return;
+          }
+        } else if (backup.jobs) {
+          // Legacy V2 format (raw storage) - support for backwards compatibility
+          backupVersion = backup.dataVersion ? `0.${backup.dataVersion}.0` : '0.1.0';
+          dataToRestore = backup;
+          
+          const jobCount = Object.keys(dataToRestore.jobs || {}).length;
+          const confirmMsg = `Restore legacy backup?\n\nVersion: ${backupVersion} (estimated)\nJobs: ${jobCount}\n\nThis will overwrite all current data.`;
+          
+          if (!confirm(confirmMsg)) {
+            return;
+          }
+        } else {
+          alert('Invalid backup file format.');
+          return;
+        }
+        
+        await this.storage.restoreBackup(dataToRestore);
+        
+        // Run migration check after restore in case backup has old status names
+        const migration = new MigrationService(this.storage);
+        await migration.checkAndMigrate();
+        
         alert('Backup restored successfully!');
         await this.loadJobs();
       } catch (error) {

@@ -231,7 +231,11 @@ export class StorageService {
   async restoreBackup(data) {
     try {
       await chrome.storage.local.clear();
-      await chrome.storage.local.set(data);
+      
+      // Exclude dataVersion from restore to allow migration to detect and update it
+      const { dataVersion, ...restoreData } = data;
+      
+      await chrome.storage.local.set(restoreData);
     } catch (error) {
       console.error('Failed to restore backup:', error);
       throw error;

@@ -41,7 +41,7 @@ export class JobService {
     // Status filter
     if (filters.status && filters.status !== 'all') {
       filtered = filtered.filter(job => {
-        const status = job.applicationStatus || 'Saved';
+        const status = job.applicationStatus || 'Researching';
         return status === filters.status;
       });
     }
@@ -150,7 +150,7 @@ export class JobService {
    * @returns {Object} Updated job object
    */
   updateJobStatus(job, newStatus) {
-    const oldStatus = job.applicationStatus || 'Saved';
+    const oldStatus = job.applicationStatus || 'Researching';
     
     // Initialize status history if needed
     if (!job.statusHistory) {
@@ -287,7 +287,7 @@ export class JobService {
    * @returns {Array} Jobs with the specified status
    */
   getJobsByStatus(jobs, status) {
-    return jobs.filter(job => (job.applicationStatus || 'Saved') === status);
+    return jobs.filter(job => (job.applicationStatus || 'Researching') === status);
   }
   
   /**
@@ -303,7 +303,7 @@ export class JobService {
     });
     
     jobs.forEach(job => {
-      const status = job.applicationStatus || 'Saved';
+      const status = job.applicationStatus || 'Researching';
       if (stats[status] !== undefined) {
         stats[status]++;
       }

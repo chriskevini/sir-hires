@@ -462,12 +462,14 @@ async function restoreBackup() {
           masterResume: backup.data.masterResume || null,
           llmSettings: backup.data.llmSettings || null,
           jobInFocus: backup.data.jobInFocus || null
+          // Note: Don't restore dataVersion - let migration determine it
         });
 
         console.log('[Side Panel] Backup restored successfully');
         showSuccess('Backup restored successfully! Reloading...');
         
         // Reload after a brief delay to show the success message
+        // Migration will run automatically on next load
         setTimeout(() => {
           window.location.reload();
         }, 1000);

@@ -1,9 +1,9 @@
-// View for "Saved" state - displays full job details with notes and narrative strategy
+// View for "Researching" state - displays full job details with notes and narrative strategy
 import { BaseView } from '../base-view.js';
 
 export class ResearchingView extends BaseView {
   /**
-   * Render the Saved state view
+   * Render the Researching state view
    * @param {Object} job - The job object
    * @param {number} index - The global index of the job in allJobs array
    * @returns {string} HTML string

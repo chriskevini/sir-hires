@@ -1658,6 +1658,185 @@ The refactor is successful if:
 
 ---
 
+### Phase 12: Migrate to New Status Names
+**Files affected:**
+- `chrome-extension/job-details/config.js` (status arrays, progress config, navigation buttons)
+- `chrome-extension/job-details/job-service.js` (default status references)
+- `chrome-extension/job-details/views/researching-view.js` (comments)
+- `chrome-extension/popup.js` (new job creation)
+- `chrome-extension/sidepanel.js` (status display, if any)
+
+**Tasks:**
+
+1. **Update configuration** in `config.js`:
+   - Replace OLD status names: `Saved` → `Researching`, `Applied` → `Awaiting Review`, `Screening` → (removed), `Offer` → `Deciding`
+   - Update `statusOrder` array to new names
+   - Update `progressConfig` object keys to new status names
+   - Update `getNavigationButtons()` function to use new status names
+   - Adjust `terminalStates` array if needed
+
+2. **Update default status references** throughout modular code:
+   - `job-service.js`: Change default from `'Saved'` to `'Researching'`
+   - Any other files that reference default status
+
+3. **Create data migration script** for existing user data:
+   - Add migration function to `storage.js` or create new `migration.js` module
+   - Map old status names to new status names:
+     ```javascript
+     const statusMigrationMap = {
+       'Saved': 'Researching',
+       'Drafting': 'Drafting',      // No change
+       'Applied': 'Awaiting Review',
+       'Screening': 'Interviewing',  // Merge into Interviewing
+       'Interviewing': 'Interviewing',
+       'Offer': 'Deciding',
+       'Accepted': 'Accepted',       // No change
+       'Rejected': 'Rejected',       // No change
+       'Withdrawn': 'Withdrawn'      // No change
+     };
+     ```
+   - Load all jobs from storage
+   - Update `applicationStatus` field for each job
+   - Update `statusHistory` array for each job (map old status names to new)
+   - Save migrated jobs back to storage
+   - Add migration version tracking to prevent re-running
+
+4. **Update popup.js** (extension entry point):
+   - Change new job creation to use `'Researching'` instead of `'Saved'`
+   - Update any status references in the popup UI
+
+5. **Update view comments and documentation**:
+   - Fix comments in `researching-view.js` (currently says "Saved state")
+   - Update any inline documentation that references old status names
+
+6. **Update HTML status filter dropdowns** (if hardcoded):
+   - Check `job-details.html` for hardcoded status options
+   - Update to use new status names
+
+7. **Test migration**:
+   - Test with existing jobs (OLD status names) → should auto-migrate on load
+   - Test with new jobs → should use new status names
+   - Test status transitions → should work with new names
+   - Test filtering by status → should work with new names
+   - Test status history display → should show migrated history correctly
+
+**Migration Strategy:**
+
+Option A: **Run migration on first load** (Recommended)
+- Add version tracking to storage (e.g., `dataVersion: 2`)
+- On app initialization, check if migration is needed
+- If `dataVersion < 2`, run migration script
+- Set `dataVersion: 2` after successful migration
+- User-transparent, automatic upgrade
+
+Option B: **Manual migration tool**
+- Add "Migrate Data" button to UI
+- User triggers migration manually
+- More control, but requires user action
+
+**Example Migration Function:**
+```javascript
+// In storage.js or new migration.js module
+export class MigrationService {
+  constructor(storage) {
+    this.storage = storage;
+  }
+  
+  async migrateToV2() {
+    console.log('Starting migration to v2 (new status names)...');
+    
+    const statusMap = {
+      'Saved': 'Researching',
+      'Drafting': 'Drafting',
+      'Applied': 'Awaiting Review',
+      'Screening': 'Interviewing',
+      'Interviewing': 'Interviewing',
+      'Offer': 'Deciding',
+      'Accepted': 'Accepted',
+      'Rejected': 'Rejected',
+      'Withdrawn': 'Withdrawn'
+    };
+    
+    // Load all jobs
+    const jobs = await this.storage.getAllJobs();
+    
+    // Migrate each job
+    const migratedJobs = jobs.map(job => {
+      // Migrate current status
+      if (job.applicationStatus && statusMap[job.applicationStatus]) {
+        job.applicationStatus = statusMap[job.applicationStatus];
+      }
+      
+      // Migrate status history
+      if (job.statusHistory && Array.isArray(job.statusHistory)) {
+        job.statusHistory = job.statusHistory.map(entry => ({
+          ...entry,
+          status: statusMap[entry.status] || entry.status
+        }));
+      }
+      
+      return job;
+    });
+    
+    // Save migrated jobs
+    await this.storage.saveJobs(migratedJobs);
+    
+    // Mark migration as complete
+    await chrome.storage.local.set({ dataVersion: 2 });
+    
+    console.log(`Migration complete: ${migratedJobs.length} jobs migrated`);
+  }
+  
+  async checkAndMigrate() {
+    const result = await chrome.storage.local.get('dataVersion');
+    const currentVersion = result.dataVersion || 1;
+    
+    if (currentVersion < 2) {
+      console.log('Data migration needed, running migration...');
+      await this.migrateToV2();
+    } else {
+      console.log('Data is up to date (version ' + currentVersion + ')');
+    }
+  }
+}
+```
+
+**Integration with App:**
+```javascript
+// In app.js init() method, before loading jobs
+async init() {
+  try {
+    console.log('Initializing Job Details App...');
+    
+    // Run migration if needed (BEFORE loading jobs)
+    const migration = new MigrationService(this.storage);
+    await migration.checkAndMigrate();
+    
+    // Now load initial data with migrated statuses
+    await this.loadInitialData();
+    
+    // ... rest of initialization
+  } catch (error) {
+    console.error('Failed to initialize app:', error);
+    this.showErrorState(error);
+  }
+}
+```
+
+**Rollback Plan:**
+
+If migration causes issues:
+1. **Revert code changes** - Git revert to previous commit
+2. **User data is safe** - Migration is one-way but doesn't delete data
+3. **Manual fix** - If needed, can manually edit storage via debug-storage.html
+4. **Backup reminder** - Recommend users create backup before upgrading
+
+**Estimated effort:** 2-3 hours
+
+**Note:** This migration should be done AFTER the modular refactor is complete and tested, as a separate phase. It touches multiple files but is relatively straightforward.
+
+---
+
 ## Timeline Estimate
 
 - **Phase 1-2:** Config + State (4-6 hours)
@@ -1669,8 +1848,9 @@ The refactor is successful if:
 - **Phase 9:** App Controller (2-3 hours)
 - **Phase 10-11:** Entry Point + HTML (1 hour)
 - **Testing & Integration:** (2-3 hours)
+- **Phase 12:** Status Name Migration (2-3 hours)
 
-**Total:** 20-30 hours of focused development
+**Total:** 22-33 hours of focused development
 
 ---
 
@@ -1682,7 +1862,9 @@ The refactor is successful if:
 4. Build and test each module independently
 5. Create app controller and wire everything together
 6. Test thoroughly
-7. Merge when stable
+7. **Migrate to new status names (Phase 12)**
+8. Test migration with existing data
+9. Merge when stable
 
 ---
 

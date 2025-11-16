@@ -595,8 +595,13 @@
       box-shadow: none;
       overflow: visible;
       transform-origin: bottom right;
-      animation: expandVertical 0.3s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
       margin-bottom: 12px;
+      /* No animation - appears in final state */
+    }
+    
+    /* Expanding animation - only applied during user-triggered expand */
+    .checklist-dropdown.expanding {
+      animation: expandVertical 0.3s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
     }
 
     @keyframes expandVertical {

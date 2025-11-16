@@ -121,19 +121,20 @@ export class ChecklistComponent extends BaseView {
    * @param {string} status - Current application status
    * @param {number} jobIndex - Global index of the job
    * @param {boolean} isExpanded - Whether checklist is expanded (global state)
+   * @param {boolean} animate - Whether to animate the transition (default: false)
    */
-  update(container, checklist, status, jobIndex, isExpanded = false) {
+  update(container, checklist, status, jobIndex, isExpanded = false, animate = false) {
     if (!container) {
       console.error('Checklist container not found');
       return;
     }
 
-    // Check if we're transitioning from expanded to collapsed
+    // Check if we're transitioning states
     const currentDropdown = container.querySelector('.checklist-dropdown.expanded');
     const wasExpanded = currentDropdown !== null;
     
-    if (wasExpanded && !isExpanded) {
-      // Animate collapse before removing
+    if (wasExpanded && !isExpanded && animate) {
+      // COLLAPSE: Animate collapse before removing (user-triggered)
       currentDropdown.classList.remove('expanded');
       currentDropdown.classList.add('collapsing');
       
@@ -143,8 +144,36 @@ export class ChecklistComponent extends BaseView {
         container.innerHTML = this.render(checklist, status, jobIndex, isExpanded);
         this.attachListeners(container);
       }, 300); // Match animation duration
+      
+    } else if (!wasExpanded && isExpanded && animate) {
+      // EXPAND: Render in expanded state, then trigger animation (user-triggered)
+      this.cleanup();
+      container.innerHTML = this.render(checklist, status, jobIndex, isExpanded);
+      this.attachListeners(container);
+      
+      // Trigger animation on next frame
+      const dropdown = container.querySelector('.checklist-dropdown.expanded');
+      if (dropdown) {
+        // Start from collapsed state
+        dropdown.style.transform = 'scaleY(0)';
+        dropdown.style.opacity = '0';
+        
+        // Trigger animation
+        requestAnimationFrame(() => {
+          dropdown.classList.add('expanding');
+          // Remove inline styles to let animation take over
+          dropdown.style.transform = '';
+          dropdown.style.opacity = '';
+          
+          // Clean up animation class after animation completes
+          setTimeout(() => {
+            dropdown.classList.remove('expanding');
+          }, 300);
+        });
+      }
+      
     } else {
-      // Immediate update for expand or no change
+      // NO ANIMATION: Non-user-triggered update or no state change
       this.cleanup();
       container.innerHTML = this.render(checklist, status, jobIndex, isExpanded);
       this.attachListeners(container);

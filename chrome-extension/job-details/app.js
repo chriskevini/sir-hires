@@ -559,12 +559,12 @@ export class JobDetailsApp {
     this.state.setChecklistExpanded(isExpanded);
     await this.storage.setChecklistExpanded(isExpanded);
 
-    // Re-render the checklist for the current job
+    // Re-render the checklist for the current job WITH ANIMATION (user-triggered)
     const jobs = this.state.getAllJobs();
     const job = jobs[index];
     
     if (job && this.mainView.currentView && this.mainView.currentView.renderChecklist) {
-      this.mainView.currentView.renderChecklist(job, index, isExpanded);
+      this.mainView.currentView.renderChecklist(job, index, isExpanded, true); // animate = true
     }
 
     console.log(`Toggled checklist expand globally to ${isExpanded}`);

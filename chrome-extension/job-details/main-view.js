@@ -92,7 +92,7 @@ export class MainView {
     const checklistComponent = new ChecklistComponent();
     
     // Helper function to render checklist (needs to be defined outside the returned object)
-    const renderChecklist = (job, index, isExpanded = false) => {
+    const renderChecklist = (job, index, isExpanded = false, animate = false) => {
       const checklistContainer = document.getElementById('checklistContainer');
       if (!checklistContainer) {
         console.error('Checklist container not found');
@@ -120,7 +120,8 @@ export class MainView {
         job.checklist, 
         job.applicationStatus, 
         index, 
-        isExpanded
+        isExpanded,
+        animate
       );
     };
     

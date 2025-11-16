@@ -315,12 +315,13 @@ export class ResearchingView extends BaseView {
   }
 
   /**
-   * Render checklist in the fixed container
+   * Render/update checklist in the sidebar
    * @param {Object} job - The job object
-   * @param {number} index - The global index of the job
+   * @param {number} index - Global index of the job
    * @param {boolean} isExpanded - Whether checklist should be expanded (global state)
+   * @param {boolean} animate - Whether to animate the transition (user-triggered)
    */
-  renderChecklist(job, index, isExpanded = false) {
+  renderChecklist(job, index, isExpanded = false, animate = false) {
     const checklistContainer = document.getElementById('checklistContainer');
     if (!checklistContainer) {
       console.error('Checklist container not found');
@@ -348,7 +349,8 @@ export class ResearchingView extends BaseView {
       job.checklist, 
       job.applicationStatus, 
       index, 
-      isExpanded
+      isExpanded,
+      animate
     );
   }
 

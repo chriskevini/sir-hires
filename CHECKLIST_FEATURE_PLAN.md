@@ -283,25 +283,105 @@ export const checklistTemplates = {
 ### Manual Intervention
 None required - all migrations are automatic.
 
-## Known Issues
+## Animation System - Solution to Unwanted Animations
 
-### Unwanted Expand Animation on Job Switch
-**Status**: Known bug - no fix available
+### Problem
+When switching between jobs while checklist is expanded, the checklist would play the expand animation even though the user didn't click anything. This happened because the `.expanded` CSS class had a baked-in animation that triggered every time the class appeared in the DOM during re-renders.
 
-**Problem**: When switching between jobs while checklist is expanded, the checklist plays the expand animation even though it's already in the expanded state.
+### Solution: Animation Class Toggle Pattern
+Implemented separation of display state from animation state:
 
-**Root Cause**: 
-- Job switching requires full DOM re-render of the detail panel
-- Even with state management to track expanded state, the CSS animation triggers when the `.expanded` class is added to a freshly-inserted DOM element
-- Multiple attempted fixes (skip animation flag, `no-animation` class, manual class addition, storage update flag) all failed to prevent this
+**Display State** (`.expanded` class):
+- Controls whether checklist is visible (expanded) or hidden (collapsed)
+- Has NO animation property - appears in final state immediately
+- Defined in `job-details.html` CSS
 
-**Why unfixable**:
-- The animation is triggered by CSS when `.expanded` class is present on a newly-inserted DOM node
-- The only way to prevent it would be to not destroy/recreate the DOM, but the modular architecture requires full re-render on job switch
-- Attempts to add the class after insertion with `requestAnimationFrame()` still trigger the animation
-- Attempts to use `no-animation !important` override are ignored by the browser's animation engine
+**Animation State** (`.expanding` / `.collapsing` classes):
+- Controls when animations play (user-triggered only)
+- Applied only during user interactions (clicking the expander)
+- Removed after animation completes
 
-**Impact**: Minor visual annoyance - checklist animates downward when switching jobs if it's expanded. Does not affect functionality.
+### Implementation Details
 
-**Workaround**: None available. This is a cosmetic issue only.
+**1. CSS Changes** (`chrome-extension/job-details.html`):
+```css
+/* Display state - no animation */
+.checklist-dropdown.expanded {
+  min-width: 280px;
+  max-width: 320px;
+  background-color: white;
+  /* ... other styles ... */
+  /* NO animation property */
+}
+
+/* Animation state - only applied during user interaction */
+.checklist-dropdown.expanding {
+  animation: expandVertical 0.3s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+}
+
+.checklist-dropdown.collapsing {
+  animation: collapseVertical 0.3s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+}
+```
+
+**2. Component Changes** (`chrome-extension/job-details/components/checklist.js`):
+
+Added `animate` parameter to `update()` method:
+```javascript
+update(container, checklist, status, jobIndex, isExpanded = false, animate = false)
+```
+
+Three-branch logic:
+1. **Collapse with animation** (`wasExpanded && !isExpanded && animate`):
+   - Add `.collapsing` class
+   - Wait for animation to complete
+   - Then re-render
+
+2. **Expand with animation** (`!wasExpanded && isExpanded && animate`):
+   - Render with `.expanded` class
+   - Set initial transform state (scaleY(0), opacity 0)
+   - Add `.expanding` class with `requestAnimationFrame()`
+   - Remove `.expanding` class after animation completes
+
+3. **No animation** (all other cases):
+   - Simply re-render with correct expanded state
+   - No animation classes applied
+   - Used for navigation, job switching, and item toggling
+
+**3. View Changes** (`chrome-extension/job-details/views/researching-view.js`):
+
+`renderChecklist()` method signature updated:
+```javascript
+renderChecklist(job, index, isExpanded = false, animate = false)
+```
+
+Passes `animate` parameter through to component's `update()` method.
+
+**4. App Changes** (`chrome-extension/job-details/app.js`):
+
+User-triggered toggle passes `animate = true`:
+```javascript
+handleChecklistToggleExpand(event) {
+  // ...
+  this.mainView.currentView.renderChecklist(job, index, isExpanded, true); // animate = true
+}
+```
+
+All other renders pass `animate = false` (or omit it to use default):
+- Job navigation/switching
+- Item toggle updates
+- Initial renders
+
+### Files Modified
+- `chrome-extension/job-details.html` (lines ~589-606) - Removed animation from `.expanded`, added `.expanding` class
+- `chrome-extension/job-details/components/checklist.js` (lines ~117-180) - Added `animate` parameter and three-branch logic
+- `chrome-extension/job-details/views/researching-view.js` (lines ~317-353, ~357-380) - Added `animate` parameter, removed duplicate code
+- `chrome-extension/job-details/main-view.js` (lines ~91-125) - Updated WIP view's `renderChecklist()` helper
+- `chrome-extension/job-details/app.js` (lines ~555-571) - Pass `animate = true` for user clicks only
+
+### Result
+✅ **User clicks expander**: Animation plays smoothly  
+✅ **Switching between jobs**: No unwanted animation  
+✅ **Toggling checklist items**: No animation (checklist stays open)  
+✅ **Initial page load**: No animation
 

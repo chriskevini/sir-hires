@@ -545,9 +545,18 @@
     /* Checklist component styles */
     #checklistContainer {
       position: absolute;
-      bottom: 170px; /* 40px progress bar + 20px gap + 80px nav button + 30px gap */
+      bottom: 200px; /* 40px progress bar + 20px gap + 80px nav button + 30px label + 30px gap */
       right: 24px;
       z-index: 11; /* Above nav buttons */
+    }
+
+    /* Wrapper contains both minimized dots and expanded dropdown when expanded */
+    .checklist-wrapper {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 12px;
     }
 
     .checklist-container {
@@ -555,7 +564,7 @@
       transition: all 0.2s ease;
     }
 
-    /* Minimized state (3 dots) */
+    /* Minimized state (3 dots) - always visible */
     .checklist-container.minimized {
       display: flex;
       align-items: center;
@@ -586,8 +595,8 @@
       line-height: 1;
     }
 
-    /* Expanded state (dropdown) */
-    .checklist-container.expanded {
+    /* Expanded dropdown (appears above minimized dots) */
+    .checklist-dropdown.expanded {
       min-width: 280px;
       max-width: 320px;
       background-color: white;
@@ -597,37 +606,8 @@
       overflow: hidden;
     }
 
-    .checklist-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 16px;
-      background-color: #f8f9fa;
-      border-bottom: 1px solid #e0e0e0;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .checklist-header:hover {
-      background-color: #f0f0f0;
-    }
-
-    .checklist-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: #333;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .checklist-count {
-      font-size: 12px;
-      font-weight: 600;
-      color: #1a73e8;
-    }
-
     .checklist-items {
-      padding: 8px 0;
+      padding: 12px 0;
       max-height: 300px;
       overflow-y: auto;
     }

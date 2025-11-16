@@ -19,13 +19,20 @@ export class ChecklistComponent extends BaseView {
    * @returns {string} HTML string
    */
   render(checklist, status, jobIndex, isExpanded = false) {
-    // If expanded, show expanded view (even if empty)
+    // Always show minimized dots, with expanded dropdown above if isExpanded is true
+    const minimizedHtml = this.renderMinimized(jobIndex);
+    
     if (isExpanded) {
-      return this.renderExpanded(checklist, status, jobIndex);
+      const expandedHtml = this.renderExpandedDropdown(checklist, status, jobIndex);
+      return `
+        <div class="checklist-wrapper">
+          ${expandedHtml}
+          ${minimizedHtml}
+        </div>
+      `;
     }
     
-    // Otherwise, show minimized dots
-    return this.renderMinimized(jobIndex);
+    return minimizedHtml;
   }
 
   /**
@@ -46,24 +53,20 @@ export class ChecklistComponent extends BaseView {
   }
 
   /**
-   * Render expanded state (dropdown with items)
+   * Render expanded state (dropdown with items) - appears above minimized dots
    * @param {Object} checklist - Checklist data (all statuses: { Researching: [], Drafting: [], ... })
    * @param {string} status - Current application status
    * @param {number} jobIndex - Global index of the job
    * @returns {string} HTML string
    */
-  renderExpanded(checklist, status, jobIndex) {
+  renderExpandedDropdown(checklist, status, jobIndex) {
     // Get items for current status
     const items = checklist && checklist[status] ? checklist[status] : [];
     
     // Handle empty or missing checklist for this status
     if (!items || items.length === 0) {
       return `
-        <div class="checklist-container expanded" data-index="${jobIndex}">
-          <div class="checklist-header">
-            <span class="checklist-title">Progress</span>
-            <span class="checklist-count">0/0</span>
-          </div>
+        <div class="checklist-dropdown expanded" data-index="${jobIndex}">
           <div class="checklist-items">
             <div class="checklist-empty" style="padding: 12px; text-align: center; color: #666; font-size: 13px;">
               No checklist items yet
@@ -74,8 +77,6 @@ export class ChecklistComponent extends BaseView {
     }
 
     const sortedItems = [...items].sort((a, b) => a.order - b.order);
-    const completedCount = sortedItems.filter(item => item.checked).length;
-    const totalCount = sortedItems.length;
 
     const itemsHtml = sortedItems.map(item => `
       <div class="checklist-item" data-item-id="${item.id}" data-index="${jobIndex}">
@@ -85,11 +86,7 @@ export class ChecklistComponent extends BaseView {
     `).join('');
 
     return `
-      <div class="checklist-container expanded" data-index="${jobIndex}">
-        <div class="checklist-header">
-          <span class="checklist-title">Progress</span>
-          <span class="checklist-count">${completedCount}/${totalCount}</span>
-        </div>
+      <div class="checklist-dropdown expanded" data-index="${jobIndex}">
         <div class="checklist-items">
           ${itemsHtml}
         </div>
@@ -126,49 +123,41 @@ export class ChecklistComponent extends BaseView {
    * @param {HTMLElement} container - The container element
    */
   attachListeners(container) {
-    // Toggle expand/collapse on container click (minimized) or header click (expanded)
-    const checklistContainer = container.querySelector('.checklist-container');
-    if (checklistContainer) {
-      const isExpanded = checklistContainer.classList.contains('expanded');
-      
-      if (isExpanded) {
-        // Click on header to collapse
-        const header = checklistContainer.querySelector('.checklist-header');
-        if (header) {
-          const toggleHandler = (e) => {
-            e.stopPropagation();
-            const index = parseInt(checklistContainer.dataset.index, 10);
-            if (this.onToggleExpand) {
-              this.onToggleExpand(index, false);
-            }
-          };
-          this.trackListener(header, 'click', toggleHandler);
+    // Handle minimized dots - always present
+    // When collapsed: click to expand
+    // When expanded: click to collapse
+    const minimizedContainer = container.querySelector('.checklist-container.minimized');
+    if (minimizedContainer) {
+      const toggleHandler = (e) => {
+        e.stopPropagation();
+        const index = parseInt(minimizedContainer.dataset.index, 10);
+        // Check if currently expanded by looking for dropdown sibling
+        const wrapper = minimizedContainer.closest('.checklist-wrapper');
+        const isCurrentlyExpanded = wrapper !== null;
+        if (this.onToggleExpand) {
+          // Toggle to opposite state
+          this.onToggleExpand(index, !isCurrentlyExpanded);
         }
-
-        // Click on items to toggle checked state
-        const items = checklistContainer.querySelectorAll('.checklist-item');
-        items.forEach(item => {
-          const itemClickHandler = (e) => {
-            e.stopPropagation();
-            const index = parseInt(item.dataset.index, 10);
-            const itemId = item.dataset.itemId;
-            if (this.onToggleItem) {
-              this.onToggleItem(index, itemId);
-            }
-          };
-          this.trackListener(item, 'click', itemClickHandler);
-        });
-      } else {
-        // Click anywhere to expand
-        const toggleHandler = (e) => {
+      };
+      this.trackListener(minimizedContainer, 'click', toggleHandler);
+    }
+    
+    // Handle expanded dropdown
+    const expandedDropdown = container.querySelector('.checklist-dropdown.expanded');
+    if (expandedDropdown) {
+      // Click on items to toggle checked state
+      const items = expandedDropdown.querySelectorAll('.checklist-item');
+      items.forEach(item => {
+        const itemClickHandler = (e) => {
           e.stopPropagation();
-          const index = parseInt(checklistContainer.dataset.index, 10);
-          if (this.onToggleExpand) {
-            this.onToggleExpand(index, true);
+          const index = parseInt(item.dataset.index, 10);
+          const itemId = item.dataset.itemId;
+          if (this.onToggleItem) {
+            this.onToggleItem(index, itemId);
           }
         };
-        this.trackListener(checklistContainer, 'click', toggleHandler);
-      }
+        this.trackListener(item, 'click', itemClickHandler);
+      });
     }
   }
 

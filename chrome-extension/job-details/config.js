@@ -139,3 +139,50 @@ export const defaults = {
     sort: 'newest'
   }
 };
+
+// Checklist templates for each status
+export const checklistTemplates = {
+  'Researching': [
+    { text: 'Review job description thoroughly', order: 0 },
+    { text: 'Research company culture and values', order: 1 },
+    { text: 'Check salary range and benefits', order: 2 },
+    { text: 'Review requirements vs. qualifications', order: 3 },
+    { text: 'Note application deadline', order: 4 }
+  ],
+  'Drafting': [
+    { text: 'Tailor resume for this position', order: 0 },
+    { text: 'Draft cover letter', order: 1 },
+    { text: 'Prepare required documents', order: 2 },
+    { text: 'Review application for errors', order: 3 }
+  ],
+  'Awaiting Review': [
+    { text: 'Confirm application submitted', order: 0 },
+    { text: 'Note expected response timeline', order: 1 },
+    { text: 'Follow up if needed', order: 2 }
+  ],
+  'Interviewing': [
+    { text: 'Research interviewer backgrounds', order: 0 },
+    { text: 'Prepare STAR responses', order: 1 },
+    { text: 'Prepare questions to ask', order: 2 },
+    { text: 'Send thank you notes', order: 3 }
+  ],
+  'Deciding': [
+    { text: 'Review offer details', order: 0 },
+    { text: 'Negotiate if appropriate', order: 1 },
+    { text: 'Compare with other offers', order: 2 },
+    { text: 'Make final decision', order: 3 }
+  ],
+  'Accepted': [
+    { text: 'Sign offer letter', order: 0 },
+    { text: 'Complete onboarding paperwork', order: 1 },
+    { text: 'Notify other applications', order: 2 }
+  ],
+  'Rejected': [
+    { text: 'Request feedback if appropriate', order: 0 },
+    { text: 'Update notes with learnings', order: 1 }
+  ],
+  'Withdrawn': [
+    { text: 'Send withdrawal notification', order: 0 },
+    { text: 'Document reason for withdrawal', order: 1 }
+  ]
+};

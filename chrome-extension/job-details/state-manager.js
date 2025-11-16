@@ -11,6 +11,7 @@ export class StateManager {
     // UI state
     this.isAnimating = false;
     this.pendingReload = false;
+    this.checklistExpanded = false;
     
     // Filter state
     this.filters = {
@@ -59,6 +60,10 @@ export class StateManager {
     return this.pendingReload;
   }
   
+  getChecklistExpanded() {
+    return this.checklistExpanded;
+  }
+  
   // ===== Filter Getters =====
   
   getFilters() {
@@ -102,6 +107,11 @@ export class StateManager {
   setPendingReload(value) {
     this.pendingReload = Boolean(value);
     this.notifyChange('pendingReload');
+  }
+  
+  setChecklistExpanded(value) {
+    this.checklistExpanded = Boolean(value);
+    this.notifyChange('checklistExpanded');
   }
   
   // ===== Filter Setters =====
@@ -196,6 +206,7 @@ export class StateManager {
       jobInFocusId: this.jobInFocusId,
       isAnimating: this.isAnimating,
       pendingReload: this.pendingReload,
+      checklistExpanded: this.checklistExpanded,
       filters: this.filters
     };
   }

@@ -20,6 +20,7 @@ export class MainView {
     this.currentView = null;
     this.currentJob = null;
     this.currentIndex = -1;
+    this.currentIsExpanded = false;
   }
 
   /**
@@ -27,8 +28,9 @@ export class MainView {
    * @param {HTMLElement} container - The detail panel container
    * @param {Object} job - The job object to render
    * @param {number} index - Global index of the job in allJobs array
+   * @param {boolean} isExpanded - Whether checklist should be expanded (global state)
    */
-  render(container, job, index) {
+  render(container, job, index, isExpanded = false) {
     if (!container) {
       console.error('MainView: Container element not found');
       return;
@@ -54,12 +56,13 @@ export class MainView {
     container.innerHTML = html;
 
     // Attach event listeners for the view
-    view.attachListeners(container, job, index);
+    view.attachListeners(container, job, index, isExpanded);
 
     // Store current state
     this.currentView = view;
     this.currentJob = job;
     this.currentIndex = index;
+    this.currentIsExpanded = isExpanded;
   }
 
   /**
@@ -119,7 +122,7 @@ export class MainView {
           </div>
         `;
       },
-      attachListeners: (container, job, index) => {
+      attachListeners: (container, job, index, isExpanded = false) => {
         // Handle view posting
         const viewBtn = container.querySelector('.btn-link');
         if (viewBtn) {
@@ -183,7 +186,7 @@ export class MainView {
       return;
     }
 
-    this.currentView.attachListeners(container, this.currentJob, this.currentIndex);
+    this.currentView.attachListeners(container, this.currentJob, this.currentIndex, this.currentIsExpanded);
   }
 
   /**
@@ -204,5 +207,6 @@ export class MainView {
     this.currentView = null;
     this.currentJob = null;
     this.currentIndex = -1;
+    this.currentIsExpanded = false;
   }
 }

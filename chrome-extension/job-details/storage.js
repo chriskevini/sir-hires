@@ -1,8 +1,33 @@
 // Storage operations module - handles all chrome.storage.local interactions
 
+import { checklistTemplates } from './config.js';
+
 export class StorageService {
   constructor() {
     this.storageChangeListeners = [];
+  }
+  
+  // ===== Checklist Utilities =====
+  
+  /**
+   * Initialize checklist for a job based on its status
+   * @param {string} status - Application status
+   * @returns {Object} Checklist object with items
+   */
+  initializeChecklistForStatus(status) {
+    const template = checklistTemplates[status] || checklistTemplates['Researching'];
+    
+    // Create checklist items with unique IDs
+    const items = template.map((templateItem, index) => ({
+      id: `item_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+      text: templateItem.text,
+      checked: false,
+      order: templateItem.order
+    }));
+    
+    return {
+      items
+    };
   }
   
   // ===== Job Operations =====
@@ -204,6 +229,36 @@ export class StorageService {
     } catch (error) {
       console.error('Failed to load filters:', error);
       return null;
+    }
+  }
+  
+  // ===== Checklist UI Preferences =====
+  
+  /**
+   * Get global checklist expanded state
+   * @returns {Promise<boolean>} Whether checklist should be expanded (default: false)
+   */
+  async getChecklistExpanded() {
+    try {
+      const result = await chrome.storage.local.get('checklistExpanded');
+      return result.checklistExpanded !== undefined ? result.checklistExpanded : false;
+    } catch (error) {
+      console.error('Failed to get checklist expanded state:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Set global checklist expanded state
+   * @param {boolean} isExpanded - Whether checklist should be expanded
+   * @returns {Promise<void>}
+   */
+  async setChecklistExpanded(isExpanded) {
+    try {
+      await chrome.storage.local.set({ checklistExpanded: isExpanded });
+    } catch (error) {
+      console.error('Failed to set checklist expanded state:', error);
+      throw error;
     }
   }
   

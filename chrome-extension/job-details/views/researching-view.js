@@ -3,6 +3,7 @@ import { BaseView } from '../base-view.js';
 import { EditableSection } from '../components/editable-section.js';
 import { EditableMeta } from '../components/editable-meta.js';
 import { EditableField } from '../components/editable-field.js';
+import { ChecklistComponent } from '../components/checklist.js';
 
 export class ResearchingView extends BaseView {
   constructor() {
@@ -10,6 +11,7 @@ export class ResearchingView extends BaseView {
     this.editableSections = [];
     this.editableMetaItems = [];
     this.editableFields = [];
+    this.checklistComponent = new ChecklistComponent();
   }
 
   /**
@@ -242,8 +244,9 @@ export class ResearchingView extends BaseView {
    * @param {HTMLElement} container - The container element
    * @param {Object} job - The job object
    * @param {number} index - The global index of the job
+   * @param {boolean} isExpanded - Whether checklist should be expanded (global state)
    */
-  attachListeners(container, job, index) {
+  attachListeners(container, job, index, isExpanded = false) {
     // Attach listeners for editable header fields (title and company)
     this.editableFields.forEach(({ component, field }) => {
       const wrapper = container.querySelector(`[data-field="${field}"]`);
@@ -276,6 +279,9 @@ export class ResearchingView extends BaseView {
       const deleteHandler = () => this.handleDelete(index);
       this.trackListener(deleteBtn, 'click', deleteHandler);
     }
+
+    // Render and attach checklist
+    this.renderChecklist(job, index, isExpanded);
   }
 
   /**
@@ -309,6 +315,41 @@ export class ResearchingView extends BaseView {
   }
 
   /**
+   * Render checklist in the fixed container
+   * @param {Object} job - The job object
+   * @param {number} index - The global index of the job
+   * @param {boolean} isExpanded - Whether checklist should be expanded (global state)
+   */
+  renderChecklist(job, index, isExpanded = false) {
+    const checklistContainer = document.getElementById('checklistContainer');
+    if (!checklistContainer) {
+      console.error('Checklist container not found');
+      return;
+    }
+
+    // Always render checklist (minimized dots if empty/collapsed, expanded if has items and expanded)
+    checklistContainer.innerHTML = this.checklistComponent.render(job.checklist, index, isExpanded);
+    
+    // Set up callbacks
+    this.checklistComponent.setOnToggleExpand((jobIndex, isExpanded) => {
+      const event = new CustomEvent('checklist:toggleExpand', {
+        detail: { index: jobIndex, isExpanded }
+      });
+      document.dispatchEvent(event);
+    });
+
+    this.checklistComponent.setOnToggleItem((jobIndex, itemId) => {
+      const event = new CustomEvent('checklist:toggleItem', {
+        detail: { index: jobIndex, itemId }
+      });
+      document.dispatchEvent(event);
+    });
+
+    // Attach listeners
+    this.checklistComponent.attachListeners(checklistContainer);
+  }
+
+  /**
    * Cleanup - remove event listeners and clean up editable components
    */
   cleanup() {
@@ -331,5 +372,14 @@ export class ResearchingView extends BaseView {
       component.cleanup();
     });
     this.editableSections = [];
+
+    // Cleanup checklist
+    this.checklistComponent.cleanup();
+
+    // Clear checklist container
+    const checklistContainer = document.getElementById('checklistContainer');
+    if (checklistContainer) {
+      checklistContainer.innerHTML = '';
+    }
   }
 }

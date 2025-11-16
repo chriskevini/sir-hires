@@ -96,6 +96,10 @@ Jobs are stored as objects with these fields:
   deadline: string (YYYY-MM-DD format, local timezone),
   applicationStatus: string (v0.2.0: Researching|Drafting|Awaiting Review|Interviewing|Deciding|Accepted|Rejected|Withdrawn),
   statusHistory: array of {status: string, date: ISO 8601 timestamp},
+  checklist: {
+    items: array of {id: string, text: string, checked: boolean, order: number},
+    isExpanded: boolean
+  },
   url: string,
   source: string,
   rawDescription: string,

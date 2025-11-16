@@ -29,7 +29,7 @@ async function migrateStorageSchema() {
           remoteType: job.remote_type || job.remoteType || '',
           postedDate: job.posted_date || job.postedDate || '',
           deadline: job.deadline || '',
-          applicationStatus: job.application_status || job.applicationStatus || 'Saved',
+          applicationStatus: job.application_status || job.applicationStatus || 'Researching',
           statusHistory: job.status_history || job.statusHistory || [],
           url: job.url || '',
           source: job.source || '',

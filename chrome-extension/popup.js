@@ -145,9 +145,9 @@ async function saveExtractedJob(jobData, usedLlm) {
       const updatedJob = {
         id: existingJobId,
         ...jobData,
-        applicationStatus: existingJob.applicationStatus || 'Saved',
+        applicationStatus: existingJob.applicationStatus || 'Researching',
         statusHistory: existingJob.statusHistory || [{
-          status: 'Saved',
+          status: 'Researching',
           timestamp: new Date().toISOString()
         }],
         updatedAt: new Date().toISOString()
@@ -168,9 +168,9 @@ async function saveExtractedJob(jobData, usedLlm) {
       const newJob = {
         id: jobId,
         ...jobData,
-        applicationStatus: 'Saved',
+        applicationStatus: 'Researching',
         statusHistory: [{
-          status: 'Saved',
+          status: 'Researching',
           timestamp: new Date().toISOString()
         }],
         updatedAt: new Date().toISOString()

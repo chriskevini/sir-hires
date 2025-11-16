@@ -229,14 +229,17 @@ function getNavigationButtons(status) {
 
 **Critical Issue Fixed:** Storage change listener was interrupting animations by re-rendering the DOM mid-transition. Solution: Added animation state management with `isAnimating` and `pendingReload` flags to queue storage updates until after animation completes (450ms). This prevents race conditions while ensuring no data loss from external changes.
 
-### Phase 5: Progress Bar
-- [ ] Add progress bar CSS to `viewer.html`
-- [ ] Add `getProgressConfig()` helper function to `viewer.js`
-- [ ] Add progress bar HTML to all three panel render functions
-- [ ] Adjust `#detailPanel` layout for fixed bottom bar
-- [ ] Test all status transitions
-- [ ] Verify animation synchronization with panel slides
-- [ ] Test edge cases (Saved state with 0% fill, terminal states at 100%)
+### Phase 5: Progress Bar ✅ COMPLETE
+- [x] Add progress bar CSS to `viewer.html`
+- [x] Add `getProgressConfig()` helper function to `viewer.js`
+- [x] Add progress bar HTML structure (static, fixed at bottom)
+- [x] Add `updateProgressBar()` function to handle animation control
+- [x] Adjust `#detailPanel` layout for fixed bottom bar
+- [x] Integrate progress bar updates in `navigateToState()` and `renderJobDetail()`
+- [x] Test all status transitions
+- [x] Verify animation synchronization with panel slides
+- [x] Test edge cases (Saved state with 0% fill, terminal states at 100%)
+- [x] Fix animation control: animate on state transitions, instant on job switch
 
 **Design Specification:**
 - Fixed at bottom of detail panel, always visible

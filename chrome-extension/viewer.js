@@ -31,15 +31,15 @@ async function navigateToState(jobIndex, newStatus, direction) {
   const job = allJobs[jobIndex];
   const oldStatus = job.application_status || 'Saved';
   
-  // Check if moving backwards
-  const isBackward = getStatusOrder(newStatus) < getStatusOrder(oldStatus);
-  
-  if (isBackward) {
-    const confirmMsg = `Move back to '${newStatus}'? This may discard progress.`;
-    if (!confirm(confirmMsg)) {
-      return;
-    }
-  }
+  // Check if moving backwards (disabled for now)
+  // const isBackward = getStatusOrder(newStatus) < getStatusOrder(oldStatus);
+  // 
+  // if (isBackward) {
+  //   const confirmMsg = `Move back to '${newStatus}'? This may discard progress.`;
+  //   if (!confirm(confirmMsg)) {
+  //     return;
+  //   }
+  // }
   
   // Update status
   job.application_status = newStatus;
@@ -76,8 +76,27 @@ async function navigateToState(jobIndex, newStatus, direction) {
   
   console.log(`Navigated from ${oldStatus} to ${newStatus}`);
   
+  // Update progress bar (static, doesn't slide)
+  updateProgressBar(newStatus);
+  
   // Animate panel transition
   slideToPanel(job, jobIndex, newStatus, direction);
+}
+
+// Get progress bar configuration for the current status
+function getProgressConfig(status) {
+  const config = {
+    'Saved': { fill: 0, color: '#e0e0e0', textColor: '#666' },
+    'Drafting': { fill: 20, color: '#4caf50', textColor: '#fff' },
+    'Applied': { fill: 40, color: '#2196f3', textColor: '#fff' },
+    'Screening': { fill: 60, color: '#9c27b0', textColor: '#fff' },
+    'Interviewing': { fill: 80, color: '#ff9800', textColor: '#fff' },
+    'Offer': { fill: 100, color: '#f44336', textColor: '#fff' },
+    'Accepted': { fill: 100, color: '#f44336', textColor: '#fff' },
+    'Rejected': { fill: 100, color: '#f44336', textColor: '#fff' },
+    'Withdrawn': { fill: 100, color: '#f44336', textColor: '#fff' }
+  };
+  return config[status] || config['Saved'];
 }
 
 // Get navigation buttons for the current status
@@ -272,6 +291,53 @@ function renderNavigationButtons(status, jobIndex) {
   }
   
   return html;
+}
+
+// Render progress bar for current status
+function renderProgressBar(status) {
+  const config = getProgressConfig(status);
+  
+  return `
+    <div class="progress-bar-container">
+      <div class="progress-bar-fill" style="width: ${config.fill}%; background-color: ${config.color};">
+        <span class="progress-bar-label" style="color: ${config.textColor};">${status}</span>
+      </div>
+    </div>
+  `;
+}
+
+// Update the static progress bar (called during navigation)
+function updateProgressBar(status, animate = true) {
+  const progressBar = document.getElementById('progressBar');
+  const progressBarFill = document.getElementById('progressBarFill');
+  const progressBarLabel = document.getElementById('progressBarLabel');
+  
+  if (!progressBar || !progressBarFill || !progressBarLabel) return;
+  
+  const config = getProgressConfig(status);
+  
+  // Show progress bar
+  progressBar.style.display = 'block';
+  
+  // Temporarily disable transitions if not animating
+  if (!animate) {
+    progressBarFill.style.transition = 'none';
+    progressBarLabel.style.transition = 'none';
+  }
+  
+  // Update fill, color, and label
+  progressBarFill.style.width = `${config.fill}%`;
+  progressBarFill.style.backgroundColor = config.color;
+  progressBarLabel.style.color = config.textColor;
+  progressBarLabel.textContent = status;
+  
+  // Re-enable transitions after a frame
+  if (!animate) {
+    requestAnimationFrame(() => {
+      progressBarFill.style.transition = '';
+      progressBarLabel.style.transition = '';
+    });
+  }
 }
 
 async function loadJobs() {
@@ -520,6 +586,10 @@ function renderJobDetail(job, index) {
   
   try {
     detailPanel.innerHTML = getJobDetailHTML(job, index);
+    
+    // Update progress bar (no animation when switching jobs)
+    const status = job.application_status || 'Saved';
+    updateProgressBar(status, false);
     
     // Attach event listeners to the detail panel buttons
     attachButtonListeners();

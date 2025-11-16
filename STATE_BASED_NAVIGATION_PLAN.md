@@ -229,12 +229,27 @@ function getNavigationButtons(status) {
 
 **Critical Issue Fixed:** Storage change listener was interrupting animations by re-rendering the DOM mid-transition. Solution: Added animation state management with `isAnimating` and `pendingReload` flags to queue storage updates until after animation completes (450ms). This prevents race conditions while ensuring no data loss from external changes.
 
-### Phase 5: Cover Letter Integration
-- [ ] Move existing cover letter HTML to `renderCoverLetterPanel()`
-- [ ] Hook up generation logic to Drafting state entry
-- [ ] Test streaming display
-- [ ] Add copy button
-- [ ] Test navigation to/from cover letter
+### Phase 5: Progress Bar
+- [ ] Add progress bar CSS to `viewer.html`
+- [ ] Add `getProgressConfig()` helper function to `viewer.js`
+- [ ] Add progress bar HTML to all three panel render functions
+- [ ] Adjust `#detailPanel` layout for fixed bottom bar
+- [ ] Test all status transitions
+- [ ] Verify animation synchronization with panel slides
+- [ ] Test edge cases (Saved state with 0% fill, terminal states at 100%)
+
+**Design Specification:**
+- Fixed at bottom of detail panel, always visible
+- Horizontal filled bar showing current status name (left-justified text)
+- Fill percentage and color mapped to status:
+  - Saved: 0%, light gray (#e0e0e0)
+  - Drafting: 20%, green (#4caf50)
+  - Applied: 40%, blue (#2196f3)
+  - Screening: 60%, purple (#9c27b0)
+  - Interviewing: 80%, orange (#ff9800)
+  - Offer/Accepted/Rejected/Withdrawn: 100%, red (#f44336)
+- Smooth transition animations (0.4s cubic-bezier, synchronized with panel slides)
+- Width transition for fill, color fade for background
 
 ### Phase 6: Polish & Testing
 - [ ] Remove status dropdown from job data panel

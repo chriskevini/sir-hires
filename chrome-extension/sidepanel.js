@@ -40,14 +40,6 @@ function setupViewEventListeners() {
     const { index } = event.detail;
     await deleteJob();
   });
-
-  // Handle open URL from view
-  document.addEventListener('view:openUrl', async (event) => {
-    const { url } = event.detail;
-    if (url) {
-      await chrome.tabs.create({ url });
-    }
-  });
 }
 
 // Setup storage change listener for multi-tab sync

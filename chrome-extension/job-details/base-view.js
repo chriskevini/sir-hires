@@ -206,7 +206,7 @@ export class BaseView {
   }
 
   /**
-   * Render common job actions (view posting, delete)
+   * Render common job actions (delete)
    * @param {Object} job - The job object
    * @param {number} index - The global index of the job
    * @returns {string} HTML string for job actions
@@ -214,7 +214,6 @@ export class BaseView {
   renderJobActions(job, index) {
     return `
       <div class="job-actions">
-        ${job.url ? `<button class="btn btn-link" data-url="${this.escapeHtml(job.url)}">View Job Posting</button>` : ''}
         <button class="btn btn-delete" data-index="${index}">Delete</button>
       </div>
     `;

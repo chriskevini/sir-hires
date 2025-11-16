@@ -70,7 +70,7 @@ export class ResearchingView extends BaseView {
           <div class="company" data-field="company">${companyField.render()}</div>
         </div>
         <div>
-          ${job.source ? `<span class="badge">${this.escapeHtml(job.source)}</span>` : ''}
+          ${job.source && job.url ? `<a href="${this.escapeHtml(job.url)}" class="badge badge-link" target="_blank" rel="noopener noreferrer">${this.escapeHtml(job.source)}</a>` : job.source ? `<span class="badge">${this.escapeHtml(job.source)}</span>` : ''}
         </div>
       </div>
     `;
@@ -270,13 +270,6 @@ export class ResearchingView extends BaseView {
       }
     });
 
-    // View job posting button (handled by parent)
-    const viewPostingBtn = container.querySelector('.btn-link');
-    if (viewPostingBtn) {
-      const viewPostingHandler = () => this.handleViewPosting(job.url);
-      this.trackListener(viewPostingBtn, 'click', viewPostingHandler);
-    }
-
     // Delete button (handled by parent)
     const deleteBtn = container.querySelector('.btn-delete');
     if (deleteBtn) {
@@ -302,19 +295,6 @@ export class ResearchingView extends BaseView {
     // Return a promise that resolves after a short delay
     // This gives the storage time to update
     return new Promise((resolve) => setTimeout(resolve, 100));
-  }
-
-  /**
-   * Handle view posting button click
-   * @param {string} url - The job posting URL
-   */
-  handleViewPosting(url) {
-    if (url) {
-      const event = new CustomEvent('view:openUrl', {
-        detail: { url }
-      });
-      document.dispatchEvent(event);
-    }
   }
 
   /**

@@ -1,11 +1,15 @@
 // View for "Researching" state - displays full job details with notes and narrative strategy
 import { BaseView } from '../base-view.js';
 import { EditableSection } from '../components/editable-section.js';
+import { EditableMeta } from '../components/editable-meta.js';
+import { EditableField } from '../components/editable-field.js';
 
 export class ResearchingView extends BaseView {
   constructor() {
     super();
     this.editableSections = [];
+    this.editableMetaItems = [];
+    this.editableFields = [];
   }
 
   /**
@@ -15,14 +19,16 @@ export class ResearchingView extends BaseView {
    * @returns {string} HTML string
    */
   render(job, index) {
-    // Clear previous editable sections
+    // Clear previous editable components
     this.editableSections = [];
+    this.editableMetaItems = [];
+    this.editableFields = [];
 
     return `
       <div class="job-card">
         <div class="detail-panel-content">
-          ${this.renderJobHeader(job)}
-          ${this.renderJobMeta(job)}
+          ${this.renderJobHeaderEditable(job, index)}
+          ${this.renderJobMetaEditable(job, index)}
           ${this.renderJobSections(job, index)}
           ${this.renderNotesSection(job, index)}
           ${this.renderNarrativeSection(job, index)}
@@ -30,6 +36,143 @@ export class ResearchingView extends BaseView {
         </div>
       </div>
     `;
+  }
+
+  /**
+   * Render job header with editable title and company
+   * @param {Object} job - The job object
+   * @param {number} index - The global index of the job
+   * @returns {string} HTML string
+   */
+  renderJobHeaderEditable(job, index) {
+    // Create editable field for job title
+    const jobTitleField = new EditableField({
+      fieldName: 'jobTitle',
+      value: job.jobTitle || 'Untitled Position',
+      onSave: (fieldName, newValue) => this.handleSaveField(index, fieldName, newValue),
+      singleLine: true
+    });
+    this.editableFields.push({ component: jobTitleField, field: 'jobTitle' });
+    
+    // Create editable field for company
+    const companyField = new EditableField({
+      fieldName: 'company',
+      value: job.company || 'Unknown Company',
+      onSave: (fieldName, newValue) => this.handleSaveField(index, fieldName, newValue),
+      singleLine: true
+    });
+    this.editableFields.push({ component: companyField, field: 'company' });
+    
+    return `
+      <div class="job-header">
+        <div>
+          <div class="job-title" data-field="jobTitle">${jobTitleField.render()}</div>
+          <div class="company" data-field="company">${companyField.render()}</div>
+        </div>
+        <div>
+          ${job.source ? `<span class="badge">${this.escapeHtml(job.source)}</span>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Render job metadata with editable fields
+   * @param {Object} job - The job object
+   * @param {number} index - The global index of the job
+   * @returns {string} HTML string
+   */
+  renderJobMetaEditable(job, index) {
+    const metaItems = [];
+    
+    // Location
+    const locationMeta = new EditableMeta({
+      icon: '📍',
+      label: 'Location',
+      fieldName: 'location',
+      value: job.location || '',
+      type: 'text',
+      onSave: (fieldName, newValue) => this.handleSaveField(index, fieldName, newValue)
+    });
+    this.editableMetaItems.push({ component: locationMeta, field: 'location' });
+    metaItems.push(locationMeta.render());
+    
+    // Salary
+    const salaryMeta = new EditableMeta({
+      icon: '💰',
+      label: 'Salary',
+      fieldName: 'salary',
+      value: job.salary || '',
+      type: 'text',
+      onSave: (fieldName, newValue) => this.handleSaveField(index, fieldName, newValue)
+    });
+    this.editableMetaItems.push({ component: salaryMeta, field: 'salary' });
+    metaItems.push(salaryMeta.render());
+    
+    // Job Type
+    if (job.jobType) {
+      const jobTypeMeta = new EditableMeta({
+        icon: '💼',
+        label: 'Job Type',
+        fieldName: 'jobType',
+        value: job.jobType,
+        type: 'text',
+        onSave: (fieldName, newValue) => this.handleSaveField(index, fieldName, newValue)
+      });
+      this.editableMetaItems.push({ component: jobTypeMeta, field: 'jobType' });
+      metaItems.push(jobTypeMeta.render());
+    }
+    
+    // Remote Type
+    if (job.remoteType && job.remoteType !== 'Not specified') {
+      const remoteTypeMeta = new EditableMeta({
+        icon: this.getRemoteIcon(job.remoteType),
+        label: 'Remote Type',
+        fieldName: 'remoteType',
+        value: job.remoteType,
+        type: 'select',
+        options: ['On-site', 'Remote', 'Hybrid'],
+        onSave: (fieldName, newValue) => this.handleSaveField(index, fieldName, newValue)
+      });
+      this.editableMetaItems.push({ component: remoteTypeMeta, field: 'remoteType' });
+      metaItems.push(remoteTypeMeta.render());
+    }
+    
+    // Posted Date
+    if (job.postedDate) {
+      const absolute = this.formatAbsoluteDate(job.postedDate);
+      const relative = this.formatRelativeDate(job.postedDate);
+      const postedDateMeta = new EditableMeta({
+        icon: '📅',
+        label: 'Posted',
+        fieldName: 'postedDate',
+        value: job.postedDate,
+        type: 'date',
+        onSave: (fieldName, newValue) => this.handleSaveField(index, fieldName, newValue)
+      });
+      this.editableMetaItems.push({ component: postedDateMeta, field: 'postedDate' });
+      metaItems.push(postedDateMeta.render());
+    }
+    
+    // Deadline
+    if (job.deadline) {
+      const absolute = this.formatAbsoluteDate(job.deadline);
+      const relative = this.formatRelativeDate(job.deadline);
+      const deadlineMeta = new EditableMeta({
+        icon: '⏰',
+        label: 'Deadline',
+        fieldName: 'deadline',
+        value: job.deadline,
+        type: 'date',
+        onSave: (fieldName, newValue) => this.handleSaveField(index, fieldName, newValue)
+      });
+      this.editableMetaItems.push({ component: deadlineMeta, field: 'deadline' });
+      metaItems.push(deadlineMeta.render());
+    }
+    
+    if (metaItems.length === 0) return '';
+    
+    return `<div class="job-meta">${metaItems.join('')}</div>`;
   }
 
   /**
@@ -113,6 +256,24 @@ export class ResearchingView extends BaseView {
    * @param {number} index - The global index of the job
    */
   attachListeners(container, job, index) {
+    // Attach listeners for editable header fields (title and company)
+    this.editableFields.forEach(({ component, field }) => {
+      const wrapper = container.querySelector(`[data-field="${field}"]`);
+      if (wrapper) {
+        const editableSpan = wrapper.querySelector('.editable-field');
+        const indicatorSpan = wrapper.querySelector('.save-indicator');
+        component.attachListeners(editableSpan, indicatorSpan);
+      }
+    });
+
+    // Attach listeners for all editable meta items
+    this.editableMetaItems.forEach(({ component, field }) => {
+      const metaElement = container.querySelector(`.editable-meta[data-field="${field}"]`);
+      if (metaElement) {
+        component.attachListeners(metaElement);
+      }
+    });
+
     // Attach listeners for all editable sections
     this.editableSections.forEach(({ component, field }) => {
       const sectionElement = container.querySelector(`.editable-section[data-field="${field}"]`);
@@ -180,10 +341,22 @@ export class ResearchingView extends BaseView {
   }
 
   /**
-   * Cleanup - remove event listeners and clean up editable sections
+   * Cleanup - remove event listeners and clean up editable components
    */
   cleanup() {
     super.cleanup();
+    
+    // Cleanup all editable fields (title, company)
+    this.editableFields.forEach(({ component }) => {
+      component.cleanup();
+    });
+    this.editableFields = [];
+    
+    // Cleanup all editable meta items
+    this.editableMetaItems.forEach(({ component }) => {
+      component.cleanup();
+    });
+    this.editableMetaItems = [];
     
     // Cleanup all editable sections
     this.editableSections.forEach(({ component }) => {

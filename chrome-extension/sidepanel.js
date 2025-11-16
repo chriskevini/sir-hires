@@ -1,12 +1,10 @@
 // Side panel script that manages the job in focus
 
-import { EditableField } from './job-details/components/editable-field.js';
-import { EditableMeta } from './job-details/components/editable-meta.js';
-import { EditableSection } from './job-details/components/editable-section.js';
+import { ResearchingView } from './job-details/views/researching-view.js';
 
 let currentJobId = null;
 let currentJob = null;
-let editableComponents = []; // Track all editable components for cleanup
+let currentView = null; // Track the ResearchingView instance
 let isSavingLocally = false; // Flag to prevent reload loops
 
 // Initialize side panel
@@ -14,6 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadJobInFocus();
   setupEventListeners();
   setupStorageListener();
+  setupViewEventListeners();
 });
 
 function setupEventListeners() {
@@ -26,6 +25,29 @@ function setupEventListeners() {
 
   // Restore backup button (in welcome state)
   document.getElementById('restoreBackupBtn')?.addEventListener('click', restoreBackup);
+}
+
+// Setup event listeners for ResearchingView custom events
+function setupViewEventListeners() {
+  // Handle field save from view
+  document.addEventListener('view:saveField', async (event) => {
+    const { index, fieldName, value } = event.detail;
+    await saveFieldValue(fieldName, value);
+  });
+
+  // Handle delete job from view
+  document.addEventListener('view:deleteJob', async (event) => {
+    const { index } = event.detail;
+    await deleteJob();
+  });
+
+  // Handle open URL from view
+  document.addEventListener('view:openUrl', async (event) => {
+    const { url } = event.detail;
+    if (url) {
+      await chrome.tabs.create({ url });
+    }
+  });
 }
 
 // Setup storage change listener for multi-tab sync
@@ -111,14 +133,23 @@ function showEmptyState() {
   document.getElementById('emptyState').classList.remove('hidden');
   document.getElementById('jobDetails').classList.add('hidden');
   document.getElementById('footer').classList.add('hidden');
+  
+  // Cleanup current view
+  if (currentView) {
+    currentView.cleanup();
+    currentView = null;
+  }
+  
   currentJobId = null;
   currentJob = null;
 }
 
-// Display job details with inline editing using editable components
+// Display job details using ResearchingView
 function displayJob(job) {
-  // Cleanup previous editable components
-  cleanupEditableComponents();
+  // Cleanup previous view
+  if (currentView) {
+    currentView.cleanup();
+  }
   
   document.getElementById('emptyState').classList.add('hidden');
   document.getElementById('jobDetails').classList.remove('hidden');
@@ -126,215 +157,15 @@ function displayJob(job) {
 
   const jobContent = document.getElementById('jobContent');
   
-  // Create editable components
-  const titleField = new EditableField({
-    fieldName: 'jobTitle',
-    value: job.jobTitle || 'Untitled Position',
-    onSave: (fieldName, value) => saveFieldValue(fieldName, value),
-    singleLine: true
-  });
+  // Create ResearchingView instance
+  currentView = new ResearchingView();
   
-  const companyField = new EditableField({
-    fieldName: 'company',
-    value: job.company || 'Unknown Company',
-    onSave: (fieldName, value) => saveFieldValue(fieldName, value),
-    singleLine: true
-  });
-  
-  // Create meta items
-  const metaItems = [
-    new EditableMeta({
-      icon: '📍',
-      label: 'Location',
-      fieldName: 'location',
-      value: job.location || '',
-      type: 'text',
-      onSave: (fieldName, value) => saveFieldValue(fieldName, value)
-    }),
-    new EditableMeta({
-      icon: '💰',
-      label: 'Salary',
-      fieldName: 'salary',
-      value: job.salary || '',
-      type: 'text',
-      onSave: (fieldName, value) => saveFieldValue(fieldName, value)
-    }),
-    new EditableMeta({
-      icon: '🏢',
-      label: 'Job Type',
-      fieldName: 'jobType',
-      value: job.jobType || '',
-      type: 'text',
-      onSave: (fieldName, value) => saveFieldValue(fieldName, value)
-    }),
-    new EditableMeta({
-      icon: '🏠',
-      label: 'Remote Type',
-      fieldName: 'remoteType',
-      value: job.remoteType || '',
-      type: 'select',
-      options: ['On-site', 'Remote', 'Hybrid'],
-      onSave: (fieldName, value) => saveFieldValue(fieldName, value)
-    }),
-    new EditableMeta({
-      icon: '🗓️',
-      label: 'Posted',
-      fieldName: 'postedDate',
-      value: job.postedDate || '',
-      type: 'date',
-      onSave: (fieldName, value) => saveFieldValue(fieldName, value)
-    }),
-    new EditableMeta({
-      icon: '⏰',
-      label: 'Deadline',
-      fieldName: 'deadline',
-      value: job.deadline || '',
-      type: 'date',
-      onSave: (fieldName, value) => saveFieldValue(fieldName, value)
-    }),
-    new EditableMeta({
-      icon: '📊',
-      label: 'Status',
-      fieldName: 'applicationStatus',
-      value: job.applicationStatus || '',
-      type: 'select',
-      options: ['Researching', 'Drafting', 'Awaiting Review', 'Interviewing', 'Deciding', 'Accepted', 'Rejected', 'Withdrawn'],
-      onSave: (fieldName, value) => saveFieldValue(fieldName, value)
-    })
-  ];
-  
-  // Create sections
-  const sections = [
-    new EditableSection({
-      fieldName: 'aboutJob',
-      value: job.aboutJob || '',
-      title: 'About the Job',
-      placeholder: '(Click to add...)',
-      onSave: (fieldName, value) => saveFieldValue(fieldName, value),
-      readonly: false
-    }),
-    new EditableSection({
-      fieldName: 'aboutCompany',
-      value: job.aboutCompany || '',
-      title: 'About the Company',
-      placeholder: '(Click to add...)',
-      onSave: (fieldName, value) => saveFieldValue(fieldName, value),
-      readonly: false
-    }),
-    new EditableSection({
-      fieldName: 'responsibilities',
-      value: job.responsibilities || '',
-      title: 'Responsibilities',
-      placeholder: '(Click to add...)',
-      onSave: (fieldName, value) => saveFieldValue(fieldName, value),
-      readonly: false
-    }),
-    new EditableSection({
-      fieldName: 'requirements',
-      value: job.requirements || '',
-      title: 'Requirements',
-      placeholder: '(Click to add...)',
-      onSave: (fieldName, value) => saveFieldValue(fieldName, value),
-      readonly: false
-    }),
-    new EditableSection({
-      fieldName: 'notes',
-      value: job.notes || '',
-      title: 'Notes',
-      placeholder: '(Click to add...)',
-      onSave: (fieldName, value) => saveFieldValue(fieldName, value),
-      readonly: false
-    }),
-    new EditableSection({
-      fieldName: 'narrativeStrategy',
-      value: job.narrativeStrategy || '',
-      title: 'Narrative Strategy',
-      placeholder: '(Click to add...)',
-      onSave: (fieldName, value) => saveFieldValue(fieldName, value),
-      readonly: false
-    })
-  ];
-  
-  // Track components for cleanup
-  editableComponents = [titleField, companyField, ...metaItems, ...sections];
-  
-  // Render HTML
-  jobContent.innerHTML = `
-    <div class="job-header">
-      <h2 class="job-title" data-field="jobTitle">
-        ${titleField.render()}
-      </h2>
-      <p class="job-company-label">at 
-        <span data-field="company">
-          ${companyField.render()}
-        </span>
-      </p>
-    </div>
-
-    <div class="job-meta">
-      ${metaItems.map(item => item.render()).join('')}
-    </div>
-
-    ${job.url ? `<div class="job-url"><a href="${escapeHtml(job.url)}" target="_blank">🔗 View Original Posting</a></div>` : ''}
-
-    <div class="job-sections">
-      ${sections.map(section => section.render()).join('')}
-    </div>
-  `;
+  // Render the view (pass index as 0 since sidepanel only shows one job)
+  const html = currentView.render(job, 0);
+  jobContent.innerHTML = html;
   
   // Attach event listeners
-  attachComponentListeners();
-}
-
-// Attach listeners for editable components
-function attachComponentListeners() {
-  // Attach title field
-  const titleElement = document.querySelector('[data-field="jobTitle"]');
-  if (titleElement) {
-    const titleComponent = editableComponents.find(c => c.fieldName === 'jobTitle');
-    if (titleComponent) {
-      titleComponent.attachListeners(titleElement);
-    }
-  }
-  
-  // Attach company field
-  const companyElement = document.querySelector('[data-field="company"]');
-  if (companyElement) {
-    const companyComponent = editableComponents.find(c => c.fieldName === 'company');
-    if (companyComponent) {
-      companyComponent.attachListeners(companyElement);
-    }
-  }
-  
-  // Attach meta items
-  const metaElements = document.querySelectorAll('.editable-meta');
-  metaElements.forEach(element => {
-    const fieldName = element.dataset.field;
-    const component = editableComponents.find(c => c.fieldName === fieldName);
-    if (component) {
-      component.attachListeners(element);
-    }
-  });
-  
-  // Attach sections
-  const sectionElements = document.querySelectorAll('.editable-section');
-  sectionElements.forEach(element => {
-    const fieldName = element.dataset.field;
-    const component = editableComponents.find(c => c.fieldName === fieldName);
-    if (component) {
-      component.attachListeners(element);
-    }
-  });
-}
-
-// Cleanup editable components
-function cleanupEditableComponents() {
-  editableComponents.forEach(component => {
-    if (component.cleanup) {
-      component.cleanup();
-    }
-  });
-  editableComponents = [];
+  currentView.attachListeners(jobContent, job, 0);
 }
 
 // Save field value to storage
@@ -374,6 +205,46 @@ async function saveFieldValue(field, value) {
     showError('Failed to save changes');
     isSavingLocally = false;
     throw error; // Re-throw so component can show error indicator
+  }
+}
+
+// Delete the current job in focus
+async function deleteJob() {
+  if (!currentJobId) {
+    showError('No job to delete');
+    return;
+  }
+  
+  if (!confirm('Are you sure you want to delete this job? This cannot be undone.')) {
+    return;
+  }
+  
+  try {
+    // Get all jobs from storage
+    const result = await chrome.storage.local.get(['jobs', 'jobInFocus']);
+    const jobs = result.jobs || {};
+    
+    // Delete the job
+    delete jobs[currentJobId];
+    
+    // Clear job in focus if it was this job
+    const updates = { jobs };
+    if (result.jobInFocus === currentJobId) {
+      updates.jobInFocus = null;
+    }
+    
+    // Save back to storage
+    await chrome.storage.local.set(updates);
+    
+    console.log(`[Side Panel] Deleted job ${currentJobId}`);
+    showSuccess('Job deleted');
+    
+    // Reload to show empty state or next job
+    await loadJobInFocus();
+    
+  } catch (error) {
+    console.error('[Side Panel] Error deleting job:', error);
+    showError('Failed to delete job');
   }
 }
 
@@ -436,4 +307,37 @@ async function restoreBackup() {
     console.error('[Side Panel] Error in restore backup:', error);
     showError('Error in restore backup: ' + error.message);
   }
+}
+
+// Show error toast
+function showError(message) {
+  showToast(message, 'error');
+}
+
+// Show success toast
+function showSuccess(message) {
+  showToast(message, 'success');
+}
+
+// Show toast notification
+function showToast(message, type = 'info') {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  
+  toast.textContent = message;
+  toast.className = `toast ${type}`;
+  toast.classList.remove('hidden');
+  
+  // Auto-hide after 3 seconds
+  setTimeout(() => {
+    toast.classList.add('hidden');
+  }, 3000);
+}
+
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }

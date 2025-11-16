@@ -33,11 +33,8 @@ export class NavigationService {
     
     console.log(`Navigating from ${oldStatus} to ${newStatus}`);
 
-    // Update job status and history
+    // Update job status and history (in memory only, don't save yet)
     this.updateJobStatus(job, oldStatus, newStatus);
-
-    // Save to storage
-    await this.storage.updateJob(job.id, job);
 
     // Update progress bar (no animation during state transition)
     this.navigation.updateProgressBar(newStatus, true);
@@ -60,6 +57,11 @@ export class NavigationService {
         this.navigation.updateNavigationButtons(newStatus, jobIndex);
       }
     );
+
+    // Save to storage AFTER animation completes
+    // This prevents storage change listener from interrupting the animation
+    await this.storage.updateJob(job.id, job);
+    console.log(`Job status saved to storage after animation: ${newStatus}`);
 
     return hadPendingReload;
   }

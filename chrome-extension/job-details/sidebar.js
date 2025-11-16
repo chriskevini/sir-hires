@@ -35,7 +35,7 @@ export class Sidebar extends BaseView {
    * @returns {string} HTML string
    */
   renderJobCard(job, index, selectedIndex, jobInFocusId) {
-    const status = job.applicationStatus || 'Saved';
+    const status = job.applicationStatus || 'Researching';
     const isActive = index === selectedIndex;
     const isFocused = job.id === jobInFocusId;
 
@@ -47,7 +47,7 @@ export class Sidebar extends BaseView {
         </div>
         <div class="company-compact">${this.escapeHtml(job.company)}</div>
         <div class="meta-compact">
-          ${status !== 'Saved' ? `<span class="status-badge-compact status-${status}">${status}</span>` : ''}
+          ${status !== 'Researching' ? `<span class="status-badge-compact status-${status.replace(/\s+/g, '-')}">${status}</span>` : ''}
           ${job.deadline ? `<span>⏰ ${this.escapeHtml(this.formatRelativeDate(job.deadline))}</span>` : ''}
         </div>
       </div>

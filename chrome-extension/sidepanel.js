@@ -129,7 +129,7 @@ function displayJob(job) {
       ${createEditableSelectMetaItem('🏠', job.remoteType, 'remoteType', ['On-site', 'Remote', 'Hybrid'], 'Remote Type')}
       ${createEditableDateMetaItem('🗓️', job.postedDate, 'postedDate', 'Posted')}
       ${createEditableDateMetaItem('⏰', job.deadline, 'deadline', 'Deadline')}
-      ${createEditableSelectMetaItem('📊', job.applicationStatus, 'applicationStatus', ['Saved', 'Applying', 'Applied', 'Interview', 'Offer', 'Rejected', 'Accepted', 'Declined'], 'Status')}
+      ${createEditableSelectMetaItem('📊', job.applicationStatus, 'applicationStatus', ['Researching', 'Drafting', 'Awaiting Review', 'Interviewing', 'Deciding', 'Accepted', 'Rejected', 'Withdrawn'], 'Status')}
     </div>
 
     ${job.url ? `<div class="job-url"><a href="${escapeHtml(job.url)}" target="_blank">🔗 View Original Posting</a></div>` : ''}

@@ -194,27 +194,27 @@
       letter-spacing: 0.5px;
     }
 
-    .status-Saved {
+    .status-Researching {
       background-color: #e8f0fe;
       color: #1967d2;
     }
 
-    .status-Applied {
+    .status-Drafting {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .status-Awaiting-Review {
       background-color: #e6f4ea;
       color: #137333;
     }
 
-    .status-Screening {
-      background-color: #fef7e0;
-      color: #ea8600;
-    }
-
     .status-Interviewing {
-      background-color: #fce8e6;
-      color: #c5221f;
+      background-color: #fff3cd;
+      color: #856404;
     }
 
-    .status-Offer {
+    .status-Deciding {
       background-color: #f3e8fd;
       color: #7627bb;
     }
@@ -618,27 +618,27 @@
     }
 
     /* Status badge colors for compact cards */
-    .status-badge-compact.status-Saved {
+    .status-badge-compact.status-Researching {
       background-color: #e8f0fe;
       color: #1967d2;
     }
 
-    .status-badge-compact.status-Applied {
+    .status-badge-compact.status-Drafting {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .status-badge-compact.status-Awaiting-Review {
       background-color: #e6f4ea;
       color: #137333;
     }
 
-    .status-badge-compact.status-Screening {
-      background-color: #fef7e0;
-      color: #ea8600;
-    }
-
     .status-badge-compact.status-Interviewing {
-      background-color: #fce8e6;
-      color: #c5221f;
+      background-color: #fff3cd;
+      color: #856404;
     }
 
-    .status-badge-compact.status-Offer {
+    .status-badge-compact.status-Deciding {
       background-color: #f3e8fd;
       color: #7627bb;
     }
@@ -907,11 +907,11 @@
             </select>
             <select id="statusFilter" class="filter-input">
               <option value="">All Statuses</option>
-              <option value="Saved">Saved</option>
-              <option value="Applied">Applied</option>
-              <option value="Screening">Screening</option>
+              <option value="Researching">Researching</option>
+              <option value="Drafting">Drafting</option>
+              <option value="Awaiting Review">Awaiting Review</option>
               <option value="Interviewing">Interviewing</option>
-              <option value="Offer">Offer</option>
+              <option value="Deciding">Deciding</option>
               <option value="Accepted">Accepted</option>
               <option value="Rejected">Rejected</option>
               <option value="Withdrawn">Withdrawn</option>

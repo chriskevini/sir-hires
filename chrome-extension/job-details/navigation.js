@@ -24,7 +24,7 @@ export class Navigation {
       return;
     }
 
-    const config = progressConfig[status] || progressConfig['Saved'];
+    const config = progressConfig[status] || progressConfig['Researching'];
 
     // Show progress bar
     progressBar.style.display = 'block';
@@ -62,7 +62,7 @@ export class Navigation {
 
     // Left button (back)
     if (buttons.left) {
-      const targetConfig = progressConfig[buttons.left.target] || progressConfig['Saved'];
+      const targetConfig = progressConfig[buttons.left.target] || progressConfig['Researching'];
       html += `
         <div class="nav-button-container left" data-color="${targetConfig.color}">
           <span class="nav-label">${buttons.left.label}</span>
@@ -79,7 +79,7 @@ export class Navigation {
       html += `<div class="nav-button-container right${multipleClass}">`;
 
       buttons.right.forEach(btn => {
-        const targetConfig = progressConfig[btn.target] || progressConfig['Saved'];
+        const targetConfig = progressConfig[btn.target] || progressConfig['Researching'];
         html += `
           <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;" data-color="${targetConfig.color}">
             <span class="nav-label">${btn.label}</span>

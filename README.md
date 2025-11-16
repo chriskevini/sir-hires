@@ -1,32 +1,49 @@
-# sir-hires - Privacy-First Job Search Assistant
+# Sir Hires - Privacy-First Job Search Assistant
 
-> **Your data. Your tools. Your control.**
+> **Job search is painful. Make it delightful.**
 
-A Chrome extension that helps you extract and manage job posting data from any job board. Completely local, private, and under your control.
+A Chrome extension / webapp with job data extraction, application lifecycle tracking, and many LLM powers.
 
 ## Philosophy
 
 - 🔒 **Privacy-first**: All data stays on your device, forever
 - 💻 **Local-first**: No backend servers or databases required
 - 🤖 **Bring your own LLM**: Use your local LLM for intelligent analysis
-- 📤 **Export freedom**: Your data in JSON/CSV anytime
+- 📤 **Export freedom**: Your data in JSON anytime
 - 🚫 **No tracking**: We don't collect, store, or transmit your data
 
-## What is sir-hires?
+## Version 0.2.0 - What's New
 
-sir-hires is a Chrome extension that turns any job board into your personal job database. Extract job postings from LinkedIn, Indeed, Glassdoor, or any other job site - all stored locally in your browser.
+**Major refactor to modular architecture with improved application lifecycle tracking:**
 
-**Key Features:**
-- Universal extraction from any job board
-- Optional LLM-enhanced extraction (using LM Studio)
-- Local storage - no servers, no accounts
-- Built-in job viewer with sidebar navigation, search, filtering, and sorting
-- Application lifecycle tracking with status history
-- Date tracking (posted date and application deadline)
-- Notes for each job posting
-- Export to JSON or CSV anytime
+- **New Status Names**: Updated to reflect real-world job search workflow
+  - `Researching` - Exploring job posting and company
+  - `Drafting` - Writing cover letter and tailoring resume
+  - `Awaiting Review` - Application submitted, waiting for response
+  - `Interviewing` - Active interview process
+  - `Deciding` - Evaluating offer or making final decision
+  - `Accepted` / `Rejected` / `Withdrawn` - Terminal states
+
+- **Automatic Data Migration**: Existing data automatically upgraded from v0.1.0 to v0.2.0
+  - Old status names seamlessly converted to new names
+  - No manual intervention required
+
+- **Modular Architecture**: Refactored from monolithic (1,421 lines) to organized ES6 modules
+  - State management, storage, rendering, and business logic separated
+  - State-based view system for easier feature development
+  - Consistent naming conventions (camelCase for JS, kebab-case for HTML/CSS)
+
+- **Enhanced Sidepanel**: Automatically shows the most relevant information for every stage of the application process.
 
 ## Quick Start
+
+0. Set up LM Studio:
+   - Download from [lmstudio.ai](https://lmstudio.ai/)
+   - Install and launch LM Studio
+   - Click the 🔍 icon
+   - Install qwen/qwen3-4b-2507 and nuextract-2.0-4b-i1@q4_k_m
+   - Click the "Shell" icon 
+   - Start the server
 
 1. **Install the extension:**
    - Clone this repository
@@ -38,7 +55,8 @@ sir-hires is a Chrome extension that turns any job board into your personal job 
    - Navigate to any job posting
    - Click the extension icon
    - Click "Extract Job Data"
-   - Review and save!
+   - Review data
+   - Click "Manage" to open the web app
 
 ## Documentation
 
@@ -49,7 +67,7 @@ See [chrome-extension/README.md](chrome-extension/README.md) for detailed docume
 - Troubleshooting guide
 - Development guide
 
-## Architecture
+## Data Flow
 
 ```
 Job Boards (LinkedIn, Indeed, etc.)
@@ -58,9 +76,9 @@ Chrome Extension (data extraction)
     ↓
 Browser Local Storage (chrome.storage.local)
     ↓
-Job Viewer (browsing, search, filtering)
+Webapp (browsing, search, filtering)
     ↓
-Optional: Local LLM via LM Studio (enhanced extraction & insights)
+Local LLM via LM Studio (enhanced extraction & insights)
 ```
 
 **No servers. No databases. No data leaves your device.**
@@ -69,11 +87,21 @@ Optional: Local LLM via LM Studio (enhanced extraction & insights)
 
 ```
 sir-hires/
-├── chrome-extension/       # Main Chrome extension
+├── chrome-extension/      # Main Chrome extension
 │   ├── manifest.json      # Extension configuration
 │   ├── content.js         # Job data extraction logic
 │   ├── popup.html/js      # Extension popup UI
-│   ├── viewer.html/js     # Job viewer interface
+│   ├── sidepanel.html/js  # Side panel interface (job in focus)
+│   ├── job-details.html   # Job viewer interface
+│   ├── job-details/       # Modular viewer components (v0.2.0)
+│   │   ├── app.js         # Main application controller
+│   │   ├── state-manager.js    # State management
+│   │   ├── storage.js     # Storage operations
+│   │   ├── job-service.js # Business logic
+│   │   ├── navigation.js  # Progress bar & navigation
+│   │   ├── sidebar.js     # Job list sidebar
+│   │   ├── main-view.js   # View coordinator
+│   │   └── views/         # State-specific views
 │   └── background.js      # Background service worker
 ├── README.md              # This file
 └── AGENTS.md              # Development guidelines
@@ -86,19 +114,22 @@ sir-hires/
 - ✅ Job viewer with sidebar + detail panel layout
 - ✅ Search and filtering (by source, status)
 - ✅ Sorting (by date, deadline, company, title)
-- ✅ Export to JSON/CSV
+- ✅ Export to JSON
 - ✅ Backup and restore (full data export/import)
-- ✅ LLM-enhanced extraction (optional, via LM Studio)
-- ✅ Application lifecycle tracking (Saved → Applied → Screening → Interviewing → Offer → Accepted/Rejected/Withdrawn)
+- ✅ LLM-enhanced extraction via LM Studio
+- ✅ Application lifecycle tracking
 - ✅ Status history tracking
 - ✅ Date tracking (posted date and application deadline)
 - ✅ Notes for each job posting
+- ✅ Fully automatic backup migration 
+- ✅ Modular architecture
 
 - UX improvements:
   - Speed up LLM data extraction
   - Show better loading screen during data extraction
-  - Add job selector in side panel (slides current contents left to expose job list, clicking a job sets it as job_in_focus and closes selector)
+  - togglable job selector
   - Interactive merging of data when restoring backup
+  - LLM-Free Workflow (manual data extraction and document drafting)
 
 - LLM-powered features:
   - Job-resume fit analysis
@@ -128,7 +159,3 @@ MIT License - This is a personal productivity tool. Use responsibly and in accor
 - **Personal Use**: Designed as a personal productivity tool
 - **Respects ToS**: Functions as an enhanced copy-paste, not automated scraping
 - **Open Source**: Inspect the code yourself
-
----
-
-**Built for job seekers who value privacy and control over their data.**

@@ -2,24 +2,27 @@
 import { checklistTemplates } from './job-details/config.js';
 
 /**
- * Initialize checklist for a job based on its status
- * @param {string} status - Application status
- * @returns {Object} Checklist object with items
+ * Initialize checklists for all application statuses
+ * @returns {Object} Checklist object with arrays for each status
  */
-function initializeChecklist(status) {
-  const template = checklistTemplates[status] || checklistTemplates['Researching'];
+function initializeAllChecklists() {
+  const checklist = {};
   
-  // Create checklist items with unique IDs
-  const items = template.map((templateItem, index) => ({
-    id: `item_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
-    text: templateItem.text,
-    checked: false,
-    order: templateItem.order
-  }));
+  // Create checklist arrays for each status
+  Object.keys(checklistTemplates).forEach(status => {
+    const template = checklistTemplates[status];
+    const timestamp = Date.now();
+    
+    // Create checklist items with unique IDs
+    checklist[status] = template.map((templateItem, index) => ({
+      id: `item_${timestamp}_${status}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+      text: templateItem.text,
+      checked: false,
+      order: templateItem.order
+    }));
+  });
   
-  return {
-    items
-  };
+  return checklist;
 }
 
 // Initialize popup
@@ -172,7 +175,7 @@ async function saveExtractedJob(jobData, usedLlm) {
           status: 'Researching',
           timestamp: new Date().toISOString()
         }],
-        checklist: existingJob.checklist || initializeChecklist('Researching'),
+        checklist: existingJob.checklist || initializeAllChecklists(),
         updatedAt: new Date().toISOString()
       };
       
@@ -196,7 +199,7 @@ async function saveExtractedJob(jobData, usedLlm) {
           status: 'Researching',
           timestamp: new Date().toISOString()
         }],
-        checklist: initializeChecklist('Researching'),
+        checklist: initializeAllChecklists(),
         updatedAt: new Date().toISOString()
       };
       

@@ -12,15 +12,16 @@ export class ChecklistComponent extends BaseView {
 
   /**
    * Render the checklist component
-   * @param {Object} checklist - Checklist data { items: [] }
+   * @param {Object} checklist - Checklist data (all statuses: { Researching: [], Drafting: [], ... })
+   * @param {string} status - Current application status
    * @param {number} jobIndex - Global index of the job
    * @param {boolean} isExpanded - Whether checklist is expanded (global state)
    * @returns {string} HTML string
    */
-  render(checklist, jobIndex, isExpanded = false) {
+  render(checklist, status, jobIndex, isExpanded = false) {
     // If expanded, show expanded view (even if empty)
     if (isExpanded) {
-      return this.renderExpanded(checklist, jobIndex);
+      return this.renderExpanded(checklist, status, jobIndex);
     }
     
     // Otherwise, show minimized dots
@@ -46,13 +47,17 @@ export class ChecklistComponent extends BaseView {
 
   /**
    * Render expanded state (dropdown with items)
-   * @param {Object} checklist - Checklist data
+   * @param {Object} checklist - Checklist data (all statuses: { Researching: [], Drafting: [], ... })
+   * @param {string} status - Current application status
    * @param {number} jobIndex - Global index of the job
    * @returns {string} HTML string
    */
-  renderExpanded(checklist, jobIndex) {
-    // Handle empty or missing checklist
-    if (!checklist || !checklist.items || checklist.items.length === 0) {
+  renderExpanded(checklist, status, jobIndex) {
+    // Get items for current status
+    const items = checklist && checklist[status] ? checklist[status] : [];
+    
+    // Handle empty or missing checklist for this status
+    if (!items || items.length === 0) {
       return `
         <div class="checklist-container expanded" data-index="${jobIndex}">
           <div class="checklist-header">
@@ -68,7 +73,7 @@ export class ChecklistComponent extends BaseView {
       `;
     }
 
-    const sortedItems = [...checklist.items].sort((a, b) => a.order - b.order);
+    const sortedItems = [...items].sort((a, b) => a.order - b.order);
     const completedCount = sortedItems.filter(item => item.checked).length;
     const totalCount = sortedItems.length;
 
@@ -95,11 +100,12 @@ export class ChecklistComponent extends BaseView {
   /**
    * Update the checklist in the DOM
    * @param {HTMLElement} container - The container element
-   * @param {Object} checklist - Checklist data
+   * @param {Object} checklist - Checklist data (all statuses)
+   * @param {string} status - Current application status
    * @param {number} jobIndex - Global index of the job
    * @param {boolean} isExpanded - Whether checklist is expanded (global state)
    */
-  update(container, checklist, jobIndex, isExpanded = false) {
+  update(container, checklist, status, jobIndex, isExpanded = false) {
     if (!container) {
       console.error('Checklist container not found');
       return;
@@ -109,7 +115,7 @@ export class ChecklistComponent extends BaseView {
     this.cleanup();
 
     // Render new HTML
-    container.innerHTML = this.render(checklist, jobIndex, isExpanded);
+    container.innerHTML = this.render(checklist, status, jobIndex, isExpanded);
 
     // Attach new listeners
     this.attachListeners(container);

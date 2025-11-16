@@ -97,7 +97,14 @@ Jobs are stored as objects with these fields:
   applicationStatus: string (v0.2.0: Researching|Drafting|Awaiting Review|Interviewing|Deciding|Accepted|Rejected|Withdrawn),
   statusHistory: array of {status: string, date: ISO 8601 timestamp},
   checklist: {
-    items: array of {id: string, text: string, checked: boolean, order: number}
+    Researching: array of {id: string, text: string, checked: boolean, order: number},
+    Drafting: array of {id: string, text: string, checked: boolean, order: number},
+    'Awaiting Review': array of {id: string, text: string, checked: boolean, order: number},
+    Interviewing: array of {id: string, text: string, checked: boolean, order: number},
+    Deciding: array of {id: string, text: string, checked: boolean, order: number},
+    Accepted: array of {id: string, text: string, checked: boolean, order: number},
+    Rejected: array of {id: string, text: string, checked: boolean, order: number},
+    Withdrawn: array of {id: string, text: string, checked: boolean, order: number}
   },
   url: string,
   source: string,

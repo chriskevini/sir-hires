@@ -328,7 +328,13 @@ export class ResearchingView extends BaseView {
     }
 
     // Always render checklist (minimized dots if empty/collapsed, expanded if has items and expanded)
-    checklistContainer.innerHTML = this.checklistComponent.render(job.checklist, index, isExpanded);
+    // Pass the job's checklist object (with all statuses) and current status
+    checklistContainer.innerHTML = this.checklistComponent.render(
+      job.checklist, 
+      job.applicationStatus, 
+      index, 
+      isExpanded
+    );
     
     // Set up callbacks
     this.checklistComponent.setOnToggleExpand((jobIndex, isExpanded) => {

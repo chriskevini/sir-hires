@@ -579,13 +579,19 @@ export class JobDetailsApp {
     const jobs = this.state.getAllJobs();
     const job = jobs[index];
 
-    if (!job || !job.checklist || !job.checklist.items) {
+    if (!job || !job.checklist) {
       console.error('Job or checklist not found at index:', index);
       return;
     }
 
-    // Find and toggle the item
-    const item = job.checklist.items.find(i => i.id === itemId);
+    // Find and toggle the item in the current status's checklist
+    const currentStatusItems = job.checklist[job.applicationStatus];
+    if (!currentStatusItems) {
+      console.error('Checklist not found for status:', job.applicationStatus);
+      return;
+    }
+
+    const item = currentStatusItems.find(i => i.id === itemId);
     if (item) {
       item.checked = !item.checked;
       job.updatedAt = new Date().toISOString();
@@ -600,7 +606,6 @@ export class JobDetailsApp {
         this.mainView.currentView.renderChecklist(job, index, checklistExpanded);
       }
 
-      console.log(`Toggled checklist item ${itemId} for job at index ${index} to ${item.checked}`);
     }
   }
 

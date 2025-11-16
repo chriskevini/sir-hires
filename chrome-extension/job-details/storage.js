@@ -10,24 +10,46 @@ export class StorageService {
   // ===== Checklist Utilities =====
   
   /**
-   * Initialize checklist for a job based on its status
+   * Initialize checklists for all application statuses
+   * Creates a checklist object with arrays for each status
+   * @returns {Object} Checklist object with status keys
+   */
+  initializeAllChecklists() {
+    const checklist = {};
+    
+    // Create checklist arrays for each status
+    Object.keys(checklistTemplates).forEach(status => {
+      const template = checklistTemplates[status];
+      const timestamp = Date.now();
+      
+      // Create checklist items with unique IDs
+      checklist[status] = template.map((templateItem, index) => ({
+        id: `item_${timestamp}_${status}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+        text: templateItem.text,
+        checked: false,
+        order: templateItem.order
+      }));
+    });
+    
+    return checklist;
+  }
+  
+  /**
+   * Initialize checklist for a specific status (used for adding missing statuses)
    * @param {string} status - Application status
-   * @returns {Object} Checklist object with items
+   * @returns {Array} Array of checklist items for the status
    */
   initializeChecklistForStatus(status) {
     const template = checklistTemplates[status] || checklistTemplates['Researching'];
+    const timestamp = Date.now();
     
     // Create checklist items with unique IDs
-    const items = template.map((templateItem, index) => ({
-      id: `item_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+    return template.map((templateItem, index) => ({
+      id: `item_${timestamp}_${status}_${index}_${Math.random().toString(36).substr(2, 9)}`,
       text: templateItem.text,
       checked: false,
       order: templateItem.order
     }));
-    
-    return {
-      items
-    };
   }
   
   // ===== Job Operations =====

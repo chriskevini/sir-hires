@@ -99,15 +99,7 @@ export class MainView {
         return;
       }
 
-      // Render checklist with current status
-      checklistContainer.innerHTML = checklistComponent.render(
-        job.checklist, 
-        job.applicationStatus, 
-        index, 
-        isExpanded
-      );
-      
-      // Set up callbacks
+      // Set up callbacks first (before update)
       checklistComponent.setOnToggleExpand((jobIndex, isExpanded) => {
         const event = new CustomEvent('checklist:toggleExpand', {
           detail: { index: jobIndex, isExpanded }
@@ -122,7 +114,14 @@ export class MainView {
         document.dispatchEvent(event);
       });
       
-      checklistComponent.attachListeners(checklistContainer);
+      // Use update() method to handle animation
+      checklistComponent.update(
+        checklistContainer,
+        job.checklist, 
+        job.applicationStatus, 
+        index, 
+        isExpanded
+      );
     };
     
     return {

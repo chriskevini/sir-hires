@@ -327,16 +327,7 @@ export class ResearchingView extends BaseView {
       return;
     }
 
-    // Always render checklist (minimized dots if empty/collapsed, expanded if has items and expanded)
-    // Pass the job's checklist object (with all statuses) and current status
-    checklistContainer.innerHTML = this.checklistComponent.render(
-      job.checklist, 
-      job.applicationStatus, 
-      index, 
-      isExpanded
-    );
-    
-    // Set up callbacks
+    // Set up callbacks first (before update)
     this.checklistComponent.setOnToggleExpand((jobIndex, isExpanded) => {
       const event = new CustomEvent('checklist:toggleExpand', {
         detail: { index: jobIndex, isExpanded }
@@ -350,9 +341,15 @@ export class ResearchingView extends BaseView {
       });
       document.dispatchEvent(event);
     });
-
-    // Attach listeners
-    this.checklistComponent.attachListeners(checklistContainer);
+    
+    // Use update() method to handle animation
+    this.checklistComponent.update(
+      checklistContainer,
+      job.checklist, 
+      job.applicationStatus, 
+      index, 
+      isExpanded
+    );
   }
 
   /**

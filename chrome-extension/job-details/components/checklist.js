@@ -128,14 +128,27 @@ export class ChecklistComponent extends BaseView {
       return;
     }
 
-    // Remove old listeners
-    this.cleanup();
-
-    // Render new HTML
-    container.innerHTML = this.render(checklist, status, jobIndex, isExpanded);
-
-    // Attach new listeners
-    this.attachListeners(container);
+    // Check if we're transitioning from expanded to collapsed
+    const currentDropdown = container.querySelector('.checklist-dropdown.expanded');
+    const wasExpanded = currentDropdown !== null;
+    
+    if (wasExpanded && !isExpanded) {
+      // Animate collapse before removing
+      currentDropdown.classList.remove('expanded');
+      currentDropdown.classList.add('collapsing');
+      
+      // Wait for animation to complete, then update
+      setTimeout(() => {
+        this.cleanup();
+        container.innerHTML = this.render(checklist, status, jobIndex, isExpanded);
+        this.attachListeners(container);
+      }, 300); // Match animation duration
+    } else {
+      // Immediate update for expand or no change
+      this.cleanup();
+      container.innerHTML = this.render(checklist, status, jobIndex, isExpanded);
+      this.attachListeners(container);
+    }
   }
 
   /**

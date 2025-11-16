@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 function setupEventListeners() {
   // Footer buttons
   document.getElementById('viewAllJobsBtn')?.addEventListener('click', async () => {
-    await chrome.tabs.create({ url: 'viewer.html' });
+    await chrome.tabs.create({ url: 'job-details.html' });
     // Close the side panel after opening viewer
     window.close();
   });

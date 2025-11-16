@@ -219,7 +219,7 @@ function toggleMarkdownGuide() {
 
 // Navigate back to viewer
 function goBack() {
-  window.location.href = 'viewer.html';
+  window.location.href = 'job-details.html';
 }
 
 // Event listeners

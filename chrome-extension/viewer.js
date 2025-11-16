@@ -4,6 +4,361 @@ let filteredJobs = [];
 let selectedJobIndex = -1;
 let debugMode = false;
 let jobInFocusId = null; // Track which job is currently in focus
+let isAnimating = false; // Flag to prevent reloads during animations
+let pendingReload = false; // Flag to indicate a reload is needed after animation
+
+// Status progression order for state-based navigation
+const STATUS_ORDER = [
+  'Saved',
+  'Drafting',
+  'Applied',
+  'Screening',
+  'Interviewing',
+  'Offer',
+  'Accepted',
+  'Rejected',
+  'Withdrawn'
+];
+
+// Helper function to get the order index of a status
+function getStatusOrder(status) {
+  const index = STATUS_ORDER.indexOf(status);
+  return index === -1 ? 0 : index; // Default to 'Saved' if not found
+}
+
+// Navigate to a new state (status) with animation and confirmation
+async function navigateToState(jobIndex, newStatus, direction) {
+  const job = allJobs[jobIndex];
+  const oldStatus = job.application_status || 'Saved';
+  
+  // Check if moving backwards (disabled for now)
+  // const isBackward = getStatusOrder(newStatus) < getStatusOrder(oldStatus);
+  // 
+  // if (isBackward) {
+  //   const confirmMsg = `Move back to '${newStatus}'? This may discard progress.`;
+  //   if (!confirm(confirmMsg)) {
+  //     return;
+  //   }
+  // }
+  
+  // Update status
+  job.application_status = newStatus;
+  
+  // Update or initialize status history
+  if (!job.status_history) {
+    job.status_history = [{
+      status: oldStatus,
+      date: job.updated_at || new Date().toISOString()
+    }];
+  }
+  
+  // Add new status to history
+  job.status_history.push({
+    status: newStatus,
+    date: new Date().toISOString()
+  });
+  
+  job.updated_at = new Date().toISOString();
+  
+  // Set animation flag BEFORE saving to storage to prevent reload interruption
+  isAnimating = true;
+  
+  // Convert array back to object format for storage
+  const jobsObj = {};
+  allJobs.forEach(j => {
+    if (j.id) {
+      jobsObj[j.id] = j;
+    }
+  });
+  
+  // Save to storage
+  await chrome.storage.local.set({ jobs: jobsObj });
+  
+  console.log(`Navigated from ${oldStatus} to ${newStatus}`);
+  
+  // Update progress bar (static, doesn't slide)
+  updateProgressBar(newStatus);
+  
+  // Animate panel transition
+  slideToPanel(job, jobIndex, newStatus, direction);
+}
+
+// Get progress bar configuration for the current status
+function getProgressConfig(status) {
+  const config = {
+    'Saved': { fill: 0, color: '#e0e0e0', textColor: '#666' },
+    'Drafting': { fill: 20, color: '#4caf50', textColor: '#fff' },
+    'Applied': { fill: 40, color: '#2196f3', textColor: '#fff' },
+    'Screening': { fill: 60, color: '#9c27b0', textColor: '#fff' },
+    'Interviewing': { fill: 80, color: '#ff9800', textColor: '#fff' },
+    'Offer': { fill: 100, color: '#f44336', textColor: '#fff' },
+    'Accepted': { fill: 100, color: '#f44336', textColor: '#fff' },
+    'Rejected': { fill: 100, color: '#f44336', textColor: '#fff' },
+    'Withdrawn': { fill: 100, color: '#f44336', textColor: '#fff' }
+  };
+  return config[status] || config['Saved'];
+}
+
+// Get navigation buttons for the current status
+function getNavigationButtons(status) {
+  const buttons = { left: null, right: [] };
+  
+  switch(status) {
+    case 'Saved':
+      buttons.right = [{ label: 'Draft', target: 'Drafting' }];
+      break;
+    
+    case 'Drafting':
+      buttons.left = { label: 'Saved', target: 'Saved' };
+      buttons.right = [{ label: 'Applied', target: 'Applied' }];
+      break;
+    
+    case 'Applied':
+      buttons.left = { label: 'Drafting', target: 'Drafting' };
+      buttons.right = [{ label: 'Screening', target: 'Screening' }];
+      break;
+    
+    case 'Screening':
+      buttons.left = { label: 'Applied', target: 'Applied' };
+      buttons.right = [{ label: 'Interviewing', target: 'Interviewing' }];
+      break;
+    
+    case 'Interviewing':
+      buttons.left = { label: 'Screening', target: 'Screening' };
+      buttons.right = [{ label: 'Offer', target: 'Offer' }];
+      break;
+    
+    case 'Offer':
+      buttons.left = { label: 'Interviewing', target: 'Interviewing' };
+      buttons.right = [
+        { label: 'Accepted', target: 'Accepted' },
+        { label: 'Rejected', target: 'Rejected' }
+      ];
+      break;
+    
+    case 'Accepted':
+      buttons.left = { label: 'Offer', target: 'Offer' };
+      break;
+    
+    case 'Rejected':
+      buttons.left = { label: 'Offer', target: 'Offer' };
+      break;
+    
+    case 'Withdrawn':
+      // For withdrawn, we need to figure out the previous state from history
+      buttons.left = { label: 'Previous', target: 'Saved' }; // Default fallback
+      break;
+    
+    default:
+      // Default case: treat as 'Saved'
+      buttons.right = [{ label: 'Draft', target: 'Drafting' }];
+  }
+  
+  return buttons;
+}
+
+// Slide to a new panel with animation
+function slideToPanel(job, jobIndex, status, direction) {
+  console.log('slideToPanel called:', { direction, status });
+  const panelContainer = document.getElementById('detailPanel');
+  
+  // Save current scroll position
+  const currentScrollTop = panelContainer.scrollTop;
+  
+  // Get new content
+  const newContent = getJobDetailHTML(job, jobIndex);
+  
+  // Create wrapper with fixed positioning
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden;';
+  
+  // Create old panel
+  const oldPanel = document.createElement('div');
+  oldPanel.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 24px;
+    padding-bottom: 60px;
+    background-color: white;
+    transform: translateX(0);
+    transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+  `;
+  oldPanel.innerHTML = panelContainer.innerHTML;
+  oldPanel.scrollTop = currentScrollTop;
+  
+  // Create new panel
+  const newPanel = document.createElement('div');
+  const startPos = direction === 'forward' ? '100%' : '-100%';
+  newPanel.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 24px;
+    padding-bottom: 60px;
+    background-color: white;
+    transform: translateX(${startPos});
+    transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+  `;
+  newPanel.innerHTML = newContent;
+  
+  // Add panels to wrapper
+  wrapper.appendChild(oldPanel);
+  wrapper.appendChild(newPanel);
+  
+  // Temporarily modify container - DON'T change padding
+  const originalPosition = panelContainer.style.position;
+  const originalOverflow = panelContainer.style.overflow;
+  const originalPadding = panelContainer.style.padding;
+  
+  panelContainer.style.position = 'relative';
+  panelContainer.style.overflow = 'hidden';
+  panelContainer.style.padding = '0'; // Remove padding since panels have their own
+  
+  // Replace content with wrapper
+  panelContainer.innerHTML = '';
+  panelContainer.appendChild(wrapper);
+  
+  console.log('Panels created, starting animation in 50ms');
+  
+  // Start animation after a small delay
+  setTimeout(() => {
+    const endPos = direction === 'forward' ? '-100%' : '100%';
+    oldPanel.style.transform = `translateX(${endPos})`;
+    newPanel.style.transform = 'translateX(0)';
+    console.log('Animation triggered');
+    
+    // After animation, replace with final content
+    setTimeout(() => {
+      console.log('Animation complete, cleaning up');
+      // Remove inline styles to let CSS take over
+      panelContainer.style.removeProperty('position');
+      panelContainer.style.removeProperty('overflow');
+      panelContainer.style.removeProperty('padding');
+      panelContainer.innerHTML = newContent;
+      
+      // Update navigation buttons for new status
+      updateNavigationButtons(status, jobIndex);
+      
+      attachButtonListeners();
+      
+      // Clear animation flag
+      isAnimating = false;
+      
+      // If a reload was requested during animation, execute it now
+      if (pendingReload) {
+        console.log('[Viewer] Executing pending reload after animation');
+        pendingReload = false;
+        loadJobs();
+      }
+    }, 450);
+  }, 50);
+}
+
+// Render navigation buttons for state-based navigation
+function renderNavigationButtons(status, jobIndex) {
+  const buttons = getNavigationButtons(status);
+  let html = '';
+  
+  // Left button (back)
+  if (buttons.left) {
+    const targetConfig = getProgressConfig(buttons.left.target);
+    html += `
+      <div class="nav-button-container left" data-color="${targetConfig.color}">
+        <span class="nav-label">${buttons.left.label}</span>
+        <button class="nav-button" data-index="${jobIndex}" data-target="${buttons.left.target}" data-direction="backward" data-color="${targetConfig.color}">
+          <i class="nav-arrow left"></i>
+        </button>
+      </div>
+    `;
+  }
+  
+  // Right button(s) (forward)
+  if (buttons.right && buttons.right.length > 0) {
+    const multipleClass = buttons.right.length > 1 ? ' multiple' : '';
+    html += `<div class="nav-button-container right${multipleClass}">`;
+    
+    buttons.right.forEach(btn => {
+      const targetConfig = getProgressConfig(btn.target);
+      html += `
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;" data-color="${targetConfig.color}">
+          <span class="nav-label">${btn.label}</span>
+          <button class="nav-button" data-index="${jobIndex}" data-target="${btn.target}" data-direction="forward" data-color="${targetConfig.color}">
+            <i class="nav-arrow right"></i>
+          </button>
+        </div>
+      `;
+    });
+    
+    html += `</div>`;
+  }
+  
+  return html;
+}
+
+// Render progress bar for current status
+function renderProgressBar(status) {
+  const config = getProgressConfig(status);
+  
+  return `
+    <div class="progress-bar-container">
+      <div class="progress-bar-fill" style="width: ${config.fill}%; background-color: ${config.color};">
+        <span class="progress-bar-label" style="color: ${config.textColor};">${status}</span>
+      </div>
+    </div>
+  `;
+}
+
+// Update the static progress bar (called during navigation)
+function updateProgressBar(status, animate = true) {
+  const progressBar = document.getElementById('progressBar');
+  const progressBarFill = document.getElementById('progressBarFill');
+  const progressBarLabel = document.getElementById('progressBarLabel');
+  
+  if (!progressBar || !progressBarFill || !progressBarLabel) return;
+  
+  const config = getProgressConfig(status);
+  
+  // Show progress bar
+  progressBar.style.display = 'block';
+  
+  // Temporarily disable transitions if not animating
+  if (!animate) {
+    progressBarFill.style.transition = 'none';
+    progressBarLabel.style.transition = 'none';
+  }
+  
+  // Update fill, color, and label
+  progressBarFill.style.width = `${config.fill}%`;
+  progressBarFill.style.backgroundColor = config.color;
+  progressBarLabel.style.color = config.textColor;
+  progressBarLabel.textContent = status;
+  
+  // Re-enable transitions after a frame
+  if (!animate) {
+    requestAnimationFrame(() => {
+      progressBarFill.style.transition = '';
+      progressBarLabel.style.transition = '';
+    });
+  }
+}
+
+// Update navigation buttons (called when switching jobs or states)
+function updateNavigationButtons(status, jobIndex) {
+  const navButtonsContainer = document.getElementById('navButtonsContainer');
+  if (!navButtonsContainer) return;
+  
+  navButtonsContainer.innerHTML = renderNavigationButtons(status, jobIndex);
+  
+  // Reattach event listeners to new buttons
+  attachNavigationButtonListeners();
+}
 
 async function loadJobs() {
   console.log('loadJobs() called');
@@ -250,13 +605,49 @@ function renderJobDetail(job, index) {
   }
   
   try {
-    detailPanel.innerHTML = debugMode ? renderDebugJob(job, index) : renderNormalJob(job, index);
+    detailPanel.innerHTML = getJobDetailHTML(job, index);
+    
+    // Update progress bar (no animation when switching jobs)
+    const status = job.application_status || 'Saved';
+    updateProgressBar(status, false);
+    
+    // Update navigation buttons
+    updateNavigationButtons(status, index);
     
     // Attach event listeners to the detail panel buttons
     attachButtonListeners();
   } catch (error) {
     console.error('Error rendering job detail:', error);
     detailPanel.innerHTML = '<div style="color: red; padding: 20px;">Error rendering job detail: ' + error.message + '</div>';
+  }
+}
+
+// Helper function that returns HTML without modifying DOM
+function getJobDetailHTML(job, index) {
+  const status = job.application_status || 'Saved';
+  
+  if (debugMode) {
+    return renderDebugJob(job, index);
+  }
+  
+  switch(status) {
+    case 'Saved':
+      return renderJobDataPanel(job, index);
+    
+    case 'Drafting':
+      return renderCoverLetterPanel(job, index);
+    
+    case 'Applied':
+    case 'Screening':
+    case 'Interviewing':
+    case 'Offer':
+    case 'Accepted':
+    case 'Rejected':
+    case 'Withdrawn':
+      return renderWIPPanel(job, index, status);
+    
+    default:
+      return renderJobDataPanel(job, index);
   }
 }
 
@@ -320,94 +711,151 @@ function formatRelativeDate(dateString) {
   return `${Math.round(absDays / 365)} years ago`;
 }
 
-function renderNormalJob(job, index) {
+// Render WIP panel for states that are not yet implemented
+function renderWIPPanel(job, index, status) {
+  return `
+    <div class="job-card">
+      <div class="detail-panel-content">
+        <div class="job-header">
+          <div>
+            <div class="job-title">${escapeHtml(job.job_title)}</div>
+            <div class="company">${escapeHtml(job.company)}</div>
+          </div>
+          <div>
+            ${job.source ? `<span class="badge">${escapeHtml(job.source)}</span>` : ''}
+          </div>
+        </div>
+        
+        <div style="text-align: center; padding: 60px 20px; color: #666;">
+          <div style="font-size: 48px; margin-bottom: 20px;">🚧</div>
+          <div style="font-size: 18px; font-weight: 500; margin-bottom: 10px;">
+            ${status} Panel - Work in Progress
+          </div>
+          <div style="font-size: 14px;">
+            This panel is coming soon!
+          </div>
+        </div>
+        
+        <div class="job-actions">
+          ${job.url ? `<button class="btn btn-link" data-url="${escapeHtml(job.url)}">View Job Posting</button>` : ''}
+          <button class="btn btn-delete" data-index="${index}">Delete</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Render cover letter panel for Drafting state
+function renderCoverLetterPanel(job, index) {
+  return `
+    <div class="job-card">
+      <div class="detail-panel-content">
+        <div class="job-header">
+          <div>
+            <div class="job-title">${escapeHtml(job.job_title)}</div>
+            <div class="company">${escapeHtml(job.company)}</div>
+          </div>
+          <div>
+            ${job.source ? `<span class="badge">${escapeHtml(job.source)}</span>` : ''}
+          </div>
+        </div>
+        
+        <div style="text-align: center; padding: 60px 20px; color: #666;">
+          <div style="font-size: 48px; margin-bottom: 20px;">✍️</div>
+          <div style="font-size: 18px; font-weight: 500; margin-bottom: 10px;">
+            Cover Letter Panel
+          </div>
+          <div style="font-size: 14px;">
+            Cover letter generation coming soon!
+          </div>
+        </div>
+        
+        <div class="job-actions">
+          ${job.url ? `<button class="btn btn-link" data-url="${escapeHtml(job.url)}">View Job Posting</button>` : ''}
+          <button class="btn btn-delete" data-index="${index}">Delete</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Render job data panel for Saved state (main job details)
+function renderJobDataPanel(job, index) {
 
   return `
     <div class="job-card">
-      <div class="job-header">
-        <div>
-          <div class="job-title">${escapeHtml(job.job_title)}</div>
-          <div class="company">${escapeHtml(job.company)}</div>
-        </div>
-        <div>
-          ${job.source ? `<span class="badge">${escapeHtml(job.source)}</span>` : ''}
-        </div>
-      </div>
-      
-      <div class="status-selector">
-        <label>Status:</label>
-        <select class="status-select" data-index="${index}">
-          <option value="Saved" ${(job.application_status || 'Saved') === 'Saved' ? 'selected' : ''}>Saved</option>
-          <option value="Applied" ${job.application_status === 'Applied' ? 'selected' : ''}>Applied</option>
-          <option value="Screening" ${job.application_status === 'Screening' ? 'selected' : ''}>Screening</option>
-          <option value="Interviewing" ${job.application_status === 'Interviewing' ? 'selected' : ''}>Interviewing</option>
-          <option value="Offer" ${job.application_status === 'Offer' ? 'selected' : ''}>Offer</option>
-          <option value="Accepted" ${job.application_status === 'Accepted' ? 'selected' : ''}>Accepted</option>
-          <option value="Rejected" ${job.application_status === 'Rejected' ? 'selected' : ''}>Rejected</option>
-          <option value="Withdrawn" ${job.application_status === 'Withdrawn' ? 'selected' : ''}>Withdrawn</option>
-        </select>
-      </div>
-      
-      <div class="job-meta">
-        ${job.location ? `<div class="job-meta-item">📍 ${escapeHtml(job.location)}</div>` : ''}
-        ${job.salary ? `<div class="job-meta-item">💰 ${escapeHtml(job.salary)}</div>` : ''}
-        ${job.job_type ? `<div class="job-meta-item">💼 ${escapeHtml(job.job_type)}</div>` : ''}
-        ${job.remote_type && job.remote_type !== 'Not specified' ? `<div class="job-meta-item">${getRemoteIcon(job.remote_type)} ${escapeHtml(job.remote_type)}</div>` : ''}
-        ${job.posted_date ? `<div class="job-meta-item">📅 Posted: <span title="${escapeHtml(formatAbsoluteDate(job.posted_date))}">${escapeHtml(formatRelativeDate(job.posted_date))}</span></div>` : ''}
-        ${job.deadline ? `<div class="job-meta-item">⏰ Deadline: <span title="${escapeHtml(formatAbsoluteDate(job.deadline))}">${escapeHtml(formatRelativeDate(job.deadline))}</span></div>` : ''}
-      </div>
-
-      ${job.about_job ? `
-        <div class="section">
-          <div class="section-title">About the Job</div>
-          <div class="section-content">
-            ${escapeHtml(job.about_job)}
+      <div class="detail-panel-content">
+        <div class="job-header">
+          <div>
+            <div class="job-title">${escapeHtml(job.job_title)}</div>
+            <div class="company">${escapeHtml(job.company)}</div>
+          </div>
+          <div>
+            ${job.source ? `<span class="badge">${escapeHtml(job.source)}</span>` : ''}
           </div>
         </div>
-      ` : ''}
-
-      ${job.about_company ? `
-        <div class="section">
-          <div class="section-title">About the Company</div>
-          <div class="section-content">
-            ${escapeHtml(job.about_company)}
-          </div>
+        
+        <div class="job-meta">
+          ${job.location ? `<div class="job-meta-item">📍 ${escapeHtml(job.location)}</div>` : ''}
+          ${job.salary ? `<div class="job-meta-item">💰 ${escapeHtml(job.salary)}</div>` : ''}
+          ${job.job_type ? `<div class="job-meta-item">💼 ${escapeHtml(job.job_type)}</div>` : ''}
+          ${job.remote_type && job.remote_type !== 'Not specified' ? `<div class="job-meta-item">${getRemoteIcon(job.remote_type)} ${escapeHtml(job.remote_type)}</div>` : ''}
+          ${job.posted_date ? `<div class="job-meta-item">📅 Posted: <span title="${escapeHtml(formatAbsoluteDate(job.posted_date))}">${escapeHtml(formatRelativeDate(job.posted_date))}</span></div>` : ''}
+          ${job.deadline ? `<div class="job-meta-item">⏰ Deadline: <span title="${escapeHtml(formatAbsoluteDate(job.deadline))}">${escapeHtml(formatRelativeDate(job.deadline))}</span></div>` : ''}
         </div>
-      ` : ''}
 
-      ${job.responsibilities ? `
-        <div class="section">
-          <div class="section-title">Responsibilities</div>
-          <div class="section-content">
-            ${escapeHtml(job.responsibilities)}
+        ${job.about_job ? `
+          <div class="section">
+            <div class="section-title">About the Job</div>
+            <div class="section-content">
+              ${escapeHtml(job.about_job)}
+            </div>
           </div>
-        </div>
-      ` : ''}
+        ` : ''}
 
-      ${job.requirements ? `
-        <div class="section">
-          <div class="section-title">Requirements</div>
-          <div class="section-content">
-            ${escapeHtml(job.requirements)}
+        ${job.about_company ? `
+          <div class="section">
+            <div class="section-title">About the Company</div>
+            <div class="section-content">
+              ${escapeHtml(job.about_company)}
+            </div>
           </div>
+        ` : ''}
+
+        ${job.responsibilities ? `
+          <div class="section">
+            <div class="section-title">Responsibilities</div>
+            <div class="section-content">
+              ${escapeHtml(job.responsibilities)}
+            </div>
+          </div>
+        ` : ''}
+
+        ${job.requirements ? `
+          <div class="section">
+            <div class="section-title">Requirements</div>
+            <div class="section-content">
+              ${escapeHtml(job.requirements)}
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="section">
+          <div class="section-title">Notes</div>
+          <textarea class="notes-textarea" id="notes-textarea-${index}" rows="3" placeholder="Add your notes about this job...">${escapeHtml(job.notes || '')}</textarea>
+          <button class="btn-save-notes" data-index="${index}">Save Notes</button>
         </div>
-      ` : ''}
 
-      <div class="section">
-        <div class="section-title">Notes</div>
-        <textarea class="notes-textarea" id="notes-textarea-${index}" rows="3" placeholder="Add your notes about this job...">${escapeHtml(job.notes || '')}</textarea>
-        <button class="btn-save-notes" data-index="${index}">Save Notes</button>
-      </div>
+        <div class="section">
+          <div class="section-title">Narrative Strategy</div>
+          <textarea class="notes-textarea" id="narrative-textarea-${index}" rows="3" placeholder="How to tailor your resume/cover letter for this job...">${escapeHtml(job.narrative_strategy || '')}</textarea>
+          <button class="btn-save-narrative" data-index="${index}">Save Strategy</button>
+        </div>
 
-      <div class="section">
-        <div class="section-title">Narrative Strategy</div>
-        <textarea class="notes-textarea" id="narrative-textarea-${index}" rows="3" placeholder="How to tailor your resume/cover letter for this job...">${escapeHtml(job.narrative_strategy || '')}</textarea>
-        <button class="btn-save-narrative" data-index="${index}">Save Strategy</button>
-      </div>
-
-      <div class="job-actions">
-        ${job.url ? `<button class="btn btn-link" data-url="${escapeHtml(job.url)}">View Job Posting</button>` : ''}
-        <button class="btn btn-delete" data-index="${index}">Delete</button>
+        <div class="job-actions">
+          ${job.url ? `<button class="btn btn-link" data-url="${escapeHtml(job.url)}">View Job Posting</button>` : ''}
+          <button class="btn btn-delete" data-index="${index}">Delete</button>
+        </div>
       </div>
     </div>
   `;
@@ -521,7 +969,36 @@ function renderDebugJob(job, index) {
   `;
 }
 
+function attachNavigationButtonListeners() {
+  // Set colors on navigation button containers
+  document.querySelectorAll('.nav-button-container[data-color], .nav-button-container > div[data-color]').forEach(container => {
+    const color = container.dataset.color;
+    if (color) {
+      container.style.setProperty('--nav-color', color);
+    }
+  });
+  
+  // Attach listeners to navigation buttons
+  document.querySelectorAll('.nav-button').forEach(btn => {
+    // Set color CSS custom property from data attribute
+    const color = btn.dataset.color;
+    if (color) {
+      btn.style.setProperty('--nav-color', color);
+    }
+    
+    btn.addEventListener('click', function() {
+      const index = parseInt(this.dataset.index);
+      const target = this.dataset.target;
+      const direction = this.dataset.direction;
+      navigateToState(index, target, direction);
+    });
+  });
+}
+
 function attachButtonListeners() {
+  // Attach navigation button listeners (separated for reuse)
+  attachNavigationButtonListeners();
+  
   // Attach listeners to job link buttons
   document.querySelectorAll('.btn-link').forEach(btn => {
     btn.addEventListener('click', function() {
@@ -535,15 +1012,6 @@ function attachButtonListeners() {
     btn.addEventListener('click', function() {
       const index = parseInt(this.dataset.index);
       deleteJob(index);
-    });
-  });
-
-  // Attach listeners to status selectors
-  document.querySelectorAll('.status-select').forEach(select => {
-    select.addEventListener('change', function() {
-      const index = parseInt(this.dataset.index);
-      const newStatus = this.value;
-      updateJobStatus(index, newStatus);
     });
   });
 
@@ -604,6 +1072,8 @@ async function deleteJob(index) {
   await loadJobs();
 }
 
+// DEPRECATED: Use navigateToState() instead
+// This function was used by the old status dropdown (removed in Phase 6)
 async function updateJobStatus(index, newStatus) {
   const job = allJobs[index];
   const oldStatus = job.application_status || 'Saved';
@@ -1011,7 +1481,13 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       if (changes.jobs) {
         console.log('[Viewer] Jobs changed, reloading');
-        loadJobs();
+        // Don't reload if an animation is in progress
+        if (!isAnimating) {
+          loadJobs();
+        } else {
+          console.log('[Viewer] Animation in progress, queuing reload for after animation');
+          pendingReload = true;
+        }
       }
     }
   });

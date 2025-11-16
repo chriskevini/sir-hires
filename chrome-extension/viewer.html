@@ -132,6 +132,7 @@
       margin-bottom: 0;
       transition: none;
       box-shadow: none;
+      position: relative;
     }
 
     .job-card:hover {
@@ -662,7 +663,9 @@
       flex: 1;
       overflow-y: auto;
       padding: 24px;
+      padding-bottom: 60px; /* Just enough room for progress bar (40px) + gap (20px) */
       background-color: white;
+      position: relative;
     }
 
     .detail-panel-empty {
@@ -672,6 +675,205 @@
       height: 100%;
       color: #999;
       font-size: 14px;
+    }
+
+    /* Navigation button styles */
+    .nav-button-container {
+      position: absolute;
+      bottom: 60px; /* 40px progress bar + 20px gap */
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-button-container.left {
+      left: 24px;
+    }
+
+    .nav-button-container.right {
+      right: 24px;
+    }
+
+    .nav-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--nav-color, #1a73e8);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .nav-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: white;
+      border: 2px solid var(--nav-color, #1a73e8);
+      border-radius: 50%;
+      width: 80px;
+      height: 80px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 0;
+    }
+
+    .nav-button:hover {
+      background-color: var(--nav-color, #1a73e8);
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .nav-button:hover .nav-arrow {
+      border-color: white;
+    }
+
+    .nav-arrow {
+      width: 0;
+      height: 0;
+      border: solid var(--nav-color, #1a73e8);
+      border-width: 0 3px 3px 0;
+      display: inline-block;
+      padding: 10px;
+      transition: border-color 0.2s;
+    }
+    
+    .nav-arrow.left {
+      transform: rotate(135deg);
+    }
+    
+    .nav-arrow.right {
+      transform: rotate(-45deg);
+    }
+
+    /* Multiple right buttons stacked vertically */
+    .nav-button-container.right.multiple {
+      gap: 16px;
+    }
+
+    /* Content wrapper with padding for nav buttons */
+    /* Content wrapper - removed side padding since nav buttons are now at bottom */
+    .detail-panel-content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Slide animations */
+    @keyframes slideOutLeft {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(-100%); opacity: 0; }
+    }
+
+    @keyframes slideOutRight {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
+    }
+
+    @keyframes slideInLeft {
+      from { transform: translateX(-100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .slide-out-left { 
+      animation: slideOutLeft 0.4s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+    }
+    
+    .slide-out-right { 
+      animation: slideOutRight 0.4s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+    }
+    
+    .slide-in-left { 
+      animation: slideInLeft 0.4s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+    }
+    
+    .slide-in-right { 
+      animation: slideInRight 0.4s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+    }
+
+    /* Panel transition styles */
+    .panel-transition-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .panel-slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      padding: 24px;
+      background-color: white;
+      transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+
+    .panel-slide.start-left {
+      transform: translateX(-100%);
+    }
+
+    .panel-slide.start-right {
+      transform: translateX(100%);
+    }
+
+    .panel-slide.end-left {
+      transform: translateX(-100%);
+    }
+
+    .panel-slide.end-right {
+      transform: translateX(100%);
+    }
+
+    .panel-slide.center {
+      transform: translateX(0);
+    }
+
+    /* Progress bar styles */
+    .progress-bar-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 40px;
+      background-color: #f5f5f5;
+      border-top: 1px solid #ddd;
+      overflow: hidden;
+      z-index: 100;
+    }
+
+    .progress-bar-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      transition: width 0.4s cubic-bezier(0.4, 0.0, 0.2, 1),
+                  background-color 0.4s ease;
+    }
+
+    .progress-bar-label {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-weight: 500;
+      font-size: 14px;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      white-space: nowrap;
+      z-index: 1;
+      transition: color 0.4s ease;
     }
   </style>
 </head>
@@ -733,9 +935,20 @@
         <div class="jobs-list-sidebar" id="jobsList"></div>
       </div>
 
-      <div class="detail-panel" id="detailPanel">
-        <div class="detail-panel-empty">
-          Select a job to view details
+      <div style="position: relative; flex: 1; display: flex; flex-direction: column;">
+        <div class="detail-panel" id="detailPanel">
+          <div class="detail-panel-empty">
+            Select a job to view details
+          </div>
+        </div>
+        
+        <!-- Navigation buttons (fixed above progress bar) -->
+        <div id="navButtonsContainer"></div>
+        
+        <!-- Progress bar (fixed at bottom) -->
+        <div class="progress-bar-container" id="progressBar" style="display: none;">
+          <div class="progress-bar-fill" id="progressBarFill"></div>
+          <span class="progress-bar-label" id="progressBarLabel"></span>
         </div>
       </div>
     </div>

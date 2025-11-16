@@ -158,6 +158,45 @@ function slideToPanel(job, jobIndex, status, direction) {
   }, 400);
 }
 
+// Render navigation buttons for state-based navigation
+function renderNavigationButtons(status, jobIndex) {
+  const buttons = getNavigationButtons(status);
+  let html = '';
+  
+  // Left button (back)
+  if (buttons.left) {
+    html += `
+      <div class="nav-button-container left">
+        <span class="nav-label">${buttons.left.label}</span>
+        <button class="nav-button" data-index="${jobIndex}" data-target="${buttons.left.target}" data-direction="backward">
+          <i class="nav-arrow left"></i>
+        </button>
+      </div>
+    `;
+  }
+  
+  // Right button(s) (forward)
+  if (buttons.right && buttons.right.length > 0) {
+    const multipleClass = buttons.right.length > 1 ? ' multiple' : '';
+    html += `<div class="nav-button-container right${multipleClass}">`;
+    
+    buttons.right.forEach(btn => {
+      html += `
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+          <span class="nav-label">${btn.label}</span>
+          <button class="nav-button" data-index="${jobIndex}" data-target="${btn.target}" data-direction="forward">
+            <i class="nav-arrow right"></i>
+          </button>
+        </div>
+      `;
+    });
+    
+    html += `</div>`;
+  }
+  
+  return html;
+}
+
 async function loadJobs() {
   console.log('loadJobs() called');
   try {
@@ -505,29 +544,33 @@ function formatRelativeDate(dateString) {
 function renderWIPPanel(job, index, status) {
   return `
     <div class="job-card">
-      <div class="job-header">
-        <div>
-          <div class="job-title">${escapeHtml(job.job_title)}</div>
-          <div class="company">${escapeHtml(job.company)}</div>
-        </div>
-        <div>
-          ${job.source ? `<span class="badge">${escapeHtml(job.source)}</span>` : ''}
-        </div>
-      </div>
+      ${renderNavigationButtons(status, index)}
       
-      <div style="text-align: center; padding: 60px 20px; color: #666;">
-        <div style="font-size: 48px; margin-bottom: 20px;">🚧</div>
-        <div style="font-size: 18px; font-weight: 500; margin-bottom: 10px;">
-          ${status} Panel - Work in Progress
+      <div class="detail-panel-content">
+        <div class="job-header">
+          <div>
+            <div class="job-title">${escapeHtml(job.job_title)}</div>
+            <div class="company">${escapeHtml(job.company)}</div>
+          </div>
+          <div>
+            ${job.source ? `<span class="badge">${escapeHtml(job.source)}</span>` : ''}
+          </div>
         </div>
-        <div style="font-size: 14px;">
-          This panel is coming soon!
+        
+        <div style="text-align: center; padding: 60px 20px; color: #666;">
+          <div style="font-size: 48px; margin-bottom: 20px;">🚧</div>
+          <div style="font-size: 18px; font-weight: 500; margin-bottom: 10px;">
+            ${status} Panel - Work in Progress
+          </div>
+          <div style="font-size: 14px;">
+            This panel is coming soon!
+          </div>
         </div>
-      </div>
-      
-      <div class="job-actions">
-        ${job.url ? `<button class="btn btn-link" data-url="${escapeHtml(job.url)}">View Job Posting</button>` : ''}
-        <button class="btn btn-delete" data-index="${index}">Delete</button>
+        
+        <div class="job-actions">
+          ${job.url ? `<button class="btn btn-link" data-url="${escapeHtml(job.url)}">View Job Posting</button>` : ''}
+          <button class="btn btn-delete" data-index="${index}">Delete</button>
+        </div>
       </div>
     </div>
   `;
@@ -537,29 +580,33 @@ function renderWIPPanel(job, index, status) {
 function renderCoverLetterPanel(job, index) {
   return `
     <div class="job-card">
-      <div class="job-header">
-        <div>
-          <div class="job-title">${escapeHtml(job.job_title)}</div>
-          <div class="company">${escapeHtml(job.company)}</div>
-        </div>
-        <div>
-          ${job.source ? `<span class="badge">${escapeHtml(job.source)}</span>` : ''}
-        </div>
-      </div>
+      ${renderNavigationButtons('Drafting', index)}
       
-      <div style="text-align: center; padding: 60px 20px; color: #666;">
-        <div style="font-size: 48px; margin-bottom: 20px;">✍️</div>
-        <div style="font-size: 18px; font-weight: 500; margin-bottom: 10px;">
-          Cover Letter Panel
+      <div class="detail-panel-content">
+        <div class="job-header">
+          <div>
+            <div class="job-title">${escapeHtml(job.job_title)}</div>
+            <div class="company">${escapeHtml(job.company)}</div>
+          </div>
+          <div>
+            ${job.source ? `<span class="badge">${escapeHtml(job.source)}</span>` : ''}
+          </div>
         </div>
-        <div style="font-size: 14px;">
-          Cover letter generation coming soon!
+        
+        <div style="text-align: center; padding: 60px 20px; color: #666;">
+          <div style="font-size: 48px; margin-bottom: 20px;">✍️</div>
+          <div style="font-size: 18px; font-weight: 500; margin-bottom: 10px;">
+            Cover Letter Panel
+          </div>
+          <div style="font-size: 14px;">
+            Cover letter generation coming soon!
+          </div>
         </div>
-      </div>
-      
-      <div class="job-actions">
-        ${job.url ? `<button class="btn btn-link" data-url="${escapeHtml(job.url)}">View Job Posting</button>` : ''}
-        <button class="btn btn-delete" data-index="${index}">Delete</button>
+        
+        <div class="job-actions">
+          ${job.url ? `<button class="btn btn-link" data-url="${escapeHtml(job.url)}">View Job Posting</button>` : ''}
+          <button class="btn btn-delete" data-index="${index}">Delete</button>
+        </div>
       </div>
     </div>
   `;
@@ -570,90 +617,94 @@ function renderJobDataPanel(job, index) {
 
   return `
     <div class="job-card">
-      <div class="job-header">
-        <div>
-          <div class="job-title">${escapeHtml(job.job_title)}</div>
-          <div class="company">${escapeHtml(job.company)}</div>
-        </div>
-        <div>
-          ${job.source ? `<span class="badge">${escapeHtml(job.source)}</span>` : ''}
-        </div>
-      </div>
+      ${renderNavigationButtons('Saved', index)}
       
-      <div class="status-selector">
-        <label>Status:</label>
-        <select class="status-select" data-index="${index}">
-          <option value="Saved" ${(job.application_status || 'Saved') === 'Saved' ? 'selected' : ''}>Saved</option>
-          <option value="Applied" ${job.application_status === 'Applied' ? 'selected' : ''}>Applied</option>
-          <option value="Screening" ${job.application_status === 'Screening' ? 'selected' : ''}>Screening</option>
-          <option value="Interviewing" ${job.application_status === 'Interviewing' ? 'selected' : ''}>Interviewing</option>
-          <option value="Offer" ${job.application_status === 'Offer' ? 'selected' : ''}>Offer</option>
-          <option value="Accepted" ${job.application_status === 'Accepted' ? 'selected' : ''}>Accepted</option>
-          <option value="Rejected" ${job.application_status === 'Rejected' ? 'selected' : ''}>Rejected</option>
-          <option value="Withdrawn" ${job.application_status === 'Withdrawn' ? 'selected' : ''}>Withdrawn</option>
-        </select>
-      </div>
-      
-      <div class="job-meta">
-        ${job.location ? `<div class="job-meta-item">📍 ${escapeHtml(job.location)}</div>` : ''}
-        ${job.salary ? `<div class="job-meta-item">💰 ${escapeHtml(job.salary)}</div>` : ''}
-        ${job.job_type ? `<div class="job-meta-item">💼 ${escapeHtml(job.job_type)}</div>` : ''}
-        ${job.remote_type && job.remote_type !== 'Not specified' ? `<div class="job-meta-item">${getRemoteIcon(job.remote_type)} ${escapeHtml(job.remote_type)}</div>` : ''}
-        ${job.posted_date ? `<div class="job-meta-item">📅 Posted: <span title="${escapeHtml(formatAbsoluteDate(job.posted_date))}">${escapeHtml(formatRelativeDate(job.posted_date))}</span></div>` : ''}
-        ${job.deadline ? `<div class="job-meta-item">⏰ Deadline: <span title="${escapeHtml(formatAbsoluteDate(job.deadline))}">${escapeHtml(formatRelativeDate(job.deadline))}</span></div>` : ''}
-      </div>
-
-      ${job.about_job ? `
-        <div class="section">
-          <div class="section-title">About the Job</div>
-          <div class="section-content">
-            ${escapeHtml(job.about_job)}
+      <div class="detail-panel-content">
+        <div class="job-header">
+          <div>
+            <div class="job-title">${escapeHtml(job.job_title)}</div>
+            <div class="company">${escapeHtml(job.company)}</div>
+          </div>
+          <div>
+            ${job.source ? `<span class="badge">${escapeHtml(job.source)}</span>` : ''}
           </div>
         </div>
-      ` : ''}
-
-      ${job.about_company ? `
-        <div class="section">
-          <div class="section-title">About the Company</div>
-          <div class="section-content">
-            ${escapeHtml(job.about_company)}
-          </div>
+        
+        <div class="status-selector">
+          <label>Status:</label>
+          <select class="status-select" data-index="${index}">
+            <option value="Saved" ${(job.application_status || 'Saved') === 'Saved' ? 'selected' : ''}>Saved</option>
+            <option value="Applied" ${job.application_status === 'Applied' ? 'selected' : ''}>Applied</option>
+            <option value="Screening" ${job.application_status === 'Screening' ? 'selected' : ''}>Screening</option>
+            <option value="Interviewing" ${job.application_status === 'Interviewing' ? 'selected' : ''}>Interviewing</option>
+            <option value="Offer" ${job.application_status === 'Offer' ? 'selected' : ''}>Offer</option>
+            <option value="Accepted" ${job.application_status === 'Accepted' ? 'selected' : ''}>Accepted</option>
+            <option value="Rejected" ${job.application_status === 'Rejected' ? 'selected' : ''}>Rejected</option>
+            <option value="Withdrawn" ${job.application_status === 'Withdrawn' ? 'selected' : ''}>Withdrawn</option>
+          </select>
         </div>
-      ` : ''}
-
-      ${job.responsibilities ? `
-        <div class="section">
-          <div class="section-title">Responsibilities</div>
-          <div class="section-content">
-            ${escapeHtml(job.responsibilities)}
-          </div>
+        
+        <div class="job-meta">
+          ${job.location ? `<div class="job-meta-item">📍 ${escapeHtml(job.location)}</div>` : ''}
+          ${job.salary ? `<div class="job-meta-item">💰 ${escapeHtml(job.salary)}</div>` : ''}
+          ${job.job_type ? `<div class="job-meta-item">💼 ${escapeHtml(job.job_type)}</div>` : ''}
+          ${job.remote_type && job.remote_type !== 'Not specified' ? `<div class="job-meta-item">${getRemoteIcon(job.remote_type)} ${escapeHtml(job.remote_type)}</div>` : ''}
+          ${job.posted_date ? `<div class="job-meta-item">📅 Posted: <span title="${escapeHtml(formatAbsoluteDate(job.posted_date))}">${escapeHtml(formatRelativeDate(job.posted_date))}</span></div>` : ''}
+          ${job.deadline ? `<div class="job-meta-item">⏰ Deadline: <span title="${escapeHtml(formatAbsoluteDate(job.deadline))}">${escapeHtml(formatRelativeDate(job.deadline))}</span></div>` : ''}
         </div>
-      ` : ''}
 
-      ${job.requirements ? `
-        <div class="section">
-          <div class="section-title">Requirements</div>
-          <div class="section-content">
-            ${escapeHtml(job.requirements)}
+        ${job.about_job ? `
+          <div class="section">
+            <div class="section-title">About the Job</div>
+            <div class="section-content">
+              ${escapeHtml(job.about_job)}
+            </div>
           </div>
+        ` : ''}
+
+        ${job.about_company ? `
+          <div class="section">
+            <div class="section-title">About the Company</div>
+            <div class="section-content">
+              ${escapeHtml(job.about_company)}
+            </div>
+          </div>
+        ` : ''}
+
+        ${job.responsibilities ? `
+          <div class="section">
+            <div class="section-title">Responsibilities</div>
+            <div class="section-content">
+              ${escapeHtml(job.responsibilities)}
+            </div>
+          </div>
+        ` : ''}
+
+        ${job.requirements ? `
+          <div class="section">
+            <div class="section-title">Requirements</div>
+            <div class="section-content">
+              ${escapeHtml(job.requirements)}
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="section">
+          <div class="section-title">Notes</div>
+          <textarea class="notes-textarea" id="notes-textarea-${index}" rows="3" placeholder="Add your notes about this job...">${escapeHtml(job.notes || '')}</textarea>
+          <button class="btn-save-notes" data-index="${index}">Save Notes</button>
         </div>
-      ` : ''}
 
-      <div class="section">
-        <div class="section-title">Notes</div>
-        <textarea class="notes-textarea" id="notes-textarea-${index}" rows="3" placeholder="Add your notes about this job...">${escapeHtml(job.notes || '')}</textarea>
-        <button class="btn-save-notes" data-index="${index}">Save Notes</button>
-      </div>
+        <div class="section">
+          <div class="section-title">Narrative Strategy</div>
+          <textarea class="notes-textarea" id="narrative-textarea-${index}" rows="3" placeholder="How to tailor your resume/cover letter for this job...">${escapeHtml(job.narrative_strategy || '')}</textarea>
+          <button class="btn-save-narrative" data-index="${index}">Save Strategy</button>
+        </div>
 
-      <div class="section">
-        <div class="section-title">Narrative Strategy</div>
-        <textarea class="notes-textarea" id="narrative-textarea-${index}" rows="3" placeholder="How to tailor your resume/cover letter for this job...">${escapeHtml(job.narrative_strategy || '')}</textarea>
-        <button class="btn-save-narrative" data-index="${index}">Save Strategy</button>
-      </div>
-
-      <div class="job-actions">
-        ${job.url ? `<button class="btn btn-link" data-url="${escapeHtml(job.url)}">View Job Posting</button>` : ''}
-        <button class="btn btn-delete" data-index="${index}">Delete</button>
+        <div class="job-actions">
+          ${job.url ? `<button class="btn btn-link" data-url="${escapeHtml(job.url)}">View Job Posting</button>` : ''}
+          <button class="btn btn-delete" data-index="${index}">Delete</button>
+        </div>
       </div>
     </div>
   `;
@@ -768,6 +819,16 @@ function renderDebugJob(job, index) {
 }
 
 function attachButtonListeners() {
+  // Attach listeners to navigation buttons
+  document.querySelectorAll('.nav-button').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const index = parseInt(this.dataset.index);
+      const target = this.dataset.target;
+      const direction = this.dataset.direction;
+      navigateToState(index, target, direction);
+    });
+  });
+  
   // Attach listeners to job link buttons
   document.querySelectorAll('.btn-link').forEach(btn => {
     btn.addEventListener('click', function() {

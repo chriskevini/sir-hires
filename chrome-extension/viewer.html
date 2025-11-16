@@ -663,7 +663,7 @@
       flex: 1;
       overflow-y: auto;
       padding: 24px;
-      padding-bottom: 64px; /* Make room for progress bar (40px + 24px) */
+      padding-bottom: 60px; /* Just enough room for progress bar (40px) + gap (20px) */
       background-color: white;
       position: relative;
     }
@@ -680,8 +680,7 @@
     /* Navigation button styles */
     .nav-button-container {
       position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
+      bottom: 60px; /* 40px progress bar + 20px gap */
       z-index: 10;
       display: flex;
       flex-direction: column;
@@ -700,7 +699,7 @@
     .nav-label {
       font-size: 11px;
       font-weight: 600;
-      color: #1a73e8;
+      color: var(--nav-color, #1a73e8);
       text-transform: uppercase;
       letter-spacing: 0.5px;
       line-height: 1;
@@ -712,7 +711,7 @@
       align-items: center;
       justify-content: center;
       background-color: white;
-      border: 2px solid #1a73e8;
+      border: 2px solid var(--nav-color, #1a73e8);
       border-radius: 50%;
       width: 80px;
       height: 80px;
@@ -723,9 +722,9 @@
     }
 
     .nav-button:hover {
-      background-color: #1a73e8;
+      background-color: var(--nav-color, #1a73e8);
       transform: scale(1.05);
-      box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
     .nav-button:hover .nav-arrow {
@@ -735,7 +734,7 @@
     .nav-arrow {
       width: 0;
       height: 0;
-      border: solid #1a73e8;
+      border: solid var(--nav-color, #1a73e8);
       border-width: 0 3px 3px 0;
       display: inline-block;
       padding: 10px;
@@ -756,10 +755,11 @@
     }
 
     /* Content wrapper with padding for nav buttons */
+    /* Content wrapper - removed side padding since nav buttons are now at bottom */
     .detail-panel-content {
       max-width: 900px;
       margin: 0 auto;
-      padding: 0 100px;
+      padding: 0 24px;
     }
 
     /* Slide animations */
@@ -941,6 +941,9 @@
             Select a job to view details
           </div>
         </div>
+        
+        <!-- Navigation buttons (fixed above progress bar) -->
+        <div id="navButtonsContainer"></div>
         
         <!-- Progress bar (fixed at bottom) -->
         <div class="progress-bar-container" id="progressBar" style="display: none;">

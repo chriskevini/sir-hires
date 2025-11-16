@@ -182,6 +182,7 @@ function slideToPanel(job, jobIndex, status, direction) {
     height: 100%;
     overflow-y: auto;
     padding: 24px;
+    padding-bottom: 60px;
     background-color: white;
     transform: translateX(0);
     transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
@@ -200,6 +201,7 @@ function slideToPanel(job, jobIndex, status, direction) {
     height: 100%;
     overflow-y: auto;
     padding: 24px;
+    padding-bottom: 60px;
     background-color: white;
     transform: translateX(${startPos});
     transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
@@ -210,14 +212,14 @@ function slideToPanel(job, jobIndex, status, direction) {
   wrapper.appendChild(oldPanel);
   wrapper.appendChild(newPanel);
   
-  // Temporarily modify container
+  // Temporarily modify container - DON'T change padding
   const originalPosition = panelContainer.style.position;
   const originalOverflow = panelContainer.style.overflow;
   const originalPadding = panelContainer.style.padding;
   
   panelContainer.style.position = 'relative';
   panelContainer.style.overflow = 'hidden';
-  panelContainer.style.padding = '0';
+  panelContainer.style.padding = '0'; // Remove padding since panels have their own
   
   // Replace content with wrapper
   panelContainer.innerHTML = '';
@@ -235,10 +237,15 @@ function slideToPanel(job, jobIndex, status, direction) {
     // After animation, replace with final content
     setTimeout(() => {
       console.log('Animation complete, cleaning up');
-      panelContainer.style.position = originalPosition;
-      panelContainer.style.overflow = originalOverflow || '';
-      panelContainer.style.padding = originalPadding || '24px';
+      // Remove inline styles to let CSS take over
+      panelContainer.style.removeProperty('position');
+      panelContainer.style.removeProperty('overflow');
+      panelContainer.style.removeProperty('padding');
       panelContainer.innerHTML = newContent;
+      
+      // Update navigation buttons for new status
+      updateNavigationButtons(status, jobIndex);
+      
       attachButtonListeners();
       
       // Clear animation flag
@@ -261,10 +268,11 @@ function renderNavigationButtons(status, jobIndex) {
   
   // Left button (back)
   if (buttons.left) {
+    const targetConfig = getProgressConfig(buttons.left.target);
     html += `
-      <div class="nav-button-container left">
+      <div class="nav-button-container left" data-color="${targetConfig.color}">
         <span class="nav-label">${buttons.left.label}</span>
-        <button class="nav-button" data-index="${jobIndex}" data-target="${buttons.left.target}" data-direction="backward">
+        <button class="nav-button" data-index="${jobIndex}" data-target="${buttons.left.target}" data-direction="backward" data-color="${targetConfig.color}">
           <i class="nav-arrow left"></i>
         </button>
       </div>
@@ -277,10 +285,11 @@ function renderNavigationButtons(status, jobIndex) {
     html += `<div class="nav-button-container right${multipleClass}">`;
     
     buttons.right.forEach(btn => {
+      const targetConfig = getProgressConfig(btn.target);
       html += `
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;" data-color="${targetConfig.color}">
           <span class="nav-label">${btn.label}</span>
-          <button class="nav-button" data-index="${jobIndex}" data-target="${btn.target}" data-direction="forward">
+          <button class="nav-button" data-index="${jobIndex}" data-target="${btn.target}" data-direction="forward" data-color="${targetConfig.color}">
             <i class="nav-arrow right"></i>
           </button>
         </div>
@@ -338,6 +347,17 @@ function updateProgressBar(status, animate = true) {
       progressBarLabel.style.transition = '';
     });
   }
+}
+
+// Update navigation buttons (called when switching jobs or states)
+function updateNavigationButtons(status, jobIndex) {
+  const navButtonsContainer = document.getElementById('navButtonsContainer');
+  if (!navButtonsContainer) return;
+  
+  navButtonsContainer.innerHTML = renderNavigationButtons(status, jobIndex);
+  
+  // Reattach event listeners to new buttons
+  attachNavigationButtonListeners();
 }
 
 async function loadJobs() {
@@ -591,6 +611,9 @@ function renderJobDetail(job, index) {
     const status = job.application_status || 'Saved';
     updateProgressBar(status, false);
     
+    // Update navigation buttons
+    updateNavigationButtons(status, index);
+    
     // Attach event listeners to the detail panel buttons
     attachButtonListeners();
   } catch (error) {
@@ -692,8 +715,6 @@ function formatRelativeDate(dateString) {
 function renderWIPPanel(job, index, status) {
   return `
     <div class="job-card">
-      ${renderNavigationButtons(status, index)}
-      
       <div class="detail-panel-content">
         <div class="job-header">
           <div>
@@ -728,8 +749,6 @@ function renderWIPPanel(job, index, status) {
 function renderCoverLetterPanel(job, index) {
   return `
     <div class="job-card">
-      ${renderNavigationButtons('Drafting', index)}
-      
       <div class="detail-panel-content">
         <div class="job-header">
           <div>
@@ -765,8 +784,6 @@ function renderJobDataPanel(job, index) {
 
   return `
     <div class="job-card">
-      ${renderNavigationButtons('Saved', index)}
-      
       <div class="detail-panel-content">
         <div class="job-header">
           <div>
@@ -776,20 +793,6 @@ function renderJobDataPanel(job, index) {
           <div>
             ${job.source ? `<span class="badge">${escapeHtml(job.source)}</span>` : ''}
           </div>
-        </div>
-        
-        <div class="status-selector">
-          <label>Status:</label>
-          <select class="status-select" data-index="${index}">
-            <option value="Saved" ${(job.application_status || 'Saved') === 'Saved' ? 'selected' : ''}>Saved</option>
-            <option value="Applied" ${job.application_status === 'Applied' ? 'selected' : ''}>Applied</option>
-            <option value="Screening" ${job.application_status === 'Screening' ? 'selected' : ''}>Screening</option>
-            <option value="Interviewing" ${job.application_status === 'Interviewing' ? 'selected' : ''}>Interviewing</option>
-            <option value="Offer" ${job.application_status === 'Offer' ? 'selected' : ''}>Offer</option>
-            <option value="Accepted" ${job.application_status === 'Accepted' ? 'selected' : ''}>Accepted</option>
-            <option value="Rejected" ${job.application_status === 'Rejected' ? 'selected' : ''}>Rejected</option>
-            <option value="Withdrawn" ${job.application_status === 'Withdrawn' ? 'selected' : ''}>Withdrawn</option>
-          </select>
         </div>
         
         <div class="job-meta">
@@ -966,9 +969,23 @@ function renderDebugJob(job, index) {
   `;
 }
 
-function attachButtonListeners() {
+function attachNavigationButtonListeners() {
+  // Set colors on navigation button containers
+  document.querySelectorAll('.nav-button-container[data-color], .nav-button-container > div[data-color]').forEach(container => {
+    const color = container.dataset.color;
+    if (color) {
+      container.style.setProperty('--nav-color', color);
+    }
+  });
+  
   // Attach listeners to navigation buttons
   document.querySelectorAll('.nav-button').forEach(btn => {
+    // Set color CSS custom property from data attribute
+    const color = btn.dataset.color;
+    if (color) {
+      btn.style.setProperty('--nav-color', color);
+    }
+    
     btn.addEventListener('click', function() {
       const index = parseInt(this.dataset.index);
       const target = this.dataset.target;
@@ -976,6 +993,11 @@ function attachButtonListeners() {
       navigateToState(index, target, direction);
     });
   });
+}
+
+function attachButtonListeners() {
+  // Attach navigation button listeners (separated for reuse)
+  attachNavigationButtonListeners();
   
   // Attach listeners to job link buttons
   document.querySelectorAll('.btn-link').forEach(btn => {
@@ -990,15 +1012,6 @@ function attachButtonListeners() {
     btn.addEventListener('click', function() {
       const index = parseInt(this.dataset.index);
       deleteJob(index);
-    });
-  });
-
-  // Attach listeners to status selectors
-  document.querySelectorAll('.status-select').forEach(select => {
-    select.addEventListener('change', function() {
-      const index = parseInt(this.dataset.index);
-      const newStatus = this.value;
-      updateJobStatus(index, newStatus);
     });
   });
 
@@ -1059,6 +1072,8 @@ async function deleteJob(index) {
   await loadJobs();
 }
 
+// DEPRECATED: Use navigateToState() instead
+// This function was used by the old status dropdown (removed in Phase 6)
 async function updateJobStatus(index, newStatus) {
   const job = allJobs[index];
   const oldStatus = job.application_status || 'Saved';

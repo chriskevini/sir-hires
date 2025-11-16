@@ -24,11 +24,15 @@ Saved → Drafting → Applied → Screening → Interviewing → Offer → Acce
 - Panel has left/right padding to make room for navigation buttons
 
 ### Navigation Buttons
-- **Position:** Vertically centered on left/right edges, part of panel layout
-- **Design:** Simple round buttons (~80px) with arrow icons (← or →)
-- **Label:** Shows destination state (e.g., "Draft", "Applied", "Saved")
+- **Position:** Fixed at bottom of viewport, above progress bar (not part of scrollable content)
+- **Design:** Round buttons (~80px) with arrow icons (← or →), color-coded to destination state
+- **Label:** Shows destination state (e.g., "Draft", "Applied", "Saved") with matching color
 - **Visibility:** Only shown for valid state transitions
-- **Status dots:** Removed for now (will be reworked later)
+- **Color mapping:** Uses `getProgressConfig()` to determine destination state color
+- **Layout:** 
+  - Wrapper positioned at `bottom: 60px` (above 40px progress bar + 20px gap)
+  - Buttons use CSS custom property `var(--nav-color)` set dynamically
+  - Labels inherit same color for consistent visual preview
 
 ### Animation
 - **Slide left:** When moving forward (new content slides in from right)
@@ -38,17 +42,24 @@ Saved → Drafting → Applied → Screening → Interviewing → Offer → Acce
 ### Layout Structure
 ```
 ┌─────────────────────────────────────────────┐
+│         SCROLLABLE PANEL CONTENT            │
 │                                             │
-│  [←]        PANEL CONTENT           [→]     │
-│  Back                              Next     │
-│  Button                           Button    │
+│         (job details, cover letter,         │
+│          or WIP content)                    │
 │                                             │
+│─────────────────────────────────────────────│ ← Fixed position boundary
+│  [←]                               [→] [→]  │ ← Nav buttons (60px from bottom)
+│  Back                          Next  Next   │
+├─────────────────────────────────────────────┤
+│████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░│ ← Progress bar (40px, bottom: 0)
 └─────────────────────────────────────────────┘
 ```
 
-- Content area has left/right padding/margin to avoid button overlap
-- Buttons are part of the panel (not floating/fixed)
-- Buttons can be influenced by panel contents in the future
+- Content area has `padding-bottom: 60px` to prevent overlap with nav buttons
+- Navigation buttons fixed at `bottom: 60px`, positioned above progress bar
+- Progress bar fixed at `bottom: 0`, always visible (40px height)
+- Buttons positioned outside scrollable content (siblings to `#detailPanel`)
+- Multiple right buttons supported (e.g., Offer → Accepted/Rejected)
 
 ## Panel Content by State
 
@@ -151,9 +162,14 @@ function slideToPanel(status, direction) {
     newPanel.style.transform = 'translateX(0)';
   }, 50);
   
-  // Clean up after animation
+  // Clean up after animation - CRITICAL: Use removeProperty()
   setTimeout(() => {
+    // Remove inline styles to let CSS rules apply
+    panel.style.removeProperty('position');
+    panel.style.removeProperty('overflow');
+    panel.style.removeProperty('padding');
     panel.innerHTML = newContent;
+    
     isAnimating = false; // Allow storage listener to process queued reloads
     if (pendingReload) {
       pendingReload = false;
@@ -162,6 +178,8 @@ function slideToPanel(status, direction) {
   }, 450);
 }
 ```
+
+**CRITICAL:** After animation cleanup, use `style.removeProperty()` instead of setting to empty string. Setting `style.padding = ''` creates an inline style that overrides CSS rules, even though the value is empty. Using `removeProperty()` completely removes the inline style, allowing CSS rules to apply correctly.
 
 ### Button Visibility
 ```javascript
@@ -254,13 +272,32 @@ function getNavigationButtons(status) {
 - Smooth transition animations (0.4s cubic-bezier, synchronized with panel slides)
 - Width transition for fill, color fade for background
 
-### Phase 6: Polish & Testing
-- [ ] Remove status dropdown from job data panel
-- [ ] Test all state transitions
-- [ ] Test backward confirmation dialogs
-- [ ] Test Offer state with two right buttons
-- [ ] Test terminal state navigation
-- [ ] Verify no content overlap with buttons
+### Phase 6: Polish & Testing ✅ COMPLETE
+- [x] Remove status dropdown from job data panel
+- [x] Add color-coded navigation buttons (match destination state colors)
+- [x] Extend color scheme to navigation button labels
+- [x] Reposition navigation buttons above progress bar (fixed position)
+- [x] Fix animation padding issue (CSS property removal)
+- [x] Test all state transitions
+- [x] Test backward confirmation dialogs
+- [x] Test Offer state with two right buttons
+- [x] Test terminal state navigation
+- [x] Verify no content overlap with buttons
+
+**Critical Issue Fixed:** Animation padding bug where content padding would disappear after slide animations. Root cause: Setting inline `style.padding = ''` overrides CSS rules (empty string still counts as an inline style). Solution: Use `style.removeProperty('padding')` to remove inline styles entirely, allowing CSS rules to apply correctly.
+
+**Navigation Button Enhancement:** 
+- Buttons now color-coded to match their destination state
+- Uses CSS custom properties (`--nav-color`) set via JavaScript from `getProgressConfig()`
+- Both button backgrounds and labels inherit the destination color
+- Provides clear visual preview of where navigation will take you
+
+**Layout Refinement:**
+- Navigation buttons moved outside scrollable content area
+- Fixed position at bottom of viewport, above progress bar
+- Consistent spacing: 60px padding-bottom on panel, 40px progress bar height
+- Nav buttons positioned at `bottom: 60px` to sit above progress bar
+- Content no longer overlaps or hides buttons during scroll
 
 ## Files to Modify
 
@@ -297,5 +334,33 @@ function getNavigationButtons(status) {
 ---
 
 **Branch:** `feature/state-based-navigation`
-**Status:** Ready to implement
-**Estimated effort:** 2-3 hours for core functionality, 1-2 hours for polish
+**Status:** ✅ COMPLETE - All phases finished and tested
+**Total Implementation Time:** ~4-5 hours across 6 phases
+
+## Post-Implementation Insights
+
+### Key Learnings
+
+1. **CSS vs Inline Styles:** Setting `style.property = ''` doesn't remove the inline style—it sets it to an empty value that still overrides CSS. Always use `style.removeProperty('property')` to truly remove inline styles and let CSS rules apply.
+
+2. **Animation State Management:** Race conditions between storage listeners and animations require careful flag management (`isAnimating`, `pendingReload`) to prevent DOM interruptions mid-transition.
+
+3. **Color-Coded Navigation:** Using CSS custom properties (`--nav-color`) for dynamic theming provides flexible styling while keeping color logic centralized in JavaScript.
+
+4. **Fixed vs Scrollable Layout:** Separating fixed UI elements (nav buttons, progress bar) from scrollable content prevents overlap issues and maintains consistent visual hierarchy.
+
+5. **Two-Panel Animation:** Creating temporary animation panels with matching padding ensures smooth transitions without visual "jumping" or size changes.
+
+### Architecture Benefits
+
+- **Maintainable:** Status-to-panel mapping is explicit and easy to extend
+- **Performant:** Inline CSS transitions are smooth, no reflow during animations
+- **Extensible:** Adding new states requires minimal code changes
+- **User-Friendly:** Color coding and spatial navigation provide clear mental model
+
+### Future Enhancements
+
+- Add status-specific features to WIP panels (Screening, Interviewing, etc.)
+- Implement panel-specific actions (e.g., schedule interview, log feedback)
+- Consider adding subtle micro-animations for button interactions
+- Explore keyboard shortcuts for navigation (arrow keys)

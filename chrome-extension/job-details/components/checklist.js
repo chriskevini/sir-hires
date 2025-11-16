@@ -2,6 +2,7 @@
 // Self-contained: handles both rendering and event listeners
 
 import { BaseView } from '../base-view.js';
+import { statusOrder, progressConfig } from '../config.js';
 
 export class ChecklistComponent extends BaseView {
   constructor() {
@@ -20,7 +21,7 @@ export class ChecklistComponent extends BaseView {
    */
   render(checklist, status, jobIndex, isExpanded = false) {
     // Always show expander (3 dots), with expanded dropdown above if isExpanded is true
-    const expanderHtml = this.renderExpander(jobIndex);
+    const expanderHtml = this.renderExpander(status, jobIndex);
     
     if (isExpanded) {
       const expandedHtml = this.renderExpandedDropdown(checklist, status, jobIndex);
@@ -37,16 +38,26 @@ export class ChecklistComponent extends BaseView {
 
   /**
    * Render expander (3 dots) - always visible toggle control
+   * @param {string} status - Current application status
    * @param {number} jobIndex - Global index of the job
    * @returns {string} HTML string
    */
-  renderExpander(jobIndex) {
+  renderExpander(status, jobIndex) {
+    // Calculate next status color for expander dots
+    const currentIndex = statusOrder.indexOf(status);
+    const nextStatus = currentIndex >= 0 && currentIndex < statusOrder.length - 1 
+      ? statusOrder[currentIndex + 1] 
+      : null;
+    const nextColor = nextStatus && progressConfig[nextStatus] 
+      ? progressConfig[nextStatus].color 
+      : '#666'; // fallback gray
+    
     return `
       <div class="checklist-expander" data-index="${jobIndex}">
         <div class="checklist-dots">
-          <span class="checklist-dot">•</span>
-          <span class="checklist-dot">•</span>
-          <span class="checklist-dot">•</span>
+          <span class="checklist-dot" style="color: ${nextColor}">•</span>
+          <span class="checklist-dot" style="color: ${nextColor}">•</span>
+          <span class="checklist-dot" style="color: ${nextColor}">•</span>
         </div>
       </div>
     `;
@@ -62,6 +73,15 @@ export class ChecklistComponent extends BaseView {
   renderExpandedDropdown(checklist, status, jobIndex) {
     // Get items for current status
     const items = checklist && checklist[status] ? checklist[status] : [];
+    
+    // Calculate next status color for checked bullets
+    const currentIndex = statusOrder.indexOf(status);
+    const nextStatus = currentIndex >= 0 && currentIndex < statusOrder.length - 1 
+      ? statusOrder[currentIndex + 1] 
+      : null;
+    const nextColor = nextStatus && progressConfig[nextStatus] 
+      ? progressConfig[nextStatus].color 
+      : '#1a73e8'; // fallback blue
     
     // Handle empty or missing checklist for this status
     if (!items || items.length === 0) {
@@ -81,7 +101,7 @@ export class ChecklistComponent extends BaseView {
     const itemsHtml = sortedItems.map(item => `
       <div class="checklist-item" data-item-id="${item.id}" data-index="${jobIndex}">
         <span class="checklist-text">${this.escapeHtml(item.text)}</span>
-        <span class="checklist-bullet ${item.checked ? 'checked' : ''}">${item.checked ? '●' : '○'}</span>
+        <span class="checklist-bullet ${item.checked ? 'checked' : ''}" style="${item.checked ? `color: ${nextColor}` : ''}">${item.checked ? '●' : '○'}</span>
       </div>
     `).join('');
 

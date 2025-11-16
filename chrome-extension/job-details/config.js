@@ -44,22 +44,22 @@ export function getNavigationButtons(status) {
   
   switch(status) {
     case 'Researching':
-      buttons.right = [{ label: 'Draft', target: 'Drafting' }];
+      buttons.right = [{ label: 'Draft Documents', target: 'Drafting' }];
       break;
     
     case 'Drafting':
       buttons.left = { label: 'Researching', target: 'Researching' };
-      buttons.right = [{ label: 'Awaiting Review', target: 'Awaiting Review' }];
+      buttons.right = [{ label: 'Apply', target: 'Awaiting Review' }];
       break;
     
     case 'Awaiting Review':
       buttons.left = { label: 'Drafting', target: 'Drafting' };
-      buttons.right = [{ label: 'Interviewing', target: 'Interviewing' }];
+      buttons.right = [{ label: 'Begin Interviewing', target: 'Interviewing' }];
       break;
     
     case 'Interviewing':
       buttons.left = { label: 'Awaiting Review', target: 'Awaiting Review' };
-      buttons.right = [{ label: 'Deciding', target: 'Deciding' }];
+      buttons.right = [{ label: 'Received Offer', target: 'Deciding' }];
       break;
     
     case 'Deciding':
@@ -85,7 +85,7 @@ export function getNavigationButtons(status) {
     
     default:
       // Default case: treat as 'Researching'
-      buttons.right = [{ label: 'Draft', target: 'Drafting' }];
+      buttons.right = [{ label: 'Draft Documents', target: 'Drafting' }];
   }
   
   return buttons;

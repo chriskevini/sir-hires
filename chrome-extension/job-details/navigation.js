@@ -116,6 +116,23 @@ export class Navigation {
 
     // Attach new listeners
     this.attachNavigationButtonListeners();
+
+    // Apply CSS custom properties for colors
+    this.applyButtonColors();
+  }
+
+  /**
+   * Apply CSS custom properties for button colors based on data-color attributes
+   */
+  applyButtonColors() {
+    // Apply colors to all elements with data-color attributes
+    // This includes nav-button-container (left button) and inner divs (right buttons)
+    document.querySelectorAll('[data-color]').forEach(element => {
+      const color = element.dataset.color;
+      if (color) {
+        element.style.setProperty('--nav-color', color);
+      }
+    });
   }
 
   /**

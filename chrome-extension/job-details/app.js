@@ -43,6 +43,8 @@ export class JobDetailsApp {
     this.handleSaveNarrative = this.handleSaveNarrative.bind(this);
     this.handleOpenUrl = this.handleOpenUrl.bind(this);
     this.handleDeleteJob = this.handleDeleteJob.bind(this);
+    this.handleChecklistToggleExpand = this.handleChecklistToggleExpand.bind(this);
+    this.handleChecklistToggleItem = this.handleChecklistToggleItem.bind(this);
   }
 
   /**
@@ -97,6 +99,10 @@ export class JobDetailsApp {
     document.addEventListener('view:openUrl', this.handleOpenUrl);
     document.addEventListener('view:deleteJob', this.handleDeleteJob);
 
+    // Checklist events
+    document.addEventListener('checklist:toggleExpand', this.handleChecklistToggleExpand);
+    document.addEventListener('checklist:toggleItem', this.handleChecklistToggleItem);
+
     // Master resume button
     const masterResumeBtn = document.getElementById(domIds.masterResumeBtn);
     if (masterResumeBtn) {
@@ -128,15 +134,17 @@ export class JobDetailsApp {
 
     try {
       // Load data from storage
-      const [jobs, jobInFocusId, masterResume] = await Promise.all([
+      const [jobs, jobInFocusId, masterResume, checklistExpanded] = await Promise.all([
         this.storage.getAllJobs(),
         this.storage.getJobInFocus(),
-        this.storage.getMasterResume()
+        this.storage.getMasterResume(),
+        this.storage.getChecklistExpanded()
       ]);
 
       // Store in state
       this.state.setAllJobs(jobs);
       this.state.setJobInFocus(jobInFocusId);
+      this.state.setChecklistExpanded(checklistExpanded);
 
       // Check resume status
       this.checkResumeStatus(masterResume);
@@ -259,9 +267,12 @@ export class JobDetailsApp {
     const allJobs = this.state.getAllJobs();
     const globalIndex = allJobs.findIndex(j => j.id === job.id);
 
+    // Get checklist expanded state
+    const checklistExpanded = this.state.getChecklistExpanded();
+
     // Render job detail
     const detailPanel = document.getElementById(domIds.detailPanel);
-    this.mainView.render(detailPanel, job, globalIndex);
+    this.mainView.render(detailPanel, job, globalIndex, checklistExpanded);
 
     // Update navigation
     const status = job.applicationStatus || config.defaults.status;
@@ -535,6 +546,67 @@ export class JobDetailsApp {
     await this.loadJobs();
 
     console.log(`Deleted job at index ${index}`);
+  }
+
+  /**
+   * Handle checklist toggle expand event
+   * @param {CustomEvent} event - Custom event with detail: { index, isExpanded }
+   */
+  async handleChecklistToggleExpand(event) {
+    const { index, isExpanded } = event.detail;
+    
+    // Toggle global checklist expanded state
+    this.state.setChecklistExpanded(isExpanded);
+    await this.storage.setChecklistExpanded(isExpanded);
+
+    // Re-render the checklist for the current job WITH ANIMATION (user-triggered)
+    const jobs = this.state.getAllJobs();
+    const job = jobs[index];
+    
+    if (job && this.mainView.currentView && this.mainView.currentView.renderChecklist) {
+      this.mainView.currentView.renderChecklist(job, index, isExpanded, true); // animate = true
+    }
+
+    console.log(`Toggled checklist expand globally to ${isExpanded}`);
+  }
+
+  /**
+   * Handle checklist toggle item event
+   * @param {CustomEvent} event - Custom event with detail: { index, itemId }
+   */
+  async handleChecklistToggleItem(event) {
+    const { index, itemId } = event.detail;
+    const jobs = this.state.getAllJobs();
+    const job = jobs[index];
+
+    if (!job || !job.checklist) {
+      console.error('Job or checklist not found at index:', index);
+      return;
+    }
+
+    // Find and toggle the item in the current status's checklist
+    const currentStatusItems = job.checklist[job.applicationStatus];
+    if (!currentStatusItems) {
+      console.error('Checklist not found for status:', job.applicationStatus);
+      return;
+    }
+
+    const item = currentStatusItems.find(i => i.id === itemId);
+    if (item) {
+      item.checked = !item.checked;
+      job.updatedAt = new Date().toISOString();
+
+      await this.storage.updateJob(job.id, job);
+
+      // Get current expanded state
+      const checklistExpanded = this.state.getChecklistExpanded();
+
+      // Re-render the checklist
+      if (this.mainView.currentView && this.mainView.currentView.renderChecklist) {
+        this.mainView.currentView.renderChecklist(job, index, checklistExpanded);
+      }
+
+    }
   }
 
   /**

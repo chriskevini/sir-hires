@@ -1,4 +1,29 @@
 // Popup script - simplified launcher interface
+import { checklistTemplates } from './job-details/config.js';
+
+/**
+ * Initialize checklists for all application statuses
+ * @returns {Object} Checklist object with arrays for each status
+ */
+function initializeAllChecklists() {
+  const checklist = {};
+  
+  // Create checklist arrays for each status
+  Object.keys(checklistTemplates).forEach(status => {
+    const template = checklistTemplates[status];
+    const timestamp = Date.now();
+    
+    // Create checklist items with unique IDs
+    checklist[status] = template.map((templateItem, index) => ({
+      id: `item_${timestamp}_${status}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+      text: templateItem.text,
+      checked: false,
+      order: templateItem.order
+    }));
+  });
+  
+  return checklist;
+}
 
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
@@ -150,6 +175,7 @@ async function saveExtractedJob(jobData, usedLlm) {
           status: 'Researching',
           timestamp: new Date().toISOString()
         }],
+        checklist: existingJob.checklist || initializeAllChecklists(),
         updatedAt: new Date().toISOString()
       };
       
@@ -173,6 +199,7 @@ async function saveExtractedJob(jobData, usedLlm) {
           status: 'Researching',
           timestamp: new Date().toISOString()
         }],
+        checklist: initializeAllChecklists(),
         updatedAt: new Date().toISOString()
       };
       

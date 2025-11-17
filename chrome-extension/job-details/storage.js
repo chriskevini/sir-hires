@@ -1,8 +1,55 @@
 // Storage operations module - handles all chrome.storage.local interactions
 
+import { checklistTemplates } from './config.js';
+
 export class StorageService {
   constructor() {
     this.storageChangeListeners = [];
+  }
+  
+  // ===== Checklist Utilities =====
+  
+  /**
+   * Initialize checklists for all application statuses
+   * Creates a checklist object with arrays for each status
+   * @returns {Object} Checklist object with status keys
+   */
+  initializeAllChecklists() {
+    const checklist = {};
+    
+    // Create checklist arrays for each status
+    Object.keys(checklistTemplates).forEach(status => {
+      const template = checklistTemplates[status];
+      const timestamp = Date.now();
+      
+      // Create checklist items with unique IDs
+      checklist[status] = template.map((templateItem, index) => ({
+        id: `item_${timestamp}_${status}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+        text: templateItem.text,
+        checked: false,
+        order: templateItem.order
+      }));
+    });
+    
+    return checklist;
+  }
+  
+  /**
+   * Initialize checklist for a specific status (used for adding missing statuses)
+   * @param {string} status - Application status
+   * @returns {Array} Array of checklist items for the status
+   */
+  initializeChecklistForStatus(status) {
+    const template = checklistTemplates[status] || checklistTemplates['Researching'];
+    const timestamp = Date.now();
+    
+    // Create checklist items with unique IDs
+    return template.map((templateItem, index) => ({
+      id: `item_${timestamp}_${status}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+      text: templateItem.text,
+      checked: false,
+      order: templateItem.order
+    }));
   }
   
   // ===== Job Operations =====
@@ -204,6 +251,36 @@ export class StorageService {
     } catch (error) {
       console.error('Failed to load filters:', error);
       return null;
+    }
+  }
+  
+  // ===== Checklist UI Preferences =====
+  
+  /**
+   * Get global checklist expanded state
+   * @returns {Promise<boolean>} Whether checklist should be expanded (default: false)
+   */
+  async getChecklistExpanded() {
+    try {
+      const result = await chrome.storage.local.get('checklistExpanded');
+      return result.checklistExpanded !== undefined ? result.checklistExpanded : false;
+    } catch (error) {
+      console.error('Failed to get checklist expanded state:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Set global checklist expanded state
+   * @param {boolean} isExpanded - Whether checklist should be expanded
+   * @returns {Promise<void>}
+   */
+  async setChecklistExpanded(isExpanded) {
+    try {
+      await chrome.storage.local.set({ checklistExpanded: isExpanded });
+    } catch (error) {
+      console.error('Failed to set checklist expanded state:', error);
+      throw error;
     }
   }
   

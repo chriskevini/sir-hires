@@ -2,6 +2,7 @@
 // Coordinates between state-specific views, sidebar, and navigation
 
 import { ResearchingView } from './views/researching-view.js';
+import { ChecklistComponent } from './components/checklist.js';
 import { defaults } from './config.js';
 
 export class MainView {
@@ -20,6 +21,7 @@ export class MainView {
     this.currentView = null;
     this.currentJob = null;
     this.currentIndex = -1;
+    this.currentIsExpanded = false;
   }
 
   /**
@@ -27,8 +29,9 @@ export class MainView {
    * @param {HTMLElement} container - The detail panel container
    * @param {Object} job - The job object to render
    * @param {number} index - Global index of the job in allJobs array
+   * @param {boolean} isExpanded - Whether checklist should be expanded (global state)
    */
-  render(container, job, index) {
+  render(container, job, index, isExpanded = false) {
     if (!container) {
       console.error('MainView: Container element not found');
       return;
@@ -54,12 +57,13 @@ export class MainView {
     container.innerHTML = html;
 
     // Attach event listeners for the view
-    view.attachListeners(container, job, index);
+    view.attachListeners(container, job, index, isExpanded);
 
     // Store current state
     this.currentView = view;
     this.currentJob = job;
     this.currentIndex = index;
+    this.currentIsExpanded = isExpanded;
   }
 
   /**
@@ -85,6 +89,42 @@ export class MainView {
    * @returns {Object} A view-like object
    */
   createWIPView() {
+    const checklistComponent = new ChecklistComponent();
+    
+    // Helper function to render checklist (needs to be defined outside the returned object)
+    const renderChecklist = (job, index, isExpanded = false, animate = false) => {
+      const checklistContainer = document.getElementById('checklistContainer');
+      if (!checklistContainer) {
+        console.error('Checklist container not found');
+        return;
+      }
+
+      // Set up callbacks first (before update)
+      checklistComponent.setOnToggleExpand((jobIndex, isExpanded) => {
+        const event = new CustomEvent('checklist:toggleExpand', {
+          detail: { index: jobIndex, isExpanded }
+        });
+        document.dispatchEvent(event);
+      });
+      
+      checklistComponent.setOnToggleItem((jobIndex, itemId) => {
+        const event = new CustomEvent('checklist:toggleItem', {
+          detail: { index: jobIndex, itemId }
+        });
+        document.dispatchEvent(event);
+      });
+      
+      // Use update() method to handle animation
+      checklistComponent.update(
+        checklistContainer,
+        job.checklist, 
+        job.applicationStatus, 
+        index, 
+        isExpanded,
+        animate
+      );
+    };
+    
     return {
       render: (job, index) => {
         const status = job.applicationStatus || 'Unknown';
@@ -119,7 +159,7 @@ export class MainView {
           </div>
         `;
       },
-      attachListeners: (container, job, index) => {
+      attachListeners: (container, job, index, isExpanded = false) => {
         // Handle view posting
         const viewBtn = container.querySelector('.btn-link');
         if (viewBtn) {
@@ -141,9 +181,20 @@ export class MainView {
             document.dispatchEvent(event);
           });
         }
+        
+        // Render checklist in the fixed container
+        renderChecklist(job, index, isExpanded);
       },
+      renderChecklist: renderChecklist,
       cleanup: () => {
-        // No cleanup needed for WIP view (uses delegated listeners)
+        // Cleanup checklist
+        checklistComponent.cleanup();
+        
+        // Clear checklist container
+        const checklistContainer = document.getElementById('checklistContainer');
+        if (checklistContainer) {
+          checklistContainer.innerHTML = '';
+        }
       }
     };
   }
@@ -183,7 +234,7 @@ export class MainView {
       return;
     }
 
-    this.currentView.attachListeners(container, this.currentJob, this.currentIndex);
+    this.currentView.attachListeners(container, this.currentJob, this.currentIndex, this.currentIsExpanded);
   }
 
   /**
@@ -204,5 +255,6 @@ export class MainView {
     this.currentView = null;
     this.currentJob = null;
     this.currentIndex = -1;
+    this.currentIsExpanded = false;
   }
 }

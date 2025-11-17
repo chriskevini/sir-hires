@@ -331,7 +331,7 @@ export class DraftingView extends BaseView {
   }
 
   /**
-   * Start auto-save interval
+   * Start auto-save interval and blur listeners
    * @param {HTMLElement} container - The container element
    * @param {Object} job - The job object
    * @param {number} index - The global index of the job
@@ -342,10 +342,74 @@ export class DraftingView extends BaseView {
       clearInterval(this.autoSaveInterval);
     }
     
-    // Auto-save every 5 seconds
+    // Add blur listeners for immediate save when user clicks away
+    const textareas = container.querySelectorAll('.document-editor');
+    textareas.forEach(textarea => {
+      const blurHandler = () => {
+        const documentKey = textarea.dataset.field.replace('-text', '');
+        this.saveDocumentOnBlur(container, job, index, documentKey);
+      };
+      this.trackListener(textarea, 'blur', blurHandler);
+    });
+    
+    // Auto-save every 5 seconds as backup (for long typing sessions)
     this.autoSaveInterval = setInterval(() => {
       this.performAutoSave(container, job, index);
     }, 5000);
+  }
+
+  /**
+   * Save document on blur (immediate save when user clicks away)
+   * @param {HTMLElement} container - The container element
+   * @param {Object} job - The job object
+   * @param {number} index - The global index of the job
+   * @param {string} documentKey - The document key (e.g., 'tailoredResume', 'coverLetter')
+   */
+  saveDocumentOnBlur(container, job, index, documentKey) {
+    const textarea = container.querySelector(`[data-field="${documentKey}-text"]`);
+    if (!textarea) return;
+    
+    const currentText = textarea.value;
+    const lastSaved = this.lastSavedContent[documentKey] || {};
+    
+    // Only save if content changed
+    if (currentText !== lastSaved.text) {
+      console.log(`[DraftingView] Blur detected on ${documentKey}, saving immediately...`);
+      this.saveDocumentImmediately(container, job, index, documentKey, currentText);
+    }
+  }
+
+  /**
+   * Save a document immediately (used by both blur and interval saves)
+   * @param {HTMLElement} container - The container element
+   * @param {Object} job - The job object
+   * @param {number} index - The global index of the job
+   * @param {string} documentKey - The document key
+   * @param {string} text - The document text content
+   */
+  saveDocumentImmediately(container, job, index, documentKey, text) {
+    // Generate default title from config
+    const defaultTitle = this.defaultDocuments[documentKey]?.defaultTitle 
+      ? this.defaultDocuments[documentKey].defaultTitle(job) 
+      : 'Untitled';
+    
+    const now = new Date().toISOString();
+    
+    // Dispatch save event
+    this.saveDocument(index, documentKey, {
+      title: defaultTitle,
+      text: text
+    });
+    
+    // Update last saved content with lastEdited timestamp
+    this.lastSavedContent[documentKey] = {
+      title: defaultTitle,
+      text: text,
+      lastEdited: now
+    };
+    
+    // Update save indicator immediately (no "Saving..." flash)
+    this.updateSaveIndicator(container, 'saved');
   }
 
   /**
@@ -371,34 +435,14 @@ export class DraftingView extends BaseView {
       
       // Check if content changed
       if (currentText !== lastSaved.text) {
-        console.log(`Changes detected in ${key}, saving...`);
-        
-        // Generate default title from config
-        const defaultTitle = this.defaultDocuments[key]?.defaultTitle 
-          ? this.defaultDocuments[key].defaultTitle(job) 
-          : 'Untitled';
-        
-        const now = new Date().toISOString();
-        
-        this.saveDocument(index, key, {
-          title: defaultTitle,
-          text: currentText
-        });
-        
-        // Update last saved content with lastEdited timestamp
-        this.lastSavedContent[key] = {
-          title: defaultTitle,
-          text: currentText,
-          lastEdited: now
-        };
-        
+        console.log(`[DraftingView] Interval auto-save: changes detected in ${key}`);
+        this.saveDocumentImmediately(container, job, index, key, currentText);
         hasChanges = true;
       }
     });
     
     if (hasChanges) {
-      console.log('Updating save indicator...');
-      this.updateSaveIndicator(container, 'saved');
+      console.log('[DraftingView] Auto-save completed');
     }
   }
 

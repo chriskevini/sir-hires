@@ -223,6 +223,21 @@ Synthesize the requested document now.`
   }
 };
 
+// Default document templates
+export const documentTemplates = {
+  tailoredResume: `# Instructions for AI
+
+Write me a tailored resume for this position. Select the most relevant experiences and achievements from my master resume that align with the job requirements.
+
+Keep the format clean and professional. Focus on quantifiable achievements.`,
+  
+  coverLetter: `# Instructions for AI
+
+Write me a professional cover letter for this position. Use a business letter format and highlight my most relevant accomplishments.
+
+Address it to the "Hiring Team" and make sure to connect my experience to their specific needs.`
+};
+
 // Checklist templates for each status
 export const checklistTemplates = {
   'Researching': [

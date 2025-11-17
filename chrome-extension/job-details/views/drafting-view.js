@@ -2,6 +2,7 @@
 import { BaseView } from '../base-view.js';
 import { ChecklistComponent } from '../components/checklist.js';
 import { SynthesisModal } from '../components/synthesis-modal.js';
+import { documentTemplates } from '../config.js';
 
 export class DraftingView extends BaseView {
   constructor() {
@@ -812,21 +813,21 @@ export class DraftingView extends BaseView {
   }
 
   /**
-   * Create default documents structure
+   * Create default document structure for a job
    * @param {Object} job - Job object
-   * @returns {Object} Documents object
+   * @returns {Object} Default documents object
    */
   createDefaultDocuments(job) {
     return {
       tailoredResume: {
         title: this.defaultDocuments.tailoredResume.defaultTitle(job),
-        text: '',
+        text: documentTemplates.tailoredResume,
         lastEdited: null,
         order: 0
       },
       coverLetter: {
         title: this.defaultDocuments.coverLetter.defaultTitle(job),
-        text: '',
+        text: documentTemplates.coverLetter,
         lastEdited: null,
         order: 1
       }

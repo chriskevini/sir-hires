@@ -1,11 +1,13 @@
 // View for "Drafting" state - markdown editor for tailored resumes and cover letters
 import { BaseView } from '../base-view.js';
 import { ChecklistComponent } from '../components/checklist.js';
+import { SynthesisModal } from '../components/synthesis-modal.js';
 
 export class DraftingView extends BaseView {
   constructor() {
     super();
     this.checklistComponent = new ChecklistComponent();
+    this.synthesisModal = new SynthesisModal();
     this.activeTab = 'tailoredResume';
     this.autoSaveInterval = null;
     this.lastSavedContent = {}; // Track last saved content to detect changes
@@ -628,10 +630,58 @@ export class DraftingView extends BaseView {
     const synthesizeBtn = container.querySelector('#synthesizeBtn');
     
     if (synthesizeBtn) {
-      const clickHandler = () => {
-        // TODO: Open synthesis modal (Phase 5)
-        console.log('Synthesize button clicked - Phase 5 feature');
-        alert('LLM Synthesis feature coming in Phase 5!');
+      const clickHandler = async () => {
+        // Open synthesis modal with current job, index, and active tab
+        await this.synthesisModal.open(job, index, this.activeTab);
+        
+        // Set callback to handle generated content
+        this.synthesisModal.onGenerate = (jobIndex, documentKey, generatedContent) => {
+          console.log(`[DraftingView] Received generated content for ${documentKey}`);
+          
+          // Get the textarea for the active document
+          const textarea = container.querySelector(`[data-field="${documentKey}-text"]`);
+          if (!textarea) {
+            console.error(`[DraftingView] Textarea not found for ${documentKey}`);
+            this.showToast('Failed to insert generated content', 'error');
+            return;
+          }
+          
+          // Insert generated content into editor
+          textarea.value = generatedContent;
+          
+          // Update save indicator to trigger save
+          this.updateSaveIndicator(container, 'saving');
+          
+          // Perform immediate save
+          const defaultTitle = this.defaultDocuments[documentKey]?.defaultTitle 
+            ? this.defaultDocuments[documentKey].defaultTitle(job) 
+            : 'Untitled';
+          
+          const now = new Date().toISOString();
+          
+          this.saveDocument(index, documentKey, {
+            title: defaultTitle,
+            text: generatedContent
+          });
+          
+          // Update last saved content
+          this.lastSavedContent[documentKey] = {
+            title: defaultTitle,
+            text: generatedContent,
+            lastEdited: now
+          };
+          
+          // Update save indicator
+          setTimeout(() => {
+            this.updateSaveIndicator(container, 'saved');
+          }, 500);
+          
+          // Update word count
+          this.updateWordCount(container);
+          
+          // Show success toast
+          this.showToast('Document generated successfully!', 'success');
+        };
       };
       this.trackListener(synthesizeBtn, 'click', clickHandler);
     }
@@ -873,6 +923,9 @@ export class DraftingView extends BaseView {
     
     // Cleanup checklist
     this.checklistComponent.cleanup();
+    
+    // Cleanup synthesis modal
+    this.synthesisModal.cleanup();
 
     // Clear checklist container
     const checklistContainer = document.getElementById('checklistContainer');

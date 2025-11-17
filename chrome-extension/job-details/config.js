@@ -140,6 +140,68 @@ export const defaults = {
   }
 };
 
+// LLM configuration for different tasks
+export const llmConfig = {
+  // Data extraction LLM (for job data extraction from web pages)
+  extraction: {
+    defaultModel: 'NuExtract-2.0-2B',
+    alternativeModels: ['NuExtract-2.0-8B'],
+    endpoint: 'http://localhost:1234/v1/chat/completions',
+    description: 'Optimized for structured data extraction from job postings'
+  },
+  
+  // Document synthesis LLM (for resume/cover letter generation)
+  synthesis: {
+    defaultModel: 'Llama-3.1-8B-Instruct',
+    alternativeModels: ['Mistral-7B-Instruct', 'Qwen-2.5-7B-Instruct'],
+    endpoint: 'http://localhost:1234/v1/chat/completions',
+    modelsEndpoint: 'http://localhost:1234/v1/models',
+    description: 'Optimized for creative writing and document generation',
+    maxTokens: 2000,
+    temperature: 0.7,
+    
+    // Base prompts for document generation (from DRAFTING_VIEW_PLAN.md)
+    // Note: Single prompt per document type - LLM adapts based on whether {currentDraft} is empty or not
+    prompts: {
+      resume: `You are a professional career counselor specializing in crafting high-impact resumes.
+Your task is to analyze the provided Job Listing, extract relevant achievements from the Master Resume and follow the Applicant's Narrative Strategy instructions.
+Synthesize a resume by copying bullet points from the Master Resume verbatim.
+The final output must match the formatting of the master resume with only relevant sections.
+
+INPUTS
+[Master Resume]{masterResume}
+[Job Title]{jobTitle}
+[Company]{company}
+[Responsibilities]{responsibilities}
+[Requirements]{requirements}
+[About the job]{aboutJob}
+[About the company]{aboutCompany}
+[Narrative Strategy]{narrativeStrategy}
+[Current Draft]{currentDraft}
+
+Synthesize now.`,
+
+      coverLetter: `You are a professional career counselor specializing in crafting high-impact cover letters.
+Your task is to analyze the provided Job Listing, extract relevant achievements from the Master Resume, and strictly follow the Applicant's Narrative Strategy instructions.
+Synthesize a cohesive, tailored, and intriguing cover letter addressed to a Hiring Manager. Do not include any placeholder text (e.g., [Hiring Manager Name]).
+The final output must be only the cover letter, formatted professionally.
+
+INPUTS
+[Master Resume]{masterResume}
+[Job Title]{jobTitle}
+[Company]{company}
+[Responsibilities]{responsibilities}
+[Requirements]{requirements}
+[About the job]{aboutJob}
+[About the company]{aboutCompany}
+[Narrative Strategy]{narrativeStrategy}
+[Current Draft]{currentDraft}
+
+Synthesize now.`
+    }
+  }
+};
+
 // Checklist templates for each status
 export const checklistTemplates = {
   'Researching': [

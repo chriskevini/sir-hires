@@ -160,27 +160,52 @@ export const llmConfig = {
     maxTokens: 2000,
     temperature: 0.7,
 
-    // Base prompts for document generation (from DRAFTING_VIEW_PLAN.md)
-    // Note: Single prompt per document type - LLM adapts based on whether {currentDraft} is empty or not
+    // Universal prompt for document generation
+    // LLM determines document type from user instructions in {currentDraft}
     prompts: {
-      resume: `
-**Role:** You are an expert career counselor specializing in creating highly targeted, **shortened**, and impactful resumes specifically optimized for a single job description.
+      universal: `**Role:** You are an expert career counselor specializing in creating highly targeted, impactful job application documents (resumes, cover letters, and other materials).
 
-**Task:** Synthesize a **NEW, SHORTENED** resume artifact using only relevant content from the Master Resume, strictly adhering to all constraints.
+**Task:** Synthesize a document based on the user's instructions in the [Current Draft] field. The user will specify what type of document they want (e.g., "Write me a cover letter", "Create a tailored resume", "Draft a follow-up email").
 
 **Process:**
-1.  **Analyze & Filter:** Critically analyze the **Job Listing** inputs ([Job Title], [Responsibilities], [Requirements], [About the job], [About the company]) to identify key requirements and desired skills.
-2.  **Strategic Selection:** Scan the **[Master Resume]** and **SELECT NO MORE THAN 60%** of the original bullet points, focusing only on the most relevant achievements that directly match the job requirements.
-3.  **Verbatim Copy:** **STRICTLY COPY** the selected bullet points *verbatim* from the [Master Resume]. Do not edit, summarize, or alter the wording of any achievement.
-4.  **Implement Strategy & Structure:** **STRICTLY ADHERE** to the tone, focus, and structure defined in the **[Narrative Strategy]**. Recombine the selected bullet points into logical, meaningful, and job-specific sections. **ALL UNUSED CONTENT MUST BE DISCARDED AND NOT APPEAR IN THE FINAL OUTPUT.**
-5.  **Refine (Optional):** Use the **[Current Draft]** only for reference or to ensure improvements are made, but produce a final, polished version.
+1.  **Understand Instructions:** Read the [Current Draft] carefully to determine:
+    - What type of document to create (resume, cover letter, email, etc.)
+    - Any specific requirements or constraints mentioned by the user
+    - Whether this is a new draft or refinement of existing content
+
+2.  **Analyze Job Context:** Critically analyze the Job Listing inputs ([Job Title], [Responsibilities], [Requirements], [About the job], [About the company]) to identify key requirements.
+
+3.  **Select Relevant Content:** Scan the [Master Resume] and select only the most relevant achievements that align with:
+    - The job requirements
+    - The document type requested
+    - The user's specified focus or strategy
+
+4.  **Implement Strategy:** STRICTLY ADHERE to the tone, focus, and structure defined in the [Narrative Strategy].
+
+5.  **Generate Output:** Create the requested document following these guidelines:
+
+    **For Resumes:**
+    - SELECT NO MORE THAN 60% of bullet points from [Master Resume]
+    - STRICTLY COPY selected bullets verbatim (do not edit wording)
+    - MATCH THE EXACT FORMATTING of the [Master Resume]
+    - Discard all unused content
+    - CRITICAL: If output is full unmodified [Master Resume], task fails
+
+    **For Cover Letters:**
+    - Professional business letter format
+    - Address to "Hiring Team" or "Hiring Manager"
+    - Select most relevant quantifiable achievements
+    - No placeholder text (use actual inputs)
+
+    **For All Documents:**
+    - Output ONLY the document (no notes, comments, or explanations)
+    - Use only content from [Master Resume] or derived from provided inputs
+    - Never add content derived from [Narrative Strategy] - use it only for guidance
 
 **Constraints:**
-* **CRITICAL FAILURE CONDITION:** If the output is the **full, unmodified [Master Resume]**, the task is considered a failure. You **MUST** omit large sections and specific bullet points that are not directly relevant to the [Job Title] and [Responsibilities].
-* **Format Duplication:** The final output **MUST EXACTLY MATCH THE ORIGINAL FORMATTING, STYLE, AND SECTION HEADINGS** of the provided **[Master Resume]**. Pay close attention to spacing, bullet styles, and font treatments (bolding, italics).
-* **New Content Prohibition:** You **MUST NOT** add any bullet points, sections, or text (such as "Narrative Focus," "Strategy Summary," or "Key Theme") that are derived from the **[Narrative Strategy]** input. The narrative strategy is for **guidance only** on *which* existing bullet points to select and *how* to order them, **not** for content creation.
-* **Content Purity:** Only content that exists within the **[Master Resume]** may be used.
-* **Output Purity:** The final output must be **only the resume**. **ABSOLUTELY NO** notes, comments, explanations, or introductory text should be included before or after the resume.
+* **Output Purity:** Final output must be ONLY the requested document. NO notes, explanations, or introductory text.
+* **No Placeholder Text:** Use actual values from inputs, never placeholders like [Your Name] or [Date].
+* **Content Source:** Only use content from [Master Resume] or information from the job listing inputs.
 
 **Inputs:**
 [Master Resume]{masterResume}
@@ -193,36 +218,7 @@ export const llmConfig = {
 [Narrative Strategy]{narrativeStrategy}
 [Current Draft]{currentDraft}
 
-Synthesize the final, formatted, and targeted resume now.`,
-
-      coverLetter: `
-**Role:** You are an expert career counselor specializing in crafting high-impact, persuasive, and perfectly tailored cover letters.
-
-**Task:** Synthesize a complete, professional, and ready-to-send cover letter.
-
-**Process:**
-1.  **Analyze & Extract:** Critically analyze the **Job Listing** inputs ([Job Title], [Responsibilities], [Requirements], [About the job], [About the company]).
-2.  **Select & Match:** Scan the **[Master Resume]** and select only the **most relevant and quantifiable achievements** that directly align with the job's needs.
-3.  **Implement Strategy:** **STRICTLY ADHERE** to the tone, focus, and structure defined in the **[Narrative Strategy]**.
-4.  **Refine (Optional):** Use the **[Current Draft]** only for reference or to ensure improvements are made, but produce a final, polished version.
-
-**Constraints:**
-* **Format:** The final output must be **only the cover letter**, professionally formatted (business letter style).
-* **Target:** Address the letter to a **Hiring Team** or **Hiring Manager** (e.g., "Dear [Company] Hiring Team,").
-* **No Placeholders:** **ABSOLUTELY NO** placeholder text (e.g., [Hiring Manager Name], [Your Name], [Date]). Use the actual inputs provided.
-
-**Inputs:**
-[Master Resume]{masterResume}
-[Job Title]{jobTitle}
-[Company]{company}
-[Responsibilities]{responsibilities}
-[Requirements]{requirements}
-[About the job]{aboutJob}
-[About the company]{aboutCompany}
-[Narrative Strategy]{narrativeStrategy}
-[Current Draft]{currentDraft}
-
-Synthesize the final, polished cover letter now.`
+Synthesize the requested document now.`
     }
   }
 };

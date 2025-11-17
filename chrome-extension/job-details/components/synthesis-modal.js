@@ -20,7 +20,7 @@ export class SynthesisModal extends BaseView {
 
   /**
    * Load custom prompt template from storage or fall back to default
-   * @param {string} documentKey - Document type ('tailoredResume' or 'coverLetter')
+   * @param {string} documentKey - Document type (used for backward compatibility, now uses universal prompt)
    * @returns {string} Prompt template
    */
   async loadCustomPrompt(documentKey) {
@@ -28,22 +28,18 @@ export class SynthesisModal extends BaseView {
       const result = await chrome.storage.local.get(['customPrompts']);
       const customPrompts = result.customPrompts || {};
       
-      // Determine which template key to use
-      const templateKey = documentKey === 'tailoredResume' ? 'resume' : 'coverLetter';
-      
-      // Return custom prompt if exists, otherwise fall back to config default
-      return customPrompts[templateKey] || llmConfig.synthesis.prompts[templateKey];
+      // Use single 'universal' key for all document types
+      return customPrompts.universal || llmConfig.synthesis.prompts.universal;
     } catch (error) {
       console.error('[SynthesisModal] Failed to load custom prompt:', error);
-      // Fall back to config default on error
-      const templateKey = documentKey === 'tailoredResume' ? 'resume' : 'coverLetter';
-      return llmConfig.synthesis.prompts[templateKey];
+      // Fall back to universal prompt on error
+      return llmConfig.synthesis.prompts.universal;
     }
   }
 
   /**
    * Save custom prompt template to storage
-   * @param {string} documentKey - Document type ('tailoredResume' or 'coverLetter')
+   * @param {string} documentKey - Document type (unused, kept for API compatibility)
    * @param {string} template - Prompt template to save
    */
   async saveCustomPrompt(documentKey, template) {
@@ -51,14 +47,11 @@ export class SynthesisModal extends BaseView {
       const result = await chrome.storage.local.get(['customPrompts']);
       const customPrompts = result.customPrompts || {};
       
-      // Determine which template key to use
-      const templateKey = documentKey === 'tailoredResume' ? 'resume' : 'coverLetter';
-      
-      // Save template
-      customPrompts[templateKey] = template;
+      // Save to single 'universal' key
+      customPrompts.universal = template;
       await chrome.storage.local.set({ customPrompts });
       
-      console.log(`[SynthesisModal] Saved custom prompt for ${templateKey}`);
+      console.log('[SynthesisModal] Saved custom universal prompt');
     } catch (error) {
       console.error('[SynthesisModal] Failed to save custom prompt:', error);
     }
@@ -66,29 +59,25 @@ export class SynthesisModal extends BaseView {
 
   /**
    * Clear custom prompt and revert to default
-   * @param {string} documentKey - Document type ('tailoredResume' or 'coverLetter')
+   * @param {string} documentKey - Document type (unused, kept for API compatibility)
    */
   async clearCustomPrompt(documentKey) {
     try {
       const result = await chrome.storage.local.get(['customPrompts']);
       const customPrompts = result.customPrompts || {};
       
-      // Determine which template key to use
-      const templateKey = documentKey === 'tailoredResume' ? 'resume' : 'coverLetter';
-      
-      // Clear custom prompt
-      customPrompts[templateKey] = null;
+      // Clear universal prompt
+      customPrompts.universal = null;
       await chrome.storage.local.set({ customPrompts });
       
-      console.log(`[SynthesisModal] Cleared custom prompt for ${templateKey}`);
+      console.log('[SynthesisModal] Cleared custom universal prompt');
       
-      // Return default prompt from config
-      return llmConfig.synthesis.prompts[templateKey];
+      // Return default universal prompt
+      return llmConfig.synthesis.prompts.universal;
     } catch (error) {
       console.error('[SynthesisModal] Failed to clear custom prompt:', error);
-      // Fall back to config default on error
-      const templateKey = documentKey === 'tailoredResume' ? 'resume' : 'coverLetter';
-      return llmConfig.synthesis.prompts[templateKey];
+      // Fall back to universal prompt on error
+      return llmConfig.synthesis.prompts.universal;
     }
   }
 
@@ -312,8 +301,8 @@ export class SynthesisModal extends BaseView {
   async renderModalContent() {
     if (!this.activeJob) return '';
 
-    // Get document label
-    const documentLabel = this.activeDocumentKey === 'tailoredResume' ? 'Resume/CV' : 'Cover Letter';
+    // Use generic document label since we now support universal generation
+    const documentLabel = 'Document';
 
     // Check for master resume (critical requirement)
     const masterResumeResult = await chrome.storage.local.get(['masterResume']);
@@ -377,13 +366,17 @@ export class SynthesisModal extends BaseView {
       </div>
     ` : '';
 
-    // Show warning if existing content detected
-    const existingContentWarning = this.hasExistingContent ? `
+    // Show different message based on whether user has started writing
+    const draftInstructions = this.hasExistingContent ? `
       <div class="existing-content-warning">
-        <p>⚠️ <strong>It looks like you already began writing this document.</strong></p>
-        <p>The LLM will use this as a draft to expand upon.</p>
+        <p>💡 <strong>It looks like you already started writing.</strong></p>
+        <p>The LLM will use your draft to understand what document to create and expand upon your instructions.</p>
       </div>
-    ` : '';
+    ` : `
+      <div class="existing-content-warning">
+        <p>💡 <strong>Tip:</strong> In the text editor, write a brief instruction like "Write me a cover letter" or "Create a tailored resume" to tell the LLM what document to generate.</p>
+      </div>
+    `;
 
     return `
       <div class="synthesis-modal">
@@ -408,9 +401,11 @@ export class SynthesisModal extends BaseView {
           <p class="prompt-help-text">
             <strong>Available placeholders:</strong> 
             {masterResume}, {jobTitle}, {company}, {aboutJob}, {aboutCompany}, {responsibilities}, {requirements}, {narrativeStrategy}, {currentDraft}
+            <br>
+            <strong>Note:</strong> The LLM will determine the document type from the user's instructions in {currentDraft}.
           </p>
 
-          ${existingContentWarning}
+          ${draftInstructions}
           ${missingFieldsWarning}
         </div>
 

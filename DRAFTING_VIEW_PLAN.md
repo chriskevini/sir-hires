@@ -542,12 +542,14 @@ drafting-view (rendered in detail panel by main-view)
      // Check narrative strategy
      // Check current draft
      // Return array of checklist items with status
+     // Note: Show warnings only, do not block generation
    }
    
    generateRecommendations(checklistResults) {
-     // If missing critical data → show error
+     // If missing critical data → show warning (not error)
      // If missing narrative → suggest research
      // If missing details → suggest more context
+     // User can still proceed with generation
    }
    ```
 
@@ -555,73 +557,71 @@ drafting-view (rendered in detail panel by main-view)
    ```javascript
    async synthesizeDocument(options) {
      // options: { documentKey, model, action: 'generate'|'refine', context }
+     // Test connection to LM Studio
+     // Fetch available models from API
      // Build prompt with context
      // Call LM Studio API
      // Return generated content
-     // Handle errors
+     // Handle errors (connection failed, model not loaded, API errors)
    }
    ```
+   
+   **Connection Testing:**
+   - Test connection to `http://localhost:1234` before synthesis
+   - If connection fails: Show error modal with instructions
+   - Error message: "Cannot connect to LM Studio. Please ensure LM Studio is running on http://localhost:1234"
+   - Log detailed errors to console for debugging
+   
+   **Model Selection:**
+   - Fetch available models from `/v1/models` endpoint
+   - Display all available models in dropdown
+   - Default to `llmConfig.synthesis.defaultModel` if available
+   - If no models available: Show warning in modal
 
 5. **Design prompts for resume and cover letter**
    
-   **Resume Prompt Structure:**
+   **Note**: Prompts will be refined by user after initial implementation. Use placeholder prompts for Phase 5.
+   
+   **Resume Prompt:**
    ```
-   You are an expert resume writer. Generate a tailored resume for the following job.
-   
-   Master Resume:
-   {masterResume}
-   
-   Job Title: {jobTitle}
-   Company: {company}
-   Job Description: {aboutJob}
-   Requirements: {requirements}
-   
-   Narrative Strategy:
-   {narrativeStrategy}
-   
-   [IF refining existing]
-   Current Draft:
-   {currentDraft}
-   
-   Instructions:
-   - Tailor the master resume to highlight relevant experience for this specific job
-   - Use keywords from the job description and requirements
-   - Follow the narrative strategy provided
-   - Format in Markdown
-   - Keep it concise and ATS-friendly
-   [IF refining]
-   - Improve the current draft by incorporating the context above
-   - Maintain the user's writing style
+    You are a professional career counselor specializing in crafting high-impact resumes.
+  Your task is to analyze the provided Job Listing, extract relevant achievements from the Master Resume and follow the Applicant's Narrative Strategy instructions.
+  Synthesize a resume by copying bullet points from the Master Resume verbatim.
+  The final output must match the formatting of the master resume with only relevant sections. 
+
+  INPUTS
+  [Master Resume]{masterResume}
+  [Job Title]{jobTitle}
+  [Company]{company}
+  [Responsibilities]{responsibilities}
+  [Requirements]{requirements}
+  [About the job]{aboutJob}
+  [About the company]{aboutCompany}
+  [Narrative Strategy]{narrativeStrategy}
+  [Current Draft]{currentDraft}
+
+  Synthesize now.
    ```
    
-   **Cover Letter Prompt Structure:**
+   **Cover Letter Prompt:**
    ```
-   You are an expert cover letter writer. Generate a tailored cover letter for the following job.
-   
-   Job Title: {jobTitle}
-   Company: {company}
-   Job Description: {aboutJob}
-   Company Information: {aboutCompany}
-   
-   Candidate Background (from Master Resume):
-   {masterResume}
-   
-   Narrative Strategy:
-   {narrativeStrategy}
-   
-   [IF refining existing]
-   Current Draft:
-   {currentDraft}
-   
-   Instructions:
-   - Write a compelling cover letter that connects the candidate's background to the job
-   - Show enthusiasm for the company and role
-   - Follow the narrative strategy provided
-   - Format in Markdown
-   - Keep it to one page (300-400 words)
-   [IF refining]
-   - Improve the current draft by incorporating the context above
-   - Maintain the user's tone and voice
+    You are a professional career counselor specializing in crafting high-impact cover letters.
+  Your task is to analyze the provided Job Listing, extract relevant achievements from the Master Resume, and strictly follow the Applicant's Narrative Strategy instructions.
+  Synthesize a cohesive, tailored, and intriguing cover letter addressed to a Hiring Manager. Do not include any placeholder text (e.g., [Hiring Manager Name]).
+  The final output must be only the cover letter, formatted professionally.
+
+  INPUTS
+  [Master Resume]{masterResume}
+  [Job Title]{jobTitle}
+  [Company]{company}
+  [Responsibilities]{responsibilities}
+  [Requirements]{requirements}
+  [About the job]{aboutJob}
+  [About the company]{aboutCompany}
+  [Narrative Strategy]{narrativeStrategy}
+  [Current Draft]{currentDraft}
+
+  Synthesize now.
    ```
 
 6. **Integrate modal with synthesize button**
@@ -643,7 +643,7 @@ drafting-view (rendered in detail panel by main-view)
    ```
 
 **Files Created:**
-- `chrome-extension/job-details/components/synthesis-modal.js` (optional)
+- `chrome-extension/job-details/components/synthesis-modal.js` (separate component class)
 
 **Files Modified:**
 - `chrome-extension/job-details/config.js`
@@ -687,7 +687,8 @@ drafting-view (rendered in detail panel by main-view)
    - Verify keyboard shortcuts work (Ctrl+S to save)
 
 5. **Error handling**
-   - LLM server not running → show friendly error
+   - ✅ LLM server not running → show friendly error (implemented in Phase 5)
+   - ✅ LLM connection testing → detailed console logs (implemented in Phase 5)
    - Export fails → show error toast
    - Auto-save fails → retry or show warning
    - Empty content → disable certain actions

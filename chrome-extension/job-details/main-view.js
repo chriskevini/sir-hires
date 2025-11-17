@@ -2,6 +2,7 @@
 // Coordinates between state-specific views, sidebar, and navigation
 
 import { ResearchingView } from './views/researching-view.js';
+import { DraftingView } from './views/drafting-view.js';
 import { ChecklistComponent } from './components/checklist.js';
 import { defaults } from './config.js';
 
@@ -10,8 +11,8 @@ export class MainView {
     // View instances
     this.views = {
       'Researching': new ResearchingView(),
+      'Drafting': new DraftingView(),
       // Other views would be added here as they're implemented:
-      // 'Drafting': new DraftingView(),
       // 'Awaiting Review': new AwaitingReviewView(),
       // 'Interviewing': new InterviewingView(),
       // 'Deciding': new DecidingView(),

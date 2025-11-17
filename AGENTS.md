@@ -116,7 +116,15 @@ Jobs are stored as objects with these fields:
   notes: string,
   narrativeStrategy: string,
   updatedAt: string (ISO 8601 timestamp with time),
-  targetedResume: string (future: per-job tailored resume)
+  targetedResume: string (future: per-job tailored resume),
+  documents: {
+    [documentKey: string]: {
+      title: string,       // User-editable document title
+      text: string,        // Markdown content
+      lastEdited: string,  // ISO 8601 timestamp
+      order: number        // Tab display order (0, 1, 2, ...)
+    }
+  }
 }
 ```
 
@@ -255,6 +263,8 @@ When adding or removing fields from the job data schema, you MUST update ALL of 
 
 10. **`AGENTS.md` - Storage Schema Documentation (~line 76-93)**
     - Update the schema documentation to reflect the new field
+
+**Note**: The `documents` field is managed differently - it is initialized lazily in the DraftingView when a user enters Drafting mode for the first time. It does not need to be included in extraction or popup forms.
 
 **Example**: When adding a `deadline` field, search the codebase for `postedDate` and add `deadline` in similar locations.
 

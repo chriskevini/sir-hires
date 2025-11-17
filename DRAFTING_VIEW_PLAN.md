@@ -112,125 +112,138 @@ export const llmConfig = {
 - Synthesis needs creativity → Llama/Mistral
 - Users can configure per use case
 
-### 4. LLM Synthesis Modal (Phase 5)
+### 4. LLM Synthesis Modal (Phase 5) - **UPDATED v2.0**
+
+**Design Philosophy:**
+- User edits **prompt template with placeholders** (e.g., `{masterResume}`, `{jobTitle}`)
+- Data values are edited in job fields (researching-view), not in the modal
+- Custom templates saved globally in `chrome.storage.local.customPrompts`
+- Fast iteration: edit template → generate → review → adjust → regenerate
 
 **Modal UI Features:**
 ```
-┌────────────────────────────────────────────────────────┐
-│  ✨ Synthesize Document with LLM                       │
-├────────────────────────────────────────────────────────┤
-│                                                        │
-│  Document: [Resume/CV] ▼                              │
-│  Model: Llama-3.1-8B-Instruct ▼                       │
-│                                                        │
-│  ┌──────────────────────────────────────────────────┐ │
-│  │ Data to be sent to LLM:                          │ │
-│  │                                                  │ │
-│  │ ✅ Master Resume                                 │ │
-│  │ ✅ Job Title & Company                           │ │
-│  │ ✅ Job Description                               │ │
-│  │ ✅ Requirements                                  │ │
-│  │ ✅ Narrative Strategy                            │ │
-│  │ ⚠️  Current Draft (will be used for refinement)  │ │
-│  │                                                  │ │
-│  │ ❌ Narrative Strategy missing                    │ │
-│  │    💡 We recommend completing research first     │ │
-│  └──────────────────────────────────────────────────┘ │
-│                                                        │
-│  Action:                                               │
-│  ○ Generate new document                              │
-│  ● Refine existing draft                              │
-│                                                        │
-│  ⚠️ Privacy Notice:                                    │
-│  All data is sent to your LOCAL LLM (LM Studio).     │
-│  Nothing leaves your device.                          │
-│                                                        │
-│  [ Cancel ]                    [ Generate Document ]  │
-└────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│ ✨ Synthesize Resume/CV with LLM     [×]│
+├─────────────────────────────────────────┤
+│ ⚠️ Warning (if existing content)        │
+│                                          │
+│ Prompt Template:      [Reset to Default]│
+│ ┌─────────────────────────────────────┐ │
+│ │ **Role:** You are an expert...     │ │
+│ │                                     │ │
+│ │ **Task:** Synthesize a NEW...      │ │
+│ │                                     │ │
+│ │ **Inputs:**                         │ │
+│ │ [Master Resume]{masterResume}       │ │
+│ │ [Job Title]{jobTitle}               │ │
+│ │ [Company]{company}                  │ │
+│ │ [Requirements]{requirements}        │ │
+│ │ ...                                 │ │
+│ └─────────────────────────────────────┘ │
+│                                          │
+├─────────────────────────────────────────┤
+│ [Model: llama3.1 ▼]  [Cancel] [Generate]│
+└─────────────────────────────────────────┘
+```
+
+**Storage Schema:**
+```javascript
+{
+  customPrompts: {
+    resume: string | null,      // null = use default from config.js
+    coverLetter: string | null  // null = use default from config.js
+  }
+}
 ```
 
 **Modal Components:**
 
-1. **Document Selector**
-   - Dropdown: Choose which document to synthesize
-   - Pre-selected based on active tab
+1. **Modal Title**
+   - Dynamic title includes document type: `"✨ Synthesize ${documentLabel} with LLM"`
+   - Examples: "✨ Synthesize Resume/CV with LLM", "✨ Synthesize Cover Letter with LLM"
 
-2. **Model Selector**
-   - Dropdown: Choose from configured synthesis models
-   - Default: `llmConfig.synthesis.defaultModel`
-   - Show model description on hover/selection
+2. **Existing Content Warning** (if applicable)
+   - Shows only if document has existing content
+   - Warning: "⚠️ It looks like you already began writing this document. The LLM will use this as a draft to expand upon."
 
-3. **Data Checklist**
-   - Shows what data will be sent to LLM
-   - Visual indicators:
-     - ✅ Available data (green checkmark)
-     - ⚠️ Partial/empty data (warning icon)
-     - ❌ Missing critical data (red X)
-   
-   **Data items to check:**
-   ```javascript
-   const dataChecklist = [
-     { 
-       key: 'masterResume', 
-       label: 'Master Resume', 
-       critical: true,
-       check: () => !!masterResume?.content
-     },
-     { 
-       key: 'jobTitle', 
-       label: 'Job Title & Company', 
-       critical: true,
-       check: () => !!(job.jobTitle && job.company)
-     },
-     { 
-       key: 'aboutJob', 
-       label: 'Job Description', 
-       critical: false,
-       check: () => !!job.aboutJob
-     },
-     { 
-       key: 'requirements', 
-       label: 'Requirements', 
-       critical: false,
-       check: () => !!job.requirements
-     },
-     { 
-       key: 'narrativeStrategy', 
-       label: 'Narrative Strategy', 
-       critical: false,
-       check: () => !!job.narrativeStrategy
-     },
-     { 
-       key: 'currentDraft', 
-       label: 'Current Draft', 
-       critical: false,
-       check: () => !!job.documents?.[activeTab]?.text
-     }
-   ];
-   ```
+3. **Prompt Template Editor**
+   - Large textarea (~250px height) showing prompt template
+   - Contains placeholders: `{masterResume}`, `{jobTitle}`, `{company}`, etc.
+   - User edits the template structure, not the data values
+   - Auto-loads custom template from storage or falls back to config default
+   - Editable by user for quick experimentation
 
-4. **Recommendations**
-   - If missing critical data: "⚠️ Missing Master Resume. Please add one first."
-   - If missing narrative strategy: "💡 We recommend completing research and adding a narrative strategy first."
-   - If missing job details: "💡 More job details will improve the output."
+4. **Reset to Default Button**
+   - Located next to "Prompt Template:" label
+   - On click: Confirms, then clears custom prompt and reloads config default
+   - Confirmation message: "Reset to default prompt? This will discard your custom template."
+   - Sets `customPrompts[documentType] = null` in storage
 
-5. **Action Selection**
-   - **Generate new document**: Replace current content entirely
-   - **Refine existing draft**: Use current draft + context to improve
-   - Radio buttons for selection
-   - Disabled if no content and "Refine" is selected
+5. **Model Selector** (Footer - Left Side)
+   - Dropdown: Choose from available models loaded in LM Studio
+   - Fetches models from `/v1/models` endpoint on modal open
+   - Default: `llmConfig.synthesis.defaultModel` if available
+   - Shows warning if no models are loaded: "⚠️ No models loaded in LM Studio. Please load a model first."
 
-6. **Privacy Notice**
-   - Clear messaging that data stays local
-   - Consistent with project's privacy-first philosophy
-   - Builds trust with users
+6. **Action Buttons** (Footer - Right Side)
+   - **Cancel**: Close modal, discard changes
+   - **Generate**: Save template → fill placeholders → send to LLM
+     - Auto-saves edited template to `chrome.storage.local.customPrompts[documentType]`
+     - Replaces placeholders with actual data from job fields
+     - Sends filled prompt to LLM API
+     - Shows loading state: "⏳ Generating..."
 
-7. **Action Buttons**
-   - **Cancel**: Close modal, no action
-   - **Generate Document**: Proceed with synthesis
-     - Show loading state while LLM processes
-     - Replace button with spinner: "⏳ Generating..."
-     - Display progress/status
+**Removed Components (from v1.0):**
+- ❌ Document selector dropdown (pre-selected based on active tab)
+- ❌ Data checklist section (user already knows what data they have)
+- ❌ Recommendations section (simplified UX)
+- ❌ Action selection radio buttons (auto-detects generate vs refine based on existing content)
+- ❌ Privacy notice (removed clutter, users trust local LLM)
+
+**Key Behaviors:**
+
+1. **On Modal Open:**
+   - Load custom template from storage or fall back to config default
+   - Detect if document has existing content (for warning)
+   - Fetch available models from LM Studio API
+   - Pre-populate template textarea
+
+2. **On Generate Click:**
+   - Save edited template to `chrome.storage.local.customPrompts[documentType]`
+   - Fetch context data (master resume, job fields)
+   - Replace placeholders in template with actual values
+   - Send filled prompt to LLM API
+   - Insert generated content into document editor
+   - Close modal
+
+3. **On Reset Click:**
+   - Show confirmation dialog
+   - If confirmed: Set `customPrompts[documentType] = null`
+   - Reload default template from `config.js`
+   - Update textarea with default template
+
+**Prompt Replacement Logic:**
+```javascript
+buildPrompt(template, context) {
+  const replacements = {
+    masterResume: context.masterResume || 'Not provided',
+    jobTitle: context.jobTitle || 'Not provided',
+    company: context.company || 'Not provided',
+    aboutJob: context.aboutJob || 'Not provided',
+    aboutCompany: context.aboutCompany || 'Not provided',
+    requirements: context.requirements || 'Not provided',
+    responsibilities: context.responsibilities || 'Not provided',
+    narrativeStrategy: context.narrativeStrategy || 'Not provided',
+    currentDraft: context.currentDraft || ''
+  };
+  
+  let prompt = template;
+  for (const [key, value] of Object.entries(replacements)) {
+    prompt = prompt.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
+  }
+  
+  return prompt;
+}
 
 ---
 
@@ -643,13 +656,22 @@ drafting-view (rendered in detail panel by main-view)
    ```
 
 **Files Created:**
-- `chrome-extension/job-details/components/synthesis-modal.js` (separate component class)
+- `chrome-extension/job-details/components/synthesis-modal.js` (separate component class) ✅ **COMPLETED**
 
 **Files Modified:**
-- `chrome-extension/job-details/config.js`
+- `chrome-extension/job-details/config.js` ✅ **COMPLETED**
 - `chrome-extension/job-details/views/drafting-view.js`
 - `chrome-extension/job-details/app.js`
 - `chrome-extension/job-details.html` (modal CSS)
+
+**Implementation Updates (v2.0):**
+- ✅ Simplified modal UI (removed document selector, data checklist, action radio buttons, privacy notice)
+- ✅ Added prompt template editor with placeholder syntax
+- ✅ Added custom prompt storage in `chrome.storage.local.customPrompts`
+- ✅ Added "Reset to Default" button with confirmation
+- ✅ Moved model selector to footer (left side)
+- ✅ Auto-save template on "Generate" click (global scope)
+- ✅ LLM auto-detects generate vs refine based on `{currentDraft}` value
 
 ---
 

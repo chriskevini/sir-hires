@@ -14,7 +14,82 @@ export class SynthesisModal extends BaseView {
     this.availableModels = [];
     this.selectedModel = llmConfig.synthesis.defaultModel;
     this.hasExistingContent = false; // Auto-detected: refine if true, generate if false
+    this.promptTemplate = null; // Current prompt template (custom or default)
     this.onGenerate = null; // Callback when generation completes
+  }
+
+  /**
+   * Load custom prompt template from storage or fall back to default
+   * @param {string} documentKey - Document type ('tailoredResume' or 'coverLetter')
+   * @returns {string} Prompt template
+   */
+  async loadCustomPrompt(documentKey) {
+    try {
+      const result = await chrome.storage.local.get(['customPrompts']);
+      const customPrompts = result.customPrompts || {};
+      
+      // Determine which template key to use
+      const templateKey = documentKey === 'tailoredResume' ? 'resume' : 'coverLetter';
+      
+      // Return custom prompt if exists, otherwise fall back to config default
+      return customPrompts[templateKey] || llmConfig.synthesis.prompts[templateKey];
+    } catch (error) {
+      console.error('[SynthesisModal] Failed to load custom prompt:', error);
+      // Fall back to config default on error
+      const templateKey = documentKey === 'tailoredResume' ? 'resume' : 'coverLetter';
+      return llmConfig.synthesis.prompts[templateKey];
+    }
+  }
+
+  /**
+   * Save custom prompt template to storage
+   * @param {string} documentKey - Document type ('tailoredResume' or 'coverLetter')
+   * @param {string} template - Prompt template to save
+   */
+  async saveCustomPrompt(documentKey, template) {
+    try {
+      const result = await chrome.storage.local.get(['customPrompts']);
+      const customPrompts = result.customPrompts || {};
+      
+      // Determine which template key to use
+      const templateKey = documentKey === 'tailoredResume' ? 'resume' : 'coverLetter';
+      
+      // Save template
+      customPrompts[templateKey] = template;
+      await chrome.storage.local.set({ customPrompts });
+      
+      console.log(`[SynthesisModal] Saved custom prompt for ${templateKey}`);
+    } catch (error) {
+      console.error('[SynthesisModal] Failed to save custom prompt:', error);
+    }
+  }
+
+  /**
+   * Clear custom prompt and revert to default
+   * @param {string} documentKey - Document type ('tailoredResume' or 'coverLetter')
+   */
+  async clearCustomPrompt(documentKey) {
+    try {
+      const result = await chrome.storage.local.get(['customPrompts']);
+      const customPrompts = result.customPrompts || {};
+      
+      // Determine which template key to use
+      const templateKey = documentKey === 'tailoredResume' ? 'resume' : 'coverLetter';
+      
+      // Clear custom prompt
+      customPrompts[templateKey] = null;
+      await chrome.storage.local.set({ customPrompts });
+      
+      console.log(`[SynthesisModal] Cleared custom prompt for ${templateKey}`);
+      
+      // Return default prompt from config
+      return llmConfig.synthesis.prompts[templateKey];
+    } catch (error) {
+      console.error('[SynthesisModal] Failed to clear custom prompt:', error);
+      // Fall back to config default on error
+      const templateKey = documentKey === 'tailoredResume' ? 'resume' : 'coverLetter';
+      return llmConfig.synthesis.prompts[templateKey];
+    }
   }
 
   /**
@@ -32,6 +107,9 @@ export class SynthesisModal extends BaseView {
     // Check if document has existing content
     const existingContent = job.documents?.[documentKey]?.text || '';
     this.hasExistingContent = existingContent.trim().length > 0;
+
+    // Load custom prompt template or fall back to default
+    this.promptTemplate = await this.loadCustomPrompt(documentKey);
 
     // Fetch available models
     await this.fetchAvailableModels();
@@ -99,135 +177,38 @@ export class SynthesisModal extends BaseView {
   }
 
   /**
-   * Check data availability for synthesis
-   * @param {Object} job - Job object
-   * @param {string} documentKey - Document key (e.g., 'tailoredResume')
-   * @returns {Array} Checklist items with status
+   * Build context data for prompt replacement
+   * @returns {Object} Context data with all available fields
    */
-  async checkDataAvailability(job, documentKey) {
+  async buildContext() {
     // Fetch master resume
     const masterResumeResult = await chrome.storage.local.get(['masterResume']);
     const masterResume = masterResumeResult.masterResume?.content || '';
 
-    const checklist = [
-      {
-        key: 'masterResume',
-        label: 'Master Resume',
-        critical: true,
-        status: masterResume ? 'available' : 'missing',
-        value: masterResume
-      },
-      {
-        key: 'jobTitle',
-        label: 'Job Title & Company',
-        critical: true,
-        status: (job.jobTitle && job.company) ? 'available' : 'missing',
-        value: `${job.jobTitle || ''} at ${job.company || ''}`
-      },
-      {
-        key: 'aboutJob',
-        label: 'Job Description',
-        critical: false,
-        status: job.aboutJob ? 'available' : 'warning',
-        value: job.aboutJob || ''
-      },
-      {
-        key: 'requirements',
-        label: 'Requirements',
-        critical: false,
-        status: job.requirements ? 'available' : 'warning',
-        value: job.requirements || ''
-      },
-      {
-        key: 'narrativeStrategy',
-        label: 'Narrative Strategy',
-        critical: false,
-        status: job.narrativeStrategy ? 'available' : 'warning',
-        value: job.narrativeStrategy || ''
-      },
-      {
-        key: 'currentDraft',
-        label: 'Current Draft',
-        critical: false,
-        status: job.documents?.[documentKey]?.text ? 'available' : 'warning',
-        value: job.documents?.[documentKey]?.text || ''
-      }
-    ];
-
-    return checklist;
-  }
-
-  /**
-   * Generate recommendations based on checklist
-   * @param {Array} checklist - Checklist items
-   * @returns {Array} Recommendation messages
-   */
-  generateRecommendations(checklist) {
-    const recommendations = [];
-
-    const missingCritical = checklist.filter(item => item.critical && item.status === 'missing');
-    const missingNarrative = checklist.find(item => item.key === 'narrativeStrategy' && item.status === 'warning');
-    const missingDetails = checklist.filter(item => !item.critical && item.status === 'warning' && item.key !== 'currentDraft');
-
-    if (missingCritical.length > 0) {
-      recommendations.push({
-        type: 'warning',
-        message: `Missing critical data: ${missingCritical.map(i => i.label).join(', ')}. Generation quality may be poor.`
-      });
-    }
-
-    if (missingNarrative) {
-      recommendations.push({
-        type: 'info',
-        message: 'We recommend completing research and adding a narrative strategy first for better results.'
-      });
-    }
-
-    if (missingDetails.length > 0) {
-      recommendations.push({
-        type: 'info',
-        message: 'More job details will improve the output quality.'
-      });
-    }
-
-    return recommendations;
-  }
-
-  /**
-   * Build prompt for document synthesis
-   * @param {string} documentKey - Document type ('tailoredResume' or 'coverLetter')
-   * @param {Object} context - Context data from checklist
-   * @returns {string} Prompt text
-   */
-  buildPrompt(documentKey, context) {
-    // Determine which prompt template to use (no generate/refine distinction - LLM adapts)
-    let templateKey;
-    if (documentKey === 'tailoredResume') {
-      templateKey = 'resume';
-    } else if (documentKey === 'coverLetter') {
-      templateKey = 'coverLetter';
-    } else {
-      // Fallback for custom document types (future extensibility)
-      return `Generate a document for: ${documentKey}`;
-    }
-    
-    // Get template from config
-    let prompt = llmConfig.synthesis.prompts[templateKey];
-    
-    // Replace placeholders with actual values
-    const replacements = {
-      masterResume: context.masterResume || 'Not provided',
-      jobTitle: context.jobTitle || 'Not provided',
-      company: context.jobTitle?.split(' at ')[1] || 'Not provided',
-      aboutJob: context.aboutJob || 'Not provided',
-      aboutCompany: this.activeJob?.aboutCompany || 'Not provided',
-      requirements: context.requirements || 'Not provided',
-      narrativeStrategy: context.narrativeStrategy || 'Not provided',
-      currentDraft: context.currentDraft || ''
+    return {
+      masterResume: masterResume || 'Not provided',
+      jobTitle: this.activeJob.jobTitle || 'Not provided',
+      company: this.activeJob.company || 'Not provided',
+      aboutJob: this.activeJob.aboutJob || 'Not provided',
+      aboutCompany: this.activeJob.aboutCompany || 'Not provided',
+      responsibilities: this.activeJob.responsibilities || 'Not provided',
+      requirements: this.activeJob.requirements || 'Not provided',
+      narrativeStrategy: this.activeJob.narrativeStrategy || 'Not provided',
+      currentDraft: this.activeJob.documents?.[this.activeDocumentKey]?.text || ''
     };
+  }
+
+  /**
+   * Replace placeholders in template with actual values
+   * @param {string} template - Prompt template with placeholders
+   * @param {Object} context - Context data
+   * @returns {string} Filled prompt
+   */
+  fillPlaceholders(template, context) {
+    let prompt = template;
     
     // Replace all placeholders
-    for (const [key, value] of Object.entries(replacements)) {
+    for (const [key, value] of Object.entries(context)) {
       prompt = prompt.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
     }
     
@@ -263,19 +244,17 @@ export class SynthesisModal extends BaseView {
    * Synthesize document using LLM
    * @param {string} documentKey - Document type
    * @param {string} model - Model ID
-   * @param {Object} context - Context data
+   * @param {string} prompt - Filled prompt with actual data (no placeholders)
    * @returns {string} Generated content
    */
-  async synthesizeDocument(documentKey, model, context) {
+  async synthesizeDocument(documentKey, model, prompt) {
     // Test connection first
     const isConnected = await this.testConnection();
     if (!isConnected) {
       throw new Error('Cannot connect to LM Studio. Please ensure LM Studio is running on http://localhost:1234');
     }
 
-    // Build prompt
-    const prompt = this.buildPrompt(documentKey, context);
-    console.log('[SynthesisModal] Sending prompt to LLM:', { model, hasExistingContent: this.hasExistingContent, documentKey });
+    console.log('[SynthesisModal] Sending prompt to LLM:', { model, documentKey, promptLength: prompt.length });
 
     // Call LM Studio API
     const response = await fetch(llmConfig.synthesis.endpoint, {
@@ -354,82 +333,51 @@ export class SynthesisModal extends BaseView {
     return `
       <div class="synthesis-modal">
         <div class="modal-header">
-          <h2>✨ Synthesize Document with LLM</h2>
+          <h2>✨ Synthesize ${documentLabel} with LLM</h2>
           <button class="modal-close-btn" id="synthesisModalCloseBtn">&times;</button>
         </div>
         
         <div class="modal-body">
-          <div class="form-group">
-            <label for="synthesisDocumentSelect">Document:</label>
-            <select id="synthesisDocumentSelect" disabled>
-              <option value="${this.activeDocumentKey}">${documentLabel}</option>
-            </select>
+          ${existingContentWarning}
+
+          <div class="prompt-template-header">
+            <label for="synthesisPromptTemplate">Prompt Template:</label>
+            <button class="btn-text" id="synthesisResetPromptBtn">Reset to Default</button>
           </div>
 
-          <div class="form-group">
+          <textarea 
+            id="synthesisPromptTemplate" 
+            class="prompt-editor" 
+            rows="12" 
+            placeholder="Enter your prompt template with placeholders like {masterResume}, {jobTitle}, etc."
+          >${this.promptTemplate || ''}</textarea>
+
+          <p class="prompt-help-text">
+            <strong>Available placeholders:</strong> 
+            {masterResume}, {jobTitle}, {company}, {aboutJob}, {aboutCompany}, {responsibilities}, {requirements}, {narrativeStrategy}, {currentDraft}
+          </p>
+        </div>
+
+        <div class="modal-footer">
+          <div class="model-selector-group">
             <label for="synthesisModelSelect">Model:</label>
             <select id="synthesisModelSelect">
               ${modelOptions}
             </select>
             ${this.availableModels.length === 0 ? 
-              '<p class="model-warning">⚠️ No models loaded in LM Studio. Please load a model first.</p>' : 
+              '<span class="model-warning">⚠️ No models loaded</span>' : 
               ''}
           </div>
-
-          ${existingContentWarning}
-
-          <div class="data-checklist-section" id="dataChecklistSection">
-            <div class="loading-indicator">Loading data availability...</div>
+          <div class="action-buttons-group">
+            <button class="btn-secondary" id="synthesisModalCancelBtn">Cancel</button>
+            <button class="btn-primary" id="synthesisModalGenerateBtn">Generate</button>
           </div>
-        </div>
-
-        <div class="modal-footer">
-          <button class="btn-secondary" id="synthesisModalCancelBtn">Cancel</button>
-          <button class="btn-primary" id="synthesisModalGenerateBtn">Generate Document</button>
         </div>
       </div>
     `;
   }
 
-  /**
-   * Render data checklist
-   * @param {Array} checklist - Checklist items
-   * @param {Array} recommendations - Recommendation messages
-   * @returns {string} HTML string
-   */
-  renderDataChecklist(checklist, recommendations) {
-    const checklistHtml = checklist.map(item => {
-      const icon = item.status === 'available' ? '✅' : 
-                   item.status === 'warning' ? '⚠️' : '❌';
-      const statusClass = `checklist-status-${item.status}`;
-      
-      return `
-        <div class="checklist-item ${statusClass}">
-          <span class="checklist-icon">${icon}</span>
-          <span class="checklist-label">${item.label}</span>
-        </div>
-      `;
-    }).join('');
 
-    const recommendationsHtml = recommendations.length > 0 ? `
-      <div class="recommendations-section">
-        ${recommendations.map(rec => `
-          <div class="recommendation ${rec.type}">
-            <span class="recommendation-icon">${rec.type === 'warning' ? '⚠️' : '💡'}</span>
-            <span>${rec.message}</span>
-          </div>
-        `).join('')}
-      </div>
-    ` : '';
-
-    return `
-      <div class="data-checklist">
-        <p><strong>Data to be sent to LLM:</strong></p>
-        ${checklistHtml}
-      </div>
-      ${recommendationsHtml}
-    `;
-  }
 
   /**
    * Attach event listeners
@@ -456,6 +404,24 @@ export class SynthesisModal extends BaseView {
       this.trackListener(generateBtn, 'click', () => this.handleGenerate());
     }
 
+    // Reset to Default button
+    const resetBtn = document.getElementById('synthesisResetPromptBtn');
+    if (resetBtn) {
+      this.trackListener(resetBtn, 'click', async () => {
+        const confirmed = confirm('Reset prompt to default? This will discard your custom prompt.');
+        if (confirmed) {
+          const defaultPrompt = await this.clearCustomPrompt(this.activeDocumentKey);
+          this.promptTemplate = defaultPrompt;
+          
+          // Update textarea
+          const textarea = document.getElementById('synthesisPromptTemplate');
+          if (textarea) {
+            textarea.value = defaultPrompt;
+          }
+        }
+      });
+    }
+
     // Close on overlay click
     this.trackListener(overlay, 'click', (e) => {
       if (e.target === overlay) {
@@ -478,35 +444,26 @@ export class SynthesisModal extends BaseView {
         this.selectedModel = e.target.value;
       });
     }
-
-    // Load data checklist asynchronously
-    this.loadDataChecklist();
   }
 
-  /**
-   * Load and display data checklist
-   */
-  async loadDataChecklist() {
-    const section = document.getElementById('dataChecklistSection');
-    if (!section) return;
 
-    try {
-      const checklist = await this.checkDataAvailability(this.activeJob, this.activeDocumentKey);
-      const recommendations = this.generateRecommendations(checklist);
-      
-      section.innerHTML = this.renderDataChecklist(checklist, recommendations);
-    } catch (error) {
-      console.error('[SynthesisModal] Failed to load data checklist:', error);
-      section.innerHTML = '<p class="error">Failed to load data availability</p>';
-    }
-  }
 
   /**
    * Handle generate button click
    */
   async handleGenerate() {
     const generateBtn = document.getElementById('synthesisModalGenerateBtn');
-    if (!generateBtn) return;
+    const textarea = document.getElementById('synthesisPromptTemplate');
+    
+    if (!generateBtn || !textarea) return;
+
+    // Get current template from textarea
+    const template = textarea.value.trim();
+    
+    if (!template) {
+      alert('Please enter a prompt template');
+      return;
+    }
 
     // Disable button and show loading state
     generateBtn.disabled = true;
@@ -514,18 +471,20 @@ export class SynthesisModal extends BaseView {
     generateBtn.innerHTML = '⏳ Generating...';
 
     try {
-      // Get context data
-      const checklist = await this.checkDataAvailability(this.activeJob, this.activeDocumentKey);
-      const context = {};
-      checklist.forEach(item => {
-        context[item.key] = item.value;
-      });
+      // Save custom template to storage
+      await this.saveCustomPrompt(this.activeDocumentKey, template);
 
-      // Synthesize document
+      // Build context data
+      const context = await this.buildContext();
+
+      // Fill placeholders with actual values
+      const filledPrompt = this.fillPlaceholders(template, context);
+
+      // Synthesize document with filled prompt
       const content = await this.synthesizeDocument(
         this.activeDocumentKey,
         this.selectedModel,
-        context
+        filledPrompt
       );
 
       // Call callback with generated content

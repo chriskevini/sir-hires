@@ -65,7 +65,7 @@ export class Navigation {
     if (buttons.left) {
       const targetConfig = progressConfig[buttons.left.target] || progressConfig['Researching'];
       html += `
-        <div data-color="${targetConfig.color}">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;" data-color="${targetConfig.color}">
           <span class="nav-label">${buttons.left.label}</span>
           <button class="nav-button" data-index="${jobIndex}" data-target="${buttons.left.target}" data-direction="backward" data-color="${targetConfig.color}">
             <i class="nav-arrow left"></i>

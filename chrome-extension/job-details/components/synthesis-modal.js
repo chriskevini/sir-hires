@@ -504,6 +504,19 @@ export class SynthesisModal extends BaseView {
         this.selectedModel = e.target.value;
       });
     }
+
+    // Auto-save prompt template on blur
+    const promptTextarea = document.getElementById('synthesisPromptTemplate');
+    if (promptTextarea) {
+      this.trackListener(promptTextarea, 'blur', async () => {
+        const template = promptTextarea.value.trim();
+        if (template && template !== this.promptTemplate) {
+          await this.saveCustomPrompt(this.activeDocumentKey, template);
+          this.promptTemplate = template;
+          console.log('[SynthesisModal] Auto-saved prompt template on blur');
+        }
+      });
+    }
   }
 
 

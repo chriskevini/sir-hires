@@ -36,6 +36,9 @@ export class JobDetailsApp {
       this.mainView
     );
 
+    // Flag to suppress reloads during document saves
+    this.suppressReloadUntil = null;
+
     // Bind methods to preserve context
     this.handleStorageChange = this.handleStorageChange.bind(this);
     this.handleSaveField = this.handleSaveField.bind(this);
@@ -45,6 +48,8 @@ export class JobDetailsApp {
     this.handleDeleteJob = this.handleDeleteJob.bind(this);
     this.handleChecklistToggleExpand = this.handleChecklistToggleExpand.bind(this);
     this.handleChecklistToggleItem = this.handleChecklistToggleItem.bind(this);
+    this.handleInitializeDocuments = this.handleInitializeDocuments.bind(this);
+    this.handleSaveDocument = this.handleSaveDocument.bind(this);
   }
 
   /**
@@ -102,6 +107,10 @@ export class JobDetailsApp {
     // Checklist events
     document.addEventListener('checklist:toggleExpand', this.handleChecklistToggleExpand);
     document.addEventListener('checklist:toggleItem', this.handleChecklistToggleItem);
+
+    // Document events (Drafting view)
+    document.addEventListener('view:initializeDocuments', this.handleInitializeDocuments);
+    document.addEventListener('view:saveDocument', this.handleSaveDocument);
 
     // Master resume button
     const masterResumeBtn = document.getElementById(domIds.masterResumeBtn);
@@ -425,6 +434,12 @@ export class JobDetailsApp {
 
     console.log('[Viewer] Storage changed:', Object.keys(changes));
 
+    // Check if reload is suppressed (during document auto-save)
+    if (this.suppressReloadUntil && Date.now() < this.suppressReloadUntil) {
+      console.log('[Viewer] Reload suppressed during document save');
+      return;
+    }
+
     // Check if animation is active
     if (this.state.isAnimationActive()) {
       console.log('[Viewer] Animation in progress, setting pending reload flag');
@@ -610,6 +625,52 @@ export class JobDetailsApp {
   }
 
   /**
+   * Handle initialize documents event (called when entering Drafting state)
+   * @param {CustomEvent} event - Custom event with detail: { index }
+   */
+  async handleInitializeDocuments(event) {
+    const { index } = event.detail;
+    const jobs = this.state.getAllJobs();
+    const job = jobs[index];
+
+    if (!job) {
+      console.error('Job not found at index:', index);
+      return;
+    }
+
+    // Initialize documents if not already present
+    if (!job.documents) {
+      job.documents = this.storage.initializeDocuments(job);
+      job.updatedAt = new Date().toISOString();
+      await this.storage.updateJob(job.id, job);
+      console.log(`Initialized documents for job at index ${index}`);
+    }
+  }
+
+  /**
+   * Handle save document event (called on auto-save or manual save)
+   * @param {CustomEvent} event - Custom event with detail: { index, documentKey, documentData }
+   */
+  async handleSaveDocument(event) {
+    const { index, documentKey, documentData } = event.detail;
+    const jobs = this.state.getAllJobs();
+    const job = jobs[index];
+
+    if (!job) {
+      console.error('Job not found at index:', index);
+      return;
+    }
+
+    // Suppress reloads for 500ms to prevent auto-save from triggering view reload
+    this.suppressReloadUntil = Date.now() + 500;
+
+    // Save document to storage
+    await this.storage.saveDocument(job.id, documentKey, documentData);
+
+    console.log(`Saved document ${documentKey} for job at index ${index}`);
+  }
+
+  /**
    * Show save confirmation feedback
    * @param {string} selector - Button selector
    * @param {string} message - Confirmation message
@@ -760,6 +821,10 @@ export class JobDetailsApp {
     document.removeEventListener('view:saveNarrative', this.handleSaveNarrative);
     document.removeEventListener('view:openUrl', this.handleOpenUrl);
     document.removeEventListener('view:deleteJob', this.handleDeleteJob);
+    document.removeEventListener('checklist:toggleExpand', this.handleChecklistToggleExpand);
+    document.removeEventListener('checklist:toggleItem', this.handleChecklistToggleItem);
+    document.removeEventListener('view:initializeDocuments', this.handleInitializeDocuments);
+    document.removeEventListener('view:saveDocument', this.handleSaveDocument);
 
     // Cleanup components
     this.sidebar.cleanup();

@@ -412,13 +412,42 @@
       overflow: hidden;
     }
 
-    /* Detail panel wrapper - flexbox container for detail panel, checklist, nav buttons, and progress bar */
+    /* Detail panel wrapper - relative container for absolute positioned layers */
     .detail-panel-wrapper {
       position: relative;
       flex: 1;
+      overflow: hidden;
+    }
+
+    /* Detail panel - fills entire space, content layer */
+    .detail-panel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow-y: auto;
+      padding: 24px;
+      padding-bottom: 200px; /* Space for overlays */
+      background-color: white;
+    }
+
+    /* Overlay container - stacks UI elements at bottom */
+    .overlay-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
       display: flex;
       flex-direction: column;
-      gap: 20px; /* Automatic spacing between all children */
+      justify-content: flex-end; /* Push all items to bottom */
+      pointer-events: none; /* Allow clicks through empty space */
+      z-index: 10;
+    }
+
+    /* Re-enable pointer events on actual UI elements */
+    .overlay-container > * {
+      pointer-events: auto;
     }
 
     /* Sidebar styles */
@@ -534,9 +563,14 @@
 
     /* Detail panel styles */
     .detail-panel {
-      flex: 1;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       overflow-y: auto;
       padding: 24px;
+      padding-bottom: 200px; /* Space for overlays: progress(40px) + nav(110px) + checklist-space(50px) */
       background-color: white;
     }
 
@@ -551,10 +585,10 @@
 
     /* Checklist component styles */
     #checklistContainer {
-      flex-shrink: 0;
       align-self: flex-end;
       padding-right: 24px;
-      z-index: 11; /* Above nav buttons */
+      padding-bottom: 20px; /* Gap above nav buttons */
+      z-index: 11;
     }
 
     /* Wrapper contains both expander and expanded dropdown when expanded */
@@ -689,11 +723,10 @@
 
     /* Navigation button styles */
     #navButtonsContainer {
-      flex-shrink: 0;
       display: flex;
       justify-content: space-between;
-      align-items: flex-end; /* Align both sides to bottom */
-      padding: 0 24px;
+      align-items: flex-end;
+      padding: 20px 24px; /* Gap above progress bar and sides */
       z-index: 10;
     }
 
@@ -865,7 +898,6 @@
     /* Progress bar styles */
     .progress-bar-container {
       position: relative;
-      flex-shrink: 0;
       width: 100%;
       height: 40px;
       background-color: #f5f5f5;
@@ -1031,16 +1063,19 @@
           </div>
         </div>
         
-        <!-- Checklist component (above navigation buttons) -->
-        <div id="checklistContainer"></div>
-        
-        <!-- Navigation buttons (above progress bar) -->
-        <div id="navButtonsContainer"></div>
-        
-        <!-- Progress bar (at bottom) -->
-        <div class="progress-bar-container" id="progressBar" style="display: none;">
-          <div class="progress-bar-fill" id="progressBarFill"></div>
-          <span class="progress-bar-label" id="progressBarLabel"></span>
+        <!-- Overlay container: stacks checklist, nav buttons, progress bar from bottom -->
+        <div class="overlay-container">
+          <!-- Checklist component (above navigation buttons) -->
+          <div id="checklistContainer"></div>
+          
+          <!-- Navigation buttons (above progress bar) -->
+          <div id="navButtonsContainer"></div>
+          
+          <!-- Progress bar (at bottom) -->
+          <div class="progress-bar-container" id="progressBar" style="display: none;">
+            <div class="progress-bar-fill" id="progressBarFill"></div>
+            <span class="progress-bar-label" id="progressBarLabel"></span>
+          </div>
         </div>
       </div>
     </div>

@@ -60,11 +60,12 @@ export class Navigation {
     const buttons = getNavigationButtons(status);
     let html = '';
 
-    // Left button (back)
+    // Left button container (always render to maintain flexbox layout)
+    html += `<div class="nav-button-container left">`;
     if (buttons.left) {
       const targetConfig = progressConfig[buttons.left.target] || progressConfig['Researching'];
       html += `
-        <div class="nav-button-container left" data-color="${targetConfig.color}">
+        <div data-color="${targetConfig.color}">
           <span class="nav-label">${buttons.left.label}</span>
           <button class="nav-button" data-index="${jobIndex}" data-target="${buttons.left.target}" data-direction="backward" data-color="${targetConfig.color}">
             <i class="nav-arrow left"></i>
@@ -72,12 +73,13 @@ export class Navigation {
         </div>
       `;
     }
+    html += `</div>`;
 
-    // Right button(s) (forward)
+    // Right button(s) container (always render to maintain flexbox layout)
+    const multipleClass = buttons.right && buttons.right.length > 1 ? ' multiple' : '';
+    html += `<div class="nav-button-container right${multipleClass}">`;
+
     if (buttons.right && buttons.right.length > 0) {
-      const multipleClass = buttons.right.length > 1 ? ' multiple' : '';
-      html += `<div class="nav-button-container right${multipleClass}">`;
-
       buttons.right.forEach(btn => {
         const targetConfig = progressConfig[btn.target] || progressConfig['Researching'];
         html += `
@@ -89,9 +91,9 @@ export class Navigation {
           </div>
         `;
       });
-
-      html += `</div>`;
     }
+
+    html += `</div>`;
 
     return html;
   }

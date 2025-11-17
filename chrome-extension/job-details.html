@@ -690,8 +690,10 @@
     /* Navigation button styles */
     #navButtonsContainer {
       flex-shrink: 0;
-      position: relative;
-      min-height: 110px; /* Approximate height for one nav button (80px button + 30px label) */
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end; /* Align both sides to bottom */
+      padding: 0 24px;
       z-index: 10;
     }
 
@@ -705,13 +707,11 @@
     }
 
     .nav-button-container.left {
-      position: absolute;
-      left: 24px;
+      /* No longer needs absolute positioning */
     }
 
     .nav-button-container.right {
-      position: absolute;
-      right: 24px;
+      /* No longer needs absolute positioning */
     }
 
     .nav-label {

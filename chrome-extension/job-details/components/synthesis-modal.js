@@ -115,7 +115,7 @@ export class SynthesisModal extends BaseView {
     await this.fetchAvailableModels();
 
     // Render modal
-    this.render();
+    await this.render();
     this.attachListeners();
 
     // Show modal with animation
@@ -291,7 +291,7 @@ export class SynthesisModal extends BaseView {
   /**
    * Render the modal
    */
-  render() {
+  async render() {
     // Check if modal container already exists
     let overlay = document.getElementById('synthesisModalOverlay');
     if (!overlay) {
@@ -302,25 +302,80 @@ export class SynthesisModal extends BaseView {
     }
 
     // Render modal content
-    overlay.innerHTML = this.renderModalContent();
+    overlay.innerHTML = await this.renderModalContent();
   }
 
   /**
    * Render modal content
    * @returns {string} HTML string
    */
-  renderModalContent() {
+  async renderModalContent() {
     if (!this.activeJob) return '';
 
     // Get document label
     const documentLabel = this.activeDocumentKey === 'tailoredResume' ? 'Resume/CV' : 'Cover Letter';
 
+    // Check for master resume (critical requirement)
+    const masterResumeResult = await chrome.storage.local.get(['masterResume']);
+    const masterResume = masterResumeResult.masterResume?.content || '';
+    const hasMasterResume = masterResume.trim().length > 0;
+
+    // If no master resume, show only error warning + Cancel button
+    if (!hasMasterResume) {
+      return `
+        <div class="synthesis-modal">
+          <div class="modal-header">
+            <h2>✨ Synthesize ${documentLabel} with LLM</h2>
+            <button class="modal-close-btn" id="synthesisModalCloseBtn">&times;</button>
+          </div>
+          
+          <div class="modal-body">
+            <div class="error-warning">
+              <p>ℹ️ <strong>Please create a master resume before continuing.</strong></p>
+              <button class="btn-primary" id="synthesisCreateResumeBtn">Create Master Resume</button>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <div class="action-buttons-group" style="margin-left: auto;">
+              <button class="btn-secondary" id="synthesisModalCancelBtn">Cancel</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Master resume exists - show full modal UI
     // Get model options
     const modelOptions = this.availableModels.length > 0
       ? this.availableModels.map(model => 
           `<option value="${model.id}" ${model.id === this.selectedModel ? 'selected' : ''}>${model.id}</option>`
         ).join('')
       : `<option value="${llmConfig.synthesis.defaultModel}">${llmConfig.synthesis.defaultModel} (not loaded)</option>`;
+
+    // Check for missing data fields
+    const missingFields = [];
+    const fieldLabels = {
+      jobTitle: 'Job Title',
+      company: 'Company',
+      aboutJob: 'About Job',
+      aboutCompany: 'About Company',
+      responsibilities: 'Responsibilities',
+      requirements: 'Requirements',
+      narrativeStrategy: 'Narrative Focus'
+    };
+
+    for (const [field, label] of Object.entries(fieldLabels)) {
+      if (!this.activeJob[field] || this.activeJob[field].trim() === '') {
+        missingFields.push(label);
+      }
+    }
+
+    const missingFieldsWarning = missingFields.length > 0 ? `
+      <div class="missing-fields-warning">
+        <p>⚠️ <strong>${missingFields.join(', ')} ${missingFields.length === 1 ? 'is' : 'are'} missing.</strong> We recommend doing more research for better document synthesis.</p>
+      </div>
+    ` : '';
 
     // Show warning if existing content detected
     const existingContentWarning = this.hasExistingContent ? `
@@ -338,8 +393,6 @@ export class SynthesisModal extends BaseView {
         </div>
         
         <div class="modal-body">
-          ${existingContentWarning}
-
           <div class="prompt-template-header">
             <label for="synthesisPromptTemplate">Prompt Template:</label>
             <button class="btn-text" id="synthesisResetPromptBtn">Reset to Default</button>
@@ -356,6 +409,9 @@ export class SynthesisModal extends BaseView {
             <strong>Available placeholders:</strong> 
             {masterResume}, {jobTitle}, {company}, {aboutJob}, {aboutCompany}, {responsibilities}, {requirements}, {narrativeStrategy}, {currentDraft}
           </p>
+
+          ${existingContentWarning}
+          ${missingFieldsWarning}
         </div>
 
         <div class="modal-footer">
@@ -396,6 +452,15 @@ export class SynthesisModal extends BaseView {
     const cancelBtn = document.getElementById('synthesisModalCancelBtn');
     if (cancelBtn) {
       this.trackListener(cancelBtn, 'click', () => this.close());
+    }
+
+    // Create Master Resume button
+    const createResumeBtn = document.getElementById('synthesisCreateResumeBtn');
+    if (createResumeBtn) {
+      this.trackListener(createResumeBtn, 'click', () => {
+        // Navigate to resume page
+        window.location.href = '/resume.html';
+      });
     }
 
     // Generate button

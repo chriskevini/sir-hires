@@ -1463,24 +1463,59 @@
       border-radius: 4px;
     }
 
-    .existing-content-warning {
-      margin-bottom: 20px;
-      padding: 16px;
+    /* Synthesis Modal Warning Styles */
+    .error-warning,
+    .existing-content-warning,
+    .missing-fields-warning {
       background-color: #fff3cd;
-      border-left: 3px solid #ff9800;
-      border-radius: 4px;
+      border: 1px solid #f9ab00;
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 12px;
     }
 
-    .existing-content-warning p {
-      margin: 0;
-      font-size: 13px;
+    .error-warning {
+      background-color: #e3f2fd;
+      border-color: #2196f3;
+    }
+
+    .error-warning p,
+    .existing-content-warning p,
+    .missing-fields-warning p {
       color: #856404;
+      margin: 0;
       line-height: 1.5;
+      font-size: 13px;
     }
 
-    .existing-content-warning p:first-child {
-      font-weight: 600;
-      margin-bottom: 6px;
+    .error-warning p {
+      color: #1565c0;
+    }
+
+    .error-warning p:first-child {
+      margin-bottom: 12px;
+    }
+
+    .existing-content-warning p:first-child,
+    .missing-fields-warning p:first-child {
+      margin-bottom: 4px;
+    }
+
+    .existing-content-warning p:last-child,
+    .missing-fields-warning p:last-child {
+      margin-bottom: 0;
+    }
+
+    .error-warning .btn-primary {
+      width: auto;
+      display: inline-block;
+      padding: 8px 16px;
+      font-size: 13px;
+      background-color: #2196f3;
+    }
+
+    .error-warning .btn-primary:hover {
+      background-color: #1976d2;
     }
 
     /* Prompt Template Editor */

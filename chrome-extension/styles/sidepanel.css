@@ -603,3 +603,52 @@ body {
   background-color: #d2e3fc;
   box-shadow: 0 1px 3px rgba(26, 115, 232, 0.3);
 }
+
+/* Synthesis Modal Warning Styles */
+.error-warning,
+.existing-content-warning,
+.missing-fields-warning {
+  background-color: #fff3cd;
+  border: 1px solid #f9ab00;
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.error-warning {
+  background-color: #fce8e6;
+  border-color: #d93025;
+}
+
+.error-warning p,
+.existing-content-warning p,
+.missing-fields-warning p {
+  color: #856404;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.error-warning p {
+  color: #d93025;
+}
+
+.error-warning p:first-child {
+  margin-bottom: 12px;
+}
+
+.existing-content-warning p:first-child,
+.missing-fields-warning p:first-child {
+  margin-bottom: 4px;
+}
+
+.existing-content-warning p:last-child,
+.missing-fields-warning p:last-child {
+  margin-bottom: 0;
+}
+
+.error-warning .btn-primary {
+  width: auto;
+  display: inline-block;
+  padding: 8px 16px;
+  font-size: 13px;
+}

@@ -775,6 +775,17 @@ export class DraftingView extends BaseView {
           // Show success toast
           this.showToast('Document generated successfully!', 'success');
         };
+        
+        // Set callback to handle generation errors
+        this.synthesisModal.onError = (jobIndex, documentKey, error) => {
+          console.error(`[DraftingView] Generation failed for ${documentKey}:`, error);
+          
+          // Hide thinking panel on error
+          this.hideThinkingPanel(container);
+          
+          // Show error toast
+          this.showToast(`Generation failed: ${error.message}`, 'error');
+        };
       };
       this.trackListener(synthesizeBtn, 'click', clickHandler);
     }

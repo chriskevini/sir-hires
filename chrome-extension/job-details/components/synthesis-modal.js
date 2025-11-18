@@ -19,6 +19,7 @@ export class SynthesisModal extends BaseView {
     this.onGenerate = null; // Callback when generation completes
     this.onThinkingUpdate = null; // Callback for thinking stream updates
     this.onDocumentUpdate = null; // Callback for document stream updates
+    this.onError = null; // Callback when generation fails
   }
 
   /**
@@ -279,7 +280,35 @@ export class SynthesisModal extends BaseView {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[SynthesisModal] LLM API error:', errorText);
-      throw new Error(`LLM API error: HTTP ${response.status} - ${errorText}`);
+      
+      // Try to parse JSON error for better message
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error?.code === 'model_not_found') {
+          // Model not loaded - provide comprehensive instructions
+          throw new Error(
+            `Model "${model}" failed to load.\n\n` +
+            `Option 1 - Enable JIT Loading (Recommended):\n` +
+            `1. Open LM Studio → Developer tab → Server Settings\n` +
+            `2. Enable "JIT Loading" (should be on by default)\n` +
+            `3. Try generating again (model will auto-load)\n\n` +
+            `Option 2 - Manually Load:\n` +
+            `• In LM Studio: Click "${model}" in the left sidebar\n` +
+            `• Or via CLI: lms load "${model}" --yes\n\n` +
+            `Option 3 - Check Model Status:\n` +
+            `• The model might not be downloaded yet\n` +
+            `• Download it from LM Studio's model library first`
+          );
+        }
+        throw new Error(errorJson.error?.message || `LLM API error: HTTP ${response.status}`);
+      } catch (parseError) {
+        // If parseError is our custom error, re-throw it
+        if (parseError.message.includes('failed to load')) {
+          throw parseError;
+        }
+        // If not JSON, use raw error text
+        throw new Error(`LLM API error: HTTP ${response.status} - ${errorText}`);
+      }
     }
 
     // Process SSE stream
@@ -733,6 +762,19 @@ export class SynthesisModal extends BaseView {
       }
     } catch (error) {
       console.error('[SynthesisModal] Synthesis failed:', error);
+      
+      // Re-enable button and restore text if modal is still open
+      if (this.isOpen) {
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = originalText;
+      }
+      
+      // Call error callback if available
+      if (this.onError) {
+        this.onError(this.activeJobIndex, this.activeDocumentKey, error);
+      }
+      
+      // Still show alert to user
       alert(`Failed to generate document: ${error.message}`);
     }
   }

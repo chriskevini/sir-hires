@@ -717,7 +717,7 @@ export class DraftingView extends BaseView {
         };
         
         // Set streaming callback for thinking updates
-        this.synthesisModal.onThinkingUpdate = (thinkingDelta) => {
+        this.synthesisModal.onThinkingUpdate = (documentKey, thinkingDelta) => {
           // Show thinking panel on first update (get active editor's panel)
           const activeEditor = container.querySelector('.editor-content.active');
           if (activeEditor) {
@@ -738,7 +738,7 @@ export class DraftingView extends BaseView {
         };
         
         // Set streaming callback for document updates
-        this.synthesisModal.onDocumentUpdate = (documentDelta) => {
+        this.synthesisModal.onDocumentUpdate = (documentKey, documentDelta) => {
           // Clear loading message on first document update (if no thinking block)
           const activeEditor = container.querySelector('.editor-content.active');
           if (activeEditor) {
@@ -753,8 +753,8 @@ export class DraftingView extends BaseView {
             }
           }
           
-          // Get the textarea for the active document
-          const textarea = container.querySelector(`[data-field="${this.activeTab}-text"]`);
+          // Get the textarea for the document being generated
+          const textarea = container.querySelector(`[data-field="${documentKey}-text"]`);
           if (textarea) {
             // Append document content in real-time
             textarea.value += documentDelta;

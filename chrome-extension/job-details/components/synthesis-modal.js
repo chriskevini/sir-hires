@@ -736,12 +736,20 @@ export class SynthesisModal extends BaseView {
 
       // Synthesize document with filled prompt and streaming callbacks
       // This runs in the background while modal is closed
+      // Wrap callbacks to inject documentKey parameter
+      const wrappedOnThinkingUpdate = this.onThinkingUpdate 
+        ? (delta) => this.onThinkingUpdate(this.activeDocumentKey, delta) 
+        : null;
+      const wrappedOnDocumentUpdate = this.onDocumentUpdate 
+        ? (delta) => this.onDocumentUpdate(this.activeDocumentKey, delta) 
+        : null;
+      
       const result = await this.synthesizeDocument(
         this.activeDocumentKey,
         this.selectedModel,
         filledPrompt,
-        this.onThinkingUpdate,  // Pass thinking callback
-        this.onDocumentUpdate,  // Pass document callback
+        wrappedOnThinkingUpdate,  // Pass wrapped thinking callback
+        wrappedOnDocumentUpdate,  // Pass wrapped document callback
         maxTokens
       );
 

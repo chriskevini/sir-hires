@@ -99,6 +99,13 @@ Split synthesis into two focused phases with different models and goals:
 - `chrome-extension/job-details/config.js` (add analysis prompt)
 - `chrome-extension/job-details.html` (add insights CSS)
 
+**Reusable LLM Infrastructure:**
+- `chrome-extension/utils/llm-client.js` ✅ **COMPLETE** - Reusable LLM client for all extension contexts
+  - Handles API calls, SSE streaming, and thinking/document separation
+  - Three-state machine: DETECTING → IN_THINKING_BLOCK → IN_DOCUMENT
+  - Supports both thinking models (Qwen, DeepSeek) and non-thinking models
+  - Extracted from synthesis modal (~170 lines) for reuse across features
+
 **New Schema:**
 ```javascript
 {
@@ -112,6 +119,185 @@ Split synthesis into two focused phases with different models and goals:
   }
 }
 ```
+
+#### Two-Stream Architecture
+
+Reuse the LLMClient pattern to handle thinking + structured output:
+
+```javascript
+// In analysis modal
+import { LLMClient } from '../../utils/llm-client.js';
+
+async function streamAnalysis(job) {
+  const llmClient = new LLMClient({
+    endpoint: 'http://localhost:1234/v1/chat/completions',
+    modelsEndpoint: 'http://localhost:1234/v1/models'
+  });
+
+  let thinkingContent = '';
+  let toonContent = '';
+
+  const result = await llmClient.streamCompletion({
+    model: 'qwen2.5-3b-instruct',
+    systemPrompt: analysisSystemPrompt,
+    userPrompt: buildAnalysisPrompt(job),
+    maxTokens: 2000,
+    temperature: 0.7,
+    onThinkingUpdate: (delta) => {
+      thinkingContent += delta;
+      updateThinkingDisplay(thinkingContent);
+    },
+    onDocumentUpdate: (delta) => {
+      toonContent += delta;
+      // Parse incrementally (line-by-line)
+      const partialResult = parseToonIncremental(toonContent);
+      updateAnalysisDisplay(partialResult);
+    }
+  });
+
+  // Final parse
+  const finalResult = parseToonComplete(result.documentContent);
+  return finalResult;
+}
+```
+
+#### Analysis Modal UI
+
+Similar to synthesis modal with two tabs:
+
+```
+┌─────────────────────────────────────────┐
+│  ✨ AI Analysis                        │
+│                                         │
+│  [Thinking] [Analysis]  ← Two tabs     │
+│  ┌─────────────────────────────────┐   │
+│  │ <Thinking Tab>                  │   │
+│  │ Analyzing resume against job... │   │
+│  │ - Python: Strong match          │   │
+│  │ - Kubernetes: Confirmed         │   │
+│  │ - GraphQL: Missing              │   │
+│  └─────────────────────────────────┘   │
+│                                         │
+│  ┌─────────────────────────────────┐   │
+│  │ <Analysis Tab>                  │   │
+│  │ Overall Fit: 8/10               │   │
+│  │                                 │   │
+│  │ ✓ Matched Skills                │   │
+│  │   • Python • Docker • K8s       │   │
+│  │                                 │   │
+│  │ ⚠ Missing Skills                │   │
+│  │   • GraphQL (nice-to-have)      │   │
+│  └─────────────────────────────────┘   │
+│                                         │
+│  [Close]  [Re-analyze]                 │
+└─────────────────────────────────────────┘
+```
+
+#### TOON Parser Architecture
+
+```javascript
+// toon-parser.js
+export class ToonParser {
+  constructor() {
+    this.buffer = '';
+    this.result = this.getEmptyResult();
+  }
+
+  // For streaming: parse line-by-line
+  parseIncremental(chunk) {
+    this.buffer += chunk;
+    const lines = this.buffer.split('\n');
+    this.buffer = lines.pop(); // Keep incomplete line
+
+    for (const line of lines) {
+      this.parseLine(line);
+    }
+
+    return this.result; // Partial result for UI
+  }
+
+  // For complete parsing: parse all at once
+  parseComplete(toonText) {
+    const lines = toonText.split('\n');
+    this.result = this.getEmptyResult();
+
+    let context = { section: null, indent: 0 };
+
+    for (const line of lines) {
+      this.parseLine(line, context);
+    }
+
+    return this.result;
+  }
+
+  parseLine(line, context) {
+    // Parse: fitScore: 8
+    // Parse: achievements[2]{text,keywords}:
+    // Parse:   row1,row2
+    // Parse: skills:
+    // Parse:   present[3]: val1,val2,val3
+    // ... etc
+  }
+}
+```
+
+#### Prompt Strategy for TOON + Thinking
+
+```javascript
+const analysisPrompt = `
+You are an expert career counselor analyzing job-resume fit.
+
+<THINKING PROTOCOL>
+Use <thinking> tags to reason through your analysis:
+- Review each achievement for keyword matches
+- Assess skill alignment (present vs missing)
+- Consider gaps and how to address them
+- Calculate fit score based on requirements coverage
+</THINKING PROTOCOL>
+
+<OUTPUT PROTOCOL>
+After your thinking, output analysis in TOON format (Token-Oriented Object Notation).
+
+TOON FORMAT RULES:
+- Scalars: key: value
+- Simple arrays: arrayName[N]: val1,val2,val3
+- Object arrays: arrayName[N]{field1,field2}:
+  followed by indented rows (2 spaces)
+- Nested objects: use indentation
+
+REQUIRED SCHEMA:
+fitScore: <number 1-10>
+achievements[N]{text,keywords}:
+  <achievement from resume>,<space-separated keywords>
+  <achievement from resume>,<space-separated keywords>
+skills:
+  present[N]: <skill1>,<skill2>
+  missing[N]{skill,priority}:
+    <skill>,<critical|nice-to-have>
+strategy:
+  emphasize[N]: <point1>,<point2>
+  deemphasize[N]: <point1>,<point2>
+concerns[N]{issue,action}:
+  <issue>,<action>
+
+CRITICAL: Output ONLY valid TOON format after </thinking>. No markdown, no extra text.
+</OUTPUT PROTOCOL>
+`;
+```
+
+#### Benefits of Two-Stream + TOON Architecture
+
+1. **Thinking transparency** - User sees LLM's reasoning process in real-time
+2. **Reliable structure** - TOON's explicit schema reduces parsing errors
+3. **Incremental updates** - UI updates as each section streams in
+4. **Proven pattern** - Reuses LLMClient architecture from synthesis modal
+5. **Model flexibility** - Works with both thinking and non-thinking models
+6. **Zero duplication** - LLMClient handles all streaming logic (~170 lines centralized)
+
+**For non-thinking models** (e.g., Gemini, older models):
+- Parser receives TOON immediately
+- State machine stays in `IN_DOCUMENT` 
+- Works perfectly without thinking tags ✅
 
 **UI Components:**
 - Expandable "AI Insights" section (similar to checklist)

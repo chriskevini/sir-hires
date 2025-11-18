@@ -3,6 +3,7 @@
 
 import { BaseView } from '../base-view.js';
 import { llmConfig } from '../config.js';
+import { LLMClient } from '../../utils/llm-client.js';
 
 export class SynthesisModal extends BaseView {
   constructor() {
@@ -20,6 +21,12 @@ export class SynthesisModal extends BaseView {
     this.onThinkingUpdate = null; // Callback for thinking stream updates
     this.onDocumentUpdate = null; // Callback for document stream updates
     this.onError = null; // Callback when generation fails
+    
+    // Initialize LLM client
+    this.llmClient = new LLMClient({
+      endpoint: llmConfig.synthesis.endpoint,
+      modelsEndpoint: llmConfig.synthesis.modelsEndpoint
+    });
   }
 
   /**
@@ -78,26 +85,11 @@ export class SynthesisModal extends BaseView {
    * Fetch available models from LM Studio
    */
   async fetchAvailableModels() {
-    try {
-      const response = await fetch(llmConfig.synthesis.modelsEndpoint, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
+    this.availableModels = await this.llmClient.fetchModels();
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      this.availableModels = data.data || [];
-
-      // Set default model if available
-      if (this.availableModels.length > 0 && !this.availableModels.find(m => m.id === this.selectedModel)) {
-        this.selectedModel = this.availableModels[0].id;
-      }
-    } catch (error) {
-      console.error('[SynthesisModal] Failed to fetch models:', error);
-      this.availableModels = [];
+    // Set default model if available
+    if (this.availableModels.length > 0 && !this.availableModels.find(m => m.id === this.selectedModel)) {
+      this.selectedModel = this.availableModels[0].id;
     }
   }
 
@@ -173,41 +165,6 @@ export class SynthesisModal extends BaseView {
   }
 
   /**
-   * Test connection to LM Studio
-   * @returns {boolean} True if connected
-   */
-  async testConnection() {
-    try {
-      const response = await fetch(llmConfig.synthesis.modelsEndpoint, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (!response.ok) {
-        console.error(`[SynthesisModal] Connection test failed: HTTP ${response.status}`);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('[SynthesisModal] Connection test failed:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Parse thinking content by removing tags
-   * @param {string} rawThinking - Raw thinking content with tags
-   * @returns {string} Cleaned thinking content
-   */
-  parseThinking(rawThinking) {
-    // Remove <think>, </think>, <thinking>, </thinking>, <reasoning>, </reasoning> tags
-    // Support all three variants
-    // Don't trim() to preserve whitespace in streaming
-    return rawThinking.replace(/<\/?(?:think|thinking|reasoning)>/gi, '');
-  }
-
-  /**
    * Synthesize document using LLM with streaming support
    * @param {string} documentKey - Document type
    * @param {string} model - Model ID
@@ -219,173 +176,23 @@ export class SynthesisModal extends BaseView {
    * @returns {Object} Result with { content, thinkingContent, truncated, currentTokens }
    */
   async synthesizeDocument(documentKey, model, systemPrompt, userPrompt, onThinkingUpdate = null, onDocumentUpdate = null, maxTokens = 2000) {
-    // Test connection first
-    const isConnected = await this.testConnection();
-    if (!isConnected) {
-      throw new Error('Cannot connect to LM Studio. Please ensure LM Studio is running on http://localhost:1234');
-    }
-
-    // Call LM Studio API with streaming enabled
-    const response = await fetch(llmConfig.synthesis.endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_tokens: maxTokens,
-        temperature: llmConfig.synthesis.temperature,
-        stream: true  // Enable streaming
-      })
+    // Use LLMClient to stream completion
+    const result = await this.llmClient.streamCompletion({
+      model,
+      systemPrompt,
+      userPrompt,
+      maxTokens,
+      temperature: llmConfig.synthesis.temperature,
+      onThinkingUpdate,
+      onDocumentUpdate
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[SynthesisModal] LLM API error:', errorText);
-      
-      // Try to parse JSON error for better message
-      try {
-        const errorJson = JSON.parse(errorText);
-        if (errorJson.error?.code === 'model_not_found') {
-          // Model not loaded - provide comprehensive instructions
-          throw new Error(
-            `Model "${model}" failed to load.\n\n` +
-            `Option 1 - Enable JIT Loading (Recommended):\n` +
-            `1. Open LM Studio → Developer tab → Server Settings\n` +
-            `2. Enable "JIT Loading" (should be on by default)\n` +
-            `3. Try generating again (model will auto-load)\n\n` +
-            `Option 2 - Manually Load:\n` +
-            `• In LM Studio: Click "${model}" in the left sidebar\n` +
-            `• Or via CLI: lms load "${model}" --yes\n\n` +
-            `Option 3 - Check Model Status:\n` +
-            `• The model might not be downloaded yet\n` +
-            `• Download it from LM Studio's model library first`
-          );
-        }
-        throw new Error(errorJson.error?.message || `LLM API error: HTTP ${response.status}`);
-      } catch (parseError) {
-        // If parseError is our custom error, re-throw it
-        if (parseError.message.includes('failed to load')) {
-          throw parseError;
-        }
-        // If not JSON, use raw error text
-        throw new Error(`LLM API error: HTTP ${response.status} - ${errorText}`);
-      }
-    }
-
-    // Process SSE stream
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    
-    // State machine for content routing
-    let state = 'DETECTING';  // DETECTING → IN_THINKING_BLOCK → IN_DOCUMENT
-    let buffer = '';
-    let thinkingContent = '';
-    let documentContent = '';
-    let finishReason = null;
-    let charsProcessed = 0;
-    const DETECTION_WINDOW = 50;  // First 50 chars for pattern detection
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n');
-
-      for (const line of lines) {
-        if (!line.trim() || line.trim() === 'data: [DONE]') continue;
-        if (!line.startsWith('data: ')) continue;
-
-        try {
-          const jsonStr = line.slice(6);  // Remove "data: " prefix
-          const data = JSON.parse(jsonStr);
-          
-          const delta = data.choices?.[0]?.delta?.content || '';
-          if (!delta) {
-            // Check for finish reason
-            finishReason = data.choices?.[0]?.finish_reason || finishReason;
-            continue;
-          }
-
-          buffer += delta;
-          charsProcessed += delta.length;
-
-          // State machine logic
-          if (state === 'DETECTING' && charsProcessed <= DETECTION_WINDOW) {
-            // Check for thinking patterns in first 50 chars
-            // Support <think>, <thinking>, and <reasoning> tags
-            if (/<(?:think|thinking|reasoning)>/i.test(buffer)) {
-              state = 'IN_THINKING_BLOCK';
-            } else if (charsProcessed >= DETECTION_WINDOW) {
-              // No thinking pattern detected, treat as standard model
-              state = 'IN_DOCUMENT';
-              // Send buffered content to document
-              if (onDocumentUpdate) {
-                onDocumentUpdate(buffer);
-              }
-              documentContent += buffer;
-              buffer = '';
-            }
-          } else if (state === 'IN_THINKING_BLOCK') {
-            // Check for end of thinking block (support all three closing tags)
-            if (/<\/(?:think|thinking|reasoning)>/i.test(buffer)) {
-              state = 'IN_DOCUMENT';
-              
-              // Extract thinking content and document start
-              const match = buffer.match(/^(.*?)<\/(?:think|thinking|reasoning)>(.*)$/is);
-              if (match) {
-                const thinkingPart = match[1];
-                const documentPart = match[2];
-                
-                // Send parsed thinking (without tags)
-                const parsedThinking = this.parseThinking(thinkingPart);
-                if (onThinkingUpdate && parsedThinking) {
-                  onThinkingUpdate(parsedThinking);
-                }
-                thinkingContent += parsedThinking;
-                
-                // Start document content
-                if (onDocumentUpdate && documentPart) {
-                  onDocumentUpdate(documentPart);
-                }
-                documentContent += documentPart;
-                buffer = '';
-              }
-            } else {
-              // Still in thinking block, accumulate and send parsed content
-              const parsedDelta = this.parseThinking(delta);
-              if (onThinkingUpdate && parsedDelta) {
-                onThinkingUpdate(parsedDelta);
-              }
-              thinkingContent += parsedDelta;
-            }
-          } else if (state === 'IN_DOCUMENT') {
-            // Route to document
-            if (onDocumentUpdate) {
-              onDocumentUpdate(delta);
-            }
-            documentContent += delta;
-          }
-
-        } catch (error) {
-          console.error('[SynthesisModal] Failed to parse SSE line:', line, error);
-        }
-      }
-    }
-
     // Check for truncation
-    const truncated = finishReason === 'length';
-    
-    if (truncated) {
-      console.warn('[SynthesisModal] Response truncated due to token limit');
-    }
+    const truncated = result.finishReason === 'length';
 
     return {
-      content: documentContent.trim(),
-      thinkingContent: thinkingContent.trim(),
+      content: result.documentContent,
+      thinkingContent: result.thinkingContent,
       truncated: truncated,
       currentTokens: maxTokens
     };

@@ -14,76 +14,12 @@ export class SynthesisModal extends BaseView {
     this.availableModels = [];
     this.selectedModel = llmConfig.synthesis.defaultModel;
     this.hasExistingContent = false; // Auto-detected: refine if true, generate if false
-    this.promptTemplate = null; // Current prompt template (custom or default)
     this.maxTokens = 2000; // Default max tokens
     this.onGenerate = null; // Callback when generation completes
     this.onGenerationStart = null; // Callback when generation starts (before stream)
     this.onThinkingUpdate = null; // Callback for thinking stream updates
     this.onDocumentUpdate = null; // Callback for document stream updates
     this.onError = null; // Callback when generation fails
-  }
-
-  /**
-   * Load custom prompt template from storage or fall back to default
-   * @param {string} documentKey - Document type (used for backward compatibility, now uses universal prompt)
-   * @returns {string} Prompt template
-   */
-  async loadCustomPrompt(documentKey) {
-    try {
-      const result = await chrome.storage.local.get(['customPrompts']);
-      const customPrompts = result.customPrompts || {};
-      
-      // Use single 'universal' key for all document types
-      return customPrompts.universal || llmConfig.synthesis.prompts.universal;
-    } catch (error) {
-      console.error('[SynthesisModal] Failed to load custom prompt:', error);
-      // Fall back to universal prompt on error
-      return llmConfig.synthesis.prompts.universal;
-    }
-  }
-
-  /**
-   * Save custom prompt template to storage
-   * @param {string} documentKey - Document type (unused, kept for API compatibility)
-   * @param {string} template - Prompt template to save
-   */
-  async saveCustomPrompt(documentKey, template) {
-    try {
-      const result = await chrome.storage.local.get(['customPrompts']);
-      const customPrompts = result.customPrompts || {};
-      
-      // Save to single 'universal' key
-      customPrompts.universal = template;
-      await chrome.storage.local.set({ customPrompts });
-      
-      console.log('[SynthesisModal] Saved custom universal prompt');
-    } catch (error) {
-      console.error('[SynthesisModal] Failed to save custom prompt:', error);
-    }
-  }
-
-  /**
-   * Clear custom prompt and revert to default
-   * @param {string} documentKey - Document type (unused, kept for API compatibility)
-   */
-  async clearCustomPrompt(documentKey) {
-    try {
-      const result = await chrome.storage.local.get(['customPrompts']);
-      const customPrompts = result.customPrompts || {};
-      
-      // Clear universal prompt
-      customPrompts.universal = null;
-      await chrome.storage.local.set({ customPrompts });
-      
-      console.log('[SynthesisModal] Cleared custom universal prompt');
-      
-      // Return default universal prompt
-      return llmConfig.synthesis.prompts.universal;
-    } catch (error) {
-      console.error('[SynthesisModal] Failed to clear custom prompt:', error);
-      // Fall back to universal prompt on error
-      return llmConfig.synthesis.prompts.universal;
-    }
   }
 
   /**
@@ -101,9 +37,6 @@ export class SynthesisModal extends BaseView {
     // Check if document has existing content
     const existingContent = job.documents?.[documentKey]?.text || '';
     this.hasExistingContent = existingContent.trim().length > 0;
-
-    // Load custom prompt template or fall back to default
-    this.promptTemplate = await this.loadCustomPrompt(documentKey);
 
     // Fetch available models
     await this.fetchAvailableModels();
@@ -193,20 +126,52 @@ export class SynthesisModal extends BaseView {
   }
 
   /**
-   * Replace placeholders in template with actual values
-   * @param {string} template - Prompt template with placeholders
-   * @param {Object} context - Context data
-   * @returns {string} Filled prompt
+   * Build JIT user prompt from context data
+   * @param {Object} context - Context data from buildContext()
+   * @returns {string} Formatted user prompt
    */
-  fillPlaceholders(template, context) {
-    let prompt = template;
+  buildUserPrompt(context) {
+    const sections = [];
     
-    // Replace all placeholders
-    for (const [key, value] of Object.entries(context)) {
-      prompt = prompt.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
+    // Only include sections with actual data
+    if (context.masterResume && context.masterResume !== 'Not provided') {
+      sections.push(`[MASTER RESUME]\n${context.masterResume}`);
     }
     
-    return prompt;
+    if (context.jobTitle && context.jobTitle !== 'Not provided') {
+      sections.push(`[JOB TITLE]\n${context.jobTitle}`);
+    }
+    
+    if (context.company && context.company !== 'Not provided') {
+      sections.push(`[COMPANY]\n${context.company}`);
+    }
+    
+    if (context.aboutJob && context.aboutJob !== 'Not provided') {
+      sections.push(`[ABOUT THE JOB]\n${context.aboutJob}`);
+    }
+    
+    if (context.aboutCompany && context.aboutCompany !== 'Not provided') {
+      sections.push(`[ABOUT THE COMPANY]\n${context.aboutCompany}`);
+    }
+    
+    if (context.responsibilities && context.responsibilities !== 'Not provided') {
+      sections.push(`[RESPONSIBILITIES]\n${context.responsibilities}`);
+    }
+    
+    if (context.requirements && context.requirements !== 'Not provided') {
+      sections.push(`[REQUIREMENTS]\n${context.requirements}`);
+    }
+    
+    if (context.narrativeStrategy && context.narrativeStrategy !== 'Not provided') {
+      sections.push(`[NARRATIVE STRATEGY]\n${context.narrativeStrategy}`);
+    }
+    
+    if (context.currentDraft && context.currentDraft !== 'Not provided') {
+      sections.push(`[CURRENT DRAFT]\n${context.currentDraft}`);
+    }
+    
+    // Join sections with double newlines and add closing instruction
+    return sections.join('\n\n') + '\n\nSynthesize the document now, strictly following the STREAMING PROTOCOL.';
   }
 
   /**
@@ -240,29 +205,37 @@ export class SynthesisModal extends BaseView {
    * @returns {string} Cleaned thinking content
    */
   parseThinking(rawThinking) {
-    // Remove <think>, </think>, <thinking>, </thinking> tags
+    // Remove <think>, </think>, <thinking>, </thinking>, <reasoning>, </reasoning> tags
+    // Support all three variants
     // Don't trim() to preserve whitespace in streaming
-    return rawThinking.replace(/<\/?think(ing)?>/gi, '');
+    return rawThinking.replace(/<\/?(?:think|thinking|reasoning)>/gi, '');
   }
 
   /**
    * Synthesize document using LLM with streaming support
    * @param {string} documentKey - Document type
    * @param {string} model - Model ID
-   * @param {string} prompt - Filled prompt with actual data (no placeholders)
+   * @param {string} systemPrompt - System prompt defining AI behavior
+   * @param {string} userPrompt - User prompt with context data
    * @param {Function} onThinkingUpdate - Callback for thinking stream updates (parsed content)
    * @param {Function} onDocumentUpdate - Callback for document stream updates
    * @param {number} maxTokens - Maximum tokens to generate (default: 2000)
    * @returns {Object} Result with { content, thinkingContent, truncated, currentTokens }
    */
-  async synthesizeDocument(documentKey, model, prompt, onThinkingUpdate = null, onDocumentUpdate = null, maxTokens = 2000) {
+  async synthesizeDocument(documentKey, model, systemPrompt, userPrompt, onThinkingUpdate = null, onDocumentUpdate = null, maxTokens = 2000) {
     // Test connection first
     const isConnected = await this.testConnection();
     if (!isConnected) {
       throw new Error('Cannot connect to LM Studio. Please ensure LM Studio is running on http://localhost:1234');
     }
 
-    console.log('[SynthesisModal] Sending prompt to LLM with streaming:', { model, documentKey, promptLength: prompt.length, maxTokens });
+    console.log('[SynthesisModal] Sending prompts to LLM with streaming:', { 
+      model, 
+      documentKey, 
+      systemPromptLength: systemPrompt.length, 
+      userPromptLength: userPrompt.length, 
+      maxTokens 
+    });
 
     // Call LM Studio API with streaming enabled
     const response = await fetch(llmConfig.synthesis.endpoint, {
@@ -271,7 +244,8 @@ export class SynthesisModal extends BaseView {
       body: JSON.stringify({
         model: model,
         messages: [
-          { role: 'user', content: prompt }
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
         ],
         max_tokens: maxTokens,
         temperature: llmConfig.synthesis.temperature,
@@ -324,7 +298,7 @@ export class SynthesisModal extends BaseView {
     let documentContent = '';
     let finishReason = null;
     let charsProcessed = 0;
-    const DETECTION_WINDOW = 500;  // First 500 chars for pattern detection
+    const DETECTION_WINDOW = 50;  // First 50 chars for pattern detection
 
     while (true) {
       const { done, value } = await reader.read();
@@ -353,8 +327,9 @@ export class SynthesisModal extends BaseView {
 
           // State machine logic
           if (state === 'DETECTING' && charsProcessed <= DETECTION_WINDOW) {
-            // Check for thinking patterns in first 500 chars
-            if (/<think>|<thinking>/i.test(buffer)) {
+            // Check for thinking patterns in first 50 chars
+            // Support <think>, <thinking>, and <reasoning> tags
+            if (/<(?:think|thinking|reasoning)>/i.test(buffer)) {
               state = 'IN_THINKING_BLOCK';
               console.log('[SynthesisModal] Thinking model detected, routing to thinking panel');
             } else if (charsProcessed >= DETECTION_WINDOW) {
@@ -369,15 +344,15 @@ export class SynthesisModal extends BaseView {
               buffer = '';
             }
           } else if (state === 'IN_THINKING_BLOCK') {
-            // Check for end of thinking block
-            if (/<\/think>|<\/thinking>/i.test(buffer)) {
+            // Check for end of thinking block (support all three closing tags)
+            if (/<\/(?:think|thinking|reasoning)>/i.test(buffer)) {
               state = 'IN_DOCUMENT';
               
               // Extract thinking content and document start
-              const match = buffer.match(/^(.*?)<\/(think|thinking)>(.*)$/is);
+              const match = buffer.match(/^(.*?)<\/(?:think|thinking|reasoning)>(.*)$/is);
               if (match) {
                 const thinkingPart = match[1];
-                const documentPart = match[3];
+                const documentPart = match[2];
                 
                 // Send parsed thinking (without tags)
                 const parsedThinking = this.parseThinking(thinkingPart);
@@ -502,39 +477,42 @@ export class SynthesisModal extends BaseView {
         ).join('')
       : `<option value="${llmConfig.synthesis.defaultModel}">${llmConfig.synthesis.defaultModel} (not loaded)</option>`;
 
-    // Check for missing data fields
-    const missingFields = [];
-    const fieldLabels = {
-      jobTitle: 'Job Title',
-      company: 'Company',
-      aboutJob: 'About Job',
-      aboutCompany: 'About Company',
-      responsibilities: 'Responsibilities',
-      requirements: 'Requirements',
-      narrativeStrategy: 'Narrative Focus'
-    };
+    // Build data checklist with filled/missing indicators
+    const dataFields = [
+      { key: 'masterResume', label: 'Master Resume', value: masterResume },
+      { key: 'jobTitle', label: 'Job Title', value: this.activeJob.jobTitle },
+      { key: 'company', label: 'Company', value: this.activeJob.company },
+      { key: 'aboutJob', label: 'About Job', value: this.activeJob.aboutJob },
+      { key: 'aboutCompany', label: 'About Company', value: this.activeJob.aboutCompany },
+      { key: 'responsibilities', label: 'Responsibilities', value: this.activeJob.responsibilities },
+      { key: 'requirements', label: 'Requirements', value: this.activeJob.requirements },
+      { key: 'narrativeStrategy', label: 'Narrative Strategy', value: this.activeJob.narrativeStrategy },
+      { key: 'currentDraft', label: 'Current Draft', value: this.activeJob.documents?.[this.activeDocumentKey]?.text }
+    ];
 
-    for (const [field, label] of Object.entries(fieldLabels)) {
-      if (!this.activeJob[field] || this.activeJob[field].trim() === '') {
-        missingFields.push(label);
-      }
-    }
+    const checklistHTML = dataFields.map(field => {
+      const isFilled = field.value && field.value.trim().length > 0;
+      const bulletClass = isFilled ? 'data-bullet-filled' : 'data-bullet-empty';
+      const bulletIcon = isFilled ? '✓' : '○';
+      return `
+        <li class="data-checklist-item">
+          <span class="${bulletClass}">${bulletIcon}</span>
+          <span class="data-field-label">${field.label}</span>
+        </li>
+      `;
+    }).join('');
 
+    const missingFields = dataFields.filter(f => !f.value || f.value.trim() === '');
     const missingFieldsWarning = missingFields.length > 0 ? `
       <div class="missing-fields-warning">
-        <p>⚠️ <strong>${missingFields.join(', ')} ${missingFields.length === 1 ? 'is' : 'are'} missing.</strong> We recommend doing more research for better document synthesis.</p>
+        <p>⚠️ <strong>${missingFields.length} field${missingFields.length === 1 ? ' is' : 's are'} missing.</strong> We recommend doing more research for better document synthesis.</p>
       </div>
     ` : '';
 
-    // Show different message based on whether user has started writing
-    const draftInstructions = this.hasExistingContent ? `
-      <div class="existing-content-warning">
-        <p>💡 <strong>It looks like you already started writing.</strong></p>
-        <p>The LLM will use your draft to understand what document to create and expand upon your instructions.</p>
-      </div>
-    ` : `
-      <div class="existing-content-warning">
-        <p>💡 <strong>Tip:</strong> In the text editor, write a brief instruction like "Write me a cover letter" or "Create a tailored resume" to tell the LLM what document to generate.</p>
+    // Show helpful tip about the template prefill
+    const draftInstructions = `
+      <div class="existing-content-info">
+        <p>💡 <strong>Tip:</strong> You can paste your own document to be used as a template during synthesis.</p>
       </div>
     `;
 
@@ -546,24 +524,12 @@ export class SynthesisModal extends BaseView {
         </div>
         
         <div class="modal-body">
-          <div class="prompt-template-header">
-            <label for="synthesisPromptTemplate">Prompt Template:</label>
-            <button class="btn-text" id="synthesisResetPromptBtn">Reset to Default</button>
+          <div class="data-checklist-section">
+            <label>Input Data Status:</label>
+            <ul class="data-checklist">
+              ${checklistHTML}
+            </ul>
           </div>
-
-          <textarea 
-            id="synthesisPromptTemplate" 
-            class="prompt-editor" 
-            rows="12" 
-            placeholder="Enter your prompt template with placeholders like {masterResume}, {jobTitle}, etc."
-          >${this.promptTemplate || ''}</textarea>
-
-          <p class="prompt-help-text">
-            <strong>Available placeholders:</strong> 
-            {masterResume}, {jobTitle}, {company}, {aboutJob}, {aboutCompany}, {responsibilities}, {requirements}, {narrativeStrategy}, {currentDraft}
-            <br>
-            <strong>Note:</strong> The LLM will determine the document type from the user's instructions in {currentDraft}.
-          </p>
 
           ${draftInstructions}
           ${missingFieldsWarning}
@@ -628,24 +594,6 @@ export class SynthesisModal extends BaseView {
       this.trackListener(generateBtn, 'click', () => this.handleGenerate());
     }
 
-    // Reset to Default button
-    const resetBtn = document.getElementById('synthesisResetPromptBtn');
-    if (resetBtn) {
-      this.trackListener(resetBtn, 'click', async () => {
-        const confirmed = confirm('Reset prompt to default? This will discard your custom prompt.');
-        if (confirmed) {
-          const defaultPrompt = await this.clearCustomPrompt(this.activeDocumentKey);
-          this.promptTemplate = defaultPrompt;
-          
-          // Update textarea
-          const textarea = document.getElementById('synthesisPromptTemplate');
-          if (textarea) {
-            textarea.value = defaultPrompt;
-          }
-        }
-      });
-    }
-
     // Close on overlay click
     this.trackListener(overlay, 'click', (e) => {
       if (e.target === overlay) {
@@ -668,19 +616,6 @@ export class SynthesisModal extends BaseView {
         this.selectedModel = e.target.value;
       });
     }
-
-    // Auto-save prompt template on blur
-    const promptTextarea = document.getElementById('synthesisPromptTemplate');
-    if (promptTextarea) {
-      this.trackListener(promptTextarea, 'blur', async () => {
-        const template = promptTextarea.value.trim();
-        if (template && template !== this.promptTemplate) {
-          await this.saveCustomPrompt(this.activeDocumentKey, template);
-          this.promptTemplate = template;
-          console.log('[SynthesisModal] Auto-saved prompt template on blur');
-        }
-      });
-    }
   }
 
 
@@ -690,18 +625,9 @@ export class SynthesisModal extends BaseView {
    */
   async handleGenerate() {
     const generateBtn = document.getElementById('synthesisModalGenerateBtn');
-    const textarea = document.getElementById('synthesisPromptTemplate');
     const maxTokensInput = document.getElementById('synthesisMaxTokens');
     
-    if (!generateBtn || !textarea || !maxTokensInput) return;
-
-    // Get current template from textarea
-    const template = textarea.value.trim();
-    
-    if (!template) {
-      alert('Please enter a prompt template');
-      return;
-    }
+    if (!generateBtn || !maxTokensInput) return;
 
     // Get max tokens from input
     const maxTokens = parseInt(maxTokensInput.value) || 2000;
@@ -717,14 +643,12 @@ export class SynthesisModal extends BaseView {
     generateBtn.innerHTML = '⏳ Generating...';
 
     try {
-      // Save custom template to storage
-      await this.saveCustomPrompt(this.activeDocumentKey, template);
-
       // Build context data
       const context = await this.buildContext();
 
-      // Fill placeholders with actual values
-      const filledPrompt = this.fillPlaceholders(template, context);
+      // Build system prompt (from config) and user prompt (JIT)
+      const systemPrompt = llmConfig.synthesis.prompts.universal;
+      const userPrompt = this.buildUserPrompt(context);
 
       // Close modal immediately so user can watch streaming
       this.close();
@@ -734,7 +658,7 @@ export class SynthesisModal extends BaseView {
         this.onGenerationStart(this.jobIndex, this.activeDocumentKey);
       }
 
-      // Synthesize document with filled prompt and streaming callbacks
+      // Synthesize document with system + user prompts and streaming callbacks
       // This runs in the background while modal is closed
       // Wrap callbacks to inject documentKey parameter
       const wrappedOnThinkingUpdate = this.onThinkingUpdate 
@@ -747,7 +671,8 @@ export class SynthesisModal extends BaseView {
       const result = await this.synthesizeDocument(
         this.activeDocumentKey,
         this.selectedModel,
-        filledPrompt,
+        systemPrompt,
+        userPrompt,
         wrappedOnThinkingUpdate,  // Pass wrapped thinking callback
         wrappedOnDocumentUpdate,  // Pass wrapped document callback
         maxTokens

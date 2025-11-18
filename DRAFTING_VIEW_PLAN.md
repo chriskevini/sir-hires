@@ -112,48 +112,45 @@ export const llmConfig = {
 - Synthesis needs creativity → Llama/Mistral
 - Users can configure per use case
 
-### 4. LLM Synthesis Modal (Phase 5) - **UPDATED v2.0**
+### 4. LLM Synthesis Modal (Phase 5) - **UPDATED v3.0**
 
 **Design Philosophy:**
-- User edits **prompt template with placeholders** (e.g., `{masterResume}`, `{jobTitle}`)
+- System prompt in `config.js` defines AI behavior and streaming protocol
+- User sees **data availability checklist** (not editable prompt)
 - Data values are edited in job fields (researching-view), not in the modal
-- Custom templates saved globally in `chrome.storage.local.customPrompts`
-- Fast iteration: edit template → generate → review → adjust → regenerate
+- System prompt will be editable in future config page
+- Fast iteration: generate → review → adjust data → regenerate
 
 **Modal UI Features:**
 ```
 ┌─────────────────────────────────────────┐
 │ ✨ Synthesize Resume/CV with LLM     [×]│
 ├─────────────────────────────────────────┤
-│ ⚠️ Warning (if existing content)        │
+│ Input Data:                              │
+│ ✓ Master Resume                         │
+│ ✓ Job Title                             │
+│ ✓ Company                               │
+│ ✓ About Job                             │
+│ ○ About Company                         │
+│ ✓ Responsibilities                      │
+│ ✓ Requirements                          │
+│ ○ Narrative Strategy                    │
+│ ○ Current Draft                         │
 │                                          │
-│ Prompt Template:      [Reset to Default]│
-│ ┌─────────────────────────────────────┐ │
-│ │ **Role:** You are an expert...     │ │
-│ │                                     │ │
-│ │ **Task:** Synthesize a NEW...      │ │
-│ │                                     │ │
-│ │ **Inputs:**                         │ │
-│ │ [Master Resume]{masterResume}       │ │
-│ │ [Job Title]{jobTitle}               │ │
-│ │ [Company]{company}                  │ │
-│ │ [Requirements]{requirements}        │ │
-│ │ ...                                 │ │
-│ └─────────────────────────────────────┘ │
+│ ⚠️ Missing data detected. We recommend  │
+│    doing more research before           │
+│    synthesizing.                        │
 │                                          │
 ├─────────────────────────────────────────┤
+│ Max Tokens: [2000]                       │
 │ [Model: llama3.1 ▼]  [Cancel] [Generate]│
 └─────────────────────────────────────────┘
 ```
 
 **Storage Schema:**
 ```javascript
-{
-  customPrompts: {
-    resume: string | null,      // null = use default from config.js
-    coverLetter: string | null  // null = use default from config.js
-  }
-}
+// Custom prompts storage REMOVED
+// System prompt in config.js (editable via future config page)
 ```
 
 **Modal Components:**
@@ -162,86 +159,88 @@ export const llmConfig = {
    - Dynamic title includes document type: `"✨ Synthesize ${documentLabel} with LLM"`
    - Examples: "✨ Synthesize Resume/CV with LLM", "✨ Synthesize Cover Letter with LLM"
 
-2. **Existing Content Warning** (if applicable)
-   - Shows only if document has existing content
-   - Warning: "⚠️ It looks like you already began writing this document. The LLM will use this as a draft to expand upon."
+2. **Data Availability Checklist**
+   - Shows all 9 input fields with status:
+     - ✓ Filled bullet (green checkmark) for fields with data
+     - ○ Empty bullet (gray circle) for missing fields
+   - Fields displayed:
+     - Master Resume
+     - Job Title
+     - Company
+     - About Job
+     - About Company
+     - Responsibilities
+     - Requirements
+     - Narrative Strategy
+     - Current Draft
+   - Similar styling to checklist component (no expand/collapse)
 
-3. **Prompt Template Editor**
-   - Large textarea (~250px height) showing prompt template
-   - Contains placeholders: `{masterResume}`, `{jobTitle}`, `{company}`, etc.
-   - User edits the template structure, not the data values
-   - Auto-loads custom template from storage or falls back to config default
-   - Editable by user for quick experimentation
+3. **Missing Data Warning** (conditional)
+   - Shows only if any fields are missing
+   - Appears below checklist bullets
+   - Message: "⚠️ Missing data detected. We recommend doing more research before synthesizing."
+   - Non-blocking: user can still proceed with generation
 
-4. **Reset to Default Button**
-   - Located next to "Prompt Template:" label
-   - On click: Confirms, then clears custom prompt and reloads config default
-   - Confirmation message: "Reset to default prompt? This will discard your custom template."
-   - Sets `customPrompts[documentType] = null` in storage
+4. **Max Tokens Input** (Footer - Left Side)
+   - Number input field for token limit
+   - Default: 2000
+   - Range: 100-32000
+   - Helps users handle thinking models that need more tokens
 
-5. **Model Selector** (Footer - Left Side)
+5. **Model Selector** (Footer - Center)
    - Dropdown: Choose from available models loaded in LM Studio
    - Fetches models from `/v1/models` endpoint on modal open
    - Default: `llmConfig.synthesis.defaultModel` if available
    - Shows warning if no models are loaded: "⚠️ No models loaded in LM Studio. Please load a model first."
 
 6. **Action Buttons** (Footer - Right Side)
-   - **Cancel**: Close modal, discard changes
-   - **Generate**: Save template → fill placeholders → send to LLM
-     - Auto-saves edited template to `chrome.storage.local.customPrompts[documentType]`
-     - Replaces placeholders with actual data from job fields
-     - Sends filled prompt to LLM API
+   - **Cancel**: Close modal
+   - **Generate**: Build user prompt → send to LLM with system prompt
+     - Builds JIT user prompt with only available data fields
+     - Sends system + user messages to LLM API
      - Shows loading state: "⏳ Generating..."
+     - Closes modal immediately, streams in background
 
-**Removed Components (from v1.0):**
-- ❌ Document selector dropdown (pre-selected based on active tab)
-- ❌ Data checklist section (user already knows what data they have)
-- ❌ Recommendations section (simplified UX)
-- ❌ Action selection radio buttons (auto-detects generate vs refine based on existing content)
-- ❌ Privacy notice (removed clutter, users trust local LLM)
+**Removed Components (from v2.0):**
+- ❌ Prompt template editor (now in config.js, editable via future config page)
+- ❌ Reset to Default button (no custom prompts)
+- ❌ Existing content warning (handled in system prompt)
 
 **Key Behaviors:**
 
 1. **On Modal Open:**
-   - Load custom template from storage or fall back to config default
-   - Detect if document has existing content (for warning)
+   - Fetch context data (master resume, job fields)
+   - Check data availability for all 9 fields
+   - Show checklist with ✓/○ status indicators
+   - Show warning if any data missing
    - Fetch available models from LM Studio API
-   - Pre-populate template textarea
 
 2. **On Generate Click:**
-   - Save edited template to `chrome.storage.local.customPrompts[documentType]`
-   - Fetch context data (master resume, job fields)
-   - Replace placeholders in template with actual values
-   - Send filled prompt to LLM API
-   - Insert generated content into document editor
-   - Close modal
+   - Validate max tokens (100-32000 range)
+   - Build user prompt with only available fields
+   - Send system + user messages to LLM API
+   - Close modal immediately
+   - Stream content to editor in background
+   - Show thinking panel if thinking model detected
 
-3. **On Reset Click:**
-   - Show confirmation dialog
-   - If confirmed: Set `customPrompts[documentType] = null`
-   - Reload default template from `config.js`
-   - Update textarea with default template
-
-**Prompt Replacement Logic:**
+3. **User Prompt Builder:**
 ```javascript
-buildPrompt(template, context) {
-  const replacements = {
-    masterResume: context.masterResume || 'Not provided',
-    jobTitle: context.jobTitle || 'Not provided',
-    company: context.company || 'Not provided',
-    aboutJob: context.aboutJob || 'Not provided',
-    aboutCompany: context.aboutCompany || 'Not provided',
-    requirements: context.requirements || 'Not provided',
-    responsibilities: context.responsibilities || 'Not provided',
-    narrativeStrategy: context.narrativeStrategy || 'Not provided',
-    currentDraft: context.currentDraft || ''
-  };
+buildUserPrompt(context) {
+  let prompt = 'INPUTS\n';
   
-  let prompt = template;
-  for (const [key, value] of Object.entries(replacements)) {
-    prompt = prompt.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
+  // Only add fields with data
+  if (context.masterResume && context.masterResume !== 'Not provided') {
+    prompt += `[MASTER RESUME]\n${context.masterResume}\n\n`;
   }
+  if (context.jobTitle && context.jobTitle !== 'Not provided') {
+    prompt += `[JOB TITLE]\n${context.jobTitle}\n\n`;
+  }
+  if (context.company && context.company !== 'Not provided') {
+    prompt += `[COMPANY]\n${context.company}\n\n`;
+  }
+  // ... repeat for all fields
   
+  prompt += 'Synthesize the document now, strictly following the STREAMING PROTOCOL.';
   return prompt;
 }
 
@@ -591,29 +590,30 @@ drafting-view (rendered in detail panel by main-view)
    - Default to `llmConfig.synthesis.defaultModel` if available
    - If no models available: Show warning in modal
    
-   **4.2 Streaming Implementation** 🚧 **PLANNED - v2.0 Update**
-   
-   **Problem:**
-   - Thinking models (o1, o3, DeepSeek R1) include reasoning in `<think>` or `<thinking>` tags
-   - Non-streaming returns full response including reasoning preamble
-   - Token exhaustion risk with fixed 2000 token limit (reasoning can use 800-1500 tokens)
-   - Users receive unusable documents filled with AI reasoning text
-   
-   **Solution: Streaming Detection + Cleaning**
-   
-   **New Method Signature:**
-   ```javascript
-   async synthesizeDocument(
-     documentKey, 
-     model, 
-     prompt, 
-     onThinkingUpdate,  // NEW: Callback for thinking stream updates
-     onDocumentUpdate,  // NEW: Callback for document stream updates
-     maxTokens = 2000   // NEW: Configurable token limit
-   ) {
-     // Returns: { content, thinkingContent, truncated, currentTokens }
-   }
-   ```
+    **4.2 Streaming Implementation** ✅ **COMPLETED - v3.0 Update**
+    
+    **Problem:**
+    - Thinking models (DeepSeek R1, QwQ, etc.) include reasoning in various tag formats
+    - Non-streaming returns full response including reasoning preamble
+    - Token exhaustion risk with fixed 2000 token limit (reasoning can use 800-1500 tokens)
+    - Users receive unusable documents filled with AI reasoning text
+    
+    **Solution: XML-Based Streaming with System/User Prompt Split**
+    
+    **New Method Signature:**
+    ```javascript
+    async synthesizeDocument(
+      documentKey, 
+      model, 
+      systemPrompt,      // NEW: System prompt from config.js
+      userPrompt,        // NEW: JIT-generated user prompt
+      onThinkingUpdate,  // Callback for thinking stream updates
+      onDocumentUpdate,  // Callback for document stream updates
+      maxTokens = 2000   // Configurable token limit
+    ) {
+      // Returns: { content, thinkingContent, truncated, currentTokens }
+    }
+    ```
    
    **Key Features:**
    
@@ -643,45 +643,56 @@ drafting-view (rendered in detail panel by main-view)
       }
       ```
    
-   2. **Dynamic Thinking Detection** - Detect patterns from actual response
-      ```javascript
-      // State machine for content routing
-      let state = 'DETECTING';  // DETECTING → IN_THINKING_BLOCK → IN_DOCUMENT
-      let buffer = '';
-      let thinkingContent = '';
-      let documentContent = '';
-      
-      function processChunk(chunk) {
-        buffer += chunk;
-        
-        // Check first 500 chars for thinking patterns
-        if (state === 'DETECTING' && buffer.length <= 500) {
-          if (/<think>|<thinking>/i.test(buffer)) {
-            state = 'IN_THINKING_BLOCK';
-            console.log('[Synthesis] Thinking model detected');
-          } else if (buffer.length === 500) {
-            state = 'IN_DOCUMENT';  // Standard model
-          }
-        }
-        
-        // Route content based on state
-        if (state === 'IN_THINKING_BLOCK') {
-          if (/<\/think>|<\/thinking>/i.test(buffer)) {
-            state = 'IN_DOCUMENT';
-            // Extract thinking, start document
-          }
-          onThinkingUpdate(parseThinking(chunk));
-        } else if (state === 'IN_DOCUMENT') {
-          onDocumentUpdate(chunk);
-        }
-      }
-      
-      function parseThinking(rawThinking) {
-        // Remove tags: <think>, </think>, <thinking>, </thinking>
-        // Keep content for readability
-        return rawThinking.replace(/<\/?think(ing)?>/gi, '').trim();
-      }
-      ```
+    2. **XML-Based Thinking Detection** - Support multiple tag variants
+       ```javascript
+       // State machine for content routing
+       let state = 'DETECTING';  // DETECTING → IN_THINKING_BLOCK → IN_DOCUMENT
+       let buffer = '';
+       let thinkingContent = '';
+       let documentContent = '';
+       const DETECTION_WINDOW = 50;  // First 50 chars for pattern detection
+       
+       function processChunk(chunk) {
+         buffer += chunk;
+         
+         // Check first 50 chars for thinking patterns
+         if (state === 'DETECTING' && buffer.length <= DETECTION_WINDOW) {
+           // Support multiple tag variants: <thinking>, <think>, <reasoning>
+           if (/<thinking>|<think>|<reasoning>/i.test(buffer)) {
+             state = 'IN_THINKING_BLOCK';
+             console.log('[Synthesis] Thinking model detected');
+           } else if (buffer.length >= DETECTION_WINDOW) {
+             state = 'IN_DOCUMENT';  // Standard model
+             // Send buffered content to document
+             if (onDocumentUpdate) {
+               onDocumentUpdate(buffer);
+             }
+             documentContent += buffer;
+             buffer = '';
+           }
+         }
+         
+         // Route content based on state
+         if (state === 'IN_THINKING_BLOCK') {
+           // Check for closing tags (all variants)
+           if (/<\/thinking>|<\/think>|<\/reasoning>/i.test(buffer)) {
+             state = 'IN_DOCUMENT';
+             // Extract thinking, start document
+           }
+           onThinkingUpdate(parseThinking(chunk));
+         } else if (state === 'IN_DOCUMENT') {
+           onDocumentUpdate(chunk);
+         }
+       }
+       
+       function parseThinking(rawThinking) {
+         // Remove all tag variants
+         return rawThinking
+           .replace(/<\/?thinking>/gi, '')
+           .replace(/<\/?think>/gi, '')
+           .replace(/<\/?reasoning>/gi, '');
+       }
+       ```
    
    3. **Token Exhaustion Handling** - User retry with increased limit
       ```javascript
@@ -765,13 +776,15 @@ drafting-view (rendered in detail panel by main-view)
    - `drafting-view.js` (new methods) - Add `showThinkingPanel()`, `hideThinkingPanel()`, `updateThinkingStream()`
    - `styles/sidepanel.css` - Add thinking stream styles
    
-   **Why Streaming Detection?**
-   - ✅ **No model lists to maintain** - Detects thinking patterns from actual response
-   - ✅ **Works with any thinking model** - o1, o3, DeepSeek R1, future models
-   - ✅ **Graceful fallback** - Standard models work without changes
-   - ✅ **Real-time feedback** - Users see thinking process as it happens
-   - ✅ **Clean output** - Thinking tags removed from final document
-   - ✅ **Dynamic token allocation** - Start with 2000, upgrade based on detection
+    **Why XML-Based Streaming?**
+    - ✅ **No model lists to maintain** - Detects thinking patterns from actual response
+    - ✅ **Works with any thinking model** - DeepSeek R1, QwQ, o1, o3, future models
+    - ✅ **Supports multiple tag variants** - `<thinking>`, `<think>`, `<reasoning>`
+    - ✅ **Graceful fallback** - Standard models work without changes
+    - ✅ **Real-time feedback** - Users see thinking process as it happens
+    - ✅ **Clean output** - All tag variants removed from final document
+    - ✅ **Fast detection** - 50-char window for quick routing
+    - ✅ **System/User split** - Clear separation of instructions and data
    
    **Testing Strategy:**
    - Test with thinking models (DeepSeek R1, o1 if available)

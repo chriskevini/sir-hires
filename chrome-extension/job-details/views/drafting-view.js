@@ -699,6 +699,23 @@ export class DraftingView extends BaseView {
         // Open synthesis modal with current job, index, and active tab
         await this.synthesisModal.open(job, index, this.activeTab);
         
+        // Set callback for when generation starts (before stream)
+        this.synthesisModal.onGenerationStart = (jobIndex, documentKey) => {
+          console.log(`[DraftingView] Generation starting for ${documentKey}`);
+          
+          // Show thinking panel with loading message
+          this.showThinkingPanel(container);
+          
+          // Display loading message
+          const activeEditor = container.querySelector('.editor-content.active');
+          if (activeEditor) {
+            const content = activeEditor.querySelector('.thinking-content');
+            if (content) {
+              content.value = '⏳ Loading model and initializing generation...';
+            }
+          }
+        };
+        
         // Set streaming callback for thinking updates
         this.synthesisModal.onThinkingUpdate = (thinkingDelta) => {
           // Show thinking panel on first update (get active editor's panel)
@@ -708,6 +725,12 @@ export class DraftingView extends BaseView {
             if (panel && panel.classList.contains('hidden')) {
               this.showThinkingPanel(container);
             }
+            
+            // Clear loading message on first thinking update
+            const content = activeEditor.querySelector('.thinking-content');
+            if (content && content.value.startsWith('⏳ Loading model')) {
+              content.value = '';
+            }
           }
           
           // Append thinking content
@@ -716,6 +739,20 @@ export class DraftingView extends BaseView {
         
         // Set streaming callback for document updates
         this.synthesisModal.onDocumentUpdate = (documentDelta) => {
+          // Clear loading message on first document update (if no thinking block)
+          const activeEditor = container.querySelector('.editor-content.active');
+          if (activeEditor) {
+            const thinkingContent = activeEditor.querySelector('.thinking-content');
+            if (thinkingContent && thinkingContent.value.startsWith('⏳ Loading model')) {
+              thinkingContent.value = '';
+              // Hide thinking panel if no thinking content was generated
+              const panel = activeEditor.querySelector('.thinking-stream-panel');
+              if (panel && !panel.classList.contains('hidden')) {
+                this.hideThinkingPanel(container);
+              }
+            }
+          }
+          
           // Get the textarea for the active document
           const textarea = container.querySelector(`[data-field="${this.activeTab}-text"]`);
           if (textarea) {

@@ -17,6 +17,7 @@ export class SynthesisModal extends BaseView {
     this.promptTemplate = null; // Current prompt template (custom or default)
     this.maxTokens = 2000; // Default max tokens
     this.onGenerate = null; // Callback when generation completes
+    this.onGenerationStart = null; // Callback when generation starts (before stream)
     this.onThinkingUpdate = null; // Callback for thinking stream updates
     this.onDocumentUpdate = null; // Callback for document stream updates
     this.onError = null; // Callback when generation fails
@@ -727,6 +728,11 @@ export class SynthesisModal extends BaseView {
 
       // Close modal immediately so user can watch streaming
       this.close();
+
+      // Notify that generation is starting (before stream begins)
+      if (this.onGenerationStart) {
+        this.onGenerationStart(this.jobIndex, this.activeDocumentKey);
+      }
 
       // Synthesize document with filled prompt and streaming callbacks
       // This runs in the background while modal is closed

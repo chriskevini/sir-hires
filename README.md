@@ -35,6 +35,19 @@ A Chrome extension / webapp with job data extraction, application lifecycle trac
 
 - **Enhanced Sidepanel**: Automatically shows the most relevant information for every stage of the application process.
 
+- **Drafting View**: Dedicated markdown editor for creating tailored resumes and cover letters
+  - Tabbed editor for Resume/CV and Cover Letter documents
+  - Auto-save with visual indicators (saves every 5 seconds + on blur)
+  - Real-time word count tracking
+  - LLM-powered document synthesis via LM Studio
+    - XML-based streaming protocol with thinking model support
+    - User-controlled thinking panel (collapsible, shows AI reasoning)
+    - Configurable max tokens (100-32000 range)
+    - Dynamic model selection
+  - Export to Markdown (.md) and PDF formats
+  - Template-based generation with default document templates
+  - Data availability checklist (9 input fields) ensures quality synthesis
+
 ## Quick Start
 
 0. Set up LM Studio:
@@ -123,6 +136,9 @@ sir-hires/
 - ✅ Notes for each job posting
 - ✅ Fully automatic backup migration 
 - ✅ Modular architecture
+- ✅ Drafting view with markdown editor
+- ✅ LLM-powered document synthesis (cover letters, tailored resumes)
+- ✅ Document export (Markdown, PDF)
 
 - UX improvements:
   - Speed up LLM data extraction
@@ -132,12 +148,10 @@ sir-hires/
   - LLM-Free Workflow (manual data extraction and document drafting)
 
 - LLM-powered features:
-  - Job-resume fit analysis
-  - Resume tailoring suggestions
-  - Cover letter generation
+  - Job-resume fit analysis (Gap analysis and content prioritization)
+  - Skills gap identification
   - Company research and insights
   - Interview prep questions and answers
-  - Skills gap identification
   - Job comparison tool
 
 ## Contributing

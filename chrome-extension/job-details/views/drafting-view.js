@@ -1095,16 +1095,17 @@ export class DraftingView extends BaseView {
    * @param {HTMLElement} container - The container element
    */
   attachThinkingPanelListeners(container) {
-    // Attach listener to all thinking panel toggle buttons
-    const toggleBtns = container.querySelectorAll('.thinking-toggle-btn');
+    // Attach listener to all thinking panel headers
+    const headers = container.querySelectorAll('.thinking-header');
     
-    toggleBtns.forEach(toggleBtn => {
-      // Find the thinking-content within the same thinking-stream-panel
-      const panel = toggleBtn.closest('.thinking-stream-panel');
+    headers.forEach(header => {
+      // Find the thinking-content and toggle button within the same thinking-stream-panel
+      const panel = header.closest('.thinking-stream-panel');
       if (!panel) return;
       
       const content = panel.querySelector('.thinking-content');
-      if (!content) return;
+      const toggleBtn = panel.querySelector('.thinking-toggle-btn');
+      if (!content || !toggleBtn) return;
       
       const clickHandler = () => {
         const isExpanded = content.style.display !== 'none';
@@ -1123,7 +1124,7 @@ export class DraftingView extends BaseView {
           content.scrollTop = content.scrollHeight;
         }
       };
-      this.trackListener(toggleBtn, 'click', clickHandler);
+      this.trackListener(header, 'click', clickHandler);
     });
   }
 }

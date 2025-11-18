@@ -16,6 +16,8 @@ export class SynthesisModal extends BaseView {
     this.hasExistingContent = false; // Auto-detected: refine if true, generate if false
     this.promptTemplate = null; // Current prompt template (custom or default)
     this.onGenerate = null; // Callback when generation completes
+    this.onThinkingUpdate = null; // Callback for thinking stream updates
+    this.onDocumentUpdate = null; // Callback for document stream updates
   }
 
   /**
@@ -230,22 +232,35 @@ export class SynthesisModal extends BaseView {
   }
 
   /**
-   * Synthesize document using LLM
+   * Parse thinking content by removing tags
+   * @param {string} rawThinking - Raw thinking content with tags
+   * @returns {string} Cleaned thinking content
+   */
+  parseThinking(rawThinking) {
+    // Remove <think>, </think>, <thinking>, </thinking> tags
+    return rawThinking.replace(/<\/?think(ing)?>/gi, '').trim();
+  }
+
+  /**
+   * Synthesize document using LLM with streaming support
    * @param {string} documentKey - Document type
    * @param {string} model - Model ID
    * @param {string} prompt - Filled prompt with actual data (no placeholders)
-   * @returns {string} Generated content
+   * @param {Function} onThinkingUpdate - Callback for thinking stream updates (parsed content)
+   * @param {Function} onDocumentUpdate - Callback for document stream updates
+   * @param {number} maxTokens - Maximum tokens to generate (default: 2000)
+   * @returns {Object} Result with { content, thinkingContent, truncated, currentTokens }
    */
-  async synthesizeDocument(documentKey, model, prompt) {
+  async synthesizeDocument(documentKey, model, prompt, onThinkingUpdate = null, onDocumentUpdate = null, maxTokens = 2000) {
     // Test connection first
     const isConnected = await this.testConnection();
     if (!isConnected) {
       throw new Error('Cannot connect to LM Studio. Please ensure LM Studio is running on http://localhost:1234');
     }
 
-    console.log('[SynthesisModal] Sending prompt to LLM:', { model, documentKey, promptLength: prompt.length });
+    console.log('[SynthesisModal] Sending prompt to LLM with streaming:', { model, documentKey, promptLength: prompt.length, maxTokens });
 
-    // Call LM Studio API
+    // Call LM Studio API with streaming enabled
     const response = await fetch(llmConfig.synthesis.endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -254,8 +269,9 @@ export class SynthesisModal extends BaseView {
         messages: [
           { role: 'user', content: prompt }
         ],
-        max_tokens: llmConfig.synthesis.maxTokens,
-        temperature: llmConfig.synthesis.temperature
+        max_tokens: maxTokens,
+        temperature: llmConfig.synthesis.temperature,
+        stream: true  // Enable streaming
       })
     });
 
@@ -265,16 +281,128 @@ export class SynthesisModal extends BaseView {
       throw new Error(`LLM API error: HTTP ${response.status} - ${errorText}`);
     }
 
-    const data = await response.json();
-    console.log('[SynthesisModal] Received response from LLM');
+    // Process SSE stream
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    
+    // State machine for content routing
+    let state = 'DETECTING';  // DETECTING → IN_THINKING_BLOCK → IN_DOCUMENT
+    let buffer = '';
+    let thinkingContent = '';
+    let documentContent = '';
+    let finishReason = null;
+    let charsProcessed = 0;
+    const DETECTION_WINDOW = 500;  // First 500 chars for pattern detection
 
-    // Extract generated content
-    const content = data.choices?.[0]?.message?.content || '';
-    if (!content) {
-      throw new Error('LLM returned empty content');
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+
+      for (const line of lines) {
+        if (!line.trim() || line.trim() === 'data: [DONE]') continue;
+        if (!line.startsWith('data: ')) continue;
+
+        try {
+          const jsonStr = line.slice(6);  // Remove "data: " prefix
+          const data = JSON.parse(jsonStr);
+          
+          const delta = data.choices?.[0]?.delta?.content || '';
+          if (!delta) {
+            // Check for finish reason
+            finishReason = data.choices?.[0]?.finish_reason || finishReason;
+            continue;
+          }
+
+          buffer += delta;
+          charsProcessed += delta.length;
+
+          // State machine logic
+          if (state === 'DETECTING' && charsProcessed <= DETECTION_WINDOW) {
+            // Check for thinking patterns in first 500 chars
+            if (/<think>|<thinking>/i.test(buffer)) {
+              state = 'IN_THINKING_BLOCK';
+              console.log('[SynthesisModal] Thinking model detected, routing to thinking panel');
+            } else if (charsProcessed >= DETECTION_WINDOW) {
+              // No thinking pattern detected, treat as standard model
+              state = 'IN_DOCUMENT';
+              console.log('[SynthesisModal] Standard model detected, routing to document');
+              // Send buffered content to document
+              if (onDocumentUpdate) {
+                onDocumentUpdate(buffer);
+              }
+              documentContent += buffer;
+              buffer = '';
+            }
+          } else if (state === 'IN_THINKING_BLOCK') {
+            // Check for end of thinking block
+            if (/<\/think>|<\/thinking>/i.test(buffer)) {
+              state = 'IN_DOCUMENT';
+              
+              // Extract thinking content and document start
+              const match = buffer.match(/^(.*?)<\/(think|thinking)>(.*)$/is);
+              if (match) {
+                const thinkingPart = match[1];
+                const documentPart = match[3];
+                
+                // Send parsed thinking (without tags)
+                const parsedThinking = this.parseThinking(thinkingPart);
+                if (onThinkingUpdate && parsedThinking) {
+                  onThinkingUpdate(parsedThinking);
+                }
+                thinkingContent += parsedThinking;
+                
+                // Start document content
+                if (onDocumentUpdate && documentPart) {
+                  onDocumentUpdate(documentPart);
+                }
+                documentContent += documentPart;
+                buffer = '';
+              }
+            } else {
+              // Still in thinking block, accumulate and send parsed content
+              const parsedDelta = this.parseThinking(delta);
+              if (onThinkingUpdate && parsedDelta) {
+                onThinkingUpdate(parsedDelta);
+              }
+              thinkingContent += parsedDelta;
+            }
+          } else if (state === 'IN_DOCUMENT') {
+            // Route to document
+            if (onDocumentUpdate) {
+              onDocumentUpdate(delta);
+            }
+            documentContent += delta;
+          }
+
+        } catch (error) {
+          console.error('[SynthesisModal] Failed to parse SSE line:', line, error);
+        }
+      }
     }
 
-    return content;
+    console.log('[SynthesisModal] Streaming completed', { 
+      state, 
+      finishReason, 
+      documentLength: documentContent.length, 
+      thinkingLength: thinkingContent.length 
+    });
+
+    // Check for truncation
+    const truncated = finishReason === 'length';
+    
+    if (truncated) {
+      console.warn('[SynthesisModal] Response truncated due to token limit');
+    }
+
+    return {
+      content: documentContent.trim(),
+      thinkingContent: thinkingContent.trim(),
+      truncated: truncated,
+      currentTokens: maxTokens
+    };
   }
 
   /**
@@ -523,8 +651,9 @@ export class SynthesisModal extends BaseView {
 
   /**
    * Handle generate button click
+   * @param {number} maxTokens - Maximum tokens to generate (default: 2000)
    */
-  async handleGenerate() {
+  async handleGenerate(maxTokens = 2000) {
     const generateBtn = document.getElementById('synthesisModalGenerateBtn');
     const textarea = document.getElementById('synthesisPromptTemplate');
     
@@ -553,16 +682,47 @@ export class SynthesisModal extends BaseView {
       // Fill placeholders with actual values
       const filledPrompt = this.fillPlaceholders(template, context);
 
-      // Synthesize document with filled prompt
-      const content = await this.synthesizeDocument(
+      // Synthesize document with filled prompt and streaming callbacks
+      const result = await this.synthesizeDocument(
         this.activeDocumentKey,
         this.selectedModel,
-        filledPrompt
+        filledPrompt,
+        this.onThinkingUpdate,  // Pass thinking callback
+        this.onDocumentUpdate,  // Pass document callback
+        maxTokens
       );
+
+      // Check for truncation
+      if (result.truncated) {
+        console.warn('[SynthesisModal] Response truncated, prompting user to retry');
+        
+        // Re-enable button
+        generateBtn.disabled = false;
+        generateBtn.textContent = originalText;
+        
+        // Prompt user to retry with more tokens
+        const retry = confirm(
+          `⚠️ Response was truncated due to token limit (${result.currentTokens} tokens).\n\n` +
+          `This often happens with thinking models that use reasoning before output.\n\n` +
+          `Would you like to retry with ${result.currentTokens * 2} tokens?`
+        );
+        
+        if (retry) {
+          // Retry with doubled tokens
+          return this.handleGenerate(result.currentTokens * 2);
+        } else {
+          // User declined, use truncated content
+          if (this.onGenerate) {
+            this.onGenerate(this.activeJobIndex, this.activeDocumentKey, result);
+          }
+          this.close();
+        }
+        return;
+      }
 
       // Call callback with generated content
       if (this.onGenerate) {
-        this.onGenerate(this.activeJobIndex, this.activeDocumentKey, content);
+        this.onGenerate(this.activeJobIndex, this.activeDocumentKey, result);
       }
 
       // Close modal

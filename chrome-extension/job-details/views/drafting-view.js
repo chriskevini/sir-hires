@@ -81,8 +81,25 @@ export class DraftingView extends BaseView {
     return `
       <div class="drafting-editor-container">
         ${this.renderTopbar(job, index)}
+        ${this.renderThinkingPanel()}
         ${this.renderEditors(job, index)}
         ${this.renderFooter(job, index)}
+      </div>
+    `;
+  }
+
+  /**
+   * Render the thinking stream panel (initially hidden)
+   * @returns {string} HTML string
+   */
+  renderThinkingPanel() {
+    return `
+      <div class="thinking-stream-panel hidden" id="thinkingStreamPanel">
+        <div class="thinking-header">
+          <span class="thinking-title">🤔 AI Thinking Process</span>
+          <button class="thinking-toggle-btn" id="thinkingToggleBtn" title="Collapse">▼</button>
+        </div>
+        <div class="thinking-content" id="thinkingContent"></div>
       </div>
     `;
   }
@@ -251,6 +268,9 @@ export class DraftingView extends BaseView {
     
     // Word count updates
     this.attachWordCountListeners(container);
+    
+    // Thinking panel toggle
+    this.attachThinkingPanelListeners(container);
     
     // Render and attach checklist
     this.renderChecklist(job, index, isExpanded);
@@ -679,9 +699,37 @@ export class DraftingView extends BaseView {
         // Open synthesis modal with current job, index, and active tab
         await this.synthesisModal.open(job, index, this.activeTab);
         
-        // Set callback to handle generated content
-        this.synthesisModal.onGenerate = (jobIndex, documentKey, generatedContent) => {
-          console.log(`[DraftingView] Received generated content for ${documentKey}`);
+        // Set streaming callback for thinking updates
+        this.synthesisModal.onThinkingUpdate = (thinkingDelta) => {
+          // Show thinking panel on first update
+          const panel = container.querySelector('#thinkingStreamPanel');
+          if (panel && panel.classList.contains('hidden')) {
+            this.showThinkingPanel(container);
+          }
+          
+          // Append thinking content
+          this.updateThinkingStream(container, thinkingDelta);
+        };
+        
+        // Set streaming callback for document updates
+        this.synthesisModal.onDocumentUpdate = (documentDelta) => {
+          // Get the textarea for the active document
+          const textarea = container.querySelector(`[data-field="${this.activeTab}-text"]`);
+          if (textarea) {
+            // Append document content in real-time
+            textarea.value += documentDelta;
+            
+            // Update word count in real-time
+            this.updateWordCount(container);
+          }
+        };
+        
+        // Set callback to handle generation completion
+        this.synthesisModal.onGenerate = (jobIndex, documentKey, result) => {
+          console.log(`[DraftingView] Generation completed for ${documentKey}`, { truncated: result.truncated });
+          
+          // Hide thinking panel after generation
+          this.hideThinkingPanel(container);
           
           // Get the textarea for the active document
           const textarea = container.querySelector(`[data-field="${documentKey}-text"]`);
@@ -691,8 +739,8 @@ export class DraftingView extends BaseView {
             return;
           }
           
-          // Insert generated content into editor
-          textarea.value = generatedContent;
+          // Content is already in editor from streaming updates
+          const generatedContent = result.content || textarea.value;
           
           // Update save indicator to trigger save
           this.updateSaveIndicator(container, 'saving');
@@ -976,6 +1024,77 @@ export class DraftingView extends BaseView {
     const checklistContainer = document.getElementById('checklistContainer');
     if (checklistContainer) {
       checklistContainer.innerHTML = '';
+    }
+  }
+
+  /**
+   * Show thinking stream panel
+   * @param {HTMLElement} container - The container element
+   */
+  showThinkingPanel(container) {
+    const panel = container.querySelector('#thinkingStreamPanel');
+    if (panel) {
+      panel.classList.remove('hidden');
+      // Clear previous content
+      const content = container.querySelector('#thinkingContent');
+      if (content) {
+        content.textContent = '';
+      }
+    }
+  }
+
+  /**
+   * Hide thinking stream panel
+   * @param {HTMLElement} container - The container element
+   */
+  hideThinkingPanel(container) {
+    const panel = container.querySelector('#thinkingStreamPanel');
+    if (panel) {
+      panel.classList.add('hidden');
+    }
+  }
+
+  /**
+   * Update thinking stream content
+   * @param {HTMLElement} container - The container element
+   * @param {string} delta - New thinking content to append
+   */
+  updateThinkingStream(container, delta) {
+    const content = container.querySelector('#thinkingContent');
+    if (content) {
+      content.textContent += delta;
+      // Auto-scroll to bottom
+      content.scrollTop = content.scrollHeight;
+    }
+  }
+
+  /**
+   * Attach thinking panel toggle listener
+   * @param {HTMLElement} container - The container element
+   */
+  attachThinkingPanelListeners(container) {
+    const toggleBtn = container.querySelector('#thinkingToggleBtn');
+    const content = container.querySelector('#thinkingContent');
+    
+    if (toggleBtn && content) {
+      const clickHandler = () => {
+        const isExpanded = content.style.display !== 'none';
+        
+        if (isExpanded) {
+          // Collapse
+          content.style.display = 'none';
+          toggleBtn.textContent = '▶';
+          toggleBtn.title = 'Expand';
+        } else {
+          // Expand
+          content.style.display = 'block';
+          toggleBtn.textContent = '▼';
+          toggleBtn.title = 'Collapse';
+          // Auto-scroll to bottom when expanding
+          content.scrollTop = content.scrollHeight;
+        }
+      };
+      this.trackListener(toggleBtn, 'click', clickHandler);
     }
   }
 }

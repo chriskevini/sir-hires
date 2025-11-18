@@ -652,3 +652,81 @@ body {
   padding: 8px 16px;
   font-size: 13px;
 }
+
+/* Thinking Stream Panel Styles */
+.thinking-stream-panel {
+  background-color: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.thinking-stream-panel.hidden {
+  display: none;
+}
+
+.thinking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #e8f0fe;
+  border-bottom: 1px solid #d2e3fc;
+  cursor: pointer;
+  user-select: none;
+}
+
+.thinking-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a73e8;
+}
+
+.thinking-toggle-btn {
+  background: none;
+  border: none;
+  color: #1a73e8;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  line-height: 1;
+  transition: transform 0.2s;
+}
+
+.thinking-toggle-btn:hover {
+  background-color: rgba(26, 115, 232, 0.1);
+  border-radius: 3px;
+}
+
+.thinking-content {
+  padding: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #333;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  background-color: #fff;
+}
+
+.thinking-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.thinking-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.thinking-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.thinking-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

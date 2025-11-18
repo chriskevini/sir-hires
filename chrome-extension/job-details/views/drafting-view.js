@@ -81,7 +81,6 @@ export class DraftingView extends BaseView {
     return `
       <div class="drafting-editor-container">
         ${this.renderTopbar(job, index)}
-        ${this.renderThinkingPanel()}
         ${this.renderEditors(job, index)}
         ${this.renderFooter(job, index)}
       </div>
@@ -94,12 +93,12 @@ export class DraftingView extends BaseView {
    */
   renderThinkingPanel() {
     return `
-      <div class="thinking-stream-panel hidden" id="thinkingStreamPanel">
+      <div class="thinking-stream-panel hidden">
         <div class="thinking-header">
           <span class="thinking-title">🤔 AI Thinking Process</span>
-          <button class="thinking-toggle-btn" id="thinkingToggleBtn" title="Collapse">▼</button>
+          <button class="thinking-toggle-btn" title="Collapse">▼</button>
         </div>
-        <div class="thinking-content" id="thinkingContent"></div>
+        <textarea class="thinking-content" readonly></textarea>
       </div>
     `;
   }
@@ -197,6 +196,7 @@ export class DraftingView extends BaseView {
     
     return `
       <div class="editor-content ${isActive}" data-content="${documentKey}">
+        ${this.renderThinkingPanel()}
         <textarea 
           class="document-editor" 
           data-field="${documentKey}-text"
@@ -701,10 +701,13 @@ export class DraftingView extends BaseView {
         
         // Set streaming callback for thinking updates
         this.synthesisModal.onThinkingUpdate = (thinkingDelta) => {
-          // Show thinking panel on first update
-          const panel = container.querySelector('#thinkingStreamPanel');
-          if (panel && panel.classList.contains('hidden')) {
-            this.showThinkingPanel(container);
+          // Show thinking panel on first update (get active editor's panel)
+          const activeEditor = container.querySelector('.editor-content.active');
+          if (activeEditor) {
+            const panel = activeEditor.querySelector('.thinking-stream-panel');
+            if (panel && panel.classList.contains('hidden')) {
+              this.showThinkingPanel(container);
+            }
           }
           
           // Append thinking content
@@ -727,9 +730,6 @@ export class DraftingView extends BaseView {
         // Set callback to handle generation completion
         this.synthesisModal.onGenerate = (jobIndex, documentKey, result) => {
           console.log(`[DraftingView] Generation completed for ${documentKey}`, { truncated: result.truncated });
-          
-          // Hide thinking panel after generation
-          this.hideThinkingPanel(container);
           
           // Get the textarea for the active document
           const textarea = container.querySelector(`[data-field="${documentKey}-text"]`);
@@ -780,8 +780,7 @@ export class DraftingView extends BaseView {
         this.synthesisModal.onError = (jobIndex, documentKey, error) => {
           console.error(`[DraftingView] Generation failed for ${documentKey}:`, error);
           
-          // Hide thinking panel on error
-          this.hideThinkingPanel(container);
+          // Keep thinking panel visible on error so user can see what the model was thinking
           
           // Show error toast
           this.showToast(`Generation failed: ${error.message}`, 'error');
@@ -1043,13 +1042,17 @@ export class DraftingView extends BaseView {
    * @param {HTMLElement} container - The container element
    */
   showThinkingPanel(container) {
-    const panel = container.querySelector('#thinkingStreamPanel');
+    // Get the active editor-content container
+    const activeEditor = container.querySelector('.editor-content.active');
+    if (!activeEditor) return;
+    
+    const panel = activeEditor.querySelector('.thinking-stream-panel');
     if (panel) {
       panel.classList.remove('hidden');
       // Clear previous content
-      const content = container.querySelector('#thinkingContent');
+      const content = activeEditor.querySelector('.thinking-content');
       if (content) {
-        content.textContent = '';
+        content.value = '';
       }
     }
   }
@@ -1059,7 +1062,11 @@ export class DraftingView extends BaseView {
    * @param {HTMLElement} container - The container element
    */
   hideThinkingPanel(container) {
-    const panel = container.querySelector('#thinkingStreamPanel');
+    // Get the active editor-content container
+    const activeEditor = container.querySelector('.editor-content.active');
+    if (!activeEditor) return;
+    
+    const panel = activeEditor.querySelector('.thinking-stream-panel');
     if (panel) {
       panel.classList.add('hidden');
     }
@@ -1071,9 +1078,13 @@ export class DraftingView extends BaseView {
    * @param {string} delta - New thinking content to append
    */
   updateThinkingStream(container, delta) {
-    const content = container.querySelector('#thinkingContent');
+    // Get the active editor-content container
+    const activeEditor = container.querySelector('.editor-content.active');
+    if (!activeEditor) return;
+    
+    const content = activeEditor.querySelector('.thinking-content');
     if (content) {
-      content.textContent += delta;
+      content.value += delta;
       // Auto-scroll to bottom
       content.scrollTop = content.scrollHeight;
     }
@@ -1084,10 +1095,17 @@ export class DraftingView extends BaseView {
    * @param {HTMLElement} container - The container element
    */
   attachThinkingPanelListeners(container) {
-    const toggleBtn = container.querySelector('#thinkingToggleBtn');
-    const content = container.querySelector('#thinkingContent');
+    // Attach listener to all thinking panel toggle buttons
+    const toggleBtns = container.querySelectorAll('.thinking-toggle-btn');
     
-    if (toggleBtn && content) {
+    toggleBtns.forEach(toggleBtn => {
+      // Find the thinking-content within the same thinking-stream-panel
+      const panel = toggleBtn.closest('.thinking-stream-panel');
+      if (!panel) return;
+      
+      const content = panel.querySelector('.thinking-content');
+      if (!content) return;
+      
       const clickHandler = () => {
         const isExpanded = content.style.display !== 'none';
         
@@ -1106,6 +1124,6 @@ export class DraftingView extends BaseView {
         }
       };
       this.trackListener(toggleBtn, 'click', clickHandler);
-    }
+    });
   }
 }

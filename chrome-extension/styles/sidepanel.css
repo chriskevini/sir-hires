@@ -730,3 +730,31 @@ body {
 .thinking-content::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
+
+/* Synthesis Modal Max Tokens Field */
+.max-tokens-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.max-tokens-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+}
+
+.max-tokens-group input[type="number"] {
+  width: 100px;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.max-tokens-group input[type="number"]:focus {
+  outline: none;
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
+}

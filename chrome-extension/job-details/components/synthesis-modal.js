@@ -15,6 +15,7 @@ export class SynthesisModal extends BaseView {
     this.selectedModel = llmConfig.synthesis.defaultModel;
     this.hasExistingContent = false; // Auto-detected: refine if true, generate if false
     this.promptTemplate = null; // Current prompt template (custom or default)
+    this.maxTokens = 2000; // Default max tokens
     this.onGenerate = null; // Callback when generation completes
     this.onThinkingUpdate = null; // Callback for thinking stream updates
     this.onDocumentUpdate = null; // Callback for document stream updates
@@ -547,6 +548,10 @@ export class SynthesisModal extends BaseView {
               '<span class="model-warning">⚠️ No models loaded</span>' : 
               ''}
           </div>
+          <div class="max-tokens-group">
+            <label for="synthesisMaxTokens">Max Tokens:</label>
+            <input type="number" id="synthesisMaxTokens" value="${this.maxTokens}" min="100" max="32000" step="100" />
+          </div>
           <div class="action-buttons-group">
             <button class="btn-secondary" id="synthesisModalCancelBtn">Cancel</button>
             <button class="btn-primary" id="synthesisModalGenerateBtn">Generate</button>
@@ -651,19 +656,27 @@ export class SynthesisModal extends BaseView {
 
   /**
    * Handle generate button click
-   * @param {number} maxTokens - Maximum tokens to generate (default: 2000)
    */
-  async handleGenerate(maxTokens = 2000) {
+  async handleGenerate() {
     const generateBtn = document.getElementById('synthesisModalGenerateBtn');
     const textarea = document.getElementById('synthesisPromptTemplate');
+    const maxTokensInput = document.getElementById('synthesisMaxTokens');
     
-    if (!generateBtn || !textarea) return;
+    if (!generateBtn || !textarea || !maxTokensInput) return;
 
     // Get current template from textarea
     const template = textarea.value.trim();
     
     if (!template) {
       alert('Please enter a prompt template');
+      return;
+    }
+
+    // Get max tokens from input
+    const maxTokens = parseInt(maxTokensInput.value) || 2000;
+    
+    if (maxTokens < 100 || maxTokens > 32000) {
+      alert('Max tokens must be between 100 and 32000');
       return;
     }
 
@@ -682,7 +695,11 @@ export class SynthesisModal extends BaseView {
       // Fill placeholders with actual values
       const filledPrompt = this.fillPlaceholders(template, context);
 
+      // Close modal immediately so user can watch streaming
+      this.close();
+
       // Synthesize document with filled prompt and streaming callbacks
+      // This runs in the background while modal is closed
       const result = await this.synthesizeDocument(
         this.activeDocumentKey,
         this.selectedModel,
@@ -694,28 +711,18 @@ export class SynthesisModal extends BaseView {
 
       // Check for truncation
       if (result.truncated) {
-        console.warn('[SynthesisModal] Response truncated, prompting user to retry');
+        console.warn('[SynthesisModal] Response truncated due to token limit');
         
-        // Re-enable button
-        generateBtn.disabled = false;
-        generateBtn.textContent = originalText;
-        
-        // Prompt user to retry with more tokens
-        const retry = confirm(
+        // Show alert to user
+        alert(
           `⚠️ Response was truncated due to token limit (${result.currentTokens} tokens).\n\n` +
           `This often happens with thinking models that use reasoning before output.\n\n` +
-          `Would you like to retry with ${result.currentTokens * 2} tokens?`
+          `Please reopen the synthesis modal, increase "Max Tokens", and try again.`
         );
         
-        if (retry) {
-          // Retry with doubled tokens
-          return this.handleGenerate(result.currentTokens * 2);
-        } else {
-          // User declined, use truncated content
-          if (this.onGenerate) {
-            this.onGenerate(this.activeJobIndex, this.activeDocumentKey, result);
-          }
-          this.close();
+        // Still call onGenerate to save truncated content
+        if (this.onGenerate) {
+          this.onGenerate(this.activeJobIndex, this.activeDocumentKey, result);
         }
         return;
       }
@@ -724,16 +731,9 @@ export class SynthesisModal extends BaseView {
       if (this.onGenerate) {
         this.onGenerate(this.activeJobIndex, this.activeDocumentKey, result);
       }
-
-      // Close modal
-      this.close();
     } catch (error) {
       console.error('[SynthesisModal] Synthesis failed:', error);
       alert(`Failed to generate document: ${error.message}`);
-      
-      // Re-enable button
-      generateBtn.disabled = false;
-      generateBtn.textContent = originalText;
     }
   }
 

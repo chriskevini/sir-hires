@@ -4,8 +4,9 @@
 Add a Drafting state view that provides a lightweight markdown text editor for creating tailored resumes and cover letters. The view integrates with the existing state-based navigation system and supports LLM-powered content synthesis.
 
 ## Implementation Status
-✅ **v1.0 COMPLETED** - Single-pass system with XML streaming (Dec 2024)  
-🔄 **v2.0 IN PROGRESS** - Pivoting to two-pass system (Analysis + Synthesis)
+✅ **v1.0 COMPLETED** - Single-pass system with XML streaming (Dec 2024)
+
+📋 **v2.0 Planned:** Two-pass system (Analysis + Synthesis) - See `RESEARCH_ANALYSIS_PLAN.md`
 
 ---
 
@@ -47,143 +48,7 @@ Add a Drafting state view that provides a lightweight markdown text editor for c
 ### v2.0 (Planned - Two-Pass System)
 **Goal:** Reduce cognitive load on models by splitting synthesis into two focused passes
 
----
-
----
-
-## Two-Pass System Architecture (v2.0)
-
-### Problem Statement
-The v1.0 single-pass system overloads small/medium models (7B-14B parameters) with too many responsibilities:
-1. **Analysis**: Understand job requirements and identify gaps
-2. **Content Selection**: Choose relevant achievements from master resume
-3. **Prioritization**: Rank content by relevance and impact
-4. **Formatting**: Apply document-specific rules (verbatim bullets, page limits)
-5. **Synthesis**: Generate cohesive, polished output
-
-Result: Models struggle with constraint adherence, produce inconsistent output, or fail to follow complex rules.
-
-### Solution: Two-Pass System
-Split synthesis into two focused phases with different models and goals:
-
-#### **Pass 1: Analysis (Researching View)**
-**Location:** Researching View (new "AI Insights" section)  
-**Model:** Small analytical model (3B-7B, e.g., Qwen-2.5-3B-Instruct, Phi-3-mini)  
-**Goal:** Help user identify gaps and prepare for drafting
-
-**Tasks:**
-1. **Gap Analysis**: Compare master resume to job requirements
-   - Missing skills, experiences, or qualifications
-   - Weak areas that need strengthening
-   - Overqualified areas that can be de-emphasized
-
-2. **Content Prioritization**: Rank master resume achievements by relevance
-   - Top 10-15 most relevant bullet points for this job
-   - Suggested order/grouping for maximum impact
-   - Content to exclude (irrelevant or space-constrained)
-
-3. **Strategy Recommendations**: Suggest narrative approach
-   - Tone (technical, leadership, collaborative, innovative)
-   - Focus areas (match job's top 3-5 requirements)
-   - Red flags to address (career gaps, job hopping, overqualification)
-
-**Output:**
-- Stored in `job.aiInsights` (new field)
-- Displayed as expandable section in Researching View
-- User can review, edit, or regenerate
-- Informs user's manual Narrative Strategy entry
-
-**Benefits:**
-- ✅ Small model can focus on pure analysis (no formatting constraints)
-- ✅ User reviews insights before drafting (human-in-the-loop)
-- ✅ Prepares user to write better Narrative Strategy
-- ✅ No risk of model "creativity" ruining final document
-
----
-
-#### **Pass 2: Synthesis (Drafting View)**
-**Location:** Drafting View (existing synthesis modal)  
-**Model:** Medium synthesis model (7B-14B, e.g., Llama-3.1-8B, Mistral-7B)  
-**Goal:** Generate formatted document with strict constraints
-
-**Tasks:**
-1. **Structure**: Apply document template format exactly
-2. **Formatting**: Follow document-specific rules (verbatim bullets for resume, synthesis for cover letter)
-3. **Line Count**: Respect page limits and section balance
-
-**Simplified Inputs:**
-- Master Resume (filtered by Pass 1 analysis)
-- Job fields (title, company, requirements)
-- Narrative Strategy (informed by Pass 1 insights)
-- Current Draft (template with rules)
-
-**Constraints:**
-- NO analysis or prioritization (already done in Pass 1)
-- NO creative interpretation (follow user's Narrative Strategy)
-- ONLY structural and formatting tasks
-
-**Benefits:**
-- ✅ Reduced prompt complexity (no analysis instructions)
-- ✅ Model focuses on formatting and rule-following
-- ✅ Smaller context window (pre-selected content)
-- ✅ Higher quality output (simpler task = better adherence)
-
----
-
-### Implementation Plan (v2.0)
-
-#### Phase 1: Add AI Insights to Researching View
-**Files to Modify:**
-- `chrome-extension/job-details/views/researching-view.js` (add insights section)
-- `chrome-extension/job-details/storage.js` (add `aiInsights` field)
-- `chrome-extension/job-details/config.js` (add analysis prompt)
-- `chrome-extension/job-details.html` (add insights CSS)
-
-**New Schema:**
-```javascript
-{
-  // Existing job fields...
-  aiInsights: {
-    gapAnalysis: string,        // Missing skills/experiences
-    contentPriority: string[],  // Ranked bullet points from master resume
-    strategyTips: string,       // Narrative approach suggestions
-    generatedAt: string,        // ISO 8601 timestamp
-    model: string               // Model used for analysis
-  }
-}
-```
-
-**UI Components:**
-- Expandable "AI Insights" section (similar to checklist)
-- "Generate Insights" button (calls analysis LLM)
-- Editable text fields for each insight category
-- "Refresh" button to regenerate
-
-#### Phase 2: Simplify Drafting View Synthesis
-**Files to Modify:**
-- `chrome-extension/job-details/config.js` (simplify synthesis prompt)
-- `chrome-extension/job-details/components/synthesis-modal.js` (update context builder)
-
-**Prompt Simplification:**
-- Remove analysis instructions (already in Pass 1)
-- Remove content selection logic (pre-filtered by user)
-- Focus ONLY on structure, formatting, and rule adherence
-
-**Example New Prompt:**
-```
-You are a document formatter specialized in applying strict formatting rules.
-
-Your task:
-1. Read the [CURRENT DRAFT] to understand the required structure and rules
-2. Use ONLY the provided content from [MASTER RESUME]
-3. Apply formatting rules exactly as specified
-4. Output ONLY the final formatted document
-
-CONSTRAINTS:
-- NO analysis or prioritization (content is pre-selected)
-- NO creative additions (use provided content only)
-- STRICTLY follow formatting rules in [CURRENT DRAFT]
-```
+📋 **See `RESEARCH_ANALYSIS_PLAN.md` for detailed v2.0 architecture and implementation plans**
 
 ---
 

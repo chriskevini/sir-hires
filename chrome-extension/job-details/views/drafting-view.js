@@ -704,6 +704,9 @@ export class DraftingView extends BaseView {
         this.synthesisModal.onGenerationStart = (jobIndex, documentKey) => {
           console.log(`[DraftingView] Generation starting for ${documentKey}`);
           
+          // Set flag to replace template on first document delta
+          this.isFirstDocumentDelta = true;
+          
           // Show thinking panel with loading message
           this.showThinkingPanel(container);
           
@@ -759,8 +762,14 @@ export class DraftingView extends BaseView {
           // Get the textarea for the document being generated
           const textarea = container.querySelector(`[data-field="${documentKey}-text"]`);
           if (textarea) {
-            // Append document content in real-time
-            textarea.value += documentDelta;
+            // On first delta, replace template; thereafter append
+            if (this.isFirstDocumentDelta) {
+              textarea.value = documentDelta;  // Replace template
+              this.isFirstDocumentDelta = false;
+              console.log(`[DraftingView] First document delta - replaced template with generated content`);
+            } else {
+              textarea.value += documentDelta;  // Append subsequent deltas
+            }
             
             // Update word count in real-time
             this.updateWordCount(container);

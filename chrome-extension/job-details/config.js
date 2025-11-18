@@ -163,53 +163,97 @@ export const llmConfig = {
     // Universal prompt for document generation
     // LLM determines document type from user instructions in {currentDraft}
     prompts: {
-      universal: `You are an expert career counselor specialized in generating highly targeted, impactful job application documents (resumes, cover letters, and professional emails). Your sole goal is to synthesize one single, polished document by strictly following the instructions, format, and structure found within the [CURRENT DRAFT] input.
+      universal: `
+You are an expert career counselor specialized in generating highly targeted, impactful job application documents (resumes, cover letters, and professional emails).
 
----
+Your sole goal is to synthesize one single, polished document by strictly following the instructions, format, and structure found within the [CURRENT DRAFT] input, including the **Document-Specific Generation Rules** explicitly defined within that block.
 
-STREAMING PROTOCOL (STRICTLY ADHERE)
+### STREAMING PROTOCOL (STRICTLY ADHERE)
 
-1.  Thinking Models: You MUST execute the full Step-by-Step Generation Process (Steps 1-4) and enclose all intermediate reasoning steps, analysis, and planning between the tags <thinking> and </thinking>.
-2.  Non-Thinking Models: If you are unable to perform the multi-step reasoning process, DO NOT output the <thinking> tags or any text other than the final document.
-3.  Final Output: The requested document MUST be generated *after* the </thinking> tag (for thinking models) or immediately (for non-thinking models). NEVER include the <thinking> tags or the content inside them in the final document's text stream.
+1. **Thinking Models:** You MUST execute the full Step-by-Step Generation Process (Steps 1-4) and the reasoning MUST be contained ONLY within the tags <thinking> and </thinking>.
+2. **Non-Thinking Models:** If you are unable to perform the multi-step reasoning process, DO NOT output the <thinking> tags or any text other than the final document.
+3. **Final Output:** Output **ONLY** the requested document *after* the </thinking> tag. **DO NOT** include any introductory text, notes, explanatory commentary, or greetings outside of the final generated document.
 
----
+### STEP-BY-STEP GENERATION PROCESS (MANDATORY FOR THINKING MODELS)
 
-CRITICAL CONSTRAINTS (STRICTLY ADHERE)
-
-OUTPUT FORMAT: Output ONLY the requested document. NEVER include any introductory text, notes, internal comments, greetings, or explanations *outside* of the <thinking>...</thinking> block.
-
-RESUME BULLETS: If the output is a Resume, selected bullet points from the [MASTER RESUME] MUST BE COPIED VERBATIM. Do not rephrase, combine, or alter the wording of achievements.
-
-CONTENT ORIGIN: Never add new achievement or experience content not directly present in the [MASTER RESUME]. The [NARRATIVE STRATEGY] is for tone, focus, and structural guidance only.
-
----
-
-STEP-BY-STEP GENERATION PROCESS (MANDATORY FOR THINKING MODELS)
-
-1.  Understand & Validate: Thoroughly read [CURRENT DRAFT] to determine the document type (Resume, Cover Letter, Email, etc.) and any explicit formatting/structural requirements.
-2.  Analyze Context: Critically analyze all job inputs ([JOB TITLE] through [ABOUT THE COMPANY]) to identify the top 3-5 core requirements (skills, traits, responsibilities).
-3.  Select Content (Master Resume Filtering): Scan [MASTER RESUME] and select only the experience bullets and sections that directly align with the core job requirements identified in Step 2 and the focus defined in [NARRATIVE STRATEGY].
-4.  Synthesize Document: Use the selected content and the guidance from [NARRATIVE STRATEGY] to generate the final document. STRICTLY implement the format, section order, and required text from the [CURRENT DRAFT].
-
----`
+1. Understand & Validate: Determine the document type and **Document-Specific Generation Rules** from the [CURRENT DRAFT] block.
+2. Analyze Context: Critically analyze all job inputs to identify the core requirements and the specific goal (e.g., job requirements for a resume, call-to-action for an email).
+3. Select and Prepare Content: Scan the [MASTER RESUME] to select content that aligns with the job/goal. **Confirm how the selected content will be treated** (verbatim, synthesized, or high-level reference) based on the document's specific rules.
+4. Synthesize Document: Generate the final document. **STRICTLY apply the simple rules and the required structure** defined in the [CURRENT DRAFT] block.
+`
     }
   }
 };
 
 // Default document templates
 export const documentTemplates = {
-  tailoredResume: `# Instructions for AI
+  tailoredResume: `
+# Tailored Resume
+# Do not paraphrase achievements.
+# Bullet points MUST be copied from the Master Resume verbatim.
+# Only include content relevant to the target job description.
+# Limit the final document to a single page.
 
-Write me a tailored resume for this position. Select the most relevant experiences and achievements from my master resume that align with the job requirements.
+[YOUR FULL NAME]
+[YOUR PHONE NUMBER] | [YOUR EMAIL] | [YOUR LINKEDIN PROFILE URL]
 
-Keep the format clean and professional. Focus on quantifiable achievements.`,
+---
 
-  coverLetter: `# Instructions for AI
+## Summary (Optional)
+[1-4 sentences summarizing your career and aligning it with the role.]
 
-Write me a professional cover letter for this position. Use a business letter format and highlight my most relevant accomplishments.
+---
 
-Address it to the "Hiring Team" and make sure to connect my experience to their specific needs.`
+## Experience
+
+### [COMPANY NAME] | [CITY, STATE]
+**[Job Title]** | [Month Year] – [Month Year]
+* [Master Resume Bullet 1 - Copied Verbatim]
+* [Master Resume Bullet 2 - Copied Verbatim]
+
+---
+
+## Skills
+[List technical skills, tools, and languages relevant to the job posting.]
+
+---
+
+## Education
+**[Degree Name]** | [University Name] | [City, State] | [Month Year]
+`,
+
+  coverLetter: `
+# Cover Letter
+# Paraphrase and synthesize achievements. Maintain a confident tone.
+# All hard skills and project details MUST be supported by facts traceable to the Master Resume.
+# Address the top job requirements. Soft skills and contextual anecdotes are exempt from factual checks.
+
+[YOUR FULL NAME]
+[YOUR STREET ADDRESS] | [YOUR CITY, POSTAL CODE]
+[YOUR PHONE NUMBER]
+[YOUR EMAIL ADDRESS] | [YOUR LINKEDIN PROFILE URL]
+
+[DATE]
+
+[RECIPIENT NAME]
+[RECIPIENT TITLE]
+[COMPANY NAME]
+[COMPANY STREET ADDRESS] | [COMPANY CITY, POSTAL CODE]
+
+Dear [RECIPIENT NAME or RECIPIENT TITLE],
+
+[HOOK: State your most relevant career achievement, a powerful statistic, or a strong declaration of your passion and alignment with the company's mission/role.]
+
+[RELEVANCE: Connect your top 2-3 skills to the job requirements. Use a quantifiable achievement from a previous role.]
+
+[CULTURE/COMPANY FIT: Explain why you are applying to this specific company, citing its mission, values, or recent work.]
+
+[CALL TO ACTION: Reiterate your enthusiasm. Clearly state how to reach you, and guide the recipient to your comprehensive portfolio/work samples, whether they are attached to this email/application or hosted on your website.]
+
+Sincerely,
+[YOUR SIGNATURE]
+[YOUR FULL NAME]
+`
 };
 
 // Checklist templates for each status

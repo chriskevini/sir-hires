@@ -395,7 +395,6 @@ export class DraftingView extends BaseView {
     
     // Only save if content changed
     if (currentText !== lastSaved.text) {
-      console.log(`[DraftingView] Blur detected on ${documentKey}, saving immediately...`);
       this.saveDocumentImmediately(container, job, index, documentKey, currentText);
     }
   }
@@ -456,14 +455,13 @@ export class DraftingView extends BaseView {
       
       // Check if content changed
       if (currentText !== lastSaved.text) {
-        console.log(`[DraftingView] Interval auto-save: changes detected in ${key}`);
         this.saveDocumentImmediately(container, job, index, key, currentText);
         hasChanges = true;
       }
     });
     
     if (hasChanges) {
-      console.log('[DraftingView] Auto-save completed');
+      // Auto-save completed
     }
   }
 
@@ -697,13 +695,10 @@ export class DraftingView extends BaseView {
     if (synthesizeBtn) {
       const clickHandler = async () => {
         // Open synthesis modal with current job, index, and active tab
-        console.log(`[DraftingView] Opening synthesis modal with activeTab: ${this.activeTab}`);
         await this.synthesisModal.open(job, index, this.activeTab);
         
         // Set callback for when generation starts (before stream)
         this.synthesisModal.onGenerationStart = (jobIndex, documentKey) => {
-          console.log(`[DraftingView] Generation starting for ${documentKey}`);
-          
           // Set flag to replace template on first document delta
           this.isFirstDocumentDelta = true;
           
@@ -743,8 +738,6 @@ export class DraftingView extends BaseView {
         
         // Set streaming callback for document updates
         this.synthesisModal.onDocumentUpdate = (documentKey, documentDelta) => {
-          console.log(`[DraftingView] Streaming update for ${documentKey}, delta length:`, documentDelta.length);
-          
           // Clear loading message on first document update (if no thinking block)
           const activeEditor = container.querySelector('.editor-content.active');
           if (activeEditor) {
@@ -766,7 +759,6 @@ export class DraftingView extends BaseView {
             if (this.isFirstDocumentDelta) {
               textarea.value = documentDelta;  // Replace template
               this.isFirstDocumentDelta = false;
-              console.log(`[DraftingView] First document delta - replaced template with generated content`);
             } else {
               textarea.value += documentDelta;  // Append subsequent deltas
             }
@@ -780,15 +772,6 @@ export class DraftingView extends BaseView {
         
         // Set callback to handle generation completion
         this.synthesisModal.onGenerate = (jobIndex, documentKey, result) => {
-          console.log(`[DraftingView] Generation completed for ${documentKey}`, { truncated: result.truncated });
-          
-          // DEBUG: Log what we're looking for
-          console.log(`[DraftingView] Looking for textarea with selector: [data-field="${documentKey}-text"]`);
-          console.log(`[DraftingView] Container exists:`, !!container);
-          console.log(`[DraftingView] All textareas in container:`, container.querySelectorAll('textarea'));
-          console.log(`[DraftingView] All data-field attributes:`, 
-            Array.from(container.querySelectorAll('[data-field]')).map(el => el.getAttribute('data-field')));
-          
           // Get the textarea for the active document
           const textarea = container.querySelector(`[data-field="${documentKey}-text"]`);
           if (!textarea) {

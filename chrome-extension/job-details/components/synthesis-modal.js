@@ -79,7 +79,6 @@ export class SynthesisModal extends BaseView {
    */
   async fetchAvailableModels() {
     try {
-      console.log('[SynthesisModal] Fetching available models from LM Studio...');
       const response = await fetch(llmConfig.synthesis.modelsEndpoint, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
@@ -91,7 +90,6 @@ export class SynthesisModal extends BaseView {
 
       const data = await response.json();
       this.availableModels = data.data || [];
-      console.log(`[SynthesisModal] Found ${this.availableModels.length} models:`, this.availableModels.map(m => m.id));
 
       // Set default model if available
       if (this.availableModels.length > 0 && !this.availableModels.find(m => m.id === this.selectedModel)) {
@@ -180,7 +178,6 @@ export class SynthesisModal extends BaseView {
    */
   async testConnection() {
     try {
-      console.log('[SynthesisModal] Testing connection to LM Studio...');
       const response = await fetch(llmConfig.synthesis.modelsEndpoint, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
@@ -191,7 +188,6 @@ export class SynthesisModal extends BaseView {
         return false;
       }
 
-      console.log('[SynthesisModal] Connection test successful');
       return true;
     } catch (error) {
       console.error('[SynthesisModal] Connection test failed:', error);
@@ -228,14 +224,6 @@ export class SynthesisModal extends BaseView {
     if (!isConnected) {
       throw new Error('Cannot connect to LM Studio. Please ensure LM Studio is running on http://localhost:1234');
     }
-
-    console.log('[SynthesisModal] Sending prompts to LLM with streaming:', { 
-      model, 
-      documentKey, 
-      systemPromptLength: systemPrompt.length, 
-      userPromptLength: userPrompt.length, 
-      maxTokens 
-    });
 
     // Call LM Studio API with streaming enabled
     const response = await fetch(llmConfig.synthesis.endpoint, {
@@ -331,11 +319,9 @@ export class SynthesisModal extends BaseView {
             // Support <think>, <thinking>, and <reasoning> tags
             if (/<(?:think|thinking|reasoning)>/i.test(buffer)) {
               state = 'IN_THINKING_BLOCK';
-              console.log('[SynthesisModal] Thinking model detected, routing to thinking panel');
             } else if (charsProcessed >= DETECTION_WINDOW) {
               // No thinking pattern detected, treat as standard model
               state = 'IN_DOCUMENT';
-              console.log('[SynthesisModal] Standard model detected, routing to document');
               // Send buffered content to document
               if (onDocumentUpdate) {
                 onDocumentUpdate(buffer);
@@ -389,13 +375,6 @@ export class SynthesisModal extends BaseView {
         }
       }
     }
-
-    console.log('[SynthesisModal] Streaming completed', { 
-      state, 
-      finishReason, 
-      documentLength: documentContent.length, 
-      thinkingLength: thinkingContent.length 
-    });
 
     // Check for truncation
     const truncated = finishReason === 'length';

@@ -240,7 +240,8 @@ export class SynthesisModal extends BaseView {
    */
   parseThinking(rawThinking) {
     // Remove <think>, </think>, <thinking>, </thinking> tags
-    return rawThinking.replace(/<\/?think(ing)?>/gi, '').trim();
+    // Don't trim() to preserve whitespace in streaming
+    return rawThinking.replace(/<\/?think(ing)?>/gi, '');
   }
 
   /**

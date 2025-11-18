@@ -35,6 +35,17 @@ When making code changes:
 
 The user will test the changes and ask you to commit when ready.
 
+### CRITICAL: Merge Policy
+**NEVER merge branches directly. ALWAYS create a Pull Request instead.**
+
+When a feature branch is ready:
+1. Switch back to the feature branch (if on main)
+2. Create a Pull Request using `gh pr create`
+3. Review the PR details with the user
+4. The user will merge the PR via GitHub UI when ready
+
+Do NOT use `git merge` to merge feature branches into main.
+
 ### Testing the Extension
 1. Load the extension in Chrome:
    - Navigate to `chrome://extensions/`

@@ -697,6 +697,7 @@ export class DraftingView extends BaseView {
     if (synthesizeBtn) {
       const clickHandler = async () => {
         // Open synthesis modal with current job, index, and active tab
+        console.log(`[DraftingView] Opening synthesis modal with activeTab: ${this.activeTab}`);
         await this.synthesisModal.open(job, index, this.activeTab);
         
         // Set callback for when generation starts (before stream)
@@ -739,6 +740,8 @@ export class DraftingView extends BaseView {
         
         // Set streaming callback for document updates
         this.synthesisModal.onDocumentUpdate = (documentKey, documentDelta) => {
+          console.log(`[DraftingView] Streaming update for ${documentKey}, delta length:`, documentDelta.length);
+          
           // Clear loading message on first document update (if no thinking block)
           const activeEditor = container.querySelector('.editor-content.active');
           if (activeEditor) {
@@ -761,6 +764,8 @@ export class DraftingView extends BaseView {
             
             // Update word count in real-time
             this.updateWordCount(container);
+          } else {
+            console.warn(`[DraftingView] Streaming: Textarea not found for ${documentKey}`);
           }
         };
         
@@ -768,10 +773,19 @@ export class DraftingView extends BaseView {
         this.synthesisModal.onGenerate = (jobIndex, documentKey, result) => {
           console.log(`[DraftingView] Generation completed for ${documentKey}`, { truncated: result.truncated });
           
+          // DEBUG: Log what we're looking for
+          console.log(`[DraftingView] Looking for textarea with selector: [data-field="${documentKey}-text"]`);
+          console.log(`[DraftingView] Container exists:`, !!container);
+          console.log(`[DraftingView] All textareas in container:`, container.querySelectorAll('textarea'));
+          console.log(`[DraftingView] All data-field attributes:`, 
+            Array.from(container.querySelectorAll('[data-field]')).map(el => el.getAttribute('data-field')));
+          
           // Get the textarea for the active document
           const textarea = container.querySelector(`[data-field="${documentKey}-text"]`);
           if (!textarea) {
             console.error(`[DraftingView] Textarea not found for ${documentKey}`);
+            console.error(`[DraftingView] Available editors:`, container.querySelectorAll('.editor-content'));
+            console.error(`[DraftingView] Active editor:`, container.querySelector('.editor-content.active'));
             this.showToast('Failed to insert generated content', 'error');
             return;
           }

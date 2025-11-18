@@ -650,26 +650,30 @@ export class SynthesisModal extends BaseView {
       const systemPrompt = llmConfig.synthesis.prompts.universal;
       const userPrompt = this.buildUserPrompt(context);
 
+      // Capture these values before closing modal (close() sets them to null)
+      const capturedJobIndex = this.activeJobIndex;
+      const capturedDocumentKey = this.activeDocumentKey;
+
       // Close modal immediately so user can watch streaming
       this.close();
 
       // Notify that generation is starting (before stream begins)
       if (this.onGenerationStart) {
-        this.onGenerationStart(this.jobIndex, this.activeDocumentKey);
+        this.onGenerationStart(capturedJobIndex, capturedDocumentKey);
       }
 
       // Synthesize document with system + user prompts and streaming callbacks
       // This runs in the background while modal is closed
       // Wrap callbacks to inject documentKey parameter
       const wrappedOnThinkingUpdate = this.onThinkingUpdate 
-        ? (delta) => this.onThinkingUpdate(this.activeDocumentKey, delta) 
+        ? (delta) => this.onThinkingUpdate(capturedDocumentKey, delta) 
         : null;
       const wrappedOnDocumentUpdate = this.onDocumentUpdate 
-        ? (delta) => this.onDocumentUpdate(this.activeDocumentKey, delta) 
+        ? (delta) => this.onDocumentUpdate(capturedDocumentKey, delta) 
         : null;
       
       const result = await this.synthesizeDocument(
-        this.activeDocumentKey,
+        capturedDocumentKey,
         this.selectedModel,
         systemPrompt,
         userPrompt,
@@ -691,14 +695,14 @@ export class SynthesisModal extends BaseView {
         
         // Still call onGenerate to save truncated content
         if (this.onGenerate) {
-          this.onGenerate(this.activeJobIndex, this.activeDocumentKey, result);
+          this.onGenerate(capturedJobIndex, capturedDocumentKey, result);
         }
         return;
       }
 
       // Call callback with generated content
       if (this.onGenerate) {
-        this.onGenerate(this.activeJobIndex, this.activeDocumentKey, result);
+        this.onGenerate(capturedJobIndex, capturedDocumentKey, result);
       }
     } catch (error) {
       console.error('[SynthesisModal] Synthesis failed:', error);
@@ -711,7 +715,7 @@ export class SynthesisModal extends BaseView {
       
       // Call error callback if available
       if (this.onError) {
-        this.onError(this.activeJobIndex, this.activeDocumentKey, error);
+        this.onError(capturedJobIndex, capturedDocumentKey, error);
       }
       
       // Still show alert to user

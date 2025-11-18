@@ -7,6 +7,114 @@ export class StorageService {
     this.storageChangeListeners = [];
   }
   
+  // ===== Document Utilities =====
+  
+  /**
+   * Initialize empty documents for a job
+   * Creates default tailoredResume and coverLetter documents
+   * @param {Object} job - Job object
+   * @returns {Object} Documents object with default structure
+   */
+  initializeDocuments(job) {
+    return {
+      tailoredResume: {
+        title: `${job.jobTitle || 'Resume'} - ${job.company || 'Company'}`,
+        text: '',
+        lastEdited: null,
+        order: 0
+      },
+      coverLetter: {
+        title: `Cover Letter - ${job.jobTitle || 'Position'} at ${job.company || 'Company'}`,
+        text: '',
+        lastEdited: null,
+        order: 1
+      }
+    };
+  }
+  
+  /**
+   * Get document by key with fallback to defaults
+   * @param {Object} job - Job object
+   * @param {string} documentKey - Document key (e.g., 'tailoredResume')
+   * @returns {Object} Document object
+   */
+  getDocument(job, documentKey) {
+    // Ensure documents object exists
+    if (!job.documents) {
+      job.documents = this.initializeDocuments(job);
+    }
+    
+    // Return the document or create default
+    if (job.documents[documentKey]) {
+      return job.documents[documentKey];
+    }
+    
+    // Fallback defaults
+    const defaults = this.initializeDocuments(job);
+    return defaults[documentKey] || {
+      title: 'Untitled Document',
+      text: '',
+      lastEdited: null,
+      order: 0
+    };
+  }
+  
+  /**
+   * Save a document to a job
+   * @param {string} jobId - Job ID
+   * @param {string} documentKey - Document key
+   * @param {Object} documentData - Document data with title and text
+   * @returns {Promise<void>}
+   */
+  async saveDocument(jobId, documentKey, documentData) {
+    try {
+      const result = await chrome.storage.local.get('jobs');
+      const jobsObj = result.jobs || {};
+      
+      if (!jobsObj[jobId]) {
+        throw new Error(`Job ${jobId} not found`);
+      }
+      
+      // Initialize documents if needed
+      if (!jobsObj[jobId].documents) {
+        jobsObj[jobId].documents = this.initializeDocuments(jobsObj[jobId]);
+      }
+      
+      // Update the document
+      jobsObj[jobId].documents[documentKey] = {
+        ...jobsObj[jobId].documents[documentKey],
+        ...documentData,
+        lastEdited: new Date().toISOString()
+      };
+      
+      // Update job timestamp
+      jobsObj[jobId].updatedAt = new Date().toISOString();
+      
+      await chrome.storage.local.set({ jobs: jobsObj });
+    } catch (error) {
+      console.error('Failed to save document:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get sorted document keys from a job
+   * @param {Object} job - Job object
+   * @returns {Array<string>} Array of document keys sorted by order
+   */
+  getDocumentKeys(job) {
+    if (!job.documents) {
+      return ['tailoredResume', 'coverLetter'];
+    }
+    
+    // Get all keys and sort by order
+    return Object.keys(job.documents).sort((a, b) => {
+      const orderA = job.documents[a]?.order ?? 999;
+      const orderB = job.documents[b]?.order ?? 999;
+      return orderA - orderB;
+    });
+  }
+  
   // ===== Checklist Utilities =====
   
   /**

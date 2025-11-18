@@ -516,10 +516,10 @@ drafting-view (rendered in detail panel by main-view)
 ---
 
 ### **Phase 5: LLM Synthesis** (AI Enhancement)
-**Goal:** Add AI-powered content generation
+**Goal:** Add AI-powered content generation with streaming support for thinking models
 
 #### Tasks:
-1. **Add llmConfig to config.js**
+1. **Add llmConfig to config.js** ✅ **COMPLETED**
    ```javascript
    export const llmConfig = {
      extraction: { /* ... */ },
@@ -527,7 +527,7 @@ drafting-view (rendered in detail panel by main-view)
    };
    ```
 
-2. **Create synthesis modal component**
+2. **Create synthesis modal component** ✅ **COMPLETED**
    - Modal overlay + dialog
    - Document selector dropdown
    - Model selector dropdown
@@ -547,7 +547,7 @@ drafting-view (rendered in detail panel by main-view)
    - `.recommendation-box`
    - `.privacy-notice`
 
-3. **Implement data checklist logic**
+3. **Implement data checklist logic** ✅ **COMPLETED**
    ```javascript
    checkDataAvailability(job, activeTab) {
      // Check master resume
@@ -566,14 +566,14 @@ drafting-view (rendered in detail panel by main-view)
    }
    ```
 
-4. **Implement LLM API integration**
+4. **Implement LLM API integration with streaming support** 🚧 **IN PROGRESS - v2.0 Streaming Update**
+   
+   **4.1 Non-Streaming Implementation** ✅ **COMPLETED**
    ```javascript
-   async synthesizeDocument(options) {
-     // options: { documentKey, model, action: 'generate'|'refine', context }
+   async synthesizeDocument(documentKey, model, prompt) {
      // Test connection to LM Studio
-     // Fetch available models from API
      // Build prompt with context
-     // Call LM Studio API
+     // Call LM Studio API (non-streaming)
      // Return generated content
      // Handle errors (connection failed, model not loaded, API errors)
    }
@@ -590,6 +590,196 @@ drafting-view (rendered in detail panel by main-view)
    - Display all available models in dropdown
    - Default to `llmConfig.synthesis.defaultModel` if available
    - If no models available: Show warning in modal
+   
+   **4.2 Streaming Implementation** 🚧 **PLANNED - v2.0 Update**
+   
+   **Problem:**
+   - Thinking models (o1, o3, DeepSeek R1) include reasoning in `<think>` or `<thinking>` tags
+   - Non-streaming returns full response including reasoning preamble
+   - Token exhaustion risk with fixed 2000 token limit (reasoning can use 800-1500 tokens)
+   - Users receive unusable documents filled with AI reasoning text
+   
+   **Solution: Streaming Detection + Cleaning**
+   
+   **New Method Signature:**
+   ```javascript
+   async synthesizeDocument(
+     documentKey, 
+     model, 
+     prompt, 
+     onThinkingUpdate,  // NEW: Callback for thinking stream updates
+     onDocumentUpdate,  // NEW: Callback for document stream updates
+     maxTokens = 2000   // NEW: Configurable token limit
+   ) {
+     // Returns: { content, thinkingContent, truncated, currentTokens }
+   }
+   ```
+   
+   **Key Features:**
+   
+   1. **Server-Sent Events (SSE)** - Stream content in real-time
+      ```javascript
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        body: JSON.stringify({
+          model: model,
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: maxTokens,
+          temperature: 0.7,
+          stream: true  // ← Enable streaming
+        })
+      });
+      
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      
+      // Process SSE messages: "data: {...}\n"
+      while (true) {
+        const {done, value} = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value);
+        // Parse SSE format and route content
+      }
+      ```
+   
+   2. **Dynamic Thinking Detection** - Detect patterns from actual response
+      ```javascript
+      // State machine for content routing
+      let state = 'DETECTING';  // DETECTING → IN_THINKING_BLOCK → IN_DOCUMENT
+      let buffer = '';
+      let thinkingContent = '';
+      let documentContent = '';
+      
+      function processChunk(chunk) {
+        buffer += chunk;
+        
+        // Check first 500 chars for thinking patterns
+        if (state === 'DETECTING' && buffer.length <= 500) {
+          if (/<think>|<thinking>/i.test(buffer)) {
+            state = 'IN_THINKING_BLOCK';
+            console.log('[Synthesis] Thinking model detected');
+          } else if (buffer.length === 500) {
+            state = 'IN_DOCUMENT';  // Standard model
+          }
+        }
+        
+        // Route content based on state
+        if (state === 'IN_THINKING_BLOCK') {
+          if (/<\/think>|<\/thinking>/i.test(buffer)) {
+            state = 'IN_DOCUMENT';
+            // Extract thinking, start document
+          }
+          onThinkingUpdate(parseThinking(chunk));
+        } else if (state === 'IN_DOCUMENT') {
+          onDocumentUpdate(chunk);
+        }
+      }
+      
+      function parseThinking(rawThinking) {
+        // Remove tags: <think>, </think>, <thinking>, </thinking>
+        // Keep content for readability
+        return rawThinking.replace(/<\/?think(ing)?>/gi, '').trim();
+      }
+      ```
+   
+   3. **Token Exhaustion Handling** - User retry with increased limit
+      ```javascript
+      // Check finish reason from SSE
+      if (finishReason === 'length') {
+        return {
+          content: documentContent,
+          thinkingContent: thinkingContent,
+          truncated: true,
+          currentTokens: maxTokens
+        };
+      }
+      
+      // In handleGenerate() - prompt user to retry
+      if (result.truncated) {
+        const retry = confirm(
+          `⚠️ Response was truncated due to token limit (${result.currentTokens} tokens).\n\n` +
+          `This often happens with thinking models that use reasoning before output.\n\n` +
+          `Would you like to retry with ${result.currentTokens * 2} tokens?`
+        );
+        
+        if (retry) {
+          await this.synthesizeDocument(
+            documentKey, model, prompt,
+            onThinkingUpdate, onDocumentUpdate,
+            result.currentTokens * 2  // Double tokens
+          );
+        }
+      }
+      ```
+   
+   4. **Thinking Stream UI** - Show reasoning in real-time
+      ```
+      ┌─────────────────────────────────────────┐
+      │ Job Header                              │
+      ├─────────────────────────────────────────┤
+      │ [▼ AI Thinking Process]  ← Togglable   │
+      │ ┌───────────────────────────────────┐   │
+      │ │ Analyzing job requirements...     │   │
+      │ │ Identifying relevant experiences  │   │
+      │ │ Structuring narrative...          │   │
+      │ └───────────────────────────────────┘   │
+      ├─────────────────────────────────────────┤
+      │ Tabs: [Resume] [Cover Letter]          │
+      ├─────────────────────────────────────────┤
+      │ Editor (streams document content)       │
+      └─────────────────────────────────────────┘
+      ```
+      
+      **UI Requirements:**
+      - Togglable scrolling textbox between tabs and editor
+      - Auto-scroll to bottom as thinking streams
+      - Parse and remove `<think>` tags for readability
+      - Show in real-time during generation
+      - Hide when generation completes (no persistence)
+      - Expand/collapse with ▼/▶ icon toggle
+   
+   5. **Real-Time Updates** - Stream to both thinking panel and editor
+      ```javascript
+      // In drafting-view.js
+      this.synthesisModal.onGenerate = (jobIndex, documentKey, result) => {
+        if (result.truncated) {
+          // Handle token exhaustion (show retry dialog)
+          return;
+        }
+        
+        // Content is already in editor from streaming updates
+        // Just update save indicator and word count
+        this.updateSaveIndicator(container, 'saved');
+        this.updateWordCount(container);
+        this.showToast('Document generated successfully!', 'success');
+      };
+      ```
+   
+   **Implementation Files:**
+   - `synthesis-modal.js` (~line 239-278) - Replace `synthesizeDocument()` with streaming
+   - `synthesis-modal.js` (new methods) - Add `parseThinking()`, `processChunk()`, state machine
+   - `synthesis-modal.js` (~line 527-578) - Update `handleGenerate()` with retry dialog
+   - `drafting-view.js` (~line 80-88) - Add thinking stream panel HTML
+   - `drafting-view.js` (~line 674-733) - Update synthesis listener with streaming callbacks
+   - `drafting-view.js` (new methods) - Add `showThinkingPanel()`, `hideThinkingPanel()`, `updateThinkingStream()`
+   - `styles/sidepanel.css` - Add thinking stream styles
+   
+   **Why Streaming Detection?**
+   - ✅ **No model lists to maintain** - Detects thinking patterns from actual response
+   - ✅ **Works with any thinking model** - o1, o3, DeepSeek R1, future models
+   - ✅ **Graceful fallback** - Standard models work without changes
+   - ✅ **Real-time feedback** - Users see thinking process as it happens
+   - ✅ **Clean output** - Thinking tags removed from final document
+   - ✅ **Dynamic token allocation** - Start with 2000, upgrade based on detection
+   
+   **Testing Strategy:**
+   - Test with thinking models (DeepSeek R1, o1 if available)
+   - Test with standard models (Llama-3.1, Mistral)
+   - Test token exhaustion with small limits
+   - Test retry dialog and token doubling
+   - Test thinking panel toggle/collapse
+   - Test edge cases: short responses, false positives, network interruption
 
 5. **Design prompts for resume and cover letter**
    

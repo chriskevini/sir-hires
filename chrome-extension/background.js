@@ -73,12 +73,93 @@ async function migrateStorageSchema() {
   });
 }
 
+// Migration function: Convert masterResume to userProfile with Profile Template
+async function migrateResumeToProfile() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['masterResume', 'userProfile', 'profileMigrated'], (result) => {
+      // Check if migration already completed
+      if (result.profileMigrated) {
+        console.log('[Migration] Profile already migrated to userProfile');
+        resolve();
+        return;
+      }
+
+      console.log('[Migration] Starting masterResume to userProfile migration...');
+
+      // If userProfile already exists, don't migrate
+      if (result.userProfile) {
+        console.log('[Migration] userProfile already exists, skipping migration');
+        chrome.storage.local.set({ profileMigrated: true }, () => {
+          resolve();
+        });
+        return;
+      }
+
+      // If masterResume exists, migrate it
+      if (result.masterResume && result.masterResume.content) {
+        const oldContent = result.masterResume.content;
+        const updatedAt = result.masterResume.updatedAt || new Date().toISOString();
+        
+        // Wrap old content in comment block and add Profile Template starter
+        const migratedContent = `<PROFILE>
+NAME: Your Full Name
+EMAIL: your.email@example.com
+PHONE: (555) 123-4567
+
+# EDUCATION
+## EDU_1
+DEGREE: Your degree
+SCHOOL: Your school
+START: Start date
+END: End date
+
+# EXPERIENCE
+## EXP_1
+TYPE: PROFESSIONAL
+TITLE: Your job title
+AT: Company name
+START: Start date
+END: ONGOING
+BULLETS:
+- Achievement or responsibility
+- Another achievement
+
+# INTERESTS:
+- Your interests
+
+// OLD CONTENT:
+${oldContent.split('\n').map(line => '// ' + line).join('\n')}`;
+
+        const userProfile = {
+          content: migratedContent,
+          updatedAt: new Date().toISOString()
+        };
+
+        chrome.storage.local.set({ 
+          userProfile: userProfile,
+          profileMigrated: true
+        }, () => {
+          console.log('[Migration] Successfully migrated masterResume to userProfile');
+          resolve();
+        });
+      } else {
+        // No masterResume to migrate, just mark as migrated
+        console.log('[Migration] No masterResume found, marking as migrated');
+        chrome.storage.local.set({ profileMigrated: true }, () => {
+          resolve();
+        });
+      }
+    });
+  });
+}
+
 // Listen for installation
 chrome.runtime.onInstalled.addListener(async (details) => {
   console.log('Sir Hires extension installed');
   
-  // Run migration first
+  // Run migrations in order
   await migrateStorageSchema();
+  await migrateResumeToProfile();
   
   // Initialize storage if needed
   chrome.storage.local.get(['jobs'], (result) => {

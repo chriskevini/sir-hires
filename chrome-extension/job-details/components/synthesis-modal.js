@@ -98,12 +98,12 @@ export class SynthesisModal extends BaseView {
    * @returns {Object} Context data with all available fields
    */
   async buildContext() {
-    // Fetch master resume
-    const masterResumeResult = await chrome.storage.local.get(['masterResume']);
-    const masterResume = masterResumeResult.masterResume?.content || '';
+    // Fetch user profile
+    const userProfileResult = await chrome.storage.local.get(['userProfile']);
+    const userProfile = userProfileResult.userProfile?.content || '';
 
     return {
-      masterResume: masterResume || 'Not provided',
+      masterResume: userProfile || 'Not provided',
       jobTitle: this.activeJob.jobTitle || 'Not provided',
       company: this.activeJob.company || 'Not provided',
       aboutJob: this.activeJob.aboutJob || 'Not provided',
@@ -225,13 +225,13 @@ export class SynthesisModal extends BaseView {
     // Use generic document label since we now support universal generation
     const documentLabel = 'Document';
 
-    // Check for master resume (critical requirement)
-    const masterResumeResult = await chrome.storage.local.get(['masterResume']);
-    const masterResume = masterResumeResult.masterResume?.content || '';
-    const hasMasterResume = masterResume.trim().length > 0;
+    // Check for user profile (critical requirement)
+    const userProfileResult = await chrome.storage.local.get(['userProfile']);
+    const userProfile = userProfileResult.userProfile?.content || '';
+    const hasUserProfile = userProfile.trim().length > 0;
 
-    // If no master resume, show only error warning + Cancel button
-    if (!hasMasterResume) {
+    // If no user profile, show only error warning + Cancel button
+    if (!hasUserProfile) {
       return `
         <div class="synthesis-modal">
           <div class="modal-header">
@@ -241,8 +241,8 @@ export class SynthesisModal extends BaseView {
           
           <div class="modal-body">
             <div class="error-warning">
-              <p>ℹ️ <strong>Please create a master resume before continuing.</strong></p>
-              <button class="btn-primary" id="synthesisCreateResumeBtn">Create Master Resume</button>
+              <p>ℹ️ <strong>Please create a profile before continuing.</strong></p>
+              <button class="btn-primary" id="synthesisCreateResumeBtn">Create Profile</button>
             </div>
           </div>
 
@@ -255,7 +255,7 @@ export class SynthesisModal extends BaseView {
       `;
     }
 
-    // Master resume exists - show full modal UI
+    // User profile exists - show full modal UI
     // Get model options
     const modelOptions = this.availableModels.length > 0
       ? this.availableModels.map(model => 
@@ -265,7 +265,7 @@ export class SynthesisModal extends BaseView {
 
     // Build data checklist with filled/missing indicators
     const dataFields = [
-      { key: 'masterResume', label: 'Master Resume', value: masterResume },
+      { key: 'masterResume', label: 'Profile', value: userProfile },
       { key: 'jobTitle', label: 'Job Title', value: this.activeJob.jobTitle },
       { key: 'company', label: 'Company', value: this.activeJob.company },
       { key: 'aboutJob', label: 'About Job', value: this.activeJob.aboutJob },
@@ -369,8 +369,8 @@ export class SynthesisModal extends BaseView {
     const createResumeBtn = document.getElementById('synthesisCreateResumeBtn');
     if (createResumeBtn) {
       this.trackListener(createResumeBtn, 'click', () => {
-        // Navigate to resume page
-        window.location.href = '/resume.html';
+        // Navigate to profile page
+        window.location.href = '/profile.html';
       });
     }
 

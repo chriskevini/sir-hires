@@ -7,10 +7,11 @@ Therefore, from now on, I will be storing all data relevant to the task at hand 
 "Lint?" Yes. I will enforce a well-defined data format to keep things flowing smoothly. The goals are human-readability and ease of use. Key-value pairs are the perfect answer. With headings to introduce minimally-intrusive nesting.
 
 The key benefits are:
- -  Streamable: I love watching LLM response streams. Who doesn't? So much better than a loading indicator.
+ - Streamable: I love watching LLM response streams. Who doesn't? So much better than a loading indicator.
  - Collaborative editing: Make atomic changes to the data to preserve as much KV cache as possible and reduce latency between turns.
  - High accuracy: According to Improving Agents.
  - Low token count: 10-50% savings reported. No consensus but definitely better than JSON.
+ - Fosters creativity: Users and LLMs can customize the data structure however they like.
 
 Besides, by the time I add features that need SQL-like queries, a lab in China will have developed the technology to squeeze entire-app context windows into small LLMs.
 

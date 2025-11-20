@@ -310,10 +310,10 @@ export class StorageService {
    */
   async getMasterResume() {
     try {
-      const result = await chrome.storage.local.get('masterResume');
-      return result.masterResume || null;
+      const result = await chrome.storage.local.get('userProfile');
+      return result.userProfile || null;
     } catch (error) {
-      console.error('Failed to load master resume:', error);
+      console.error('Failed to load user profile:', error);
       return null;
     }
   }
@@ -325,9 +325,9 @@ export class StorageService {
    */
   async setMasterResume(resumeData) {
     try {
-      await chrome.storage.local.set({ masterResume: resumeData });
+      await chrome.storage.local.set({ userProfile: resumeData });
     } catch (error) {
-      console.error('Failed to save master resume:', error);
+      console.error('Failed to save user profile:', error);
       throw error;
     }
   }
@@ -493,7 +493,7 @@ export class StorageService {
       return {
         bytesInUse,
         jobCount: data.jobs ? Object.keys(data.jobs).length : 0,
-        hasMasterResume: Boolean(data.masterResume),
+        hasMasterResume: Boolean(data.userProfile),
         keys: Object.keys(data)
       };
     } catch (error) {

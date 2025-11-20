@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Profile Parser Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: #f5f5f5;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background-color: white;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      font-size: 24px;
+      color: #1a73e8;
+      margin-bottom: 24px;
+    }
+
+    .test-section {
+      margin-bottom: 32px;
+    }
+
+    h2 {
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 400px;
+      padding: 16px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: 'Courier New', Monaco, monospace;
+      line-height: 1.6;
+      resize: vertical;
+      background-color: #fafafa;
+    }
+
+    button {
+      background-color: #1a73e8;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 16px;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #1765cc;
+    }
+
+    .output {
+      margin-top: 16px;
+      padding: 16px;
+      background-color: #f1f3f4;
+      border-radius: 4px;
+      border-left: 4px solid #1a73e8;
+    }
+
+    pre {
+      font-size: 12px;
+      font-family: 'Courier New', Monaco, monospace;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      color: #333;
+    }
+
+    .success {
+      color: #0f9d58;
+      font-weight: 600;
+    }
+
+    .error {
+      color: #d93025;
+      font-weight: 600;
+    }
+
+    .result-section {
+      margin-top: 16px;
+      padding: 12px;
+      background-color: white;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+    }
+
+    .result-section h3 {
+      font-size: 14px;
+      color: #1967d2;
+      margin-bottom: 8px;
+    }
+
+    .split-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Profile Template Parser - Test Suite</h1>
+
+    <div class="test-section">
+      <h2>Input: Profile Template</h2>
+      <textarea id="profileInput"><PROFILE>
+NAME: Place Holder // required
+ADDRESS: 123 Main Street, Anytown, CA 45678
+EMAIL: name@email.com
+// ex: PHONE, WEBSITE, GITHUB
+
+# EDUCATION
+## EDU_1
+DEGREE: Master of Science in Computer Science // required
+SCHOOL: University of Helsinki // required
+LOCATION: Helsinki, Finland
+START: September 1988
+END: March 1997
+// ex: GPA
+
+# EXPERIENCE
+## EXP_1
+TYPE: PROFESSIONAL // required [PROFFESIONAL|PROJECT|VOLUNTEER]
+TITLE: Senior Developer // required
+AT: Tech Solutions Inc.
+START: October 2020
+END: ONGOING
+BULLETS:
+- Built API...
+- Led team...
+
+## EXP_2
+TYPE: PROJECT // required [PROFFESIONAL|PROJECT|VOLUNTEER]
+TITLE: Linux Kernel // required
+BULLETS:
+- Architected kernel...
+- Integrated Rust...
+
+## EXP_3
+TYPE: VOLUNTEER // required [PROFFESIONAL|PROJECT|VOLUNTEER]
+TITLE: Community Volunteer // required
+AT: Local Non-Profit
+BULLETS:
+- Supported educational...
+- Helped organize...
+
+# INTERESTS:
+- Scuba diving
+- Reading
+// ex: # CERTIFICATIONS:</textarea>
+      <button id="parseBtn">Parse Profile Template</button>
+    </div>
+
+    <div class="test-section">
+      <h2>Output: Parsed Data Structure</h2>
+      <div id="output" class="output">
+        <p><em>Click "Parse Profile Template" to see results...</em></p>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>Validation Results</h2>
+      <div id="validationOutput" class="output">
+        <p><em>Click "Parse Profile Template" to see validation results...</em></p>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>Extracted Data</h2>
+      <div class="split-layout">
+        <div class="result-section">
+          <h3>Top-Level Fields</h3>
+          <pre id="topLevelOutput">-</pre>
+        </div>
+        <div class="result-section">
+          <h3>Education Entries</h3>
+          <pre id="educationOutput">-</pre>
+        </div>
+      </div>
+      <div class="split-layout">
+        <div class="result-section">
+          <h3>Experience Entries</h3>
+          <pre id="experienceOutput">-</pre>
+        </div>
+        <div class="result-section">
+          <h3>Interests</h3>
+          <pre id="interestsOutput">-</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="utils/profile-parser.js"></script>
+  <script src="utils/profile-validator.js"></script>
+  <script src="test-parser.js"></script>
+</body>
+</html>

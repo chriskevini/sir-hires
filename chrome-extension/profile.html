@@ -391,6 +391,58 @@
     textarea.is-valid {
       border-left: 4px solid #0f9d58;
     }
+
+    /* Fix buttons */
+    .fix-button {
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      padding: 4px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      margin-left: 8px;
+      transition: background-color 0.2s;
+    }
+
+    .fix-button:hover {
+      background-color: #1765cc;
+    }
+
+    .fix-button:active {
+      background-color: #1557b0;
+    }
+
+    /* Quick Actions bar */
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+      padding: 8px 12px;
+      background-color: #f1f3f4;
+      border-bottom: 1px solid #dadce0;
+      font-size: 12px;
+    }
+
+    .quick-actions-label {
+      color: #5f6368;
+      font-weight: 600;
+      align-self: center;
+    }
+
+    .quick-action-btn {
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .quick-action-btn:hover {
+      background-color: #1765cc;
+    }
   </style>
 </head>
 <body>
@@ -429,7 +481,7 @@ END: March 1997
 
 # EXPERIENCE
 ## EXP_1
-TYPE: PROFESSIONAL // required [PROFFESIONAL|PROJECT|VOLUNTEER]
+TYPE: PROFESSIONAL // required [PROFESSIONAL|PROJECT|VOLUNTEER]
 TITLE: Senior Developer // required
 AT: Tech Solutions Inc.
 START: October 2020
@@ -439,14 +491,14 @@ BULLETS:
 - Led team...
 
 ## EXP_2
-TYPE: PROJECT // required [PROFFESIONAL|PROJECT|VOLUNTEER]
+TYPE: PROJECT // required [PROFESSIONAL|PROJECT|VOLUNTEER]
 TITLE: Linux Kernel // required
 BULLETS:
 - Architected kernel...
 - Integrated Rust...
 
 ## EXP_3
-TYPE: VOLUNTEER // required [PROFFESIONAL|PROJECT|VOLUNTEER]
+TYPE: VOLUNTEER // required [PROFESSIONAL|PROJECT|VOLUNTEER]
 TITLE: Community Volunteer // required
 AT: Local Non-Profit
 BULLETS:
@@ -486,6 +538,11 @@ BULLETS:
         </div>
         <span class="validation-toggle">▼</span>
       </div>
+      <div class="quick-actions">
+        <span class="quick-actions-label">Quick Actions:</span>
+        <button id="addEducationBtn" class="quick-action-btn" title="Insert a new education entry">+ Education</button>
+        <button id="addExperienceBtn" class="quick-action-btn" title="Insert a new experience entry">+ Experience</button>
+      </div>
       <div id="validationContent" class="validation-content">
         <div class="validation-empty">No validation messages</div>
       </div>
@@ -494,6 +551,7 @@ BULLETS:
     <footer>
       <button id="templateGuideBtn" class="template-guide-show">📖 Toggle Template</button>
       <div class="export-buttons">
+        <button id="fixFormattingBtn" class="btn-export">Fix Formatting</button>
         <button id="exportMdBtn" class="btn-export">Export .md</button>
         <button id="exportTxtBtn" class="btn-export">Export .txt</button>
       </div>

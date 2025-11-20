@@ -196,10 +196,201 @@ function goBack() {
   window.location.href = 'job-details.html';
 }
 
+// Validation state
+let validationDebounceTimer = null;
+let isValidationPanelCollapsed = true;
+
+// Toggle validation panel
+function toggleValidationPanel() {
+  const panel = document.getElementById('validationPanel');
+  const toggle = document.querySelector('.validation-toggle');
+  
+  isValidationPanelCollapsed = !isValidationPanelCollapsed;
+  
+  if (isValidationPanelCollapsed) {
+    panel.classList.add('collapsed');
+    toggle.textContent = '▼';
+  } else {
+    panel.classList.remove('collapsed');
+    toggle.textContent = '▲';
+  }
+}
+
+// Validate profile content (wrapper function)
+function runValidation(content) {
+  // If content is empty, show no validation
+  if (!content || content.trim().length === 0) {
+    return {
+      errors: [],
+      warnings: [],
+      info: [],
+      customFields: [],
+      customSections: []
+    };
+  }
+  
+  try {
+    // Parse the profile
+    const parsed = parseProfile(content);
+    
+    // Validate the parsed profile
+    const validation = validateProfile(parsed);
+    
+    return validation;
+  } catch (error) {
+    // Parse error
+    return {
+      errors: [`Parse error: ${error.message}`],
+      warnings: [],
+      info: [],
+      customFields: [],
+      customSections: []
+    };
+  }
+}
+
+// Update validation UI
+function updateValidationUI(validation) {
+  const editor = document.getElementById('profileEditor');
+  const statusIcon = document.getElementById('statusIcon');
+  const statusText = document.getElementById('statusText');
+  const errorCount = document.getElementById('errorCount');
+  const warningCount = document.getElementById('warningCount');
+  const infoCount = document.getElementById('infoCount');
+  const validationContent = document.getElementById('validationContent');
+  
+  const hasErrors = validation.errors.length > 0;
+  const hasWarnings = validation.warnings.length > 0;
+  const hasInfo = validation.info.length > 0;
+  const hasCustomFields = validation.customFields.length > 0;
+  const hasCustomSections = validation.customSections.length > 0;
+  
+  // Update textarea border color
+  editor.classList.remove('has-errors', 'has-warnings', 'is-valid');
+  if (hasErrors) {
+    editor.classList.add('has-errors');
+  } else if (hasWarnings) {
+    editor.classList.add('has-warnings');
+  } else if (editor.value.trim().length > 0) {
+    editor.classList.add('is-valid');
+  }
+  
+  // Update status icon and text
+  if (hasErrors) {
+    statusIcon.textContent = '✗';
+    statusIcon.style.color = '#d93025';
+    statusText.textContent = 'Validation Errors';
+    statusText.style.color = '#d93025';
+  } else if (hasWarnings) {
+    statusIcon.textContent = '⚠';
+    statusIcon.style.color = '#ea8600';
+    statusText.textContent = 'Validation Warnings';
+    statusText.style.color = '#ea8600';
+  } else if (editor.value.trim().length > 0) {
+    statusIcon.textContent = '✓';
+    statusIcon.style.color = '#0f9d58';
+    statusText.textContent = 'Valid Profile';
+    statusText.style.color = '#0f9d58';
+  } else {
+    statusIcon.textContent = '○';
+    statusIcon.style.color = '#666';
+    statusText.textContent = 'No Content';
+    statusText.style.color = '#666';
+  }
+  
+  // Update counts
+  if (hasErrors) {
+    errorCount.textContent = `${validation.errors.length} error${validation.errors.length > 1 ? 's' : ''}`;
+    errorCount.style.display = 'block';
+  } else {
+    errorCount.style.display = 'none';
+  }
+  
+  if (hasWarnings) {
+    warningCount.textContent = `${validation.warnings.length} warning${validation.warnings.length > 1 ? 's' : ''}`;
+    warningCount.style.display = 'block';
+  } else {
+    warningCount.style.display = 'none';
+  }
+  
+  const customCount = validation.customFields.length + validation.customSections.length;
+  if (hasInfo || customCount > 0) {
+    infoCount.textContent = `${customCount} custom`;
+    infoCount.style.display = 'block';
+  } else {
+    infoCount.style.display = 'none';
+  }
+  
+  // Build validation messages HTML
+  let messagesHTML = '';
+  
+  // Errors
+  validation.errors.forEach(error => {
+    messagesHTML += `<div class="validation-message validation-error">${escapeHtml(error.message)}</div>`;
+  });
+  
+  // Warnings
+  validation.warnings.forEach(warning => {
+    messagesHTML += `<div class="validation-message validation-warning">${escapeHtml(warning.message)}</div>`;
+  });
+  
+  // Info messages
+  validation.info.forEach(info => {
+    messagesHTML += `<div class="validation-message validation-info">${escapeHtml(info.message)}</div>`;
+  });
+  
+  // Custom fields
+  if (hasCustomFields) {
+    const fieldsText = validation.customFields.join(', ');
+    messagesHTML += `<div class="validation-message validation-info">✨ Custom fields detected: ${escapeHtml(fieldsText)}</div>`;
+  }
+  
+  // Custom sections
+  if (hasCustomSections) {
+    const sectionsText = validation.customSections.join(', ');
+    messagesHTML += `<div class="validation-message validation-info">✨ Custom sections detected: ${escapeHtml(sectionsText)}</div>`;
+  }
+  
+  // If no messages, show empty state
+  if (!messagesHTML) {
+    messagesHTML = '<div class="validation-empty">No validation messages</div>';
+  }
+  
+  validationContent.innerHTML = messagesHTML;
+}
+
+// Debounced validation
+function scheduleValidation() {
+  if (validationDebounceTimer) {
+    clearTimeout(validationDebounceTimer);
+  }
+  
+  validationDebounceTimer = setTimeout(() => {
+    const editor = document.getElementById('profileEditor');
+    const content = editor.value;
+    const validation = runValidation(content);
+    updateValidationUI(validation);
+  }, 500); // Validate 500ms after user stops typing
+}
+
+// Escape HTML for safe display
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
   loadProfile();
   startAutoSave();
+  
+  // Run initial validation after content loads
+  setTimeout(() => {
+    const editor = document.getElementById('profileEditor');
+    const validation = runValidation(editor.value);
+    updateValidationUI(validation);
+  }, 100);
   
   // Update last saved time every minute
   setInterval(() => {
@@ -220,4 +411,10 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Show template button (when hidden)
   document.getElementById('templateGuideBtn').addEventListener('click', toggleTemplatePanel);
+  
+  // Validation panel toggle
+  document.getElementById('validationHeader').addEventListener('click', toggleValidationPanel);
+  
+  // Real-time validation on content change
+  document.getElementById('profileEditor').addEventListener('input', scheduleValidation);
 });

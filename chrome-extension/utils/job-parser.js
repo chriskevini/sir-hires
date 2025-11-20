@@ -42,6 +42,11 @@ function parseJobTemplate(content) {
       continue;
     }
 
+    // Skip closing tags (</JOB>, </PROFILE>, etc.)
+    if (trimmedLine.match(/^<\/\w+>$/)) {
+      continue;
+    }
+
     // Check for <JOB> type declaration
     if (trimmedLine.match(/^<(\w+)>$/)) {
       result.type = trimmedLine.match(/^<(\w+)>$/)[1];

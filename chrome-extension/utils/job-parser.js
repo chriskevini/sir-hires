@@ -184,17 +184,15 @@ function getAllSections(parsedJob) {
 // Short aliases for convenience
 const parseJob = parseJobTemplate;
 
-// Export functions for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    parseJobTemplate,
-    parseJob,
-    extractDescription,
-    extractRequiredSkills,
-    extractPreferredSkills,
-    extractAboutCompany,
-    getTopLevelField,
-    getAllTopLevelFields,
-    getAllSections
-  };
-}
+// Export functions for use in other modules (ES6 modules)
+export {
+  parseJobTemplate,
+  parseJob,
+  extractDescription,
+  extractRequiredSkills,
+  extractPreferredSkills,
+  extractAboutCompany,
+  getTopLevelField,
+  getAllTopLevelFields,
+  getAllSections
+};

@@ -1,6 +1,7 @@
 // Side panel script that manages the job in focus
 
 import { MainView } from './job-details/main-view.js';
+import { parseJobTemplate } from './utils/job-parser.js';
 
 let currentJobId = null;
 let currentJob = null;
@@ -15,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadJobInFocus();
   setupEventListeners();
   setupStorageListener();
+  setupStreamListeners();
   setupViewEventListeners();
 });
 
@@ -79,6 +81,193 @@ function setupStorageListener() {
       }
     }
   });
+}
+
+// Setup message listeners for streaming extraction
+function setupStreamListeners() {
+  console.log('[Side Panel] Setting up stream listeners');
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'extractionChunk') {
+      handleExtractionChunk(message.jobId, message.chunk);
+    } else if (message.action === 'extractionComplete') {
+      handleExtractionComplete(message.jobId, message.fullContent);
+    } else if (message.action === 'extractionError') {
+      handleExtractionError(message.jobId, message.error);
+    }
+  });
+}
+
+// Handle streaming extraction chunk
+async function handleExtractionChunk(jobId, chunk) {
+  console.log('[Side Panel] Received chunk for job:', jobId, 'current:', currentJobId, 'chunk:', chunk.substring(0, 50) + '...');
+  
+  if (jobId !== currentJobId) {
+    console.log('[Side Panel] Received chunk for different job, ignoring');
+    return;
+  }
+
+  // Set flag to prevent reload loop
+  isSavingLocally = true;
+
+  try {
+    // Get current job from storage
+    const result = await chrome.storage.local.get(['jobs']);
+    const jobs = result.jobs || {};
+    const job = jobs[jobId];
+
+    if (!job) {
+      console.error('[Side Panel] Job not found for chunk update:', jobId);
+      return;
+    }
+
+    // Append chunk to job.content field
+    job.content = (job.content || '') + chunk;
+    job.updatedAt = new Date().toISOString();
+
+    // Save back to storage
+    jobs[jobId] = job;
+    await chrome.storage.local.set({ jobs });
+
+    // Update local reference
+    currentJob = job;
+
+    // Trigger MainView re-render to show updated content
+    displayJob(currentJob);
+
+    console.log('[Side Panel] Appended chunk to job.content:', chunk.length, 'chars');
+
+    // Reset flag after a short delay
+    setTimeout(() => {
+      isSavingLocally = false;
+    }, 50);
+
+  } catch (error) {
+    console.error('[Side Panel] Error handling extraction chunk:', error);
+    isSavingLocally = false;
+  }
+}
+
+// Handle extraction completion
+async function handleExtractionComplete(jobId, fullContent) {
+  console.log('[Side Panel] Extraction complete for job:', jobId);
+
+  if (jobId !== currentJobId) {
+    console.log('[Side Panel] Completed job is not in focus, skipping UI update');
+    return;
+  }
+
+  // Set flag to prevent reload loop
+  isSavingLocally = true;
+
+  try {
+    // Get current job from storage
+    const result = await chrome.storage.local.get(['jobs']);
+    const jobs = result.jobs || {};
+    const job = jobs[jobId];
+
+    if (!job) {
+      console.error('[Side Panel] Job not found for completion:', jobId);
+      return;
+    }
+
+    // Set final content (in case chunks were missed)
+    job.content = fullContent;
+    job.updatedAt = new Date().toISOString();
+
+    // Parse the markdown content to extract job fields
+    const parsed = parseJobTemplate(fullContent);
+    const fields = parsed.topLevelFields;
+    
+    // Update job fields from parsed markdown
+    if (fields.JOB_TITLE) job.jobTitle = fields.JOB_TITLE;
+    if (fields.COMPANY) job.company = fields.COMPANY;
+    if (fields.LOCATION) job.location = fields.LOCATION;
+    if (fields.SALARY) job.salary = fields.SALARY;
+    if (fields.JOB_TYPE) job.jobType = fields.JOB_TYPE;
+    if (fields.REMOTE_TYPE) job.remoteType = fields.REMOTE_TYPE;
+    if (fields.POSTED_DATE) job.postedDate = fields.POSTED_DATE;
+    if (fields.DEADLINE) job.deadline = fields.DEADLINE;
+    
+    console.log('[Side Panel] Updated job fields from markdown:', { 
+      jobTitle: job.jobTitle, 
+      company: job.company 
+    });
+
+    // Save back to storage
+    jobs[jobId] = job;
+    await chrome.storage.local.set({ jobs });
+
+    // Update local reference
+    currentJob = job;
+
+    // Trigger MainView re-render
+    displayJob(currentJob);
+
+    // Show success toast
+    showSuccess('Job extraction completed!');
+
+    // Reset flag after a short delay
+    setTimeout(() => {
+      isSavingLocally = false;
+    }, 200);
+
+  } catch (error) {
+    console.error('[Side Panel] Error handling extraction completion:', error);
+    isSavingLocally = false;
+  }
+}
+
+// Handle extraction error
+async function handleExtractionError(jobId, errorMessage) {
+  console.error('[Side Panel] Extraction error for job:', jobId, errorMessage);
+
+  if (jobId !== currentJobId) {
+    console.log('[Side Panel] Error for different job, skipping UI update');
+    return;
+  }
+
+  // Set flag to prevent reload loop
+  isSavingLocally = true;
+
+  try {
+    // Get current job from storage
+    const result = await chrome.storage.local.get(['jobs']);
+    const jobs = result.jobs || {};
+    const job = jobs[jobId];
+
+    if (!job) {
+      console.error('[Side Panel] Job not found for error handling:', jobId);
+      return;
+    }
+
+    // Update job with error marker in content
+    // ResearchingView will display this in the validation panel
+    job.content = job.content || '';
+    job.extractionError = errorMessage;
+    job.updatedAt = new Date().toISOString();
+
+    // Save back to storage
+    jobs[jobId] = job;
+    await chrome.storage.local.set({ jobs });
+
+    // Update local reference
+    currentJob = job;
+
+    // Trigger MainView re-render to show error
+    displayJob(currentJob);
+
+    // Show error toast
+    showError('Extraction failed: ' + errorMessage);
+
+    // Reset flag after a short delay
+    setTimeout(() => {
+      isSavingLocally = false;
+    }, 200);
+
+  } catch (error) {
+    console.error('[Side Panel] Error handling extraction error:', error);
+    isSavingLocally = false;
+  }
 }
 
 // Load the job currently in focus

@@ -16,8 +16,6 @@ function extractJobData() {
     aboutCompany: '',
     responsibilities: '',
     requirements: '',
-    notes: '',
-    narrativeStrategy: '',
     source: extractSource()
   };
 
@@ -58,6 +56,9 @@ function extractJobData() {
   data.responsibilities = sections.responsibilities;
   data.requirements = sections.requirements;
 
+  // Generate markdown content field from extracted data
+  data.content = generateJobContent(data);
+
   return data;
 }
 
@@ -74,6 +75,137 @@ function extractSource() {
   if (hostname.includes('lever.co')) return 'Lever';
   if (hostname.includes('workday.com')) return 'Workday';
   return hostname;
+}
+
+/**
+ * Generate markdown content field from extracted job data
+ * @param {Object} data - The extracted job data object
+ * @returns {string} Markdown-formatted job template
+ */
+function generateJobContent(data) {
+  const lines = ['<JOB>'];
+  
+  // Top-level fields
+  if (data.jobTitle) lines.push(`TITLE: ${data.jobTitle}`);
+  if (data.company) lines.push(`COMPANY: ${data.company}`);
+  if (data.location) lines.push(`ADDRESS: ${data.location}`);
+  
+  // Remote type (convert to uppercase enum)
+  if (data.remoteType && data.remoteType !== 'Not specified') {
+    const remoteTypeUpper = data.remoteType.toUpperCase().replace('-', '');
+    lines.push(`REMOTE_TYPE: ${remoteTypeUpper}`);
+  }
+  
+  // Parse salary into min/max if possible
+  if (data.salary) {
+    const salaryMatch = data.salary.match(/\$?([\d,]+)(?:\s*(?:-|to)\s*\$?([\d,]+))?/i);
+    if (salaryMatch) {
+      const min = salaryMatch[1].replace(/,/g, '');
+      const max = salaryMatch[2] ? salaryMatch[2].replace(/,/g, '') : null;
+      if (min) lines.push(`SALARY_RANGE_MIN: ${min}`);
+      if (max) lines.push(`SALARY_RANGE_MAX: ${max}`);
+    }
+  }
+  
+  // Employment type (convert to uppercase enum)
+  if (data.jobType) {
+    const jobTypeUpper = data.jobType.toUpperCase().replace('-', '_');
+    lines.push(`EMPLOYMENT_TYPE: ${jobTypeUpper}`);
+  }
+  
+  // Experience level (try to infer from job title if not available)
+  const experienceLevel = inferExperienceLevel(data.jobTitle);
+  if (experienceLevel) {
+    lines.push(`EXPERIENCE_LEVEL: ${experienceLevel}`);
+  }
+  
+  // Dates
+  if (data.postedDate) lines.push(`POSTED_DATE: ${data.postedDate}`);
+  if (data.deadline) lines.push(`CLOSING_DATE: ${data.deadline}`);
+  
+  // Add blank line before sections
+  lines.push('');
+  
+  // Description section
+  if (data.aboutJob || data.rawDescription) {
+    lines.push('# DESCRIPTION:');
+    const description = data.aboutJob || data.rawDescription;
+    // Convert to bullet points if not already
+    const descLines = description.split('\n').filter(l => l.trim());
+    descLines.forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
+        lines.push(trimmed.replace(/^[•]\s*/, '- '));
+      } else {
+        lines.push(`- ${trimmed}`);
+      }
+    });
+    lines.push('');
+  }
+  
+  // Required skills section
+  if (data.requirements) {
+    lines.push('# REQUIRED_SKILLS:');
+    const reqLines = data.requirements.split('\n').filter(l => l.trim());
+    reqLines.forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
+        lines.push(trimmed.replace(/^[•]\s*/, '- '));
+      } else {
+        lines.push(`- ${trimmed}`);
+      }
+    });
+    lines.push('');
+  }
+  
+  // Responsibilities section (if different from description)
+  if (data.responsibilities && data.responsibilities !== data.aboutJob) {
+    lines.push('# RESPONSIBILITIES:');
+    const respLines = data.responsibilities.split('\n').filter(l => l.trim());
+    respLines.forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
+        lines.push(trimmed.replace(/^[•]\s*/, '- '));
+      } else {
+        lines.push(`- ${trimmed}`);
+      }
+    });
+    lines.push('');
+  }
+  
+  // About company section
+  if (data.aboutCompany) {
+    lines.push('# ABOUT_COMPANY:');
+    const companyLines = data.aboutCompany.split('\n').filter(l => l.trim());
+    companyLines.forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
+        lines.push(trimmed.replace(/^[•]\s*/, '- '));
+      } else {
+        lines.push(`- ${trimmed}`);
+      }
+    });
+  }
+  
+  return lines.join('\n');
+}
+
+/**
+ * Infer experience level from job title
+ * @param {string} title - Job title
+ * @returns {string} Experience level (ENTRY|MID|SENIOR|LEAD|null)
+ */
+function inferExperienceLevel(title) {
+  if (!title) return null;
+  const titleLower = title.toLowerCase();
+  
+  if (titleLower.match(/\b(junior|jr|entry|associate|i\b|1\b)/)) return 'ENTRY';
+  if (titleLower.match(/\b(senior|sr|lead|principal|staff|iii\b|iv\b|3\b|4\b)/)) return 'SENIOR';
+  if (titleLower.match(/\b(lead|principal|architect|director|head|chief)/)) return 'LEAD';
+  if (titleLower.match(/\b(ii\b|2\b)/)) return 'MID';
+  
+  // Default to MID if no indicator
+  return 'MID';
 }
 
 function findJobTitle() {
@@ -848,8 +980,7 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
       "aboutJob": "verbatim-string",
       "aboutCompany": "verbatim-string",
       "responsibilities": "verbatim-string",
-      "requirements": "verbatim-string",
-      "narrativeStrategy": "verbatim-string"
+      "requirements": "verbatim-string"
     };
 
     // Format for NuExtract: use the template in the prompt structure
@@ -923,8 +1054,8 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
     
     console.log('[Content] Parsed dates - postedDate:', postedDate, 'deadline:', deadline);
 
-    // Return the extracted data
-    return {
+    // Build the data object
+    const extractedData = {
       jobTitle: extracted.jobTitle || '',
       company: extracted.company || '',
       location: extracted.location || '',
@@ -937,11 +1068,14 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
       aboutCompany: extracted.aboutCompany || '',
       responsibilities: extracted.responsibilities || '',
       requirements: extracted.requirements || '',
-      narrativeStrategy: extracted.narrativeStrategy || '',
-      notes: '',  // User-generated field, not extracted from page
       url: '',  // Will be set by caller
       source: '' // Will be set by caller
     };
+
+    // Generate markdown content field from extracted data
+    extractedData.content = generateJobContent(extractedData);
+
+    return extractedData;
 
   } catch (error) {
     console.error('Error in LLM extraction:', error);
@@ -1065,18 +1199,53 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             jobData.extractionNote = `LLM extraction failed: ${error.message}. Using DOM extraction instead.`;
           }
         } else {
-          // Use traditional DOM extraction
-          console.log('[Content] Using DOM extraction (LLM disabled)...');
+          // Use DOM extraction
+          console.log('[Content] Using DOM extraction (LLM disabled)');
           jobData = extractJobData();
         }
 
         sendResponse({ success: true, data: jobData, usedLlm: usedLlm });
       } catch (error) {
-        console.error('Error extracting job data:', error);
+        console.error('[Content] Extraction error:', error);
         sendResponse({ success: false, error: error.message });
       }
     })();
-    
-    return true; // Keep the message channel open for async response
+    return true; // Keep message channel open for async response
+  }
+
+  if (request.action === 'streamExtractJobData') {
+    (async () => {
+      try {
+        const llmSettings = request.llmSettings || {};
+        const jobId = request.jobId;
+
+        // Check if LLM endpoint is configured (enabled field is optional)
+        if (!llmSettings.endpoint) {
+          throw new Error('LLM endpoint not configured. Streaming extraction requires LLM.');
+        }
+
+        console.log('[Content] Starting streaming extraction for job:', jobId);
+        
+        // Extract basic metadata and raw text
+        const url = window.location.href;
+        const source = extractSource();
+        const rawText = extractRawJobText();
+        
+        console.log('[Content] Extracted raw text length:', rawText.length);
+
+        // Send extraction request to background which has access to LLMClient
+        sendResponse({ 
+          success: true, 
+          url, 
+          source,
+          rawText,
+          jobId
+        });
+      } catch (error) {
+        console.error('[Content] Streaming extraction error:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+    return true; // Keep message channel open for async response
   }
 });

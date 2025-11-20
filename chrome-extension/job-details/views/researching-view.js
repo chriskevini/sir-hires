@@ -19,6 +19,18 @@ export class ResearchingView extends BaseView {
    * @returns {string} HTML string
    */
   render(job, index) {
+    // Check if job is currently being extracted (streaming in progress)
+    const isExtracting = job.jobTitle === 'Extracting...' && (!job.content || job.content.trim() === '');
+    
+    if (isExtracting) {
+      return this.renderExtractionState(job, index);
+    }
+    
+    // Check if job has extraction error
+    if (job.extractionError) {
+      return this.renderExtractionError(job, index);
+    }
+    
     // Check if job has content field (new format)
     const hasContent = job.content && job.content.trim().length > 0;
     
@@ -75,6 +87,79 @@ export class ResearchingView extends BaseView {
         <!-- Actions -->
         <div class="job-actions">
           <button class="btn btn-delete" data-index="${index}">Delete Job</button>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Render extraction state UI (streaming in progress)
+   */
+  renderExtractionState(job, index) {
+    // Show partial content if any chunks have arrived
+    const partialContent = job.content || '';
+    const hasPartialContent = partialContent.trim().length > 0;
+
+    return `
+      <div class="job-card researching-editor">
+        <div class="extraction-state">
+          <div class="extraction-header">
+            <div class="extraction-spinner">⏳</div>
+            <h3>Extracting Job Information...</h3>
+            <p>The LLM is analyzing the job posting and generating structured data.</p>
+          </div>
+          
+          ${hasPartialContent ? `
+            <div class="extraction-preview">
+              <div class="extraction-preview-header">
+                <strong>📄 Preview (Streaming)</strong>
+              </div>
+              <div class="extraction-preview-content">${this.escapeHtml(partialContent)}</div>
+            </div>
+          ` : `
+            <div class="extraction-waiting">
+              <p>Waiting for first response from LLM...</p>
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Render extraction error state
+   */
+  renderExtractionError(job, index) {
+    const partialContent = job.content || '';
+    const hasPartialContent = partialContent.trim().length > 0;
+
+    return `
+      <div class="job-card researching-editor">
+        <div class="extraction-error-state">
+          <div class="extraction-error-header">
+            <div class="extraction-error-icon">⚠️</div>
+            <h3>Extraction Failed</h3>
+            <p class="error-message">${this.escapeHtml(job.extractionError)}</p>
+          </div>
+          
+          ${hasPartialContent ? `
+            <div class="extraction-partial">
+              <div class="extraction-partial-header">
+                <strong>📄 Partial Content</strong>
+                <span class="extraction-partial-hint">(You can edit this or re-extract)</span>
+              </div>
+              <textarea id="jobEditor" class="job-markdown-editor" data-index="${index}">${this.escapeHtml(partialContent)}</textarea>
+            </div>
+          ` : ''}
+          
+          <div class="job-actions" style="margin-top: 24px;">
+            ${job.url ? `
+              <a href="${this.escapeHtml(job.url)}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+                Retry Extraction ↗
+              </a>
+            ` : ''}
+            <button class="btn btn-delete" data-index="${index}">Delete Job</button>
+          </div>
         </div>
       </div>
     `;
@@ -146,6 +231,36 @@ CLOSING_DATE: 2025-12-31
    * Attach event listeners
    */
   attachListeners(container, job, index, isExpanded = false) {
+    // Check if job is currently being extracted
+    const isExtracting = job.jobTitle === 'Extracting...' && (!job.content || job.content.trim() === '');
+    
+    // Extraction state has no interactive elements (just shows spinner)
+    if (isExtracting) {
+      return;
+    }
+    
+    // Check if job has extraction error
+    const hasExtractionError = !!job.extractionError;
+    
+    if (hasExtractionError) {
+      // Attach editor if partial content exists
+      const editor = container.querySelector('#jobEditor');
+      if (editor) {
+        const inputHandler = () => {
+          this.handleEditorChange(editor, index);
+        };
+        this.trackListener(editor, 'input', inputHandler);
+      }
+      
+      // Attach delete button
+      const deleteBtn = container.querySelector('.btn-delete');
+      if (deleteBtn) {
+        const deleteHandler = () => this.handleDelete(index);
+        this.trackListener(deleteBtn, 'click', deleteHandler);
+      }
+      return;
+    }
+    
     // Check if job has content
     const hasContent = job.content && job.content.trim().length > 0;
     

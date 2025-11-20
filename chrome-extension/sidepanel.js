@@ -264,7 +264,7 @@ async function restoreBackup() {
         // Restore all data
         await chrome.storage.local.set({
           jobs: backup.data.jobs || {},
-          masterResume: backup.data.masterResume || null,
+          userProfile: backup.data.userProfile || backup.data.masterResume || null,
           llmSettings: backup.data.llmSettings || null,
           jobInFocus: backup.data.jobInFocus || null
           // Note: Don't restore dataVersion - let migration determine it

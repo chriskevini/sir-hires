@@ -235,18 +235,32 @@ export class JobService {
   // ===== Backup/Restore =====
   
   /**
-   * Prepare data for backup
+   * Prepare backup data for export
    * @param {Array} jobs - Array of jobs
-   * @param {Object} masterResume - Master resume data
+   * @param {Object} masterResume - User profile data
    * @returns {Object} Backup data object
    */
   prepareBackupData(jobs, masterResume) {
     return {
       jobs,
-      masterResume,
+      userProfile: masterResume,
       exportDate: new Date().toISOString(),
       version: '1.0'
     };
+  }
+  
+  /**
+   * Validate backup data
+   * @param {Object} data - Backup data to validate
+   * @returns {boolean} True if valid backup data
+   */
+  validateBackupData(data) {
+    if (!data || typeof data !== 'object') {
+      return false;
+    }
+    
+    // Must have at least jobs or userProfile (or old masterResume for backward compatibility)
+    return Boolean(data.jobs || data.userProfile || data.masterResume);
   }
   
   /**

@@ -1,89 +1,99 @@
-// Master Resume Editor
+// Profile Editor (formerly Master Resume Editor)
 let savedContent = '';
 let draftContent = '';
 let autoSaveInterval = null;
 let lastSavedTime = null;
 
-// Load resume on page load
-async function loadResume() {
+// Load profile on page load
+async function loadProfile() {
   try {
-    // First, check chrome.storage.local for saved resume
-    const result = await chrome.storage.local.get(['masterResume']);
+    // First, check chrome.storage.local for saved profile
+    const result = await chrome.storage.local.get(['userProfile']);
     
-    if (result.masterResume && result.masterResume.content) {
-      savedContent = result.masterResume.content;
-      lastSavedTime = result.masterResume.updatedAt;
-      document.getElementById('resumeEditor').value = savedContent;
+    if (result.userProfile && result.userProfile.content) {
+      savedContent = result.userProfile.content;
+      lastSavedTime = result.userProfile.updatedAt;
+      document.getElementById('profileEditor').value = savedContent;
       updateLastSavedText();
     } else {
       // Check for draft in localStorage
-      const draft = localStorage.getItem('masterResumeDraft');
+      const draft = localStorage.getItem('userProfileDraft');
       if (draft) {
         draftContent = draft;
-        document.getElementById('resumeEditor').value = draft;
+        document.getElementById('profileEditor').value = draft;
         updateLastSavedText('Draft recovered');
       }
     }
   } catch (error) {
-    console.error('Error loading resume:', error);
-    showStatus('Error loading resume', 'error');
+    console.error('Error loading profile:', error);
+    showStatus('Error loading profile', 'error');
   }
 }
 
-// Auto-save draft to localStorage
+// Auto-save to chrome.storage.local every 3 seconds
 function startAutoSave() {
-  autoSaveInterval = setInterval(() => {
-    const editor = document.getElementById('resumeEditor');
+  autoSaveInterval = setInterval(async () => {
+    const editor = document.getElementById('profileEditor');
     const currentContent = editor.value.trim();
     
     if (currentContent !== savedContent) {
-      localStorage.setItem('masterResumeDraft', currentContent);
-      draftContent = currentContent;
-      updateLastSavedText('Draft auto-saved');
+      try {
+        // Save to chrome.storage.local
+        const profileData = {
+          content: currentContent,
+          updatedAt: new Date().toISOString()
+        };
+        
+        await chrome.storage.local.set({ userProfile: profileData });
+        
+        savedContent = currentContent;
+        lastSavedTime = profileData.updatedAt;
+        
+        // Also save to localStorage as backup
+        localStorage.setItem('userProfileDraft', currentContent);
+        
+        updateLastSavedText();
+      } catch (error) {
+        console.error('Auto-save error:', error);
+        // Keep localStorage backup even if chrome.storage fails
+        localStorage.setItem('userProfileDraft', currentContent);
+      }
     }
   }, 3000); // Auto-save every 3 seconds
 }
 
-// Save resume to chrome.storage.local
-async function saveResume() {
-  const editor = document.getElementById('resumeEditor');
-  const content = editor.value.trim();
+// Format date: HH:MM if today, relative date if not today
+function formatLastSavedTime(isoTimestamp) {
+  const now = new Date();
+  const saved = new Date(isoTimestamp);
   
-  if (!content) {
-    showStatus('Resume cannot be empty', 'error');
-    return;
-  }
+  // Check if it's today
+  const isToday = now.toDateString() === saved.toDateString();
   
-  try {
-    const saveBtn = document.getElementById('saveBtn');
-    saveBtn.disabled = true;
-    saveBtn.textContent = 'Saving...';
+  if (isToday) {
+    // Format as HH:MM
+    const hours = saved.getHours().toString().padStart(2, '0');
+    const minutes = saved.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  } else {
+    // Format as relative date
+    const diffMs = now - saved;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
     
-    const resumeData = {
-      content: content,
-      updatedAt: new Date().toISOString()
-    };
-    
-    await chrome.storage.local.set({ masterResume: resumeData });
-    
-    savedContent = content;
-    lastSavedTime = resumeData.updatedAt;
-    
-    // Clear draft from localStorage since it's now saved
-    localStorage.removeItem('masterResumeDraft');
-    
-    showStatus('Resume saved successfully!', 'success');
-    updateLastSavedText();
-    
-    saveBtn.disabled = false;
-    saveBtn.textContent = 'Save';
-  } catch (error) {
-    console.error('Error saving resume:', error);
-    showStatus('Error saving resume: ' + error.message, 'error');
-    
-    const saveBtn = document.getElementById('saveBtn');
-    saveBtn.disabled = false;
-    saveBtn.textContent = 'Save';
+    if (diffMins < 60) {
+      return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    } else if (diffHours < 24) {
+      return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    } else if (diffDays === 1) {
+      return 'yesterday';
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    } else {
+      const weeks = Math.floor(diffDays / 7);
+      return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
+    }
   }
 }
 
@@ -102,48 +112,14 @@ function updateLastSavedText(customText = null) {
     return;
   }
   
-  const now = new Date();
-  const saved = new Date(lastSavedTime);
-  const diffMs = now - saved;
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-  
-  let timeText = '';
-  if (diffMins < 1) {
-    timeText = 'just now';
-  } else if (diffMins < 60) {
-    timeText = `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-  } else if (diffHours < 24) {
-    timeText = `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-  } else {
-    timeText = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-  }
-  
+  const timeText = formatLastSavedTime(lastSavedTime);
   lastSavedEl.textContent = `Last saved: ${timeText}`;
   lastSavedEl.className = 'last-saved';
-}
-
-// Check if content has unsaved changes
-function checkUnsavedChanges() {
-  const editor = document.getElementById('resumeEditor');
-  const currentContent = editor.value.trim();
-  const lastSavedEl = document.getElementById('lastSaved');
-  
-  if (currentContent !== savedContent && currentContent !== '') {
-    if (!lastSavedEl.textContent.includes('unsaved changes')) {
-      lastSavedEl.textContent = '* Unsaved changes';
-      lastSavedEl.className = 'last-saved unsaved-indicator';
-    }
-  } else if (lastSavedTime) {
-    updateLastSavedText();
-  }
 }
 
 // Show status message
 function showStatus(message, type = 'success') {
   const lastSavedEl = document.getElementById('lastSaved');
-  const originalText = lastSavedEl.textContent;
   
   lastSavedEl.textContent = message;
   lastSavedEl.className = `last-saved ${type === 'error' ? 'unsaved-indicator' : ''}`;
@@ -155,9 +131,9 @@ function showStatus(message, type = 'success') {
   }
 }
 
-// Export resume as markdown
+// Export profile as markdown
 function exportMarkdown() {
-  const editor = document.getElementById('resumeEditor');
+  const editor = document.getElementById('profileEditor');
   const content = editor.value.trim();
   
   if (!content) {
@@ -168,7 +144,7 @@ function exportMarkdown() {
   const blob = new Blob([content], { type: 'text/markdown' });
   const url = URL.createObjectURL(blob);
   const timestamp = new Date().toISOString().split('T')[0];
-  const filename = `master-resume-${timestamp}.md`;
+  const filename = `profile-${timestamp}.md`;
   
   chrome.downloads.download({
     url: url,
@@ -179,9 +155,9 @@ function exportMarkdown() {
   showStatus('Exported as ' + filename, 'success');
 }
 
-// Export resume as plain text
+// Export profile as plain text
 function exportText() {
-  const editor = document.getElementById('resumeEditor');
+  const editor = document.getElementById('profileEditor');
   const content = editor.value.trim();
   
   if (!content) {
@@ -192,7 +168,7 @@ function exportText() {
   const blob = new Blob([content], { type: 'text/plain' });
   const url = URL.createObjectURL(blob);
   const timestamp = new Date().toISOString().split('T')[0];
-  const filename = `master-resume-${timestamp}.txt`;
+  const filename = `profile-${timestamp}.txt`;
   
   chrome.downloads.download({
     url: url,
@@ -203,17 +179,17 @@ function exportText() {
   showStatus('Exported as ' + filename, 'success');
 }
 
-// Toggle markdown guide
-function toggleMarkdownGuide() {
-  const guide = document.getElementById('markdownGuide');
-  const btn = document.getElementById('markdownGuideBtn');
+// Toggle template guide
+function toggleTemplateGuide() {
+  const guide = document.getElementById('templateGuide');
+  const btn = document.getElementById('templateGuideBtn');
   
   if (guide.classList.contains('hidden')) {
     guide.classList.remove('hidden');
-    btn.textContent = '📖 Markdown Guide ▲';
+    btn.textContent = '📖 Template Guide ▲';
   } else {
     guide.classList.add('hidden');
-    btn.textContent = '📖 Markdown Guide ▼';
+    btn.textContent = '📖 Template Guide ▼';
   }
 }
 
@@ -224,7 +200,7 @@ function goBack() {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
-  loadResume();
+  loadProfile();
   startAutoSave();
   
   // Update last saved time every minute
@@ -234,20 +210,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }, 60000);
   
-  // Check for unsaved changes
-  document.getElementById('resumeEditor').addEventListener('input', checkUnsavedChanges);
-  
-  // Save button
-  document.getElementById('saveBtn').addEventListener('click', saveResume);
-  
-  // Keyboard shortcut: Ctrl/Cmd + S to save
-  document.addEventListener('keydown', function(e) {
-    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-      e.preventDefault();
-      saveResume();
-    }
-  });
-  
   // Back button
   document.getElementById('backBtn').addEventListener('click', goBack);
   
@@ -255,28 +217,17 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('exportMdBtn').addEventListener('click', exportMarkdown);
   document.getElementById('exportTxtBtn').addEventListener('click', exportText);
   
-  // Markdown guide toggle
-  document.getElementById('markdownGuideBtn').addEventListener('click', toggleMarkdownGuide);
+  // Template guide toggle
+  document.getElementById('templateGuideBtn').addEventListener('click', toggleTemplateGuide);
   
-  // Close markdown guide when clicking outside
+  // Close template guide when clicking outside
   document.addEventListener('click', function(e) {
-    const guide = document.getElementById('markdownGuide');
-    const btn = document.getElementById('markdownGuideBtn');
+    const guide = document.getElementById('templateGuide');
+    const btn = document.getElementById('templateGuideBtn');
     
     if (!guide.contains(e.target) && e.target !== btn && !guide.classList.contains('hidden')) {
       guide.classList.add('hidden');
-      btn.textContent = '📖 Markdown Guide ▼';
+      btn.textContent = '📖 Template Guide ▼';
     }
   });
-});
-
-// Warn before leaving with unsaved changes
-window.addEventListener('beforeunload', function(e) {
-  const editor = document.getElementById('resumeEditor');
-  const currentContent = editor.value.trim();
-  
-  if (currentContent !== savedContent && currentContent !== '') {
-    e.preventDefault();
-    e.returnValue = '';
-  }
 });

@@ -179,18 +179,16 @@ function exportText() {
   showStatus('Exported as ' + filename, 'success');
 }
 
-// Toggle template guide
-function toggleTemplateGuide() {
-  const guide = document.getElementById('templateGuide');
-  const btn = document.getElementById('templateGuideBtn');
-  
-  if (guide.classList.contains('hidden')) {
-    guide.classList.remove('hidden');
-    btn.textContent = '📖 Template Guide ▲';
-  } else {
-    guide.classList.add('hidden');
-    btn.textContent = '📖 Template Guide ▼';
-  }
+// Toggle template panel visibility
+function toggleTemplatePanel() {
+  const panel = document.getElementById('templatePanel');
+  panel.classList.toggle('hidden');
+}
+
+// Close template panel
+function closeTemplatePanel() {
+  const panel = document.getElementById('templatePanel');
+  panel.classList.add('hidden');
 }
 
 // Navigate back to viewer
@@ -217,17 +215,9 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('exportMdBtn').addEventListener('click', exportMarkdown);
   document.getElementById('exportTxtBtn').addEventListener('click', exportText);
   
-  // Template guide toggle
-  document.getElementById('templateGuideBtn').addEventListener('click', toggleTemplateGuide);
+  // Template panel close button
+  document.getElementById('templatePanelClose').addEventListener('click', closeTemplatePanel);
   
-  // Close template guide when clicking outside
-  document.addEventListener('click', function(e) {
-    const guide = document.getElementById('templateGuide');
-    const btn = document.getElementById('templateGuideBtn');
-    
-    if (!guide.contains(e.target) && e.target !== btn && !guide.classList.contains('hidden')) {
-      guide.classList.add('hidden');
-      btn.textContent = '📖 Template Guide ▼';
-    }
-  });
+  // Show template button (when hidden)
+  document.getElementById('templateGuideBtn').addEventListener('click', toggleTemplatePanel);
 });

@@ -693,7 +693,7 @@ export class JobDetailsApp {
    * Open master resume page
    */
   openMasterResume() {
-    window.location.href = 'resume.html';
+    window.location.href = 'profile.html';
   }
 
   /**

@@ -369,8 +369,8 @@ export class SynthesisModal extends BaseView {
     const createResumeBtn = document.getElementById('synthesisCreateResumeBtn');
     if (createResumeBtn) {
       this.trackListener(createResumeBtn, 'click', () => {
-        // Navigate to resume page
-        window.location.href = '/resume.html';
+        // Navigate to profile page
+        window.location.href = '/profile.html';
       });
     }
 

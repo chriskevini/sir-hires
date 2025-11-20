@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Job Parser Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: #f5f5f5;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background-color: white;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      font-size: 24px;
+      color: #1a73e8;
+      margin-bottom: 24px;
+    }
+
+    .test-section {
+      margin-bottom: 32px;
+    }
+
+    h2 {
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 400px;
+      padding: 16px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: 'Courier New', Monaco, monospace;
+      line-height: 1.6;
+      resize: vertical;
+      background-color: #fafafa;
+    }
+
+    button {
+      background-color: #1a73e8;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 16px;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #1765cc;
+    }
+
+    .output {
+      margin-top: 16px;
+      padding: 16px;
+      background-color: #f1f3f4;
+      border-radius: 4px;
+      border-left: 4px solid #1a73e8;
+    }
+
+    pre {
+      font-size: 12px;
+      font-family: 'Courier New', Monaco, monospace;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      color: #333;
+    }
+
+    .success {
+      color: #0f9d58;
+      font-weight: 600;
+    }
+
+    .error {
+      color: #d93025;
+      font-weight: 600;
+    }
+
+    .result-section {
+      margin-top: 16px;
+      padding: 12px;
+      background-color: white;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+    }
+
+    .result-section h3 {
+      font-size: 14px;
+      color: #1967d2;
+      margin-bottom: 8px;
+    }
+
+    .split-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Job Template Parser - Test Suite</h1>
+
+    <div class="test-section">
+      <h2>Input: Job Template</h2>
+      <textarea id="jobInput"><JOB>
+TITLE: Senior Cloud Infrastructure Engineer // required
+COMPANY: Stellar Innovations Inc. // required
+ADDRESS: San Francisco, CA
+REMOTE_TYPE: HYBRID // [ONSITE|REMOTE|HYBRID]
+SALARY_RANGE_MIN: 100,000
+SALARY_RANGE_MAX: 150,000
+EMPLOYMENT_TYPE: FULL-TIME // [FULL-TIME|PART-TIME|CONTRACT|INTERNSHIP|COOP]
+EXPERIENCE_LEVEL: SENIOR // [ENTRY|MID|SENIOR|LEAD]
+POSTED_DATE: 2025-11-15
+CLOSING_DATE: 2025-12-31
+# DESCRIPTION:
+- Design, implement, and maintain scalable cloud infrastructure on AWS/Azure.
+- Develop and manage CI/CD pipelines using GitLab or Jenkins.
+- Provide subject matter expertise on security, reliability, and cost optimization.
+# REQUIRED_SKILLS: // required
+- 7+ years of experience in DevOps or SRE roles.
+- Expert-level proficiency with Terraform and Kubernetes.
+- Strong knowledge of Python or Go for scripting.
+# PREFERRED_SKILLS:
+- Experience with FinOps principles and tooling.
+- AWS Certified DevOps Engineer - Professional.
+- Background in the FinTech industry.
+# ABOUT_COMPANY:
+- Stellar Innovations is a high-growth Series C FinTech startup based in the Bay Area.
+- **Culture:** We emphasize radical ownership, transparency, and continuous learning.
+- **Team Structure:** Teams are cross-functional, highly autonomous, and empowered to make core product decisions.
+- **Benefits:** We offer unlimited PTO, 1000% 401(k) matching and excellent health coverage.
+- **Values:** We are committed to fostering diversity, equity, and inclusion in the workplace.</textarea>
+      <button id="parseBtn">Parse Job Template</button>
+    </div>
+
+    <div class="test-section">
+      <h2>Output: Parsed Data Structure</h2>
+      <div id="output" class="output">
+        <p><em>Click "Parse Job Template" to see results...</em></p>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>Validation Results</h2>
+      <div id="validationOutput" class="output">
+        <p><em>Click "Parse Job Template" to see validation results...</em></p>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>Extracted Data</h2>
+      <div class="split-layout">
+        <div class="result-section">
+          <h3>Top-Level Fields</h3>
+          <pre id="topLevelOutput">-</pre>
+        </div>
+        <div class="result-section">
+          <h3>Required Skills</h3>
+          <pre id="requiredSkillsOutput">-</pre>
+        </div>
+      </div>
+      <div class="split-layout">
+        <div class="result-section">
+          <h3>Description</h3>
+          <pre id="descriptionOutput">-</pre>
+        </div>
+        <div class="result-section">
+          <h3>Preferred Skills</h3>
+          <pre id="preferredSkillsOutput">-</pre>
+        </div>
+      </div>
+      <div class="split-layout">
+        <div class="result-section">
+          <h3>About Company</h3>
+          <pre id="aboutCompanyOutput">-</pre>
+        </div>
+        <div class="result-section">
+          <h3>Custom Fields/Sections</h3>
+          <pre id="customOutput">-</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="utils/job-parser.js"></script>
+  <script src="utils/job-validator.js"></script>
+  <script src="test-job-parser.js"></script>
+</body>
+</html>

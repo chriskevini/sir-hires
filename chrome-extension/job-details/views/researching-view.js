@@ -96,35 +96,34 @@ export class ResearchingView extends BaseView {
    * Render extraction state UI (streaming in progress)
    */
   renderExtractionState(job, index) {
-    // Show partial content if any chunks have arrived
     const partialContent = job.content || '';
-    const hasPartialContent = partialContent.trim().length > 0;
 
     return `
       <div class="job-card researching-editor">
-        <div class="extraction-state">
-          <div class="extraction-header">
-            <div class="extraction-spinner">⏳</div>
-            <h3>Extracting Job Information...</h3>
-            <p>The LLM is analyzing the job posting and generating structured data.</p>
-          </div>
-          
-          ${hasPartialContent ? `
-            <div class="extraction-preview">
-              <div class="extraction-preview-header">
-                <strong>📄 Preview (Streaming)</strong>
+        <div class="editor-layout">
+          <!-- Editor Panel (streaming to readonly textarea) -->
+          <div class="editor-panel">
+            <div class="editor-header">
+              <div class="editor-title">
+                <strong>${this.escapeHtml(job.jobTitle || 'Untitled Position')}</strong> at ${this.escapeHtml(job.company || 'Unknown Company')}
               </div>
-              <div class="extraction-preview-content">${this.escapeHtml(partialContent)}</div>
+              <div class="editor-status">
+                <span class="status-badge extracting">Extracting...</span>
+              </div>
             </div>
-          ` : `
-            <div class="extraction-waiting">
-              <p>Waiting for first response from LLM...</p>
-            </div>
-          `}
-          
-          <div class="job-actions" style="margin-top: 24px;">
-            <button class="btn btn-delete" data-index="${index}">Cancel & Delete</button>
+            <textarea 
+              id="jobEditor" 
+              class="job-markdown-editor extracting" 
+              readonly
+              data-index="${index}"
+              placeholder="Waiting for LLM response..."
+            >${this.escapeHtml(partialContent)}</textarea>
           </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="job-actions">
+          <button class="btn btn-delete" data-index="${index}">Cancel & Delete</button>
         </div>
       </div>
     `;

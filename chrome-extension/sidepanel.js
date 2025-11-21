@@ -134,8 +134,15 @@ async function handleExtractionChunk(jobId, chunk) {
     // Update local reference
     currentJob = job;
 
-    // Trigger MainView re-render to show updated content
-    displayJob(currentJob);
+    // Update textarea directly (no full re-render for better performance)
+    const textarea = document.querySelector('#jobEditor');
+    if (textarea && textarea.hasAttribute('readonly')) {
+      textarea.value = job.content;
+      // Note: User controls scroll position, we don't auto-scroll
+    } else {
+      // Fallback: If textarea not found or not readonly, do full re-render
+      displayJob(currentJob);
+    }
 
     console.log('[Side Panel] Appended chunk to job.content:', chunk.length, 'chars');
 

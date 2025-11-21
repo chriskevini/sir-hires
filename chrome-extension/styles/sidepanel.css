@@ -604,6 +604,21 @@ body {
   box-shadow: 0 1px 3px rgba(26, 115, 232, 0.3);
 }
 
+/* Status Badge (for extraction state) */
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.status-badge.extracting {
+  background-color: #fff3cd;
+  color: #856404;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
 /* Synthesis Modal Warning Styles */
 .error-warning,
 .existing-content-warning,
@@ -897,6 +912,12 @@ body {
   flex-shrink: 0;
 }
 
+.editor-status {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 .btn-template-toggle {
   background-color: #f1f3f4;
   color: #333;
@@ -942,7 +963,7 @@ body {
   resize: none;
   background-color: white;
   overflow-y: auto;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, background-color 0.2s, opacity 0.2s;
 }
 
 .job-markdown-editor:focus {
@@ -960,6 +981,13 @@ body {
 
 .job-markdown-editor.is-valid {
   border-left: 4px solid #0f9d58;
+}
+
+.job-markdown-editor.extracting {
+  background-color: #f8f9fa;
+  cursor: wait;
+  opacity: 0.95;
+  border-left-color: #f9ab00;
 }
 
 .job-markdown-editor::-webkit-scrollbar {

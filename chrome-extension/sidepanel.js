@@ -93,6 +93,8 @@ function setupStreamListeners() {
       handleExtractionComplete(message.jobId, message.fullContent);
     } else if (message.action === 'extractionError') {
       handleExtractionError(message.jobId, message.error);
+    } else if (message.action === 'extractionCancelled') {
+      handleExtractionCancelled(message.jobId);
     }
   });
 }
@@ -116,7 +118,8 @@ async function handleExtractionChunk(jobId, chunk) {
     const job = jobs[jobId];
 
     if (!job) {
-      console.error('[Side Panel] Job not found for chunk update:', jobId);
+      console.log('[Side Panel] Job deleted, ignoring extraction chunk');
+      isSavingLocally = false;
       return;
     }
 
@@ -166,7 +169,8 @@ async function handleExtractionComplete(jobId, fullContent) {
     const job = jobs[jobId];
 
     if (!job) {
-      console.error('[Side Panel] Job not found for completion:', jobId);
+      console.log('[Side Panel] Job deleted, ignoring extraction completion');
+      isSavingLocally = false;
       return;
     }
 
@@ -230,7 +234,8 @@ async function handleExtractionError(jobId, errorMessage) {
     const job = jobs[jobId];
 
     if (!job) {
-      console.error('[Side Panel] Job not found for error handling:', jobId);
+      console.log('[Side Panel] Job deleted, ignoring extraction error');
+      isSavingLocally = false;
       return;
     }
 
@@ -261,6 +266,62 @@ async function handleExtractionError(jobId, errorMessage) {
 
   } catch (error) {
     console.error('[Side Panel] Error handling extraction error:', error);
+    isSavingLocally = false;
+  }
+}
+
+// Handle extraction cancellation
+async function handleExtractionCancelled(jobId) {
+  console.log('[Side Panel] Extraction cancelled for job:', jobId);
+
+  if (jobId !== currentJobId) {
+    console.log('[Side Panel] Cancelled job is not in focus, skipping UI update');
+    return;
+  }
+
+  // Set flag to prevent reload loop
+  isSavingLocally = true;
+
+  try {
+    // Get current job from storage
+    const result = await chrome.storage.local.get(['jobs']);
+    const jobs = result.jobs || {};
+    const job = jobs[jobId];
+
+    if (!job) {
+      console.log('[Side Panel] Job deleted (expected after cancel & delete), no update needed');
+      isSavingLocally = false;
+      return;
+    }
+
+    // Clear extraction state
+    job.isExtracting = false;
+    job.updatedAt = new Date().toISOString();
+    
+    // Clear extraction error if present
+    if (job.extractionError) {
+      delete job.extractionError;
+    }
+
+    // Save back to storage
+    jobs[jobId] = job;
+    await chrome.storage.local.set({ jobs });
+
+    // Update local reference
+    currentJob = job;
+
+    // Trigger MainView re-render to clear extraction UI
+    displayJob(currentJob);
+
+    console.log('[Side Panel] Cleared extraction state for job:', jobId);
+
+    // Reset flag after a short delay
+    setTimeout(() => {
+      isSavingLocally = false;
+    }, 200);
+
+  } catch (error) {
+    console.error('[Side Panel] Error handling extraction cancellation:', error);
     isSavingLocally = false;
   }
 }

@@ -129,9 +129,10 @@ describe('Job Data Extraction', () => {
 
 function extractSource() {
   const hostname = window.location.hostname
-  if (hostname.includes('linkedin.com')) return 'LinkedIn'
-  if (hostname.includes('indeed.com')) return 'Indeed'
-  if (hostname.includes('glassdoor.com')) return 'Glassdoor'
+  // Use endsWith or exact match to prevent subdomain attacks
+  if (hostname === 'linkedin.com' || hostname.endsWith('.linkedin.com')) return 'LinkedIn'
+  if (hostname === 'indeed.com' || hostname.endsWith('.indeed.com')) return 'Indeed'
+  if (hostname === 'glassdoor.com' || hostname.endsWith('.glassdoor.com')) return 'Glassdoor'
   return hostname
 }
 

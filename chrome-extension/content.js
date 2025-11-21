@@ -2,16 +2,17 @@
 
 function extractSource() {
   const hostname = window.location.hostname;
-  if (hostname.includes('linkedin.com')) return 'LinkedIn';
-  if (hostname.includes('indeed.com')) return 'Indeed';
-  if (hostname.includes('glassdoor.com')) return 'Glassdoor';
-  if (hostname.includes('monster.com')) return 'Monster';
-  if (hostname.includes('ziprecruiter.com')) return 'ZipRecruiter';
-  if (hostname.includes('dice.com')) return 'Dice';
-  if (hostname.includes('stackoverflow.com')) return 'Stack Overflow';
-  if (hostname.includes('greenhouse.io')) return 'Greenhouse';
-  if (hostname.includes('lever.co')) return 'Lever';
-  if (hostname.includes('workday.com')) return 'Workday';
+  // Use endsWith or exact match to prevent subdomain attacks
+  if (hostname === 'linkedin.com' || hostname.endsWith('.linkedin.com')) return 'LinkedIn';
+  if (hostname === 'indeed.com' || hostname.endsWith('.indeed.com')) return 'Indeed';
+  if (hostname === 'glassdoor.com' || hostname.endsWith('.glassdoor.com')) return 'Glassdoor';
+  if (hostname === 'monster.com' || hostname.endsWith('.monster.com')) return 'Monster';
+  if (hostname === 'ziprecruiter.com' || hostname.endsWith('.ziprecruiter.com')) return 'ZipRecruiter';
+  if (hostname === 'dice.com' || hostname.endsWith('.dice.com')) return 'Dice';
+  if (hostname === 'stackoverflow.com' || hostname.endsWith('.stackoverflow.com')) return 'Stack Overflow';
+  if (hostname === 'greenhouse.io' || hostname.endsWith('.greenhouse.io')) return 'Greenhouse';
+  if (hostname === 'lever.co' || hostname.endsWith('.lever.co')) return 'Lever';
+  if (hostname === 'workday.com' || hostname.endsWith('.workday.com')) return 'Workday';
   return hostname;
 }
 

@@ -1,15 +1,16 @@
-# AGENTS.md: WXT Framework Development Guide
+# AGENTS.md: WXT + React Development Guide
 
 ## 1. Introduction
-**WXT** (Web Extension Tools) is a next-generation framework for building cross-browser web extensions (Chrome, Firefox, Edge, Safari). It relies on **Vite** for building, supports **HMR** (Hot Module Replacement), and uses a **file-based entrypoint** system to automatically generate the `manifest.json`.
+**WXT** (Web Extension Tools) is a next-generation framework for building cross-browser web extensions. This project utilizes **React** for all UI elements.
 
 **Core Philosophy:**
 * **Write Once, Run Everywhere:** Use the `browser` global (polyfill) instead of `chrome`.
 * **File-System Routing:** The `entrypoints/` directory dictates the extension structure.
-* **Type Safety:** TypeScript is the default and recommended language.
+* **React-First:** All UI logic resides in React Functional Components (`.tsx`).
+* **Manifest V3 Default:** The project targets MV3 by default.
 
 ## 2. Project Structure
-The project must follow the standard WXT directory layout. Use the `src/` directory option to keep the root clean.
+The project follows the standard WXT directory layout. We use the **"Folder per Entrypoint"** pattern for UI pages to keep React files organized.
 
 ```text
 my-extension/
@@ -18,16 +19,23 @@ my-extension/
 ├── assets/                 # Static assets (processed by Vite)
 ├── public/                 # Public assets (copied as-is)
 ├── src/                    # Source code root (configure in wxt.config.ts)
-│   ├── components/         # UI components (React/Vue/Svelte)
-│   ├── composables/        # Vue composables (if using Vue)
-│   ├── hooks/              # React hooks (if using React)
+│   ├── components/         # Shared React Components
+│   │   ├── ui/             # Generic UI kit (buttons, inputs)
+│   │   └── features/       # Feature-specific components
+│   ├── hooks/              # Custom React Hooks
 │   ├── utils/              # Shared utility functions
+│   ├── assets/             # Source-specific assets (images, styles)
 │   ├── entrypoints/        # VITAL: Maps directly to manifest.json
-│   │   ├── background.ts   # Background script/Service Worker
-│   │   ├── content.ts      # Content scripts
-│   │   ├── popup.html      # Popup UI
-│   │   └── options.html    # Options page
-│   └── assets/             # Source-specific assets
+│   │   ├── background.ts   # Background script (Service Worker)
+│   │   ├── content.ts      # Content scripts (Headless)
+│   │   ├── popup/          # Popup UI Entrypoint
+│   │   │   ├── index.html  # Entry HTML
+│   │   │   ├── main.tsx    # Mounts React Root
+│   │   │   └── App.tsx     # Main Popup Component
+│   │   └── options/        # Options UI Entrypoint
+│   │   │   ├── index.html
+│   │   │   ├── main.tsx
+│   │   │   └── App.tsx
 ├── wxt.config.ts           # WXT Configuration
 ├── package.json
 ├── tsconfig.json
@@ -35,52 +43,84 @@ my-extension/
 ```
 
 ### Critical Rules for `entrypoints/`
-* **Flat Structure:** Entrypoints must be in the root of `entrypoints/` or in a direct subdirectory named `entrypoints/<name>/index.ts`.
-* **No Shared Code:** **NEVER** put shared components, utils, or styles inside `entrypoints/` unless they are strictly local to that specific entrypoint. WXT treats *every* file in this directory as a separate entrypoint.
-* **Naming Conventions:**
-    * `background.ts` -> Background Script/Service Worker.
-    * `popup.html` -> `action.default_popup`.
-    * `options.html` -> `options_ui`.
-    * `*.content.ts` -> Content Scripts.
+* **UI Entrypoints:** For React pages (Popup, Options), always use a directory: `entrypoints/<name>/`.
+    * Must contain an `index.html` (the entrypoint).
+    * Must contain a `main.tsx` (to mount the React app).
+* **No Shared Code:** **NEVER** put shared components, utils, or styles inside `entrypoints/`. WXT treats *every* file in this directory as a separate entrypoint. Move shared code to `src/components/` or `src/hooks/`.
 
 ## 3. Best Practices & Conventions
 
-### Coding Style
+### React & Coding Style
 * **Language:** TypeScript (`.ts`, `.tsx`) is mandatory.
-* **Imports:** Use `#imports` for auto-imported features (if enabled) or explicit imports from `wxt/...`.
-* **Browser API:** Always use the `browser` global (e.g., `browser.runtime.sendMessage`), which is polyfilled by WXT to ensure compatibility with Firefox and Chrome. **Do not use `chrome.*`.**
-* **Async/Await:** Prefer `async/await` over callbacks for all asynchronous browser APIs.
+* **Components:** Use Functional Components with Hooks.
+* **Styling:** Import CSS/SCSS modules or Tailwind classes directly in `.tsx` files.
+* **Browser API:** Always use the `browser` global (e.g., `browser.runtime.sendMessage`). **Do not use `chrome.*`.**
 
 ### State Management
-* **Persistence:** Use **`@wxt-dev/storage`** for persisting data. It offers a typed, async API that wraps `browser.storage`.
+* **Persistence:** Use **`@wxt-dev/storage`** for persisting data.
+* **React Integration:** Create a hook to consume storage reactively if needed, or use `useEffect` to sync state on mount.
     ```typescript
     // src/utils/storage.ts
     import { storage } from 'wxt/storage';
 
-    export const themeSettings = storage.defineItem<string>('local:theme', {
+    export const themeItem = storage.defineItem<string>('local:theme', {
       defaultValue: 'light',
     });
-    ```
-* **Messaging:** Use `browser.tabs.sendMessage` or `browser.runtime.sendMessage` for communication. For complex flows, define typed message protocols in `utils/messages.ts`.
 
-### Configuration (`wxt.config.ts`)
-* **Manifest Generation:** Do not create a `manifest.json` manually. Define manifest properties in `wxt.config.ts` or within specific entrypoints.
-    ```typescript
-    // wxt.config.ts
-    export default defineConfig({
-      srcDir: 'src',
-      manifest: {
-        permissions: ['storage', 'tabs'],
+    // Example usage in React component
+    // const theme = await themeItem.getValue();
+    ```
+
+### Content Script UIs (React)
+To inject a React App into a webpage using Shadow DOM (isolated styles):
+1.  Define the content script with `export default defineContentScript`.
+2.  Set `cssInjectionMode: 'ui'` (Crucial for Shadow DOM).
+3.  Use `createShadowRootUi`.
+4.  Mount the React root inside the `onMount` callback.
+
+```typescript
+// src/entrypoints/overlay.content.tsx
+import ReactDOM from 'react-dom/client';
+import OverlayApp from '@/components/features/OverlayApp';
+// Import styles so WXT bundles them for injection
+import './overlay.css'; 
+
+export default defineContentScript({
+  matches: ['<all_urls>'],
+  cssInjectionMode: 'ui', // REQUIRED for Shadow Root
+  async main(ctx) {
+    const ui = await createShadowRootUi(ctx, {
+      name: 'react-overlay',
+      position: 'inline',
+      onMount: (container) => {
+        const root = ReactDOM.createRoot(container);
+        root.render(<OverlayApp />);
+        return root;
+      },
+      onRemove: (root) => {
+        root?.unmount();
       },
     });
-    ```
-* **Content Script Matches:** Define matches directly in the content script file using `defineContentScript`.
+    ui.mount();
+  },
+});
+```
+
+### Configuration (`wxt.config.ts`)
+* **Modules:** Use `@wxt-dev/module-react` for auto-configuration.
+* **Manifest:** Define permissions and other manifest settings here. MV3 is the default target.
     ```typescript
-    // src/entrypoints/content.ts
-    export default defineContentScript({
-      matches: ['*://*[.google.com/](https://.google.com/)*'],
-      main() {
-        // Logic here
+    // wxt.config.ts
+    import { defineConfig } from 'wxt';
+
+    export default defineConfig({
+      srcDir: 'src',
+      modules: ['@wxt-dev/module-react'],
+      manifest: {
+        permissions: ['storage', 'tabs'],
+        action: {
+          default_title: 'My Extension',
+        },
       },
     });
     ```
@@ -88,78 +128,58 @@ my-extension/
 ## 4. Workflow & CI/CD
 
 ### Development
-* **Start Dev Server:** `wxt` (or `npm run dev`). Automatically opens a browser instance.
+* **Start Dev Server:** `wxt` (or `npm run dev`).
 * **Target Browsers:** `wxt -b firefox` or `wxt -b chrome`.
-* **Mocking:** Use `@webext-core/fake-browser` for unit testing logic that interacts with browser APIs.
+* **Mocking:** Use `@webext-core/fake-browser` for logic testing.
 
-### Testing (Vitest)
-WXT has first-class Vitest support.
-1.  Install: `npm i -D vitest @wxt-dev/vitest-plugin`.
-2.  Config (`vitest.config.ts`):
+### Testing (Vitest + React Testing Library)
+1.  **Unit Tests:** Use `vitest` for logic/utils.
+2.  **Component Tests:** Use `@testing-library/react` for UI components.
     ```typescript
-    import { defineConfig } from 'vitest/config';
-    import { WxtVitest } from 'wxt/testing/vitest-plugin';
+    // Example Component Test
+    import { render, screen } from '@testing-library/react';
+    import MyComponent from './MyComponent';
 
-    export default defineConfig({
-      plugins: [WxtVitest()],
+    test('renders button', () => {
+      render(<MyComponent />);
+      expect(screen.getByRole('button')).toBeInTheDocument();
     });
     ```
-3.  **Agent Instruction:** When writing tests, assume the `browser` global is mocked via the plugin.
 
 ### Deployment (GitHub Actions)
-Use the `wxt submit` command to automate publishing.
+Use `wxt submit` for automated publishing.
 
-**`.github/workflows/publish.yml` Example:**
+**`.github/workflows/publish.yml` Snippet:**
 ```yaml
-name: Publish Extension
-on:
-  release:
-    types: [published]
-
-jobs:
-  submit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v2
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 18
       - run: pnpm install
       - run: pnpm build
-      
-      # Submits to Chrome Web Store and Firefox Add-ons
-      - name: Submit to Stores
+      - name: Submit
         run: pnpm wxt submit --chrome-zip .output/*-chrome.zip --firefox-zip .output/*-firefox.zip
         env:
-          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
-          CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
-          CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
-          CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
-          FIREFOX_EXTENSION_ID: ${{ secrets.FIREFOX_EXTENSION_ID }}
-          FIREFOX_JWT_ISSUER: ${{ secrets.FIREFOX_JWT_ISSUER }}
-          FIREFOX_JWT_SECRET: ${{ secrets.FIREFOX_JWT_SECRET }}
+          # Secrets configuration...
 ```
 
 ## 5. Agent Guidelines (Instructions for AI)
 
 When generating code for this project, strictly adhere to these rules:
 
-1.  **File Placement:**
-    * If I ask for a **background script**, create/edit `src/entrypoints/background.ts`.
-    * If I ask for a **content script**, create/edit `src/entrypoints/<name>.content.ts`.
-    * If I ask for a **utility**, place it in `src/utils/`.
-    * **NEVER** place helper files directly in `src/entrypoints/`.
+1.  **React Structure:**
+    * UI Entrypoints must use the folder pattern: `entrypoints/<name>/index.html` + `main.tsx`.
+    * Mounting logic goes in `main.tsx`. Component logic goes in `App.tsx`.
+    * Reusable UI goes in `src/components/`.
 
-2.  **Code Patterns:**
-    * **WRAP** background script logic in `defineBackground(() => { ... })`.
-    * **WRAP** content script logic in `defineContentScript({ ... })`.
+2.  **File Placement:**
+    * **Background:** `src/entrypoints/background.ts`
+    * **Content Script:** `src/entrypoints/<name>.content.ts` (or `.tsx` if it has UI).
+    * **Utils:** `src/utils/`.
+
+3.  **Code Patterns:**
+    * **WRAP** background script logic in `defineBackground`.
+    * **WRAP** content script logic in `defineContentScript`.
+    * **ALWAYS** use `export default` for entrypoint definitions.
     * **ALWAYS** use `browser.*` API, never `chrome.*`.
-    * **USE** `defineItem` from `@wxt-dev/storage` for any local storage operations.
+    * **USE** React Functional Components.
 
-3.  **Debugging:**
-    * If a build fails with "RollupError: Could not resolve...", check if a shared file was accidentally placed in `entrypoints/`.
-    * If changes aren't reflecting, ensure the `wxt` dev server is running and HMR is active.
-
-4.  **Refactoring:**
-    * When moving code from a legacy extension to WXT, first identify the entrypoints, then move logic into `define*` wrappers, and finally replace `chrome` with `browser`.
+4.  **Debugging:**
+    * If "RollupError" occurs, check if shared React components were accidentally placed inside `entrypoints/`. Move them to `components/`.
+    * Ensure `cssInjectionMode: 'ui'` is set if using `createShadowRootUi`.

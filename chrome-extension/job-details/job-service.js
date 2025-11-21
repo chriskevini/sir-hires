@@ -80,9 +80,9 @@ export class JobService {
       case 'deadline-soon':
         sorted.sort((a, b) => {
           // Jobs with deadlines come first, then by date ascending
-          if (!a.deadline && !b.deadline) return 0;
-          if (!a.deadline) return 1; // Move jobs without deadline to end
-          if (!b.deadline) return -1; // Move jobs without deadline to end
+          if (!a.deadline && !b.deadline) {return 0;}
+          if (!a.deadline) {return 1;} // Move jobs without deadline to end
+          if (!b.deadline) {return -1;} // Move jobs without deadline to end
           return a.deadline.localeCompare(b.deadline);
         });
         break;
@@ -90,9 +90,9 @@ export class JobService {
       case 'deadline-latest':
         sorted.sort((a, b) => {
           // Jobs with deadlines come first, then by date descending
-          if (!a.deadline && !b.deadline) return 0;
-          if (!a.deadline) return 1; // Move jobs without deadline to end
-          if (!b.deadline) return -1; // Move jobs without deadline to end
+          if (!a.deadline && !b.deadline) {return 0;}
+          if (!a.deadline) {return 1;} // Move jobs without deadline to end
+          if (!b.deadline) {return -1;} // Move jobs without deadline to end
           return b.deadline.localeCompare(a.deadline);
         });
         break;
@@ -261,20 +261,6 @@ export class JobService {
     
     // Must have at least jobs or userProfile (or old masterResume for backward compatibility)
     return Boolean(data.jobs || data.userProfile || data.masterResume);
-  }
-  
-  /**
-   * Validate backup data
-   * @param {Object} data - Backup data to validate
-   * @returns {boolean} True if valid backup data
-   */
-  validateBackupData(data) {
-    if (!data || typeof data !== 'object') {
-      return false;
-    }
-    
-    // Must have at least jobs or masterResume
-    return Boolean(data.jobs || data.masterResume);
   }
   
   // ===== Utility Methods =====

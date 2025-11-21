@@ -84,10 +84,10 @@ export class JobDetailsApp {
     const statusFilter = document.getElementById(domIds.statusFilter);
     const sortFilter = document.getElementById(domIds.sortFilter);
 
-    if (searchInput) searchInput.addEventListener('input', () => this.filterJobs());
-    if (sourceFilter) sourceFilter.addEventListener('change', () => this.filterJobs());
-    if (statusFilter) statusFilter.addEventListener('change', () => this.filterJobs());
-    if (sortFilter) sortFilter.addEventListener('change', () => this.filterJobs());
+    if (searchInput) {searchInput.addEventListener('input', () => this.filterJobs());}
+    if (sourceFilter) {sourceFilter.addEventListener('change', () => this.filterJobs());}
+    if (statusFilter) {statusFilter.addEventListener('change', () => this.filterJobs());}
+    if (sortFilter) {sortFilter.addEventListener('change', () => this.filterJobs());}
 
     // Sidebar job selection
     this.sidebar.setOnJobSelect((index) => this.selectJob(index));
@@ -123,9 +123,9 @@ export class JobDetailsApp {
     const restoreBackupBtn = document.getElementById(domIds.restoreBackupBtn);
     const clearAllBtn = document.getElementById(domIds.clearAllBtn);
 
-    if (createBackupBtn) createBackupBtn.addEventListener('click', () => this.createBackup());
-    if (restoreBackupBtn) restoreBackupBtn.addEventListener('click', () => this.restoreBackup());
-    if (clearAllBtn) clearAllBtn.addEventListener('click', () => this.clearAllData());
+    if (createBackupBtn) {createBackupBtn.addEventListener('click', () => this.createBackup());}
+    if (restoreBackupBtn) {restoreBackupBtn.addEventListener('click', () => this.restoreBackup());}
+    if (clearAllBtn) {clearAllBtn.addEventListener('click', () => this.clearAllData());}
   }
 
   /**
@@ -213,7 +213,7 @@ export class JobDetailsApp {
 
     // Auto-select job
     if (jobs.length > 0) {
-      let indexToSelect = this.determineJobToSelect(jobs, jobInFocusId);
+      const indexToSelect = this.determineJobToSelect(jobs, jobInFocusId);
       this.selectJob(indexToSelect);
     } else {
       const detailPanel = document.getElementById(domIds.detailPanel);
@@ -333,10 +333,10 @@ export class JobDetailsApp {
         const statusFilter = document.getElementById(domIds.statusFilter);
         const sortFilter = document.getElementById(domIds.sortFilter);
 
-        if (searchInput) searchInput.value = filters.search || '';
-        if (sourceFilter) sourceFilter.value = filters.source || '';
-        if (statusFilter) statusFilter.value = filters.status || '';
-        if (sortFilter) sortFilter.value = filters.sort || 'newest';
+        if (searchInput) {searchInput.value = filters.search || '';}
+        if (sourceFilter) {sourceFilter.value = filters.source || '';}
+        if (statusFilter) {statusFilter.value = filters.status || '';}
+        if (sortFilter) {sortFilter.value = filters.sort || 'newest';}
       } catch (error) {
         console.error('Error restoring filters:', error);
       }
@@ -351,7 +351,7 @@ export class JobDetailsApp {
     const sources = [...new Set(jobs.map(job => job.source).filter(Boolean))];
     const select = document.getElementById(domIds.sourceFilter);
 
-    if (!select) return;
+    if (!select) {return;}
 
     // Keep the "All Sources" option
     select.innerHTML = '<option value="">All Sources</option>';
@@ -382,9 +382,9 @@ export class JobDetailsApp {
     const mainContent = document.querySelector('.main-content');
     const jobsList = document.getElementById(domIds.jobsList);
 
-    if (emptyState) emptyState.classList.remove('hidden');
-    if (mainContent) mainContent.style.display = 'none';
-    if (jobsList) jobsList.innerHTML = '';
+    if (emptyState) {emptyState.classList.remove('hidden');}
+    if (mainContent) {mainContent.style.display = 'none';}
+    if (jobsList) {jobsList.innerHTML = '';}
   }
 
   /**
@@ -394,8 +394,8 @@ export class JobDetailsApp {
     const emptyState = document.getElementById('emptyState');
     const mainContent = document.querySelector('.main-content');
 
-    if (emptyState) emptyState.classList.add('hidden');
-    if (mainContent) mainContent.style.display = 'flex';
+    if (emptyState) {emptyState.classList.add('hidden');}
+    if (mainContent) {mainContent.style.display = 'flex';}
   }
 
   /**
@@ -415,7 +415,7 @@ export class JobDetailsApp {
    */
   checkResumeStatus(masterResume) {
     const resumeHint = document.getElementById(domIds.resumeHint);
-    if (!resumeHint) return;
+    if (!resumeHint) {return;}
 
     if (!masterResume || !masterResume.content || masterResume.content.trim() === '') {
       resumeHint.classList.remove('hidden');
@@ -430,7 +430,7 @@ export class JobDetailsApp {
    * @param {string} areaName - Storage area name
    */
   handleStorageChange(changes, areaName) {
-    if (areaName !== 'local') return;
+    if (areaName !== 'local') {return;}
 
     console.log('[Viewer] Storage changed:', Object.keys(changes));
 
@@ -736,7 +736,7 @@ export class JobDetailsApp {
     input.accept = 'application/json';
     input.onchange = async (e) => {
       const file = e.target.files[0];
-      if (!file) return;
+      if (!file) {return;}
 
       try {
         const text = await file.text();

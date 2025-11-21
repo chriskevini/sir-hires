@@ -21,6 +21,14 @@ npm-debug.log*
 *.tmp
 *.temp
 
+# Dependencies
+node_modules/
+package-lock.json
+
+# Test coverage
+coverage/
+.nyc_output/
+
 # Chrome extension (if building/packaging in future)
 *.crx
 *.pem

@@ -156,10 +156,22 @@ sir-hires/
 
 ## Contributing
 
-This is an early-stage project. If you'd like to contribute:
+We welcome contributions! This project now has:
+- ✅ **Code standards** enforced with ESLint and Prettier
+- ✅ **Testing framework** with Jest for unit tests
+- ✅ **Development workflow** documented in CONTRIBUTING.md
+
+To get started:
+1. Read [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines
+2. Install dependencies: `npm install`
+3. Run tests: `npm test`
+4. Run linter: `npm run lint`
+5. Format code: `npm run format`
+
+Quick contribution steps:
 1. Open an issue to discuss your idea
 2. Fork the repository
-3. Make your changes
+3. Make your changes (ensure tests pass and code is formatted)
 4. Submit a pull request
 
 ## License

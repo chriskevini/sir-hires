@@ -197,16 +197,17 @@ export class LLMClient {
       console.log('[LLMClient] Starting stream processing...');
 
       try {
+        // eslint-disable-next-line no-constant-condition
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {break;}
 
           const chunk = decoder.decode(value, { stream: true });
           const lines = chunk.split('\n');
 
           for (const line of lines) {
-            if (!line.trim() || line.trim() === 'data: [DONE]') continue;
-            if (!line.startsWith('data: ')) continue;
+            if (!line.trim() || line.trim() === 'data: [DONE]') {continue;}
+            if (!line.startsWith('data: ')) {continue;}
 
             try {
               const jsonStr = line.slice(6);  // Remove "data: " prefix

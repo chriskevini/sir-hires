@@ -193,14 +193,14 @@ function mapMarkdownFieldsToJob(fields) {
   const mapped = {};
   
   // Map field names from MarkdownDB template to job storage schema
-  if (fields.TITLE) mapped.jobTitle = fields.TITLE;
-  if (fields.COMPANY) mapped.company = fields.COMPANY;
-  if (fields.ADDRESS) mapped.location = fields.ADDRESS;
-  if (fields.EMPLOYMENT_TYPE) mapped.jobType = fields.EMPLOYMENT_TYPE;
-  if (fields.REMOTE_TYPE) mapped.remoteType = fields.REMOTE_TYPE;
-  if (fields.POSTED_DATE) mapped.postedDate = fields.POSTED_DATE;
-  if (fields.CLOSING_DATE) mapped.deadline = fields.CLOSING_DATE;
-  if (fields.EXPERIENCE_LEVEL) mapped.experienceLevel = fields.EXPERIENCE_LEVEL;
+  if (fields.TITLE) {mapped.jobTitle = fields.TITLE;}
+  if (fields.COMPANY) {mapped.company = fields.COMPANY;}
+  if (fields.ADDRESS) {mapped.location = fields.ADDRESS;}
+  if (fields.EMPLOYMENT_TYPE) {mapped.jobType = fields.EMPLOYMENT_TYPE;}
+  if (fields.REMOTE_TYPE) {mapped.remoteType = fields.REMOTE_TYPE;}
+  if (fields.POSTED_DATE) {mapped.postedDate = fields.POSTED_DATE;}
+  if (fields.CLOSING_DATE) {mapped.deadline = fields.CLOSING_DATE;}
+  if (fields.EXPERIENCE_LEVEL) {mapped.experienceLevel = fields.EXPERIENCE_LEVEL;}
   
   // Handle salary range - combine min/max into single string
   if (fields.SALARY_RANGE_MIN || fields.SALARY_RANGE_MAX) {

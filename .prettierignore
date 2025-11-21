@@ -1,0 +1,18 @@
+# Dependencies
+node_modules
+
+# Build artifacts
+dist
+build
+*.crx
+*.pem
+*.zip
+
+# Docs
+docs
+
+# Test files (HTML-based, not formatted)
+chrome-extension/test-*.html
+
+# Debug files
+chrome-extension/debug-storage.html

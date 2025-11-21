@@ -56,7 +56,7 @@ export class BaseView {
    * @returns {string} Escaped text
    */
   escapeHtml(text) {
-    if (!text) return '';
+    if (!text) {return '';}
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
@@ -68,7 +68,7 @@ export class BaseView {
    * @returns {string} Formatted date
    */
   formatAbsoluteDate(dateString) {
-    if (!dateString) return 'Unknown';
+    if (!dateString) {return 'Unknown';}
     try {
       const date = new Date(dateString + 'T00:00:00'); // Parse as local date
       return date.toLocaleDateString('en-US', { 
@@ -87,7 +87,7 @@ export class BaseView {
    * @returns {string} Relative date string
    */
   formatRelativeDate(dateString) {
-    if (!dateString) return 'Unknown';
+    if (!dateString) {return 'Unknown';}
     try {
       const date = new Date(dateString + 'T00:00:00');
       const today = new Date();
@@ -96,11 +96,11 @@ export class BaseView {
       const diffTime = date - today;
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       
-      if (diffDays === 0) return 'Today';
-      if (diffDays === 1) return 'Tomorrow';
-      if (diffDays === -1) return 'Yesterday';
-      if (diffDays > 1) return `in ${diffDays} days`;
-      if (diffDays < -1) return `${Math.abs(diffDays)} days ago`;
+      if (diffDays === 0) {return 'Today';}
+      if (diffDays === 1) {return 'Tomorrow';}
+      if (diffDays === -1) {return 'Yesterday';}
+      if (diffDays > 1) {return `in ${diffDays} days`;}
+      if (diffDays < -1) {return `${Math.abs(diffDays)} days ago`;}
       
       return this.formatAbsoluteDate(dateString);
     } catch (error) {
@@ -129,7 +129,7 @@ export class BaseView {
    * @returns {string} HTML
    */
   markdownToHtml(text) {
-    if (!text) return '';
+    if (!text) {return '';}
     
     let html = this.escapeHtml(text);
     
@@ -200,7 +200,7 @@ export class BaseView {
       items.push(`<div class="job-meta-item">⏰ Deadline: <span title="${this.escapeHtml(absolute)}">${this.escapeHtml(relative)}</span></div>`);
     }
     
-    if (items.length === 0) return '';
+    if (items.length === 0) {return '';}
     
     return `<div class="job-meta">${items.join('')}</div>`;
   }

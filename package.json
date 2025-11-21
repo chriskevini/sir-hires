@@ -1,0 +1,55 @@
+{
+  "name": "sir-hires",
+  "version": "0.2.0",
+  "description": "Privacy-first job search assistant. Extract and manage job postings locally - no servers, no tracking.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint chrome-extension/**/*.js",
+    "lint:fix": "eslint chrome-extension/**/*.js --fix",
+    "format": "prettier --write \"chrome-extension/**/*.{js,html,css,json}\"",
+    "format:check": "prettier --check \"chrome-extension/**/*.{js,html,css,json}\"",
+    "check": "npm run lint && npm test"
+  },
+  "keywords": [
+    "job-search",
+    "chrome-extension",
+    "privacy",
+    "local-first",
+    "llm"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.0",
+    "eslint": "^8.50.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-jest": "^27.4.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "prettier": "^3.0.3"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "transform": {
+      "^.+\\.js$": "babel-jest"
+    },
+    "moduleFileExtensions": [
+      "js"
+    ],
+    "testMatch": [
+      "**/tests/**/*.test.js",
+      "**/__tests__/**/*.js"
+    ],
+    "collectCoverageFrom": [
+      "chrome-extension/**/*.js",
+      "!chrome-extension/test-*.js",
+      "!chrome-extension/**/*.test.js",
+      "!chrome-extension/debug-storage.js"
+    ]
+  }
+}

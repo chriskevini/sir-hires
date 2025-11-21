@@ -963,6 +963,7 @@ body {
   resize: none;
   background-color: white;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   transition: border-color 0.2s, background-color 0.2s, opacity 0.2s;
 }
 

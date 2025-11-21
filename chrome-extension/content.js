@@ -1165,6 +1165,19 @@ Return ONLY a JSON object in this exact format with no additional text:
 
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'getJobUrl') {
+    // Simple URL getter for duplicate detection
+    try {
+      const url = window.location.href;
+      const source = extractSource();
+      sendResponse({ success: true, url, source });
+    } catch (error) {
+      console.error('[Content] Failed to get URL:', error);
+      sendResponse({ success: false, error: error.message });
+    }
+    return true; // Keep message channel open for async response
+  }
+
   if (request.action === 'extractJobData') {
     (async () => {
       try {

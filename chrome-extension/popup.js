@@ -75,23 +75,55 @@ async function extractJobData() {
     // Always use streaming extraction (only supported method)
     if (llmSettings.endpoint) {
       try {
+        // First, get URL from content script to check for duplicates
+        const preCheckResponse = await chrome.tabs.sendMessage(tab.id, { 
+          action: 'getJobUrl'
+        });
+        
+        let jobId;
+        
+        if (preCheckResponse && preCheckResponse.url) {
+          // Check if job with this URL already exists
+          const storageResult = await chrome.storage.local.get(['jobs']);
+          const jobs = storageResult.jobs || {};
+          
+          const existingJobId = Object.keys(jobs).find(id => {
+            const job = jobs[id];
+            return job.url && normalizeUrl(job.url) === normalizeUrl(preCheckResponse.url);
+          });
+          
+          if (existingJobId) {
+            // Reuse existing job ID for re-extraction
+            jobId = existingJobId;
+            console.log('[Popup] Re-extracting existing job:', existingJobId);
+          } else {
+            // Generate new job ID for new extraction
+            jobId = generateJobId();
+            console.log('[Popup] Creating new job extraction:', jobId);
+          }
+        } else {
+          // Fallback: generate new ID if URL check fails
+          jobId = generateJobId();
+          console.log('[Popup] URL check failed, generating new job ID:', jobId);
+        }
+        
         // Try to send streaming extraction message to content script
         const response = await chrome.tabs.sendMessage(tab.id, { 
           action: 'streamExtractJobData',
           llmSettings: llmSettings,
-          jobId: generateJobId()
+          jobId: jobId
         });
 
         if (response && response.success) {
           // Set jobInFocus only (no minimal job creation in storage)
           // Job will be created in storage by sidepanel when extraction completes
-          const jobId = response.jobId;
+          const extractionJobId = response.jobId;
           
           await chrome.storage.local.set({ 
-            jobInFocus: jobId 
+            jobInFocus: extractionJobId 
           });
           
-          console.log('[Popup] Set jobInFocus (in-memory extraction):', jobId);
+          console.log('[Popup] Set jobInFocus (in-memory extraction):', extractionJobId);
           
           showStatus('✨ Starting extraction...', 'success');
           
@@ -99,7 +131,7 @@ async function extractJobData() {
           // This ensures the background worker receives and starts processing before popup closes
           await chrome.runtime.sendMessage({
             action: 'streamExtractJob',
-            jobId: jobId,
+            jobId: extractionJobId,
             url: response.url,
             source: response.source,
             rawText: response.rawText,
@@ -129,30 +161,62 @@ async function extractJobData() {
 
         await new Promise(resolve => setTimeout(resolve, 100));
 
+        // Check for duplicate URL again after script injection
+        const retryPreCheckResponse = await chrome.tabs.sendMessage(tab.id, { 
+          action: 'getJobUrl'
+        });
+        
+        let retryJobId;
+        
+        if (retryPreCheckResponse && retryPreCheckResponse.url) {
+          // Check if job with this URL already exists
+          const storageResult = await chrome.storage.local.get(['jobs']);
+          const jobs = storageResult.jobs || {};
+          
+          const existingJobId = Object.keys(jobs).find(id => {
+            const job = jobs[id];
+            return job.url && normalizeUrl(job.url) === normalizeUrl(retryPreCheckResponse.url);
+          });
+          
+          if (existingJobId) {
+            // Reuse existing job ID for re-extraction
+            retryJobId = existingJobId;
+            console.log('[Popup] Re-extracting existing job (after injection):', existingJobId);
+          } else {
+            // Generate new job ID for new extraction
+            retryJobId = generateJobId();
+            console.log('[Popup] Creating new job extraction (after injection):', retryJobId);
+          }
+        } else {
+          // Fallback: generate new ID if URL check fails
+          retryJobId = generateJobId();
+          console.log('[Popup] URL check failed after injection, generating new job ID:', retryJobId);
+        }
+
         // Try streaming extraction again
         const response = await chrome.tabs.sendMessage(tab.id, { 
           action: 'streamExtractJobData',
           llmSettings: llmSettings,
-          jobId: generateJobId()
+          jobId: retryJobId
         });
 
         if (response && response.success) {
           // Set jobInFocus only (no minimal job creation in storage)
           // Job will be created in storage by sidepanel when extraction completes
-          const jobId = response.jobId;
+          const retryExtractionJobId = response.jobId;
           
           await chrome.storage.local.set({ 
-            jobInFocus: jobId 
+            jobInFocus: retryExtractionJobId 
           });
           
-          console.log('[Popup] Set jobInFocus after script injection (in-memory extraction):', jobId);
+          console.log('[Popup] Set jobInFocus after script injection (in-memory extraction):', retryExtractionJobId);
           
           showStatus('✨ Starting extraction...', 'success');
           
           // Send to background for streaming (wait for acknowledgment)
           await chrome.runtime.sendMessage({
             action: 'streamExtractJob',
-            jobId: jobId,
+            jobId: retryExtractionJobId,
             url: response.url,
             source: response.source,
             rawText: response.rawText,

@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+*.min.js
+*.min.css
+
+# Chrome extension package files
+*.crx
+*.pem
+*.zip
+
+# Test artifacts
+coverage/
+
+# Docs (preserve formatting)
+docs/
+
+# Git
+.git/

@@ -71,6 +71,29 @@ A Chrome extension / webapp with job data extraction, application lifecycle trac
    - Review data
    - Click "Manage" to open the web app
 
+## Development
+
+**Prerequisites**: Node.js 16+, npm
+
+```bash
+# Install dependencies
+npm install
+
+# Run tests
+npm test
+
+# Lint code
+npm run lint
+
+# Format code
+npm run format
+
+# Run all validations (lint + format + test)
+npm run validate
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for comprehensive development guidelines.
+
 ## Documentation
 
 See [chrome-extension/README.md](chrome-extension/README.md) for detailed documentation, including:
@@ -156,11 +179,17 @@ sir-hires/
 
 ## Contributing
 
-This is an early-stage project. If you'd like to contribute:
-1. Open an issue to discuss your idea
-2. Fork the repository
-3. Make your changes
-4. Submit a pull request
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+**Quick Start for Contributors:**
+
+1. **Install dependencies**: `npm install`
+2. **Run tests**: `npm test`
+3. **Check code style**: `npm run lint`
+4. **Format code**: `npm run format`
+5. **Run all checks**: `npm run validate`
+
+For detailed development setup, coding standards, and contribution workflow, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

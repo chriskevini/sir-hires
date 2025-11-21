@@ -25,44 +25,6 @@ function initializeAllChecklists() {
   return checklist;
 }
 
-/**
- * Create a minimal job object for streaming extraction
- * @param {string} jobId - Unique job identifier
- * @param {string} url - Job posting URL
- * @param {string} source - Job board source
- * @param {string} rawText - Raw job description text
- * @returns {Object} Minimal job object with isExtracting flag set
- */
-function createMinimalJob(jobId, url, source, rawText) {
-  return {
-    id: jobId,
-    url: url,
-    source: source,
-    jobTitle: 'Extracting...',
-    company: 'Extracting...',
-    location: '',
-    salary: '',
-    jobType: '',
-    remoteType: '',
-    postedDate: '',
-    deadline: '',
-    applicationStatus: 'Researching',
-    statusHistory: [{
-      status: 'Researching',
-      timestamp: new Date().toISOString()
-    }],
-    checklist: initializeAllChecklists(),
-    content: '', // Will be populated by streaming
-    rawDescription: rawText,
-    aboutJob: '',
-    aboutCompany: '',
-    responsibilities: '',
-    requirements: '',
-    isExtracting: true, // Flag to track extraction in progress
-    updatedAt: new Date().toISOString()
-  };
-}
-
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
   await loadSettings();
@@ -72,6 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function setupEventListeners() {
   document.getElementById('extractBtn').addEventListener('click', extractJobData);
+  document.getElementById('openAppBtn').addEventListener('click', openApp);
   document.getElementById('openSidePanelBtn').addEventListener('click', openSidePanel);
   document.getElementById('settingsBtn').addEventListener('click', toggleSettings);
   document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
@@ -120,20 +83,15 @@ async function extractJobData() {
         });
 
         if (response && response.success) {
-          // Create minimal job record immediately
+          // Set jobInFocus only (no minimal job creation in storage)
+          // Job will be created in storage by sidepanel when extraction completes
           const jobId = response.jobId;
-          const minimalJob = createMinimalJob(jobId, response.url, response.source, response.rawText);
           
-          // Save minimal job and set as focus
-          const result = await chrome.storage.local.get(['jobs']);
-          const jobs = result.jobs || {};
-          jobs[jobId] = minimalJob;
           await chrome.storage.local.set({ 
-            jobs: jobs,
             jobInFocus: jobId 
           });
           
-          console.log('[Popup] Created minimal job record:', jobId);
+          console.log('[Popup] Set jobInFocus (in-memory extraction):', jobId);
           
           showStatus('✨ Starting extraction...', 'success');
           
@@ -142,6 +100,8 @@ async function extractJobData() {
           await chrome.runtime.sendMessage({
             action: 'streamExtractJob',
             jobId: jobId,
+            url: response.url,
+            source: response.source,
             rawText: response.rawText,
             llmSettings: llmSettings
           }).catch(err => {
@@ -177,16 +137,15 @@ async function extractJobData() {
         });
 
         if (response && response.success) {
+          // Set jobInFocus only (no minimal job creation in storage)
+          // Job will be created in storage by sidepanel when extraction completes
           const jobId = response.jobId;
-          const minimalJob = createMinimalJob(jobId, response.url, response.source, response.rawText);
           
-          const result = await chrome.storage.local.get(['jobs']);
-          const jobs = result.jobs || {};
-          jobs[jobId] = minimalJob;
           await chrome.storage.local.set({ 
-            jobs: jobs,
             jobInFocus: jobId 
           });
+          
+          console.log('[Popup] Set jobInFocus after script injection (in-memory extraction):', jobId);
           
           showStatus('✨ Starting extraction...', 'success');
           
@@ -194,6 +153,8 @@ async function extractJobData() {
           await chrome.runtime.sendMessage({
             action: 'streamExtractJob',
             jobId: jobId,
+            url: response.url,
+            source: response.source,
             rawText: response.rawText,
             llmSettings: llmSettings
           }).catch(err => {
@@ -202,10 +163,10 @@ async function extractJobData() {
           
           showStatus('✨ Extraction in progress! Check side panel.', 'success');
           
-          // Close popup after ensuring message was received
+          // Keep popup open longer to ensure background worker starts keepalive
           setTimeout(() => {
             window.close();
-          }, 300);
+          }, 1000);
         } else {
           throw new Error('Failed to start streaming extraction after injecting content script');
         }
@@ -300,6 +261,19 @@ async function saveExtractedJob(jobData, usedLlm) {
   } catch (error) {
     console.error('Error saving job:', error);
     throw error;
+  }
+}
+
+// Open main app (job-details.html)
+async function openApp() {
+  try {
+    const appUrl = chrome.runtime.getURL('job-details.html');
+    await chrome.tabs.create({ url: appUrl });
+    console.log('Opened app in new tab');
+    window.close();
+  } catch (error) {
+    console.error('Error opening app:', error);
+    showStatus('Could not open app: ' + error.message, 'error');
   }
 }
 

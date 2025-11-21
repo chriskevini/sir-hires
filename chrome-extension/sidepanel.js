@@ -2,12 +2,14 @@
 
 import { MainView } from './job-details/main-view.js';
 import { parseJobTemplate, mapMarkdownFieldsToJob } from './utils/job-parser.js';
+import { checklistTemplates } from './job-details/config.js';
 
 let currentJobId = null;
 let currentJob = null;
 let mainView = null; // MainView instance for rendering state-based views
 let isSavingLocally = false; // Flag to prevent reload loops
 let streamBuffer = ''; // Buffer for incomplete lines during streaming
+let extractingJobData = null; // In-memory job data during extraction (before saving to storage)
 
 // Initialize side panel
 document.addEventListener('DOMContentLoaded', async () => {
@@ -95,9 +97,10 @@ function setupStorageListener() {
 
 // Setup message listeners for streaming extraction
 function setupStreamListeners() {
-  console.log('[Side Panel] Setting up stream listeners');
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === 'extractionChunk') {
+    if (message.action === 'extractionStarted') {
+      handleExtractionStarted(message.jobId, message.url, message.source, message.rawText);
+    } else if (message.action === 'extractionChunk') {
       handleExtractionChunk(message.jobId, message.chunk);
     } else if (message.action === 'extractionComplete') {
       handleExtractionComplete(message.jobId, message.fullContent);
@@ -109,6 +112,72 @@ function setupStreamListeners() {
   });
 }
 
+// Handle extraction start - create minimal in-memory job
+function handleExtractionStarted(jobId, url, source, rawText) {
+  console.log('[Side Panel] Extraction started for job:', jobId);
+  
+  // Update currentJobId to the extracting job (fixes race condition with storage listener)
+  currentJobId = jobId;
+  
+  // Create minimal in-memory job structure
+  extractingJobData = {
+    id: jobId,
+    url: url,
+    source: source,
+    jobTitle: 'Extracting...',
+    company: 'Extracting...',
+    location: '',
+    salary: '',
+    jobType: '',
+    remoteType: '',
+    postedDate: '',
+    deadline: '',
+    applicationStatus: 'Researching',
+    statusHistory: [{
+      status: 'Researching',
+      timestamp: new Date().toISOString()
+    }],
+    checklist: initializeAllChecklists(),
+    content: '', // Will be populated by streaming chunks
+    rawDescription: rawText,
+    aboutJob: '',
+    aboutCompany: '',
+    responsibilities: '',
+    requirements: '',
+    isExtracting: true,
+    updatedAt: new Date().toISOString()
+  };
+  
+  // Store as current job for display
+  currentJob = extractingJobData;
+  
+  // Display extraction UI
+  displayJob(currentJob);
+  
+  console.log('[Side Panel] Created in-memory extraction job:', jobId);
+}
+
+// Helper function to initialize all checklists (same as popup.js)
+function initializeAllChecklists() {
+  const checklist = {};
+  
+  // Create checklist arrays for each status
+  Object.keys(checklistTemplates).forEach(status => {
+    const template = checklistTemplates[status];
+    const timestamp = Date.now();
+    
+    // Create checklist items with unique IDs
+    checklist[status] = template.map((templateItem, index) => ({
+      id: `item_${timestamp}_${status}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+      text: templateItem.text,
+      checked: false,
+      order: templateItem.order
+    }));
+  });
+  
+  return checklist;
+}
+
 // Handle streaming extraction chunk
 async function handleExtractionChunk(jobId, chunk) {
   console.log('[Side Panel] Received chunk for job:', jobId, 'current:', currentJobId, 'chunk:', chunk.substring(0, 50) + '...');
@@ -118,31 +187,53 @@ async function handleExtractionChunk(jobId, chunk) {
     return;
   }
 
-  // Set flag to prevent reload loop
-  isSavingLocally = true;
-
   try {
-    // Get current job from storage
+    // Check if job exists in storage (for re-extraction of existing jobs)
     const result = await chrome.storage.local.get(['jobs']);
     const jobs = result.jobs || {};
-    const job = jobs[jobId];
+    const storageJob = jobs[jobId];
 
-    if (!job) {
-      console.log('[Side Panel] Job deleted, ignoring extraction chunk');
-      isSavingLocally = false;
-      return;
+    console.log('[Side Panel] Chunk handler - job exists in storage:', !!storageJob);
+
+    if (storageJob) {
+      // Job exists in storage - this is a re-extraction, use storage-based flow
+      console.log('[Side Panel] Re-extraction: updating job in storage');
+      
+      // Set flag to prevent reload loop
+      isSavingLocally = true;
+      
+      // Append chunk to job.content field (full content for storage)
+      storageJob.content = (storageJob.content || '') + chunk;
+      storageJob.updatedAt = new Date().toISOString();
+
+      // Save back to storage
+      jobs[jobId] = storageJob;
+      await chrome.storage.local.set({ jobs });
+
+      // Update local reference
+      currentJob = storageJob;
+    } else {
+      // Job NOT in storage - this is a new extraction, use in-memory flow
+      console.log('[Side Panel] New extraction: using in-memory job');
+      
+      if (!extractingJobData) {
+        console.warn('[Side Panel] No in-memory job data, creating minimal structure');
+        // Fallback: create minimal structure if extractionStarted was missed
+        extractingJobData = {
+          id: jobId,
+          content: '',
+          isExtracting: true,
+          updatedAt: new Date().toISOString()
+        };
+      }
+      
+      // Append chunk to in-memory job
+      extractingJobData.content = (extractingJobData.content || '') + chunk;
+      extractingJobData.updatedAt = new Date().toISOString();
+      
+      // Update local reference
+      currentJob = extractingJobData;
     }
-
-    // Append chunk to job.content field (full content for storage)
-    job.content = (job.content || '') + chunk;
-    job.updatedAt = new Date().toISOString();
-
-    // Save back to storage
-    jobs[jobId] = job;
-    await chrome.storage.local.set({ jobs });
-
-    // Update local reference
-    currentJob = job;
 
     // Update textarea directly (no full re-render for better performance)
     const textarea = document.querySelector('#jobEditor');
@@ -183,12 +274,14 @@ async function handleExtractionChunk(jobId, chunk) {
       displayJob(currentJob);
     }
 
-    console.log('[Side Panel] Appended chunk to job.content:', chunk.length, 'chars');
+    console.log('[Side Panel] Appended chunk (', chunk.length, 'chars) to', storageJob ? 'storage' : 'in-memory', 'job');
 
-    // Reset flag after a short delay
-    setTimeout(() => {
-      isSavingLocally = false;
-    }, 50);
+    // Reset flag after a short delay (only if we saved to storage)
+    if (storageJob) {
+      setTimeout(() => {
+        isSavingLocally = false;
+      }, 50);
+    }
 
   } catch (error) {
     console.error('[Side Panel] Error handling extraction chunk:', error);
@@ -203,6 +296,7 @@ async function handleExtractionComplete(jobId, fullContent) {
   if (jobId !== currentJobId) {
     console.log('[Side Panel] Completed job is not in focus, skipping UI update');
     streamBuffer = ''; // Reset buffer even if not in focus
+    extractingJobData = null; // Clear in-memory data
     return;
   }
 
@@ -210,27 +304,51 @@ async function handleExtractionComplete(jobId, fullContent) {
   isSavingLocally = true;
 
   try {
-    // Get current job from storage
-    const result = await chrome.storage.local.get(['jobs']);
-    const jobs = result.jobs || {};
-    const job = jobs[jobId];
+    // Capture scroll position BEFORE re-render (from readonly textarea)
+    const oldTextarea = document.querySelector('#jobEditor');
+    const savedScrollTop = oldTextarea ? oldTextarea.scrollTop : 0;
+    console.log('[Side Panel] Captured scroll position:', savedScrollTop);
 
-    if (!job) {
-      console.log('[Side Panel] Job deleted, ignoring extraction completion');
-      isSavingLocally = false;
-      streamBuffer = ''; // Reset buffer
-      return;
-    }
-
-    // Flush any remaining buffered content to textarea
-    const textarea = document.querySelector('#jobEditor');
-    if (textarea && textarea.hasAttribute('readonly') && streamBuffer) {
-      textarea.value = (textarea.value || '') + streamBuffer;
+    // Flush any remaining buffered content to textarea (for visual continuity)
+    if (oldTextarea && oldTextarea.hasAttribute('readonly') && streamBuffer) {
+      oldTextarea.value = (oldTextarea.value || '') + streamBuffer;
       console.log('[Side Panel] Flushed remaining buffer:', streamBuffer.length, 'chars');
     }
     
     // Reset stream buffer
     streamBuffer = '';
+
+    // Check if job exists in storage
+    const result = await chrome.storage.local.get(['jobs']);
+    const jobs = result.jobs || {};
+    const storageJob = jobs[jobId];
+
+    let job;
+    
+    if (storageJob) {
+      // Job exists in storage - this is a re-extraction
+      console.log('[Side Panel] Re-extraction complete: updating existing job');
+      job = storageJob;
+    } else {
+      // Job NOT in storage - this is a new extraction, create from in-memory data
+      console.log('[Side Panel] New extraction complete: creating job in storage for FIRST time');
+      
+      if (!extractingJobData) {
+        console.warn('[Side Panel] No in-memory job data found, creating minimal job');
+        extractingJobData = {
+          id: jobId,
+          applicationStatus: 'Researching',
+          statusHistory: [{
+            status: 'Researching',
+            timestamp: new Date().toISOString()
+          }],
+          checklist: initializeAllChecklists(),
+          updatedAt: new Date().toISOString()
+        };
+      }
+      
+      job = extractingJobData;
+    }
 
     // Set final content (in case chunks were missed)
     job.content = fullContent;
@@ -249,15 +367,29 @@ async function handleExtractionComplete(jobId, fullContent) {
       company: job.company 
     });
 
-    // Save back to storage
+    // Save to storage (FIRST time for new extractions, update for re-extractions)
     jobs[jobId] = job;
     await chrome.storage.local.set({ jobs });
+    console.log('[Side Panel] Saved complete job to storage:', jobId);
+
+    // Clear in-memory extraction data
+    extractingJobData = null;
 
     // Update local reference
     currentJob = job;
 
-    // Trigger MainView re-render
+    // Trigger MainView re-render (transitions from extraction UI to normal editor UI)
     displayJob(currentJob);
+
+    // Restore scroll position AFTER re-render (to new editable textarea)
+    // Use requestAnimationFrame to ensure DOM has settled
+    requestAnimationFrame(() => {
+      const newTextarea = document.querySelector('#jobEditor');
+      if (newTextarea && savedScrollTop > 0) {
+        newTextarea.scrollTop = savedScrollTop;
+        console.log('[Side Panel] Restored scroll position:', savedScrollTop);
+      }
+    });
 
     // Show success toast
     showSuccess('Job extraction completed!');
@@ -271,6 +403,7 @@ async function handleExtractionComplete(jobId, fullContent) {
     console.error('[Side Panel] Error handling extraction completion:', error);
     isSavingLocally = false;
     streamBuffer = ''; // Reset buffer on error
+    extractingJobData = null; // Clear in-memory data on error
   }
 }
 
@@ -281,6 +414,7 @@ async function handleExtractionError(jobId, errorMessage) {
   if (jobId !== currentJobId) {
     console.log('[Side Panel] Error for different job, skipping UI update');
     streamBuffer = ''; // Reset buffer even if not in focus
+    extractingJobData = null; // Clear in-memory data
     return;
   }
 
@@ -291,33 +425,45 @@ async function handleExtractionError(jobId, errorMessage) {
   isSavingLocally = true;
 
   try {
-    // Get current job from storage
+    // Check if job exists in storage
     const result = await chrome.storage.local.get(['jobs']);
     const jobs = result.jobs || {};
-    const job = jobs[jobId];
+    const storageJob = jobs[jobId];
 
-    if (!job) {
-      console.log('[Side Panel] Job deleted, ignoring extraction error');
-      isSavingLocally = false;
-      return;
+    if (storageJob) {
+      // Job exists in storage - update with error
+      console.log('[Side Panel] Extraction error for existing job');
+      
+      // Update job with error marker in content
+      // ResearchingView will display this in the validation panel
+      storageJob.content = storageJob.content || '';
+      storageJob.extractionError = errorMessage;
+      storageJob.isExtracting = false; // Clear extraction flag
+      storageJob.updatedAt = new Date().toISOString();
+
+      // Save back to storage
+      jobs[jobId] = storageJob;
+      await chrome.storage.local.set({ jobs });
+
+      // Update local reference
+      currentJob = storageJob;
+
+      // Trigger MainView re-render to show error
+      displayJob(currentJob);
+    } else {
+      // Job NOT in storage - discard in-memory job, show error
+      console.log('[Side Panel] Extraction error for new job: discarding in-memory data');
+      
+      extractingJobData = null;
+      currentJob = null;
+      currentJobId = null;
+      
+      // Clear jobInFocus
+      await chrome.storage.local.set({ jobInFocus: null });
+      
+      // Show empty state
+      clearJobDisplay();
     }
-
-    // Update job with error marker in content
-    // ResearchingView will display this in the validation panel
-    job.content = job.content || '';
-    job.extractionError = errorMessage;
-    job.isExtracting = false; // Clear extraction flag
-    job.updatedAt = new Date().toISOString();
-
-    // Save back to storage
-    jobs[jobId] = job;
-    await chrome.storage.local.set({ jobs });
-
-    // Update local reference
-    currentJob = job;
-
-    // Trigger MainView re-render to show error
-    displayJob(currentJob);
 
     // Show error toast
     showError('Extraction failed: ' + errorMessage);
@@ -330,66 +476,90 @@ async function handleExtractionError(jobId, errorMessage) {
   } catch (error) {
     console.error('[Side Panel] Error handling extraction error:', error);
     isSavingLocally = false;
+    extractingJobData = null; // Clear in-memory data on error
   }
 }
 
 // Handle extraction cancellation
 async function handleExtractionCancelled(jobId) {
   console.log('[Side Panel] Extraction cancelled for job:', jobId);
+  console.log('[Side Panel] extractingJobData exists:', !!extractingJobData);
+  console.log('[Side Panel] currentJobId:', currentJobId);
 
   if (jobId !== currentJobId) {
     console.log('[Side Panel] Cancelled job is not in focus, skipping UI update');
     streamBuffer = ''; // Reset buffer even if not in focus
+    extractingJobData = null; // Clear in-memory data
     return;
   }
 
   // Reset stream buffer
   streamBuffer = '';
 
-  // Set flag to prevent reload loop
-  isSavingLocally = true;
-
   try {
-    // Get current job from storage
+    // Check if job exists in storage
     const result = await chrome.storage.local.get(['jobs']);
     const jobs = result.jobs || {};
-    const job = jobs[jobId];
+    const storageJob = jobs[jobId];
 
-    if (!job) {
-      console.log('[Side Panel] Job deleted (expected after cancel & delete), no update needed');
-      isSavingLocally = false;
-      return;
+    console.log('[Side Panel] Job exists in storage:', !!storageJob);
+
+    if (storageJob) {
+      // Job exists in storage - this is a re-extraction cancellation
+      console.log('[Side Panel] Re-extraction cancelled: clearing extraction flag');
+      
+      // Set flag to prevent reload loop
+      isSavingLocally = true;
+      
+      // Clear extraction state but keep the job
+      storageJob.isExtracting = false;
+      storageJob.updatedAt = new Date().toISOString();
+      
+      // Clear extraction error if present
+      if (storageJob.extractionError) {
+        delete storageJob.extractionError;
+      }
+
+      // Save back to storage
+      jobs[jobId] = storageJob;
+      await chrome.storage.local.set({ jobs });
+
+      // Update local reference
+      currentJob = storageJob;
+
+      // Trigger MainView re-render to clear extraction UI
+      displayJob(currentJob);
+
+      console.log('[Side Panel] Cleared extraction state for existing job:', jobId);
+
+      // Reset flag after a short delay
+      setTimeout(() => {
+        isSavingLocally = false;
+      }, 200);
+    } else {
+      // Job NOT in storage - this is a new extraction cancellation
+      console.log('[Side Panel] New extraction cancelled: discarding in-memory job');
+      
+      // Clear in-memory extraction data (no storage cleanup needed!)
+      extractingJobData = null;
+      currentJob = null;
+      currentJobId = null;
+      
+      // Clear jobInFocus from storage
+      await chrome.storage.local.set({ jobInFocus: null });
+      
+      // Show empty state
+      clearJobDisplay();
+      
+      console.log('[Side Panel] Discarded in-memory job, no fragments in storage');
     }
-
-    // Clear extraction state
-    job.isExtracting = false;
-    job.updatedAt = new Date().toISOString();
-    
-    // Clear extraction error if present
-    if (job.extractionError) {
-      delete job.extractionError;
-    }
-
-    // Save back to storage
-    jobs[jobId] = job;
-    await chrome.storage.local.set({ jobs });
-
-    // Update local reference
-    currentJob = job;
-
-    // Trigger MainView re-render to clear extraction UI
-    displayJob(currentJob);
-
-    console.log('[Side Panel] Cleared extraction state for job:', jobId);
-
-    // Reset flag after a short delay
-    setTimeout(() => {
-      isSavingLocally = false;
-    }, 200);
 
   } catch (error) {
     console.error('[Side Panel] Error handling extraction cancellation:', error);
     isSavingLocally = false;
+    
+    // Cleanup in-memory state on error
+    extractingJobData = null;
   }
 }
 
@@ -419,13 +589,25 @@ async function loadJobInFocus() {
       console.log('[Side Panel] Set newest job as focus:', newestJobId);
     }
 
-    if (!jobInFocusId || !jobs[jobInFocusId]) {
-      // Still no job in focus - show empty state
+    if (!jobInFocusId) {
+      // No job in focus - show empty state
       showEmptyState();
       return;
     }
 
-    // Load and display the job
+    if (!jobs[jobInFocusId]) {
+      // Job in focus but not in storage yet - likely a new extraction starting
+      // Set currentJobId and wait for extraction to start (handleExtractionStarted will create in-memory job)
+      console.log('[Side Panel] Job in focus but not in storage yet (extraction pending):', jobInFocusId);
+      currentJobId = jobInFocusId;
+      currentJob = null;
+      
+      // Show empty state for now (will be replaced when extraction starts)
+      showEmptyState();
+      return;
+    }
+
+    // Load and display the job from storage
     currentJobId = jobInFocusId;
     currentJob = jobs[jobInFocusId];
     displayJob(currentJob);
@@ -526,8 +708,11 @@ async function deleteJob() {
     const jobs = result.jobs || {};
     const job = jobs[currentJobId];
     
+    // Check if job is extracting (could be in storage or in-memory)
+    const isExtracting = (job && job.isExtracting) || (extractingJobData && extractingJobData.id === currentJobId);
+    
     // If job is currently extracting, cancel the extraction
-    if (job && job.isExtracting) {
+    if (isExtracting) {
       console.log(`[Side Panel] Cancelling extraction for job ${currentJobId}`);
       chrome.runtime.sendMessage({
         action: 'cancelExtraction',
@@ -535,10 +720,16 @@ async function deleteJob() {
       }).catch(err => {
         console.error('[Side Panel] Failed to send cancellation:', err);
       });
+      
+      // Clear in-memory extraction data
+      extractingJobData = null;
+      streamBuffer = '';
     }
     
-    // Delete the job
-    delete jobs[currentJobId];
+    // Delete the job from storage (if it exists)
+    if (job) {
+      delete jobs[currentJobId];
+    }
     
     // Clear job in focus if it was this job
     const updates = { jobs };
@@ -549,7 +740,7 @@ async function deleteJob() {
     // Save back to storage
     await chrome.storage.local.set(updates);
     
-    console.log(`[Side Panel] Deleted job ${currentJobId}`);
+    console.log(`[Side Panel] Deleted job ${currentJobId}`, job ? '(from storage)' : '(in-memory only)');
     showSuccess('Job deleted');
     
     // Reload to show empty state or next job

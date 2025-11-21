@@ -276,7 +276,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.action === 'streamExtractJob') {
     // Handle streaming job extraction with LLM
-    const { jobId, rawText, llmSettings } = request;
+    const { jobId, url, source, rawText, llmSettings } = request;
     console.log('[Background] Received streaming extraction request for job:', jobId);
     
     // Start global keepalive BEFORE responding to ensure worker stays alive
@@ -300,6 +300,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         // Store in activeExtractions for cancellation
         activeExtractions.set(jobId, { llmClient, streamId });
+
+        // Send initial metadata to sidepanel (for creating in-memory job)
+        chrome.runtime.sendMessage({
+          action: 'extractionStarted',
+          jobId: jobId,
+          url: url,
+          source: source,
+          rawText: rawText
+        }).catch(err => {
+          console.error('[Background] Failed to send extraction start to sidepanel:', err);
+        });
 
         // Prepare prompts from config
         const systemPrompt = llmConfig.synthesis.prompts.jobExtractor.trim();

@@ -115,6 +115,16 @@ h3 {
   background-color: #e8eaed;
 }
 
+.btn-success {
+  background-color: #34a853;
+  color: white;
+  margin-top: 8px;
+}
+
+.btn-success:hover:not(:disabled) {
+  background-color: #2d8e47;
+}
+
 .button-group {
   display: flex;
   gap: 8px;

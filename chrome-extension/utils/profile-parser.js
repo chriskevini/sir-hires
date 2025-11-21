@@ -50,8 +50,8 @@ function parseProfileTemplate(content) {
     }
 
     // Check for section header (# SECTION_NAME)
-    if (trimmedLine.match(/^#\s+(\w+):?$/)) {
-      const sectionName = trimmedLine.match(/^#\s+(\w+):?$/)[1];
+    if (trimmedLine.match(/^#\s+([A-Z_]+):?(\s|\/\/|$)/)) {
+      const sectionName = trimmedLine.match(/^#\s+([A-Z_]+):?(\s|\/\/|$)/)[1];
       currentSection = sectionName;
       currentEntry = null;
       currentList = null;

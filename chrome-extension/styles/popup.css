@@ -115,6 +115,16 @@ h3 {
   background-color: #e8eaed;
 }
 
+.btn-success {
+  background-color: #34a853;
+  color: white;
+  margin-top: 8px;
+}
+
+.btn-success:hover:not(:disabled) {
+  background-color: #2d8e47;
+}
+
 .button-group {
   display: flex;
   gap: 8px;
@@ -262,4 +272,28 @@ kbd {
 
 .checkbox-label span {
   color: #333;
+}
+
+/* Info Box */
+.info-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  background-color: #e8f4fd;
+  border-radius: 4px;
+  border-left: 3px solid #4a9eff;
+}
+
+.info-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+.info-box span:not(.info-icon) {
+  font-size: 12px;
+  color: #1a5490;
+  line-height: 1.5;
 }

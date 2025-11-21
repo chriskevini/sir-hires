@@ -108,6 +108,7 @@ async function extractJobData() {
             aboutCompany: '',
             responsibilities: '',
             requirements: '',
+            isExtracting: true, // Flag to track extraction in progress
             updatedAt: new Date().toISOString()
           };
           
@@ -189,6 +190,7 @@ async function extractJobData() {
             aboutCompany: '',
             responsibilities: '',
             requirements: '',
+            isExtracting: true, // Flag to track extraction in progress
             updatedAt: new Date().toISOString()
           };
           

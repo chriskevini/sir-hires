@@ -173,20 +173,25 @@ async function handleExtractionComplete(jobId, fullContent) {
     // Set final content (in case chunks were missed)
     job.content = fullContent;
     job.updatedAt = new Date().toISOString();
+    job.isExtracting = false; // Clear extraction flag
 
     // Parse the markdown content to extract job fields
     const parsed = parseJobTemplate(fullContent);
     const fields = parsed.topLevelFields;
     
     // Update job fields from parsed markdown
-    if (fields.JOB_TITLE) job.jobTitle = fields.JOB_TITLE;
+    if (fields.TITLE) job.jobTitle = fields.TITLE;
     if (fields.COMPANY) job.company = fields.COMPANY;
-    if (fields.LOCATION) job.location = fields.LOCATION;
-    if (fields.SALARY) job.salary = fields.SALARY;
-    if (fields.JOB_TYPE) job.jobType = fields.JOB_TYPE;
+    if (fields.ADDRESS) job.location = fields.ADDRESS;
+    if (fields.SALARY_RANGE_MIN || fields.SALARY_RANGE_MAX) {
+      const min = fields.SALARY_RANGE_MIN || '';
+      const max = fields.SALARY_RANGE_MAX || '';
+      job.salary = min && max ? `${min} - ${max}` : (min || max);
+    }
+    if (fields.EMPLOYMENT_TYPE) job.jobType = fields.EMPLOYMENT_TYPE;
     if (fields.REMOTE_TYPE) job.remoteType = fields.REMOTE_TYPE;
     if (fields.POSTED_DATE) job.postedDate = fields.POSTED_DATE;
-    if (fields.DEADLINE) job.deadline = fields.DEADLINE;
+    if (fields.CLOSING_DATE) job.deadline = fields.CLOSING_DATE;
     
     console.log('[Side Panel] Updated job fields from markdown:', { 
       jobTitle: job.jobTitle, 
@@ -244,6 +249,7 @@ async function handleExtractionError(jobId, errorMessage) {
     // ResearchingView will display this in the validation panel
     job.content = job.content || '';
     job.extractionError = errorMessage;
+    job.isExtracting = false; // Clear extraction flag
     job.updatedAt = new Date().toISOString();
 
     // Save back to storage

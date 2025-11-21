@@ -121,6 +121,10 @@ export class ResearchingView extends BaseView {
               <p>Waiting for first response from LLM...</p>
             </div>
           `}
+          
+          <div class="job-actions" style="margin-top: 24px;">
+            <button class="btn btn-delete" data-index="${index}">Cancel & Delete</button>
+          </div>
         </div>
       </div>
     `;
@@ -234,7 +238,14 @@ CLOSING_DATE: 2025-12-31
     // Check if job is currently being extracted
     const isExtracting = !!job.isExtracting;
     
-    // Extraction state has no interactive elements (just shows spinner)
+    // Always attach delete button listener (available in all states)
+    const deleteBtn = container.querySelector('.btn-delete');
+    if (deleteBtn) {
+      const deleteHandler = () => this.handleDelete(index);
+      this.trackListener(deleteBtn, 'click', deleteHandler);
+    }
+    
+    // Extraction state has no other interactive elements (just shows spinner and delete button)
     if (isExtracting) {
       return;
     }
@@ -251,13 +262,6 @@ CLOSING_DATE: 2025-12-31
         };
         this.trackListener(editor, 'input', inputHandler);
       }
-      
-      // Attach delete button
-      const deleteBtn = container.querySelector('.btn-delete');
-      if (deleteBtn) {
-        const deleteHandler = () => this.handleDelete(index);
-        this.trackListener(deleteBtn, 'click', deleteHandler);
-      }
       return;
     }
     
@@ -265,12 +269,7 @@ CLOSING_DATE: 2025-12-31
     const hasContent = job.content && job.content.trim().length > 0;
     
     if (!hasContent) {
-      // Attach delete button for migration prompt
-      const deleteBtn = container.querySelector('.btn-delete');
-      if (deleteBtn) {
-        const deleteHandler = () => this.handleDelete(index);
-        this.trackListener(deleteBtn, 'click', deleteHandler);
-      }
+      // Migration prompt - only delete button (already attached above)
       return;
     }
 
@@ -306,13 +305,6 @@ CLOSING_DATE: 2025-12-31
 
       // Initial validation
       this.validateAndDisplay(editor.value, container);
-    }
-
-    // Delete button
-    const deleteBtn = container.querySelector('.btn-delete');
-    if (deleteBtn) {
-      const deleteHandler = () => this.handleDelete(index);
-      this.trackListener(deleteBtn, 'click', deleteHandler);
     }
 
     // Render checklist

@@ -17,6 +17,7 @@ export class LLMClient {
     this.endpoint = config.endpoint || 'http://localhost:1234/v1/chat/completions';
     this.modelsEndpoint = config.modelsEndpoint || 'http://localhost:1234/v1/models';
     this.detectionWindow = config.detectionWindow || 50;
+    this.activeStreams = new Map(); // Track active streams for cancellation
   }
 
   /**
@@ -84,6 +85,7 @@ export class LLMClient {
    *   DETECTING → IN_THINKING_BLOCK → IN_DOCUMENT
    * 
    * @param {Object} options - Completion options
+   * @param {string} options.streamId - Unique ID for this stream (for cancellation)
    * @param {string} options.model - Model ID to use
    * @param {string} options.systemPrompt - System prompt defining AI behavior
    * @param {string} options.userPrompt - User prompt with context data
@@ -91,10 +93,11 @@ export class LLMClient {
    * @param {number} options.temperature - Sampling temperature (default: 0.7)
    * @param {Function} options.onThinkingUpdate - Callback for thinking stream updates (delta)
    * @param {Function} options.onDocumentUpdate - Callback for document stream updates (delta)
-   * @returns {Promise<Object>} { thinkingContent, documentContent, finishReason }
+   * @returns {Promise<Object>} { thinkingContent, documentContent, finishReason, cancelled }
    */
   async streamCompletion(options) {
     const {
+      streamId = crypto.randomUUID(),
       model,
       systemPrompt,
       userPrompt,
@@ -110,85 +113,104 @@ export class LLMClient {
       throw new Error('Cannot connect to LM Studio. Please ensure LM Studio is running on http://localhost:1234');
     }
 
-    // Call LM Studio API with streaming enabled
-    const response = await fetch(this.endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_tokens: maxTokens,
-        temperature: temperature,
-        stream: true  // Enable streaming
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[LLMClient] LLM API error:', errorText);
-      
-      // Try to parse JSON error for better message
-      try {
-        const errorJson = JSON.parse(errorText);
-        if (errorJson.error?.code === 'model_not_found') {
-          // Model not loaded - provide comprehensive instructions
-          throw new Error(
-            `Model "${model}" failed to load.\n\n` +
-            `Option 1 - Enable JIT Loading (Recommended):\n` +
-            `1. Open LM Studio → Developer tab → Server Settings\n` +
-            `2. Enable "JIT Loading" (should be on by default)\n` +
-            `3. Try generating again (model will auto-load)\n\n` +
-            `Option 2 - Manually Load:\n` +
-            `• In LM Studio: Click "${model}" in the left sidebar\n` +
-            `• Or via CLI: lms load "${model}" --yes\n\n` +
-            `Option 3 - Check Model Status:\n` +
-            `• The model might not be downloaded yet\n` +
-            `• Download it from LM Studio's model library first`
-          );
-        }
-        throw new Error(errorJson.error?.message || `LLM API error: HTTP ${response.status}`);
-      } catch (parseError) {
-        // If parseError is our custom error, re-throw it
-        if (parseError.message.includes('failed to load')) {
-          throw parseError;
-        }
-        // If not JSON, use raw error text
-        throw new Error(`LLM API error: HTTP ${response.status} - ${errorText}`);
-      }
-    }
-
-    // Process SSE stream
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
+    // Create abort controller for cancellation
+    const abortController = new AbortController();
     
-    // Simplified state machine: null → IN_THINKING | IN_DOCUMENT
-    // State is determined by first delta, no detection window needed
-    let state = null;  // null → IN_THINKING | IN_DOCUMENT
-    let buffer = '';
-    let thinkingContent = '';
-    let documentContent = '';
-    let finishReason = null;
-
-    console.log('[LLMClient] Starting stream processing...');
+    // Register this stream for cancellation
+    this.activeStreams.set(streamId, { 
+      abortController, 
+      reader: null 
+    });
+    
+    console.log('[LLMClient] Registered stream for cancellation:', streamId);
 
     try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      // Call LM Studio API with streaming enabled
+      const response = await fetch(this.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          max_tokens: maxTokens,
+          temperature: temperature,
+          stream: true  // Enable streaming
+        }),
+        signal: abortController.signal  // Enable cancellation
+      });
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[LLMClient] LLM API error:', errorText);
+        
+        // Try to parse JSON error for better message
+        try {
+          const errorJson = JSON.parse(errorText);
+          if (errorJson.error?.code === 'model_not_found') {
+            // Model not loaded - provide comprehensive instructions
+            throw new Error(
+              `Model "${model}" failed to load.\n\n` +
+              `Option 1 - Enable JIT Loading (Recommended):\n` +
+              `1. Open LM Studio → Developer tab → Server Settings\n` +
+              `2. Enable "JIT Loading" (should be on by default)\n` +
+              `3. Try generating again (model will auto-load)\n\n` +
+              `Option 2 - Manually Load:\n` +
+              `• In LM Studio: Click "${model}" in the left sidebar\n` +
+              `• Or via CLI: lms load "${model}" --yes\n\n` +
+              `Option 3 - Check Model Status:\n` +
+              `• The model might not be downloaded yet\n` +
+              `• Download it from LM Studio's model library first`
+            );
+          }
+          throw new Error(errorJson.error?.message || `LLM API error: HTTP ${response.status}`);
+        } catch (parseError) {
+          // If parseError is our custom error, re-throw it
+          if (parseError.message.includes('failed to load')) {
+            throw parseError;
+          }
+          // If not JSON, use raw error text
+          throw new Error(`LLM API error: HTTP ${response.status} - ${errorText}`);
+        }
+      }
 
-        for (const line of lines) {
-          if (!line.trim() || line.trim() === 'data: [DONE]') continue;
-          if (!line.startsWith('data: ')) continue;
+      // Process SSE stream
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      
+      // Store reader reference for cancellation
+      const streamInfo = this.activeStreams.get(streamId);
+      if (streamInfo) {
+        streamInfo.reader = reader;
+      }
+    
+      // Simplified state machine: null → IN_THINKING | IN_DOCUMENT
+      // State is determined by first delta, no detection window needed
+      let state = null;  // null → IN_THINKING | IN_DOCUMENT
+      let buffer = '';
+      let thinkingContent = '';
+      let documentContent = '';
+      let finishReason = null;
 
-          try {
-            const jsonStr = line.slice(6);  // Remove "data: " prefix
-            const data = JSON.parse(jsonStr);
+      console.log('[LLMClient] Starting stream processing...');
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (!line.trim() || line.trim() === 'data: [DONE]') continue;
+            if (!line.startsWith('data: ')) continue;
+
+            try {
+              const jsonStr = line.slice(6);  // Remove "data: " prefix
+              const data = JSON.parse(jsonStr);
             
             const delta = data.choices?.[0]?.delta?.content || '';
             if (!delta) {
@@ -276,22 +298,70 @@ export class LLMClient {
               documentContent += delta;
             }
 
-          } catch (error) {
-            console.error('[LLMClient] Failed to parse SSE line:', line, error);
+            } catch (error) {
+              console.error('[LLMClient] Failed to parse SSE line:', line, error);
+            }
           }
         }
+      } catch (error) {
+        console.error('[LLMClient] Stream processing error:', error);
+        throw error;
       }
+
+      console.log('[LLMClient] Stream complete, final state:', state);
+
+      return {
+        thinkingContent: thinkingContent.trim(),
+        documentContent: documentContent.trim(),
+        finishReason: finishReason,
+        cancelled: false
+      };
+      
     } catch (error) {
-      console.error('[LLMClient] Stream processing error:', error);
+      // Handle abortion/cancellation
+      if (error.name === 'AbortError') {
+        console.log('[LLMClient] Stream cancelled:', streamId);
+        return {
+          thinkingContent: '',
+          documentContent: '',
+          finishReason: 'cancelled',
+          cancelled: true
+        };
+      }
       throw error;
+    } finally {
+      // Clean up stream registration
+      this.activeStreams.delete(streamId);
+      console.log('[LLMClient] Cleaned up stream:', streamId);
+    }
+  }
+
+  /**
+   * Cancel an active stream
+   * @param {string} streamId - The stream ID to cancel
+   */
+  cancelStream(streamId) {
+    const streamInfo = this.activeStreams.get(streamId);
+    if (!streamInfo) {
+      console.log('[LLMClient] No active stream to cancel:', streamId);
+      return;
     }
 
-    console.log('[LLMClient] Stream complete, final state:', state);
-
-    return {
-      thinkingContent: thinkingContent.trim(),
-      documentContent: documentContent.trim(),
-      finishReason: finishReason
-    };
+    console.log('[LLMClient] Cancelling stream:', streamId);
+    
+    // Abort the fetch request
+    streamInfo.abortController.abort();
+    
+    // Cancel the reader if available
+    if (streamInfo.reader) {
+      streamInfo.reader.cancel().catch(err => {
+        console.error('[LLMClient] Error cancelling reader:', err);
+      });
+    }
+    
+    // Remove from active streams
+    this.activeStreams.delete(streamId);
+    
+    console.log('[LLMClient] Stream cancelled successfully:', streamId);
   }
 }

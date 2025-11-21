@@ -390,6 +390,18 @@ async function deleteJob() {
     // Get all jobs from storage
     const result = await chrome.storage.local.get(['jobs', 'jobInFocus']);
     const jobs = result.jobs || {};
+    const job = jobs[currentJobId];
+    
+    // If job is currently extracting, cancel the extraction
+    if (job && job.isExtracting) {
+      console.log(`[Side Panel] Cancelling extraction for job ${currentJobId}`);
+      chrome.runtime.sendMessage({
+        action: 'cancelExtraction',
+        jobId: currentJobId
+      }).catch(err => {
+        console.error('[Side Panel] Failed to send cancellation:', err);
+      });
+    }
     
     // Delete the job
     delete jobs[currentJobId];

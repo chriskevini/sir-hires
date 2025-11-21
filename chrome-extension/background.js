@@ -9,6 +9,10 @@ import { llmConfig } from './job-details/config.js';
 // This interval pings storage every 20 seconds to keep it alive
 let globalKeepAliveInterval = null;
 
+// Track active extractions for cancellation
+// Map: jobId → { llmClient, streamId }
+const activeExtractions = new Map();
+
 function startGlobalKeepAlive() {
   if (globalKeepAliveInterval) {
     return; // Already running
@@ -283,6 +287,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     // Start streaming in background (don't await)
     (async () => {
+      const streamId = jobId; // Use jobId as streamId for tracking
+      
       try {
         console.log('[Background] Starting LLM streaming for job:', jobId);
 
@@ -292,12 +298,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           modelsEndpoint: llmSettings.modelsEndpoint
         });
 
+        // Store in activeExtractions for cancellation
+        activeExtractions.set(jobId, { llmClient, streamId });
+
         // Prepare prompts from config
         const systemPrompt = llmConfig.synthesis.prompts.jobExtractor.trim();
         const userPrompt = rawText;
 
         // Stream completion with callbacks
         const result = await llmClient.streamCompletion({
+          streamId: streamId, // Pass streamId for cancellation tracking
           model: llmSettings.model,
           systemPrompt: systemPrompt,
           userPrompt: userPrompt,
@@ -319,6 +329,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             });
           }
         });
+
+        // Check if stream was cancelled
+        if (result.cancelled) {
+          console.log('[Background] Streaming extraction cancelled for job:', jobId);
+          chrome.runtime.sendMessage({
+            action: 'extractionCancelled',
+            jobId: jobId
+          }).catch(err => {
+            console.error('[Background] Failed to send cancellation to sidepanel:', err);
+          });
+          return;
+        }
 
         // Send completion message
         chrome.runtime.sendMessage({
@@ -343,12 +365,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           console.error('[Background] Failed to send error to sidepanel:', err);
         });
       } finally {
+        // Clean up activeExtractions
+        activeExtractions.delete(jobId);
+        
         // Stop global keepalive when done
         stopGlobalKeepAlive();
       }
     })();
     
     return true; // Keep message channel open for async response
+  }
+
+  if (request.action === 'cancelExtraction') {
+    // Handle cancellation of ongoing extraction
+    const { jobId } = request;
+    console.log('[Background] Received cancellation request for job:', jobId);
+    
+    const extraction = activeExtractions.get(jobId);
+    if (extraction) {
+      const { llmClient, streamId } = extraction;
+      console.log('[Background] Cancelling stream:', streamId);
+      llmClient.cancelStream(streamId);
+      sendResponse({ success: true, message: 'Extraction cancelled' });
+    } else {
+      console.log('[Background] No active extraction found for job:', jobId);
+      sendResponse({ success: false, message: 'No active extraction found' });
+    }
+    
+    return true;
   }
 });
 

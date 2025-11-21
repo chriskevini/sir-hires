@@ -125,6 +125,33 @@ export default defineContentScript({
     });
     ```
 
+### Code Quality & Linting
+This project uses **ESLint** and **Prettier** to enforce code quality and consistent formatting.
+
+* **ESLint Configuration:** `eslint.config.js` (Flat config format)
+  * Enforces TypeScript best practices
+  * React hooks rules (rules-of-hooks, exhaustive-deps)
+  * Warns on unused variables (prefix with `_` to ignore)
+  * Warns on `any` types
+  * Console statements allowed: `console.warn`, `console.error`, `console.info`
+
+* **Prettier Configuration:** `.prettierrc`
+  * Semicolons: required
+  * Quotes: single quotes
+  * Tab width: 2 spaces
+  * Trailing commas: ES5
+  * Print width: 80 characters
+  * Arrow function parens: always
+
+* **Available Scripts:**
+  * `npm run lint` - Check for linting errors
+  * `npm run lint:fix` - Auto-fix linting errors
+  * `npm run format` - Format all code with Prettier
+  * `npm run format:check` - Check if code is formatted
+  * `npm run validate` - Run both lint and format checks
+
+* **Best Practice:** Run `npm run lint:fix && npm run format` before committing code.
+
 ## 4. Workflow & CI/CD
 
 ### Development
@@ -179,7 +206,16 @@ When generating code for this project, strictly adhere to these rules:
     * **ALWAYS** use `export default` for entrypoint definitions.
     * **ALWAYS** use `browser.*` API, never `chrome.*`.
     * **USE** React Functional Components.
+    * **USE** ES modules (`export`/`import`) instead of CommonJS (`module.exports`/`require`).
 
-4.  **Debugging:**
+4.  **Code Quality:**
+    * Follow the Prettier formatting rules (2 spaces, single quotes, semicolons, 80 char width).
+    * Avoid `any` types where possible - use proper TypeScript types.
+    * Prefix unused variables with `_` if they're intentionally unused.
+    * Use `console.warn`, `console.error`, or `console.info` for logging (not `console.log`).
+    * After significant code changes, run `npm run lint:fix && npm run format`.
+
+5.  **Debugging:**
     * If "RollupError" occurs, check if shared React components were accidentally placed inside `entrypoints/`. Move them to `components/`.
     * Ensure `cssInjectionMode: 'ui'` is set if using `createShadowRootUi`.
+    * If you see "is not exported by" errors, verify the file uses ES module exports, not CommonJS.

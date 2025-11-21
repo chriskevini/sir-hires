@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { statusOrder, progressConfig } from '../config';
 import type { ChecklistItem } from '../hooks';
 
-interface ChecklistComponentProps {
+interface ChecklistProps {
   checklist: Record<string, ChecklistItem[]>;
   status: string;
   jobIndex: number;
@@ -12,7 +12,7 @@ interface ChecklistComponentProps {
   onToggleItem: (index: number, itemId: string) => void;
 }
 
-export const ChecklistComponent: React.FC<ChecklistComponentProps> = ({
+export const Checklist: React.FC<ChecklistProps> = ({
   checklist,
   status,
   jobIndex,

@@ -1,0 +1,457 @@
+import React, { useState, useEffect } from 'react';
+import { llmConfig } from '../config';
+import { LLMClient } from '../../../utils/llm-client';
+import type { Job } from '../hooks';
+
+interface SynthesisModalProps {
+  isOpen: boolean;
+  job: Job | null;
+  jobIndex: number | null;
+  documentKey: string | null;
+  onClose: () => void;
+  onGenerate: (
+    jobIndex: number,
+    documentKey: string,
+    result: {
+      content: string;
+      thinkingContent: string;
+      truncated: boolean;
+      currentTokens: number;
+    }
+  ) => void;
+  onGenerationStart?: (jobIndex: number, documentKey: string) => void;
+  onThinkingUpdate?: (documentKey: string, delta: string) => void;
+  onDocumentUpdate?: (documentKey: string, delta: string) => void;
+  onError?: (jobIndex: number, documentKey: string, error: Error) => void;
+}
+
+interface Model {
+  id: string;
+}
+
+export const SynthesisModal: React.FC<SynthesisModalProps> = ({
+  isOpen,
+  job,
+  jobIndex,
+  documentKey,
+  onClose,
+  onGenerate,
+  onGenerationStart,
+  onThinkingUpdate,
+  onDocumentUpdate,
+  onError,
+}) => {
+  const [availableModels, setAvailableModels] = useState<Model[]>([]);
+  const [selectedModel, setSelectedModel] = useState(
+    llmConfig.synthesis.defaultModel
+  );
+  const [maxTokens, setMaxTokens] = useState(2000);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [userProfile, setUserProfile] = useState('');
+  const [hasExistingContent, setHasExistingContent] = useState(false);
+  const [llmClient] = useState(
+    () =>
+      new LLMClient({
+        endpoint: llmConfig.synthesis.endpoint,
+        modelsEndpoint: llmConfig.synthesis.modelsEndpoint,
+      })
+  );
+
+  // Fetch available models when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchAvailableModels();
+      fetchUserProfile();
+      checkExistingContent();
+    }
+  }, [isOpen, job, documentKey]);
+
+  const fetchAvailableModels = async () => {
+    const models = await llmClient.fetchModels();
+    setAvailableModels(models);
+
+    // Set default model if available
+    if (models.length > 0 && !models.find((m) => m.id === selectedModel)) {
+      setSelectedModel(models[0].id);
+    }
+  };
+
+  const fetchUserProfile = async () => {
+    const result = await browser.storage.local.get(['userProfile']);
+    const profile = result.userProfile?.content || '';
+    setUserProfile(profile);
+  };
+
+  const checkExistingContent = () => {
+    if (job && documentKey) {
+      const existingContent = job.documents?.[documentKey]?.text || '';
+      setHasExistingContent(existingContent.trim().length > 0);
+    }
+  };
+
+  const buildContext = async () => {
+    if (!job) return {};
+
+    return {
+      masterResume: userProfile || 'Not provided',
+      jobTitle: job.jobTitle || 'Not provided',
+      company: job.company || 'Not provided',
+      aboutJob: job.aboutJob || 'Not provided',
+      aboutCompany: job.aboutCompany || 'Not provided',
+      responsibilities: job.responsibilities || 'Not provided',
+      requirements: job.requirements || 'Not provided',
+      narrativeStrategy: job.narrativeStrategy || 'Not provided',
+      currentDraft: job.documents?.[documentKey || '']?.text || '',
+    };
+  };
+
+  const buildUserPrompt = (context: Record<string, string>) => {
+    const sections = [];
+
+    if (context.masterResume && context.masterResume !== 'Not provided') {
+      sections.push(`[MASTER RESUME]\n${context.masterResume}`);
+    }
+
+    if (context.jobTitle && context.jobTitle !== 'Not provided') {
+      sections.push(`[JOB TITLE]\n${context.jobTitle}`);
+    }
+
+    if (context.company && context.company !== 'Not provided') {
+      sections.push(`[COMPANY]\n${context.company}`);
+    }
+
+    if (context.aboutJob && context.aboutJob !== 'Not provided') {
+      sections.push(`[ABOUT THE JOB]\n${context.aboutJob}`);
+    }
+
+    if (context.aboutCompany && context.aboutCompany !== 'Not provided') {
+      sections.push(`[ABOUT THE COMPANY]\n${context.aboutCompany}`);
+    }
+
+    if (
+      context.responsibilities &&
+      context.responsibilities !== 'Not provided'
+    ) {
+      sections.push(`[RESPONSIBILITIES]\n${context.responsibilities}`);
+    }
+
+    if (context.requirements && context.requirements !== 'Not provided') {
+      sections.push(`[REQUIREMENTS]\n${context.requirements}`);
+    }
+
+    if (
+      context.narrativeStrategy &&
+      context.narrativeStrategy !== 'Not provided'
+    ) {
+      sections.push(`[NARRATIVE STRATEGY]\n${context.narrativeStrategy}`);
+    }
+
+    if (context.currentDraft && context.currentDraft !== 'Not provided') {
+      sections.push(`[CURRENT DRAFT]\n${context.currentDraft}`);
+    }
+
+    return (
+      sections.join('\n\n') +
+      '\n\nSynthesize the document now, strictly following the STREAMING PROTOCOL.'
+    );
+  };
+
+  const synthesizeDocument = async (
+    systemPrompt: string,
+    userPrompt: string
+  ) => {
+    const result = await llmClient.streamCompletion({
+      model: selectedModel,
+      systemPrompt,
+      userPrompt,
+      maxTokens,
+      temperature: llmConfig.synthesis.temperature,
+      onThinkingUpdate: onThinkingUpdate
+        ? (delta) => onThinkingUpdate(documentKey!, delta)
+        : undefined,
+      onDocumentUpdate: onDocumentUpdate
+        ? (delta) => onDocumentUpdate(documentKey!, delta)
+        : undefined,
+    });
+
+    const truncated = result.finishReason === 'length';
+
+    return {
+      content: result.documentContent,
+      thinkingContent: result.thinkingContent,
+      truncated: truncated,
+      currentTokens: maxTokens,
+    };
+  };
+
+  const handleGenerate = async () => {
+    if (!job || jobIndex === null || !documentKey) return;
+
+    if (maxTokens < 100 || maxTokens > 32000) {
+      alert('Max tokens must be between 100 and 32000');
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      // Build context data
+      const context = await buildContext();
+
+      // Build system prompt (from config) and user prompt (JIT)
+      const systemPrompt = llmConfig.synthesis.prompts.universal;
+      const userPrompt = buildUserPrompt(context);
+
+      // Capture these values before closing modal
+      const capturedJobIndex = jobIndex;
+      const capturedDocumentKey = documentKey;
+
+      // Close modal immediately so user can watch streaming
+      onClose();
+
+      // Notify that generation is starting (before stream begins)
+      if (onGenerationStart) {
+        onGenerationStart(capturedJobIndex, capturedDocumentKey);
+      }
+
+      // Synthesize document with system + user prompts and streaming callbacks
+      const result = await synthesizeDocument(systemPrompt, userPrompt);
+
+      // Check for truncation
+      if (result.truncated) {
+        console.warn('[SynthesisModal] Response truncated due to token limit');
+
+        // Show alert to user
+        alert(
+          `⚠️ Response was truncated due to token limit (${result.currentTokens} tokens).\n\n` +
+            `This often happens with thinking models that use reasoning before output.\n\n` +
+            `Please reopen the synthesis modal, increase "Max Tokens", and try again.`
+        );
+
+        // Still call onGenerate to save truncated content
+        onGenerate(capturedJobIndex, capturedDocumentKey, result);
+        return;
+      }
+
+      // Call callback with generated content
+      onGenerate(capturedJobIndex, capturedDocumentKey, result);
+    } catch (error) {
+      console.error('[SynthesisModal] Synthesis failed:', error);
+
+      if (jobIndex !== null && documentKey && onError) {
+        onError(jobIndex, documentKey, error as Error);
+      }
+
+      // Still show alert to user
+      alert(`Failed to generate document: ${(error as Error).message}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  const handleEscapeKey = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && isOpen) {
+      onClose();
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => document.removeEventListener('keydown', handleEscapeKey);
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  const hasUserProfile = userProfile.trim().length > 0;
+
+  // If no user profile, show only error warning + Cancel button
+  if (!hasUserProfile) {
+    return (
+      <div
+        className={`synthesis-modal-overlay ${isOpen ? 'visible' : ''}`}
+        onClick={handleOverlayClick}
+      >
+        <div className="synthesis-modal">
+          <div className="modal-header">
+            <h2>✨ Synthesize Document with LLM</h2>
+            <button className="modal-close-btn" onClick={onClose}>
+              &times;
+            </button>
+          </div>
+
+          <div className="modal-body">
+            <div className="error-warning">
+              <p>
+                ℹ️ <strong>Please create a profile before continuing.</strong>
+              </p>
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  window.location.href = '/profile.html';
+                }}
+              >
+                Create Profile
+              </button>
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <div
+              className="action-buttons-group"
+              style={{ marginLeft: 'auto' }}
+            >
+              <button className="btn-secondary" onClick={onClose}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // User profile exists - show full modal UI
+  const modelOptions =
+    availableModels.length > 0
+      ? availableModels.map((model) => (
+          <option key={model.id} value={model.id}>
+            {model.id}
+          </option>
+        ))
+      : [
+          <option key="default" value={llmConfig.synthesis.defaultModel}>
+            {llmConfig.synthesis.defaultModel} (not loaded)
+          </option>,
+        ];
+
+  const dataFields = [
+    { key: 'masterResume', label: 'Profile', value: userProfile },
+    { key: 'jobTitle', label: 'Job Title', value: job?.jobTitle },
+    { key: 'company', label: 'Company', value: job?.company },
+    { key: 'aboutJob', label: 'About Job', value: job?.aboutJob },
+    { key: 'aboutCompany', label: 'About Company', value: job?.aboutCompany },
+    {
+      key: 'responsibilities',
+      label: 'Responsibilities',
+      value: job?.responsibilities,
+    },
+    { key: 'requirements', label: 'Requirements', value: job?.requirements },
+    {
+      key: 'narrativeStrategy',
+      label: 'Narrative Strategy',
+      value: job?.narrativeStrategy,
+    },
+    {
+      key: 'currentDraft',
+      label: 'Current Draft',
+      value: job?.documents?.[documentKey || '']?.text,
+    },
+  ];
+
+  const missingFields = dataFields.filter(
+    (f) => !f.value || f.value.trim() === ''
+  );
+
+  return (
+    <div
+      className={`synthesis-modal-overlay ${isOpen ? 'visible' : ''}`}
+      onClick={handleOverlayClick}
+    >
+      <div className="synthesis-modal">
+        <div className="modal-header">
+          <h2>✨ Synthesize Document with LLM</h2>
+          <button className="modal-close-btn" onClick={onClose}>
+            &times;
+          </button>
+        </div>
+
+        <div className="modal-body">
+          <div className="data-checklist-section">
+            <label>Input Data Status:</label>
+            <ul className="data-checklist">
+              {dataFields.map((field) => {
+                const isFilled = field.value && field.value.trim().length > 0;
+                const bulletClass = isFilled
+                  ? 'data-bullet-filled'
+                  : 'data-bullet-empty';
+                const bulletIcon = isFilled ? '✓' : '○';
+                return (
+                  <li key={field.key} className="data-checklist-item">
+                    <span className={bulletClass}>{bulletIcon}</span>
+                    <span className="data-field-label">{field.label}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          <div className="existing-content-info">
+            <p>
+              💡 <strong>Tip:</strong> You can paste your own document to be
+              used as a template during synthesis.
+            </p>
+          </div>
+
+          {missingFields.length > 0 && (
+            <div className="missing-fields-warning">
+              <p>
+                ⚠️{' '}
+                <strong>
+                  {missingFields.length} field
+                  {missingFields.length === 1 ? ' is' : 's are'} missing.
+                </strong>{' '}
+                We recommend doing more research for better document synthesis.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="modal-footer">
+          <div className="model-selector-group">
+            <label htmlFor="synthesisModelSelect">Model:</label>
+            <select
+              id="synthesisModelSelect"
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+            >
+              {modelOptions}
+            </select>
+            {availableModels.length === 0 && (
+              <span className="model-warning">⚠️ No models loaded</span>
+            )}
+          </div>
+          <div className="max-tokens-group">
+            <label htmlFor="synthesisMaxTokens">Max Tokens:</label>
+            <input
+              type="number"
+              id="synthesisMaxTokens"
+              value={maxTokens}
+              onChange={(e) => setMaxTokens(parseInt(e.target.value) || 2000)}
+              min={100}
+              max={32000}
+              step={100}
+            />
+          </div>
+          <div className="action-buttons-group">
+            <button className="btn-secondary" onClick={onClose}>
+              Cancel
+            </button>
+            <button
+              className="btn-primary"
+              onClick={handleGenerate}
+              disabled={isGenerating}
+            >
+              {isGenerating ? '⏳ Generating...' : 'Generate'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

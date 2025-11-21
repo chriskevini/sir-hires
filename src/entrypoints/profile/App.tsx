@@ -781,7 +781,8 @@ BULLETS:
   const hasInfo = validation.info.length > 0;
   const hasCustomFields = validation.customFields.length > 0;
   const hasCustomSections = validation.customSections.length > 0;
-  const customCount = validation.customFields.length + validation.customSections.length;
+  const customCount =
+    validation.customFields.length + validation.customSections.length;
 
   let editorClassName = '';
   if (hasErrors) {
@@ -824,7 +825,11 @@ BULLETS:
           <h1>Profile</h1>
         </div>
         <div className="header-right">
-          <span className={statusMessage ? 'last-saved unsaved-indicator' : 'last-saved'}>
+          <span
+            className={
+              statusMessage ? 'last-saved unsaved-indicator' : 'last-saved'
+            }
+          >
             {statusMessage ||
               (lastSavedTime
                 ? `Last saved: ${formatLastSavedTime(lastSavedTime)}`
@@ -885,10 +890,7 @@ BULLETS:
         >
           <div className="validation-header-left">
             <div className="validation-status">
-              <span
-                className="status-icon"
-                style={{ color: statusIconColor }}
-              >
+              <span className="status-icon" style={{ color: statusIconColor }}>
                 {statusIcon}
               </span>
               <span style={{ color: statusTextColor }}>{statusText}</span>

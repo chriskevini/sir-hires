@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function setupEventListeners() {
   document.getElementById('extractBtn').addEventListener('click', extractJobData);
+  document.getElementById('openAppBtn').addEventListener('click', openApp);
   document.getElementById('openSidePanelBtn').addEventListener('click', openSidePanel);
   document.getElementById('settingsBtn').addEventListener('click', toggleSettings);
   document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
@@ -46,6 +47,27 @@ async function extractJobData() {
   extractBtn.textContent = 'Extracting...';
 
   try {
+    // Get LLM settings first
+    const result = await chrome.storage.local.get(['llmSettings']);
+    const llmSettings = result.llmSettings || {
+      endpoint: 'http://localhost:1234/v1/chat/completions',
+      modelsEndpoint: 'http://localhost:1234/v1/models',
+      model: '',
+      maxTokens: 2000,
+      temperature: 0.3,
+      enabled: true
+    };
+
+    // Check if LLM endpoint is configured
+    if (!llmSettings.endpoint || llmSettings.endpoint.trim() === '') {
+      showStatus('⚠️ LLM endpoint not configured. Please configure settings first.', 'error');
+      extractBtn.disabled = false;
+      extractBtn.textContent = 'Extract Job Data';
+      // Auto-open settings panel to help user
+      document.getElementById('settingsSection').classList.remove('hidden');
+      return;
+    }
+
     // Open side panel FIRST before extraction (but don't close popup yet)
     await openSidePanel(false);
     
@@ -60,162 +82,196 @@ async function extractJobData() {
       return;
     }
 
-    // Get LLM settings
-    const result = await chrome.storage.local.get(['llmSettings']);
-    const llmSettings = result.llmSettings || {
-      enabled: true, // Default to ON
-      endpoint: 'http://localhost:1234/v1/chat/completions',
-      model: ''
-    };
-
+    // LLM-only extraction: streaming extraction is the only supported method
     try {
-      // Try to send message to content script
+      // First, get URL from content script to check for duplicates
+      const preCheckResponse = await chrome.tabs.sendMessage(tab.id, { 
+        action: 'getJobUrl'
+      });
+      
+      let jobId;
+      
+      if (preCheckResponse && preCheckResponse.url) {
+        // Check if job with this URL already exists
+        const storageResult = await chrome.storage.local.get(['jobs']);
+        const jobs = storageResult.jobs || {};
+        
+        const existingJobId = Object.keys(jobs).find(id => {
+          const job = jobs[id];
+          return job.url && normalizeUrl(job.url) === normalizeUrl(preCheckResponse.url);
+        });
+        
+        if (existingJobId) {
+          // Reuse existing job ID for re-extraction
+          jobId = existingJobId;
+          console.log('[Popup] Re-extracting existing job:', existingJobId);
+        } else {
+          // Generate new job ID for new extraction
+          jobId = generateJobId();
+          console.log('[Popup] Creating new job extraction:', jobId);
+        }
+      } else {
+        // Fallback: generate new ID if URL check fails
+        jobId = generateJobId();
+        console.log('[Popup] URL check failed, generating new job ID:', jobId);
+      }
+      
+      // Try to send streaming extraction message to content script
       const response = await chrome.tabs.sendMessage(tab.id, { 
-        action: 'extractJobData',
-        llmSettings: llmSettings
+        action: 'streamExtractJobData',
+        llmSettings: llmSettings,
+        jobId: jobId
       });
 
       if (response && response.success) {
-        // Immediately save the job and set as focus
-        await saveExtractedJob(response.data, response.usedLlm);
+        const extractionJobId = response.jobId;
         
-        // Show success message
-        if (response.usedLlm) {
-          showStatus('✨ Job extracted with LLM and saved!', 'success');
-        } else if (response.data.extractionNote) {
-          showStatus('⚠️ Job extracted and saved. ' + response.data.extractionNote, 'warning');
-        } else {
-          showStatus('✓ Job extracted and saved!', 'success');
-        }
+        // Step 1: Send direct message to sidepanel to prepare for extraction
+        // This ensures sidepanel creates placeholder BEFORE extraction starts
+        console.log('[Popup] Sending prepareForExtraction to sidepanel:', extractionJobId);
+        await chrome.runtime.sendMessage({
+          action: 'prepareForExtraction',
+          jobId: extractionJobId,
+          url: response.url,
+          source: response.source
+        }).catch(err => {
+          console.warn('[Popup] Failed to send prepareForExtraction (sidepanel may not be open):', err);
+        });
         
-        // Close popup after a brief delay to show the message
+        // Step 2: Set jobInFocus for main app's benefit (so it auto-selects this job)
+        await chrome.storage.local.set({ 
+          jobInFocus: extractionJobId 
+        });
+        console.log('[Popup] Set jobInFocus for main app:', extractionJobId);
+        
+        showStatus('✨ Starting extraction...', 'success');
+        
+        // Step 3: Send to background for streaming (wait for acknowledgment)
+        await chrome.runtime.sendMessage({
+          action: 'streamExtractJob',
+          jobId: extractionJobId,
+          url: response.url,
+          source: response.source,
+          rawText: response.rawText,
+          llmSettings: llmSettings
+        }).catch(err => {
+          console.error('[Popup] Failed to send streaming message:', err);
+        });
+        
+        showStatus('✨ Extraction in progress! Check side panel.', 'success');
+        
+        // Keep popup open longer to ensure background worker starts keepalive
+        // The worker needs time to receive message and establish keepalive interval
         setTimeout(() => {
           window.close();
-        }, 1500);
+        }, 1000);
       } else {
-        showStatus('Failed to extract job data. Make sure you are on a job posting page.', 'error');
+        throw new Error('Failed to start streaming extraction');
       }
     } catch (error) {
-      // Content script not loaded - inject it manually
-      console.log('Content script not found, injecting...');
+      console.error('[Popup] Streaming extraction failed, trying to inject content script:', error);
       
+      // Try injecting content script
       await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         files: ['content.js']
       });
 
-      // Wait a moment for the script to load
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Try again
+      // Check for duplicate URL again after script injection
+      const retryPreCheckResponse = await chrome.tabs.sendMessage(tab.id, { 
+        action: 'getJobUrl'
+      });
+      
+      let retryJobId;
+      
+      if (retryPreCheckResponse && retryPreCheckResponse.url) {
+        // Check if job with this URL already exists
+        const storageResult = await chrome.storage.local.get(['jobs']);
+        const jobs = storageResult.jobs || {};
+        
+        const existingJobId = Object.keys(jobs).find(id => {
+          const job = jobs[id];
+          return job.url && normalizeUrl(job.url) === normalizeUrl(retryPreCheckResponse.url);
+        });
+        
+        if (existingJobId) {
+          // Reuse existing job ID for re-extraction
+          retryJobId = existingJobId;
+          console.log('[Popup] Re-extracting existing job (after injection):', existingJobId);
+        } else {
+          // Generate new job ID for new extraction
+          retryJobId = generateJobId();
+          console.log('[Popup] Creating new job extraction (after injection):', retryJobId);
+        }
+      } else {
+        // Fallback: generate new ID if URL check fails
+        retryJobId = generateJobId();
+        console.log('[Popup] URL check failed after injection, generating new job ID:', retryJobId);
+      }
+
+      // Try streaming extraction again
       const response = await chrome.tabs.sendMessage(tab.id, { 
-        action: 'extractJobData',
-        llmSettings: llmSettings
+        action: 'streamExtractJobData',
+        llmSettings: llmSettings,
+        jobId: retryJobId
       });
 
       if (response && response.success) {
-        await saveExtractedJob(response.data, response.usedLlm);
+        // Set jobInFocus only (no minimal job creation in storage)
+        // Job will be created in storage by sidepanel when extraction completes
+        const retryExtractionJobId = response.jobId;
         
-        if (response.usedLlm) {
-          showStatus('✨ Job extracted with LLM and saved!', 'success');
-        } else {
-          showStatus('✓ Job extracted and saved!', 'success');
-        }
+        await chrome.storage.local.set({ 
+          jobInFocus: retryExtractionJobId 
+        });
         
+        console.log('[Popup] Set jobInFocus after script injection (in-memory extraction):', retryExtractionJobId);
+        
+        showStatus('✨ Starting extraction...', 'success');
+        
+        // Send to background for streaming (wait for acknowledgment)
+        await chrome.runtime.sendMessage({
+          action: 'streamExtractJob',
+          jobId: retryExtractionJobId,
+          url: response.url,
+          source: response.source,
+          rawText: response.rawText,
+          llmSettings: llmSettings
+        }).catch(err => {
+          console.error('[Popup] Failed to send streaming message:', err);
+        });
+        
+        showStatus('✨ Extraction in progress! Check side panel.', 'success');
+        
+        // Keep popup open longer to ensure background worker starts keepalive
         setTimeout(() => {
           window.close();
-        }, 1500);
+        }, 1000);
       } else {
-        showStatus('Failed to extract job data.', 'error');
+        throw new Error('Failed to start streaming extraction after injecting content script');
       }
     }
   } catch (error) {
     console.error('Error extracting job data:', error);
-    showStatus('Error: ' + error.message + '. Try refreshing the page and clicking the extension again.', 'error');
+    showStatus('Error: ' + error.message + '. Make sure LM Studio is running and configured correctly.', 'error');
   } finally {
     extractBtn.disabled = false;
     extractBtn.textContent = 'Extract Job Data';
   }
 }
 
-// Save extracted job immediately
-async function saveExtractedJob(jobData, usedLlm) {
-  // Remove extraction note if present
-  if (jobData.extractionNote) {
-    delete jobData.extractionNote;
-  }
-
-  // Validate required fields
-  if (!jobData.jobTitle || !jobData.company) {
-    throw new Error('Job Title and Company are required fields.');
-  }
-
+// Open main app (job-details.html)
+async function openApp() {
   try {
-    // Get existing jobs from storage (object format)
-    const result = await chrome.storage.local.get(['jobs']);
-    const jobs = result.jobs || {};
-
-    // Check for duplicate by URL
-    let existingJobId = null;
-    if (jobData.url) {
-      existingJobId = Object.keys(jobs).find(id => {
-        const job = jobs[id];
-        return job.url && normalizeUrl(job.url) === normalizeUrl(jobData.url);
-      });
-    }
-    
-    if (existingJobId) {
-      // Update existing job - preserve user's application tracking data
-      const existingJob = jobs[existingJobId];
-      const updatedJob = {
-        id: existingJobId,
-        ...jobData,
-        applicationStatus: existingJob.applicationStatus || 'Researching',
-        statusHistory: existingJob.statusHistory || [{
-          status: 'Researching',
-          timestamp: new Date().toISOString()
-        }],
-        checklist: existingJob.checklist || initializeAllChecklists(),
-        updatedAt: new Date().toISOString()
-      };
-      
-      jobs[existingJobId] = updatedJob;
-      
-      // Update jobs and set as jobInFocus
-      await chrome.storage.local.set({ 
-        jobs: jobs,
-        jobInFocus: existingJobId 
-      });
-      
-      console.log('Job updated:', existingJobId);
-    } else {
-      // New job - generate ID and add default status tracking
-      const jobId = generateJobId();
-      const newJob = {
-        id: jobId,
-        ...jobData,
-        applicationStatus: 'Researching',
-        statusHistory: [{
-          status: 'Researching',
-          timestamp: new Date().toISOString()
-        }],
-        checklist: initializeAllChecklists(),
-        updatedAt: new Date().toISOString()
-      };
-      
-      jobs[jobId] = newJob;
-      
-      // Save jobs and set as jobInFocus
-      await chrome.storage.local.set({ 
-        jobs: jobs,
-        jobInFocus: jobId 
-      });
-      
-      console.log('New job saved:', jobId);
-    }
+    const appUrl = chrome.runtime.getURL('job-details.html');
+    await chrome.tabs.create({ url: appUrl });
+    console.log('Opened app in new tab');
+    window.close();
   } catch (error) {
-    console.error('Error saving job:', error);
-    throw error;
+    console.error('Error opening app:', error);
+    showStatus('Could not open app: ' + error.message, 'error');
   }
 }
 
@@ -267,12 +323,13 @@ async function loadSettings() {
   try {
     const result = await chrome.storage.local.get(['llmSettings']);
     const settings = result.llmSettings || {
-      enabled: true, // Default to ON
       endpoint: 'http://localhost:1234/v1/chat/completions',
-      model: ''
+      modelsEndpoint: 'http://localhost:1234/v1/models',
+      model: '',
+      maxTokens: 2000,
+      temperature: 0.3
     };
 
-    document.getElementById('useLlmCheckbox').checked = settings.enabled;
     document.getElementById('llmEndpoint').value = settings.endpoint;
     document.getElementById('llmModel').value = settings.model || '';
   } catch (error) {
@@ -283,9 +340,11 @@ async function loadSettings() {
 async function saveSettings() {
   try {
     const settings = {
-      enabled: document.getElementById('useLlmCheckbox').checked,
       endpoint: document.getElementById('llmEndpoint').value.trim() || 'http://localhost:1234/v1/chat/completions',
-      model: document.getElementById('llmModel').value.trim()
+      modelsEndpoint: 'http://localhost:1234/v1/models',
+      model: document.getElementById('llmModel').value.trim(),
+      maxTokens: 2000,
+      temperature: 0.3
     };
 
     await chrome.storage.local.set({ llmSettings: settings });

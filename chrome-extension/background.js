@@ -1,5 +1,46 @@
 // Background service worker for the extension
 
+// Import LLMClient for streaming extraction
+import { LLMClient } from './utils/llm-client.js';
+import { llmConfig } from './job-details/config.js';
+
+// Global keepalive to prevent service worker termination
+// Chrome terminates inactive service workers after ~30 seconds
+// This interval pings storage every 20 seconds to keep it alive
+let globalKeepAliveInterval = null;
+
+// Track active extractions for cancellation
+// Map: jobId → { llmClient, streamId }
+const activeExtractions = new Map();
+
+function startGlobalKeepAlive() {
+  if (globalKeepAliveInterval) {
+    return; // Already running
+  }
+  
+  console.log('[Background] Starting global keepalive');
+  
+  // Fire immediately first
+  chrome.storage.local.get(['_keepalive'], () => {
+    console.log('[Background] Global keepalive ping (immediate)');
+  });
+  
+  // Then continue every 20 seconds
+  globalKeepAliveInterval = setInterval(() => {
+    chrome.storage.local.get(['_keepalive'], () => {
+      console.log('[Background] Global keepalive ping');
+    });
+  }, 20000); // Ping every 20 seconds
+}
+
+function stopGlobalKeepAlive() {
+  if (globalKeepAliveInterval) {
+    console.log('[Background] Stopping global keepalive');
+    clearInterval(globalKeepAliveInterval);
+    globalKeepAliveInterval = null;
+  }
+}
+
 // Migration function: Convert snake_case properties to camelCase
 async function migrateStorageSchema() {
   return new Promise((resolve) => {
@@ -231,6 +272,138 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }
     })();
     return true; // Keep message channel open for async response
+  }
+
+  if (request.action === 'streamExtractJob') {
+    // Handle streaming job extraction with LLM
+    const { jobId, url, source, rawText, llmSettings } = request;
+    console.log('[Background] Received streaming extraction request for job:', jobId);
+    
+    // Start global keepalive BEFORE responding to ensure worker stays alive
+    startGlobalKeepAlive();
+    
+    // Immediately acknowledge receipt so popup can close
+    sendResponse({ success: true, message: 'Extraction started' });
+    
+    // Start streaming in background (don't await)
+    (async () => {
+      const streamId = jobId; // Use jobId as streamId for tracking
+      
+      try {
+        console.log('[Background] Starting LLM streaming for job:', jobId);
+
+        // Initialize LLM client
+        const llmClient = new LLMClient({
+          endpoint: llmSettings.endpoint,
+          modelsEndpoint: llmSettings.modelsEndpoint
+        });
+
+        // Store in activeExtractions for cancellation
+        activeExtractions.set(jobId, { llmClient, streamId });
+
+        // Send initial metadata to sidepanel (for creating in-memory job)
+        chrome.runtime.sendMessage({
+          action: 'extractionStarted',
+          jobId: jobId,
+          url: url,
+          source: source,
+          rawText: rawText
+        }).catch(err => {
+          console.error('[Background] Failed to send extraction start to sidepanel:', err);
+        });
+
+        // Prepare prompts from config
+        const systemPrompt = llmConfig.synthesis.prompts.jobExtractor.trim();
+        const userPrompt = rawText;
+
+        // Stream completion with callbacks
+        const result = await llmClient.streamCompletion({
+          streamId: streamId, // Pass streamId for cancellation tracking
+          model: llmSettings.model,
+          systemPrompt: systemPrompt,
+          userPrompt: userPrompt,
+          maxTokens: llmSettings.maxTokens || 2000,
+          temperature: llmSettings.temperature || 0.3,
+          onThinkingUpdate: (delta) => {
+            // Ignore thinking stream (we only care about the document)
+            console.log('[Background] Thinking:', delta.substring(0, 50) + '...');
+          },
+          onDocumentUpdate: (delta) => {
+            // Send document chunks to sidepanel
+            console.log('[Background] Sending chunk to sidepanel:', delta.substring(0, 50) + '...');
+            chrome.runtime.sendMessage({
+              action: 'extractionChunk',
+              jobId: jobId,
+              chunk: delta
+            }).catch(err => {
+              console.error('[Background] Failed to send chunk to sidepanel:', err);
+            });
+          }
+        });
+
+        // Check if stream was cancelled
+        if (result.cancelled) {
+          console.log('[Background] Streaming extraction cancelled for job:', jobId);
+          chrome.runtime.sendMessage({
+            action: 'extractionCancelled',
+            jobId: jobId
+          }).catch(err => {
+            console.error('[Background] Failed to send cancellation to sidepanel:', err);
+          });
+          return;
+        }
+
+        // Send completion message
+        chrome.runtime.sendMessage({
+          action: 'extractionComplete',
+          jobId: jobId,
+          fullContent: result.documentContent
+        }).catch(err => {
+          console.error('[Background] Failed to send completion to sidepanel:', err);
+        });
+
+        console.log('[Background] Streaming extraction completed for job:', jobId);
+
+      } catch (error) {
+        console.error('[Background] Streaming extraction failed:', error);
+        
+        // Send error to sidepanel
+        chrome.runtime.sendMessage({
+          action: 'extractionError',
+          jobId: jobId,
+          error: error.message
+        }).catch(err => {
+          console.error('[Background] Failed to send error to sidepanel:', err);
+        });
+      } finally {
+        // Clean up activeExtractions
+        activeExtractions.delete(jobId);
+        
+        // Stop global keepalive when done
+        stopGlobalKeepAlive();
+      }
+    })();
+    
+    return true; // Keep message channel open for async response
+  }
+
+  if (request.action === 'cancelExtraction') {
+    // Handle cancellation of ongoing extraction
+    const { jobId } = request;
+    console.log('[Background] Received cancellation request for job:', jobId);
+    
+    const extraction = activeExtractions.get(jobId);
+    if (extraction) {
+      const { llmClient, streamId } = extraction;
+      console.log('[Background] Cancelling stream:', streamId);
+      llmClient.cancelStream(streamId);
+      sendResponse({ success: true, message: 'Extraction cancelled' });
+    } else {
+      console.log('[Background] No active extraction found for job:', jobId);
+      sendResponse({ success: false, message: 'No active extraction found' });
+    }
+    
+    return true;
   }
 });
 

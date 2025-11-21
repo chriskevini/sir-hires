@@ -27,16 +27,16 @@ function escapeHtml(text) {
  */
 function formatAbsoluteDate(dateString) {
   if (!dateString) return '';
-  
+
   // If it's YYYY-MM-DD format, parse manually without timezone conversion
   const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (match) {
     const [, year, month, day] = match;
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return `${monthNames[parseInt(month) - 1]} ${parseInt(day)}, ${year}`;
   }
-  
+
   // Fallback: return original string if format is unexpected
   return dateString;
 }
@@ -48,26 +48,26 @@ function formatAbsoluteDate(dateString) {
  */
 function formatRelativeDate(dateString) {
   if (!dateString) return '';
-  
+
   // Parse YYYY-MM-DD manually to avoid timezone issues
   const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!match) return dateString; // Fallback to original if format unexpected
-  
+
   const [, year, month, day] = match;
   const jobDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
   const today = new Date();
   today.setHours(0, 0, 0, 0); // Reset to start of day for accurate comparison
   jobDate.setHours(0, 0, 0, 0);
-  
+
   // Calculate difference in days
   const diffTime = jobDate - today;
   const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-  
+
   // Format based on difference
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Tomorrow';
   if (diffDays === -1) return 'Yesterday';
-  
+
   // Future dates (deadlines)
   if (diffDays > 0) {
     if (diffDays < 7) return `In ${diffDays} days`;
@@ -77,7 +77,7 @@ function formatRelativeDate(dateString) {
     if (diffDays < 365) return `In ${Math.round(diffDays / 30)} months`;
     return `In ${Math.round(diffDays / 365)} years`;
   }
-  
+
   // Past dates (posted dates)
   const absDays = Math.abs(diffDays);
   if (absDays < 7) return `${absDays} days ago`;
@@ -117,17 +117,17 @@ function formatDate(dateString) {
  */
 function isoToDateInput(dateString) {
   if (!dateString) return '';
-  
+
   // If it's already YYYY-MM-DD format, return as-is
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
     return dateString;
   }
-  
+
   // If it's an ISO timestamp, extract the date part without timezone conversion
   if (/^\d{4}-\d{2}-\d{2}T/.test(dateString)) {
     return dateString.split('T')[0];
   }
-  
+
   return '';
 }
 
@@ -138,12 +138,12 @@ function isoToDateInput(dateString) {
  */
 function dateInputToISO(dateString) {
   if (!dateString) return '';
-  
+
   // Validate YYYY-MM-DD format
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
     return dateString;
   }
-  
+
   return '';
 }
 
@@ -204,11 +204,11 @@ function showToast(message, type = 'info') {
     console.warn('Toast element not found in DOM');
     return;
   }
-  
+
   toast.textContent = message;
   toast.className = `toast ${type}`;
   toast.classList.remove('hidden');
-  
+
   // Auto-hide after 4 seconds
   setTimeout(() => {
     toast.classList.add('hidden');
@@ -262,7 +262,7 @@ function showStatus(message, type = 'info') {
     console.warn('Status element not found in DOM');
     return;
   }
-  
+
   statusDiv.textContent = message;
   statusDiv.className = `status ${type}`;
   statusDiv.classList.remove('hidden');

@@ -92,7 +92,10 @@ npm run format
 npm run validate
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for comprehensive development guidelines.
+**Documentation:**
+- [DEVELOPMENT.md](DEVELOPMENT.md) - Quick reference for daily development
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Comprehensive contribution guidelines
+- [Testing Guide](chrome-extension/__tests__/README.md) - Testing best practices
 
 ## Documentation
 

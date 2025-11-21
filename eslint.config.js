@@ -10,6 +10,7 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.webextensions,
+        ...globals.node,
         chrome: 'readonly',
         // Test globals
         describe: 'readonly',
@@ -42,6 +43,9 @@ export default [
       
       // Chrome extension specific
       'no-undef': 'error',
+      
+      // Allow CommonJS for compatibility (some files export both ways)
+      'no-restricted-globals': 'off',
     },
   },
   {

@@ -298,12 +298,10 @@ function getValidationSummary(validationResult) {
 // Short aliases for convenience
 const validateProfile = validateProfileTemplate;
 
-// Export functions for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    validateProfileTemplate,
-    validateProfile,
-    getValidationSummary,
-    PROFILE_SCHEMA,
-  };
-}
+// ES Module exports
+export {
+  validateProfileTemplate,
+  validateProfile,
+  getValidationSummary,
+  PROFILE_SCHEMA,
+};

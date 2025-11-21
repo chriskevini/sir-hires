@@ -205,14 +205,12 @@ function getTopLevelField(parsedProfile, fieldName) {
 // Short aliases for convenience
 const parseProfile = parseProfileTemplate;
 
-// Export functions for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    parseProfileTemplate,
-    parseProfile,
-    extractEducation,
-    extractExperience,
-    extractInterests,
-    getTopLevelField,
-  };
-}
+// ES Module exports
+export {
+  parseProfileTemplate,
+  parseProfile,
+  extractEducation,
+  extractExperience,
+  extractInterests,
+  getTopLevelField,
+};

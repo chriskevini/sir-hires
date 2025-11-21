@@ -21,19 +21,19 @@ export class ResearchingView extends BaseView {
   render(job, index) {
     // Check if job is currently being extracted (streaming in progress)
     const isExtracting = !!job.isExtracting;
-    
+
     if (isExtracting) {
       return this.renderExtractionState(job, index);
     }
-    
+
     // Check if job has extraction error
     if (job.extractionError) {
       return this.renderExtractionError(job, index);
     }
-    
+
     // Check if job has content field (new format)
     const hasContent = job.content && job.content.trim().length > 0;
-    
+
     if (!hasContent) {
       return this.renderMigrationPrompt(job, index);
     }
@@ -138,16 +138,16 @@ export class ResearchingView extends BaseView {
    */
   getCompleteLines(content) {
     if (!content) return '';
-    
+
     // Split by newlines
     const lines = content.split('\n');
-    
+
     // If last line is non-empty, it's incomplete (doesn't end with \n)
     // Remove it to only show complete lines
     if (lines.length > 0 && lines[lines.length - 1] !== '') {
       lines.pop();
     }
-    
+
     // Rejoin with newlines
     return lines.join('\n') + (lines.length > 0 ? '\n' : '');
   }
@@ -168,7 +168,9 @@ export class ResearchingView extends BaseView {
             <p class="error-message">${this.escapeHtml(job.extractionError)}</p>
           </div>
           
-          ${hasPartialContent ? `
+          ${
+            hasPartialContent
+              ? `
             <div class="extraction-partial">
               <div class="extraction-partial-header">
                 <strong>📄 Partial Content</strong>
@@ -176,14 +178,20 @@ export class ResearchingView extends BaseView {
               </div>
               <textarea id="jobEditor" class="job-markdown-editor" data-index="${index}">${this.escapeHtml(partialContent)}</textarea>
             </div>
-          ` : ''}
+          `
+              : ''
+          }
           
           <div class="job-actions" style="margin-top: 24px;">
-            ${job.url ? `
+            ${
+              job.url
+                ? `
               <a href="${this.escapeHtml(job.url)}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
                 Retry Extraction ↗
               </a>
-            ` : ''}
+            `
+                : ''
+            }
             <button class="btn btn-delete" data-index="${index}">Delete Job</button>
           </div>
         </div>
@@ -201,15 +209,19 @@ export class ResearchingView extends BaseView {
           <div class="migration-icon">⚠️</div>
           <h3>Job Needs Re-Extraction</h3>
           <p>This job was saved in an old format and needs to be re-extracted from the job posting.</p>
-          ${job.url ? `
+          ${
+            job.url
+              ? `
             <div class="migration-actions">
               <a href="${this.escapeHtml(job.url)}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
                 Re-Extract from Original Posting ↗
               </a>
             </div>
-          ` : `
+          `
+              : `
             <p class="migration-note">Unfortunately, the original job posting URL is not available. You may need to delete this job and extract it again if you can find the posting.</p>
-          `}
+          `
+          }
           <div class="job-actions" style="margin-top: 24px;">
             <button class="btn btn-delete" data-index="${index}">Delete This Job</button>
           </div>
@@ -259,22 +271,22 @@ CLOSING_DATE: 2025-12-31
   attachListeners(container, job, index, isExpanded = false) {
     // Check if job is currently being extracted
     const isExtracting = !!job.isExtracting;
-    
+
     // Always attach delete button listener (available in all states)
     const deleteBtn = container.querySelector('.btn-delete');
     if (deleteBtn) {
       const deleteHandler = () => this.handleDelete(index);
       this.trackListener(deleteBtn, 'click', deleteHandler);
     }
-    
+
     // Extraction state has no other interactive elements (just shows spinner and delete button)
     if (isExtracting) {
       return;
     }
-    
+
     // Check if job has extraction error
     const hasExtractionError = !!job.extractionError;
-    
+
     if (hasExtractionError) {
       // Attach editor if partial content exists
       const editor = container.querySelector('#jobEditor');
@@ -286,33 +298,40 @@ CLOSING_DATE: 2025-12-31
       }
       return;
     }
-    
+
     // Check if job has content
     const hasContent = job.content && job.content.trim().length > 0;
-    
+
     if (!hasContent) {
       // Migration prompt - only delete button (already attached above)
       return;
     }
 
     // Template toggle button
-    const templateToggleBtn = container.querySelector('[data-action="toggleTemplate"]');
+    const templateToggleBtn = container.querySelector(
+      '[data-action="toggleTemplate"]'
+    );
     if (templateToggleBtn) {
       const toggleHandler = () => this.handleToggleTemplate(container);
       this.trackListener(templateToggleBtn, 'click', toggleHandler);
     }
 
     // Template close button
-    const templateCloseBtn = container.querySelector('[data-action="closeTemplate"]');
+    const templateCloseBtn = container.querySelector(
+      '[data-action="closeTemplate"]'
+    );
     if (templateCloseBtn) {
       const closeHandler = () => this.handleCloseTemplate(container);
       this.trackListener(templateCloseBtn, 'click', closeHandler);
     }
 
     // Validation panel toggle
-    const validationHeader = container.querySelector('[data-action="toggleValidation"]');
+    const validationHeader = container.querySelector(
+      '[data-action="toggleValidation"]'
+    );
     if (validationHeader) {
-      const validationToggleHandler = () => this.handleToggleValidation(container);
+      const validationToggleHandler = () =>
+        this.handleToggleValidation(container);
       this.trackListener(validationHeader, 'click', validationToggleHandler);
     }
 
@@ -339,9 +358,9 @@ CLOSING_DATE: 2025-12-31
   handleToggleTemplate(container) {
     const panel = container.querySelector('#templatePanel');
     const btn = container.querySelector('[data-action="toggleTemplate"]');
-    
+
     this.isTemplateVisible = !this.isTemplateVisible;
-    
+
     if (this.isTemplateVisible) {
       panel.classList.remove('hidden');
       btn.textContent = 'Hide Template';
@@ -357,7 +376,7 @@ CLOSING_DATE: 2025-12-31
   handleCloseTemplate(container) {
     const panel = container.querySelector('#templatePanel');
     const btn = container.querySelector('[data-action="toggleTemplate"]');
-    
+
     this.isTemplateVisible = false;
     panel.classList.add('hidden');
     btn.textContent = 'Show Template';
@@ -369,9 +388,9 @@ CLOSING_DATE: 2025-12-31
   handleToggleValidation(container) {
     const panel = container.querySelector('#validationPanel');
     const toggle = container.querySelector('.validation-toggle');
-    
+
     this.isValidationPanelCollapsed = !this.isValidationPanelCollapsed;
-    
+
     if (this.isValidationPanelCollapsed) {
       panel.classList.add('collapsed');
       toggle.textContent = '▼';
@@ -407,7 +426,7 @@ CLOSING_DATE: 2025-12-31
   validateAndDisplay(content, container) {
     // Parse the job template
     const parsed = parseJobTemplate(content);
-    
+
     // Validate the parsed job
     const validation = validateJobTemplate(parsed);
     this.currentValidation = validation;
@@ -456,17 +475,24 @@ CLOSING_DATE: 2025-12-31
 
     // Update content
     const messages = [
-      ...validation.errors.map(e => ({ type: 'error', message: e.message })),
-      ...validation.warnings.map(w => ({ type: 'warning', message: w.message })),
-      ...validation.info.map(i => ({ type: 'info', message: i.message }))
+      ...validation.errors.map((e) => ({ type: 'error', message: e.message })),
+      ...validation.warnings.map((w) => ({
+        type: 'warning',
+        message: w.message,
+      })),
+      ...validation.info.map((i) => ({ type: 'info', message: i.message })),
     ];
 
     if (messages.length === 0) {
-      contentDiv.innerHTML = '<div class="validation-empty">No validation messages</div>';
+      contentDiv.innerHTML =
+        '<div class="validation-empty">No validation messages</div>';
     } else {
-      contentDiv.innerHTML = messages.map(m => 
-        `<div class="validation-message validation-${m.type}">${this.escapeHtml(m.message)}</div>`
-      ).join('');
+      contentDiv.innerHTML = messages
+        .map(
+          (m) =>
+            `<div class="validation-message validation-${m.type}">${this.escapeHtml(m.message)}</div>`
+        )
+        .join('');
     }
   }
 
@@ -475,7 +501,7 @@ CLOSING_DATE: 2025-12-31
    */
   async handleSaveContent(index, newContent) {
     const event = new CustomEvent('view:saveField', {
-      detail: { index, fieldName: 'content', value: newContent }
+      detail: { index, fieldName: 'content', value: newContent },
     });
     document.dispatchEvent(event);
 
@@ -487,7 +513,7 @@ CLOSING_DATE: 2025-12-31
    */
   handleDelete(index) {
     const event = new CustomEvent('view:deleteJob', {
-      detail: { index }
+      detail: { index },
     });
     document.dispatchEvent(event);
   }
@@ -505,24 +531,24 @@ CLOSING_DATE: 2025-12-31
     // Set up callbacks
     this.checklistComponent.setOnToggleExpand((jobIndex, isExpanded) => {
       const event = new CustomEvent('checklist:toggleExpand', {
-        detail: { index: jobIndex, isExpanded }
+        detail: { index: jobIndex, isExpanded },
       });
       document.dispatchEvent(event);
     });
 
     this.checklistComponent.setOnToggleItem((jobIndex, itemId) => {
       const event = new CustomEvent('checklist:toggleItem', {
-        detail: { index: jobIndex, itemId }
+        detail: { index: jobIndex, itemId },
       });
       document.dispatchEvent(event);
     });
-    
+
     // Update checklist
     this.checklistComponent.update(
       checklistContainer,
-      job.checklist, 
-      job.applicationStatus, 
-      index, 
+      job.checklist,
+      job.applicationStatus,
+      index,
       isExpanded,
       animate
     );
@@ -533,7 +559,7 @@ CLOSING_DATE: 2025-12-31
    */
   cleanup() {
     super.cleanup();
-    
+
     // Clear timers
     clearTimeout(this.validationDebounceTimer);
     clearTimeout(this.autoSaveTimer);

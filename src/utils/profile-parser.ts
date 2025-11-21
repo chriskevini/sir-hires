@@ -18,7 +18,7 @@ function parseProfileTemplate(content) {
       type: null,
       topLevelFields: {},
       sections: {},
-      raw: content || ''
+      raw: content || '',
     };
   }
 
@@ -27,7 +27,7 @@ function parseProfileTemplate(content) {
     type: null,
     topLevelFields: {},
     sections: {},
-    raw: content
+    raw: content,
   };
 
   let currentSection = null;
@@ -57,7 +57,7 @@ function parseProfileTemplate(content) {
       currentList = null;
       result.sections[currentSection] = {
         entries: {},
-        list: [] // For sections that are just lists (e.g., # INTERESTS:)
+        list: [], // For sections that are just lists (e.g., # INTERESTS:)
       };
       continue;
     }
@@ -70,7 +70,7 @@ function parseProfileTemplate(content) {
         currentList = null;
         result.sections[currentSection].entries[currentEntry] = {
           fields: {},
-          lists: {}
+          lists: {},
         };
       }
       continue;
@@ -80,13 +80,15 @@ function parseProfileTemplate(content) {
     if (trimmedLine.match(/^([A-Z_]+):$/)) {
       const listName = trimmedLine.match(/^([A-Z_]+):$/)[1];
       currentList = listName;
-      
+
       if (currentEntry && currentSection) {
         // List within an entry
-        result.sections[currentSection].entries[currentEntry].lists[listName] = [];
+        result.sections[currentSection].entries[currentEntry].lists[listName] =
+          [];
       } else if (currentSection) {
         // List within a section (no entry)
-        result.sections[currentSection].lists = result.sections[currentSection].lists || {};
+        result.sections[currentSection].lists =
+          result.sections[currentSection].lists || {};
         result.sections[currentSection].lists[listName] = [];
       }
       continue;
@@ -95,10 +97,12 @@ function parseProfileTemplate(content) {
     // Check for list item (- item)
     if (trimmedLine.match(/^-\s+(.+)$/)) {
       const itemValue = trimmedLine.match(/^-\s+(.+)$/)[1];
-      
+
       if (currentList && currentEntry && currentSection) {
         // List item within an entry
-        result.sections[currentSection].entries[currentEntry].lists[currentList].push(itemValue);
+        result.sections[currentSection].entries[currentEntry].lists[
+          currentList
+        ].push(itemValue);
       } else if (currentList && currentSection) {
         // List item within a section
         result.sections[currentSection].lists[currentList].push(itemValue);
@@ -122,10 +126,12 @@ function parseProfileTemplate(content) {
 
       if (currentEntry && currentSection) {
         // Field within an entry
-        result.sections[currentSection].entries[currentEntry].fields[key] = value;
+        result.sections[currentSection].entries[currentEntry].fields[key] =
+          value;
       } else if (currentSection) {
         // Field within a section (but not an entry)
-        result.sections[currentSection].fields = result.sections[currentSection].fields || {};
+        result.sections[currentSection].fields =
+          result.sections[currentSection].fields || {};
         result.sections[currentSection].fields[key] = value;
       } else {
         // Top-level field
@@ -149,9 +155,9 @@ function extractEducation(parsedProfile) {
   }
 
   const entries = parsedProfile.sections.EDUCATION.entries;
-  return Object.keys(entries).map(entryId => ({
+  return Object.keys(entries).map((entryId) => ({
     id: entryId,
-    ...entries[entryId].fields
+    ...entries[entryId].fields,
   }));
 }
 
@@ -166,10 +172,10 @@ function extractExperience(parsedProfile) {
   }
 
   const entries = parsedProfile.sections.EXPERIENCE.entries;
-  return Object.keys(entries).map(entryId => ({
+  return Object.keys(entries).map((entryId) => ({
     id: entryId,
     ...entries[entryId].fields,
-    bullets: entries[entryId].lists.BULLETS || []
+    bullets: entries[entryId].lists.BULLETS || [],
   }));
 }
 
@@ -207,6 +213,6 @@ if (typeof module !== 'undefined' && module.exports) {
     extractEducation,
     extractExperience,
     extractInterests,
-    getTopLevelField
+    getTopLevelField,
   };
 }

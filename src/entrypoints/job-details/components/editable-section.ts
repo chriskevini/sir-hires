@@ -32,7 +32,7 @@ export class EditableSection {
     const displayContent = this.value || this.placeholder;
     const hasContent = !!this.value;
     const editableAttr = this.readonly ? '' : 'contenteditable="true"';
-    
+
     return `
       <div class="job-section editable-section" data-field="${this.escapeHtml(this.fieldName)}">
         <h3 class="section-title">
@@ -53,18 +53,18 @@ export class EditableSection {
    */
   attachListeners(element) {
     if (!element || this.readonly) return;
-    
+
     this.element = element;
     this.indicator = element.querySelector('.save-indicator');
     const contentDiv = element.querySelector('.section-content');
-    
+
     if (!contentDiv) return;
 
     // Hover effect
     contentDiv.addEventListener('mouseenter', () => {
       contentDiv.classList.add('editing-hover');
     });
-    
+
     contentDiv.addEventListener('mouseleave', () => {
       contentDiv.classList.remove('editing-hover');
     });
@@ -73,7 +73,7 @@ export class EditableSection {
     contentDiv.addEventListener('focus', () => {
       contentDiv.classList.add('editing-active');
       this.originalValue = contentDiv.textContent.trim();
-      
+
       // Select all text if it's a placeholder
       if (contentDiv.classList.contains('empty-content')) {
         setTimeout(() => {
@@ -90,7 +90,7 @@ export class EditableSection {
     contentDiv.addEventListener('blur', async () => {
       contentDiv.classList.remove('editing-active');
       const newValue = contentDiv.textContent.trim();
-      
+
       // Remove empty-content class if there's a value
       if (newValue) {
         contentDiv.classList.remove('empty-content');
@@ -98,7 +98,7 @@ export class EditableSection {
         contentDiv.classList.add('empty-content');
         contentDiv.textContent = this.placeholder;
       }
-      
+
       // Only save if value changed
       if (newValue !== this.originalValue && this.onSave) {
         await this.save(newValue);
@@ -128,13 +128,13 @@ export class EditableSection {
       await this.onSave(this.fieldName, newValue);
       this.value = newValue;
       this.showIndicator('saved', '✓');
-      
+
       // Hide after 2 seconds
       setTimeout(() => this.hideIndicator(), 2000);
     } catch (error) {
       console.error(`[EditableSection] Error saving ${this.fieldName}:`, error);
       this.showIndicator('error', '✗');
-      
+
       // Hide after 2 seconds
       setTimeout(() => this.hideIndicator(), 2000);
     }
@@ -147,7 +147,7 @@ export class EditableSection {
    */
   showIndicator(state, icon) {
     if (!this.indicator) return;
-    
+
     this.indicator.textContent = icon;
     this.indicator.className = `save-indicator ${state}`;
   }
@@ -157,7 +157,7 @@ export class EditableSection {
    */
   hideIndicator() {
     if (!this.indicator) return;
-    
+
     this.indicator.className = 'save-indicator';
     this.indicator.textContent = '';
   }

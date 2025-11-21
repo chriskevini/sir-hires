@@ -7,21 +7,21 @@ import { checklistTemplates } from '../../config';
  */
 function initializeAllChecklists() {
   const checklist = {};
-  
+
   // Create checklist arrays for each status
-  Object.keys(checklistTemplates).forEach(status => {
+  Object.keys(checklistTemplates).forEach((status) => {
     const template = checklistTemplates[status];
     const timestamp = Date.now();
-    
+
     // Create checklist items with unique IDs
     checklist[status] = template.map((templateItem, index) => ({
       id: `item_${timestamp}_${status}_${index}_${Math.random().toString(36).substr(2, 9)}`,
       text: templateItem.text,
       checked: false,
-      order: templateItem.order
+      order: templateItem.order,
     }));
   });
-  
+
   return checklist;
 }
 
@@ -33,12 +33,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function setupEventListeners() {
-  document.getElementById('extractBtn').addEventListener('click', extractJobData);
+  document
+    .getElementById('extractBtn')
+    .addEventListener('click', extractJobData);
   document.getElementById('openAppBtn').addEventListener('click', openApp);
-  document.getElementById('openSidePanelBtn').addEventListener('click', openSidePanel);
-  document.getElementById('settingsBtn').addEventListener('click', toggleSettings);
-  document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
-  document.getElementById('testLlmBtn').addEventListener('click', testLlmConnection);
+  document
+    .getElementById('openSidePanelBtn')
+    .addEventListener('click', openSidePanel);
+  document
+    .getElementById('settingsBtn')
+    .addEventListener('click', toggleSettings);
+  document
+    .getElementById('saveSettingsBtn')
+    .addEventListener('click', saveSettings);
+  document
+    .getElementById('testLlmBtn')
+    .addEventListener('click', testLlmConnection);
 }
 
 async function extractJobData() {
@@ -55,12 +65,15 @@ async function extractJobData() {
       model: '',
       maxTokens: 2000,
       temperature: 0.3,
-      enabled: true
+      enabled: true,
     };
 
     // Check if LLM endpoint is configured
     if (!llmSettings.endpoint || llmSettings.endpoint.trim() === '') {
-      showStatus('⚠️ LLM endpoint not configured. Please configure settings first.', 'error');
+      showStatus(
+        '⚠️ LLM endpoint not configured. Please configure settings first.',
+        'error'
+      );
       extractBtn.disabled = false;
       extractBtn.textContent = 'Extract Job Data';
       // Auto-open settings panel to help user
@@ -70,13 +83,22 @@ async function extractJobData() {
 
     // Open side panel FIRST before extraction (but don't close popup yet)
     await openSidePanel(false);
-    
+
     // Get the active tab
-    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
 
     // Check if we can access this tab
-    if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
-      showStatus('Cannot extract data from Chrome internal pages. Please navigate to a job posting.', 'error');
+    if (
+      tab.url.startsWith('chrome://') ||
+      tab.url.startsWith('chrome-extension://')
+    ) {
+      showStatus(
+        'Cannot extract data from Chrome internal pages. Please navigate to a job posting.',
+        'error'
+      );
       extractBtn.disabled = false;
       extractBtn.textContent = 'Extract Job Data';
       return;
@@ -85,22 +107,25 @@ async function extractJobData() {
     // LLM-only extraction: streaming extraction is the only supported method
     try {
       // First, get URL from content script to check for duplicates
-      const preCheckResponse = await browser.tabs.sendMessage(tab.id, { 
-        action: 'getJobUrl'
+      const preCheckResponse = await browser.tabs.sendMessage(tab.id, {
+        action: 'getJobUrl',
       });
-      
+
       let jobId;
-      
+
       if (preCheckResponse && preCheckResponse.url) {
         // Check if job with this URL already exists
         const storageResult = await browser.storage.local.get(['jobs']);
         const jobs = storageResult.jobs || {};
-        
-        const existingJobId = Object.keys(jobs).find(id => {
+
+        const existingJobId = Object.keys(jobs).find((id) => {
           const job = jobs[id];
-          return job.url && normalizeUrl(job.url) === normalizeUrl(preCheckResponse.url);
+          return (
+            job.url &&
+            normalizeUrl(job.url) === normalizeUrl(preCheckResponse.url)
+          );
         });
-        
+
         if (existingJobId) {
           // Reuse existing job ID for re-extraction
           jobId = existingJobId;
@@ -115,51 +140,61 @@ async function extractJobData() {
         jobId = generateJobId();
         console.log('[Popup] URL check failed, generating new job ID:', jobId);
       }
-      
+
       // Try to send streaming extraction message to content script
-      const response = await browser.tabs.sendMessage(tab.id, { 
+      const response = await browser.tabs.sendMessage(tab.id, {
         action: 'streamExtractJobData',
         llmSettings: llmSettings,
-        jobId: jobId
+        jobId: jobId,
       });
 
       if (response && response.success) {
         const extractionJobId = response.jobId;
-        
+
         // Step 1: Send direct message to sidepanel to prepare for extraction
         // This ensures sidepanel creates placeholder BEFORE extraction starts
-        console.log('[Popup] Sending prepareForExtraction to sidepanel:', extractionJobId);
-        await browser.runtime.sendMessage({
-          action: 'prepareForExtraction',
-          jobId: extractionJobId,
-          url: response.url,
-          source: response.source
-        }).catch(err => {
-          console.warn('[Popup] Failed to send prepareForExtraction (sidepanel may not be open):', err);
-        });
-        
+        console.log(
+          '[Popup] Sending prepareForExtraction to sidepanel:',
+          extractionJobId
+        );
+        await browser.runtime
+          .sendMessage({
+            action: 'prepareForExtraction',
+            jobId: extractionJobId,
+            url: response.url,
+            source: response.source,
+          })
+          .catch((err) => {
+            console.warn(
+              '[Popup] Failed to send prepareForExtraction (sidepanel may not be open):',
+              err
+            );
+          });
+
         // Step 2: Set jobInFocus for main app's benefit (so it auto-selects this job)
-        await browser.storage.local.set({ 
-          jobInFocus: extractionJobId 
+        await browser.storage.local.set({
+          jobInFocus: extractionJobId,
         });
         console.log('[Popup] Set jobInFocus for main app:', extractionJobId);
-        
+
         showStatus('✨ Starting extraction...', 'success');
-        
+
         // Step 3: Send to background for streaming (wait for acknowledgment)
-        await browser.runtime.sendMessage({
-          action: 'streamExtractJob',
-          jobId: extractionJobId,
-          url: response.url,
-          source: response.source,
-          rawText: response.rawText,
-          llmSettings: llmSettings
-        }).catch(err => {
-          console.error('[Popup] Failed to send streaming message:', err);
-        });
-        
+        await browser.runtime
+          .sendMessage({
+            action: 'streamExtractJob',
+            jobId: extractionJobId,
+            url: response.url,
+            source: response.source,
+            rawText: response.rawText,
+            llmSettings: llmSettings,
+          })
+          .catch((err) => {
+            console.error('[Popup] Failed to send streaming message:', err);
+          });
+
         showStatus('✨ Extraction in progress! Check side panel.', 'success');
-        
+
         // Keep popup open longer to ensure background worker starts keepalive
         // The worker needs time to receive message and establish keepalive interval
         setTimeout(() => {
@@ -169,93 +204,120 @@ async function extractJobData() {
         throw new Error('Failed to start streaming extraction');
       }
     } catch (error) {
-      console.error('[Popup] Streaming extraction failed, trying to inject content script:', error);
-      
+      console.error(
+        '[Popup] Streaming extraction failed, trying to inject content script:',
+        error
+      );
+
       // Try injecting content script
       await browser.scripting.executeScript({
         target: { tabId: tab.id },
-        files: ['content-scripts/content.js']
+        files: ['content-scripts/content.js'],
       });
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Check for duplicate URL again after script injection
-      const retryPreCheckResponse = await browser.tabs.sendMessage(tab.id, { 
-        action: 'getJobUrl'
+      const retryPreCheckResponse = await browser.tabs.sendMessage(tab.id, {
+        action: 'getJobUrl',
       });
-      
+
       let retryJobId;
-      
+
       if (retryPreCheckResponse && retryPreCheckResponse.url) {
         // Check if job with this URL already exists
         const storageResult = await browser.storage.local.get(['jobs']);
         const jobs = storageResult.jobs || {};
-        
-        const existingJobId = Object.keys(jobs).find(id => {
+
+        const existingJobId = Object.keys(jobs).find((id) => {
           const job = jobs[id];
-          return job.url && normalizeUrl(job.url) === normalizeUrl(retryPreCheckResponse.url);
+          return (
+            job.url &&
+            normalizeUrl(job.url) === normalizeUrl(retryPreCheckResponse.url)
+          );
         });
-        
+
         if (existingJobId) {
           // Reuse existing job ID for re-extraction
           retryJobId = existingJobId;
-          console.log('[Popup] Re-extracting existing job (after injection):', existingJobId);
+          console.log(
+            '[Popup] Re-extracting existing job (after injection):',
+            existingJobId
+          );
         } else {
           // Generate new job ID for new extraction
           retryJobId = generateJobId();
-          console.log('[Popup] Creating new job extraction (after injection):', retryJobId);
+          console.log(
+            '[Popup] Creating new job extraction (after injection):',
+            retryJobId
+          );
         }
       } else {
         // Fallback: generate new ID if URL check fails
         retryJobId = generateJobId();
-        console.log('[Popup] URL check failed after injection, generating new job ID:', retryJobId);
+        console.log(
+          '[Popup] URL check failed after injection, generating new job ID:',
+          retryJobId
+        );
       }
 
       // Try streaming extraction again
-      const response = await browser.tabs.sendMessage(tab.id, { 
+      const response = await browser.tabs.sendMessage(tab.id, {
         action: 'streamExtractJobData',
         llmSettings: llmSettings,
-        jobId: retryJobId
+        jobId: retryJobId,
       });
 
       if (response && response.success) {
         // Set jobInFocus only (no minimal job creation in storage)
         // Job will be created in storage by sidepanel when extraction completes
         const retryExtractionJobId = response.jobId;
-        
-        await browser.storage.local.set({ 
-          jobInFocus: retryExtractionJobId 
+
+        await browser.storage.local.set({
+          jobInFocus: retryExtractionJobId,
         });
-        
-        console.log('[Popup] Set jobInFocus after script injection (in-memory extraction):', retryExtractionJobId);
-        
+
+        console.log(
+          '[Popup] Set jobInFocus after script injection (in-memory extraction):',
+          retryExtractionJobId
+        );
+
         showStatus('✨ Starting extraction...', 'success');
-        
+
         // Send to background for streaming (wait for acknowledgment)
-        await browser.runtime.sendMessage({
-          action: 'streamExtractJob',
-          jobId: retryExtractionJobId,
-          url: response.url,
-          source: response.source,
-          rawText: response.rawText,
-          llmSettings: llmSettings
-        }).catch(err => {
-          console.error('[Popup] Failed to send streaming message:', err);
-        });
-        
+        await browser.runtime
+          .sendMessage({
+            action: 'streamExtractJob',
+            jobId: retryExtractionJobId,
+            url: response.url,
+            source: response.source,
+            rawText: response.rawText,
+            llmSettings: llmSettings,
+          })
+          .catch((err) => {
+            console.error('[Popup] Failed to send streaming message:', err);
+          });
+
         showStatus('✨ Extraction in progress! Check side panel.', 'success');
-        
+
         // Keep popup open longer to ensure background worker starts keepalive
         setTimeout(() => {
           window.close();
         }, 1000);
       } else {
-        throw new Error('Failed to start streaming extraction after injecting content script');
+        throw new Error(
+          'Failed to start streaming extraction after injecting content script'
+        );
       }
     }
   } catch (error) {
     console.error('Error extracting job data:', error);
-    showStatus('Error: ' + error.message + '. Make sure LM Studio is running and configured correctly.', 'error');
+    showStatus(
+      'Error: ' +
+        error.message +
+        '. Make sure LM Studio is running and configured correctly.',
+      'error'
+    );
   } finally {
     extractBtn.disabled = false;
     extractBtn.textContent = 'Extract Job Data';
@@ -281,7 +343,7 @@ async function openSidePanel(closePopup = true) {
     const currentWindow = await browser.windows.getCurrent();
     await browser.sidePanel.open({ windowId: currentWindow.id });
     console.log('Side panel opened');
-    
+
     // Close popup after opening side panel (only if requested)
     if (closePopup) {
       setTimeout(() => {
@@ -297,17 +359,28 @@ async function openSidePanel(closePopup = true) {
 // Check if current page is extractable (disable button on internal pages)
 async function checkIfExtractable() {
   try {
-    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
     const extractBtn = document.getElementById('extractBtn');
-    
+
     // Disable extraction on Chrome internal pages and extension pages (including job-details.html)
-    if (!tab || !tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+    if (
+      !tab ||
+      !tab.url ||
+      tab.url.startsWith('chrome://') ||
+      tab.url.startsWith('chrome-extension://')
+    ) {
       extractBtn.disabled = true;
       extractBtn.title = 'Cannot extract from this page';
-      
+
       // Show info message if on viewer page
       if (tab.url && tab.url.includes('job-details.html')) {
-        showStatus('You are viewing your saved jobs. Navigate to a job posting to extract data.', 'info');
+        showStatus(
+          'You are viewing your saved jobs. Navigate to a job posting to extract data.',
+          'info'
+        );
       }
     } else {
       extractBtn.disabled = false;
@@ -327,7 +400,7 @@ async function loadSettings() {
       modelsEndpoint: 'http://localhost:1234/v1/models',
       model: '',
       maxTokens: 2000,
-      temperature: 0.3
+      temperature: 0.3,
     };
 
     document.getElementById('llmEndpoint').value = settings.endpoint;
@@ -340,16 +413,18 @@ async function loadSettings() {
 async function saveSettings() {
   try {
     const settings = {
-      endpoint: document.getElementById('llmEndpoint').value.trim() || 'http://localhost:1234/v1/chat/completions',
+      endpoint:
+        document.getElementById('llmEndpoint').value.trim() ||
+        'http://localhost:1234/v1/chat/completions',
       modelsEndpoint: 'http://localhost:1234/v1/models',
       model: document.getElementById('llmModel').value.trim(),
       maxTokens: 2000,
-      temperature: 0.3
+      temperature: 0.3,
     };
 
     await browser.storage.local.set({ llmSettings: settings });
     showStatus('Settings saved successfully!', 'success');
-    
+
     // Hide settings panel after saving
     setTimeout(() => {
       document.getElementById('settingsSection').classList.add('hidden');
@@ -371,23 +446,23 @@ async function testLlmConnection() {
   testBtn.textContent = 'Testing...';
 
   try {
-    const endpoint = document.getElementById('llmEndpoint').value.trim() || 'http://localhost:1234/v1/chat/completions';
+    const endpoint =
+      document.getElementById('llmEndpoint').value.trim() ||
+      'http://localhost:1234/v1/chat/completions';
     const model = document.getElementById('llmModel').value.trim();
 
     const requestBody = {
       model: model || 'local-model',
-      messages: [
-        { role: 'user', content: 'Hello, this is a test message.' }
-      ],
+      messages: [{ role: 'user', content: 'Hello, this is a test message.' }],
       max_tokens: 50,
-      temperature: 0.7
+      temperature: 0.7,
     };
 
     // Use background script to make the request
     const response = await browser.runtime.sendMessage({
       action: 'callLLM',
       endpoint: endpoint,
-      requestBody: requestBody
+      requestBody: requestBody,
     });
 
     if (response.success) {
@@ -397,7 +472,12 @@ async function testLlmConnection() {
     }
   } catch (error) {
     console.error('Error testing LLM:', error);
-    showStatus('Connection failed: ' + error.message + '. Make sure LM Studio is running.', 'error');
+    showStatus(
+      'Connection failed: ' +
+        error.message +
+        '. Make sure LM Studio is running.',
+      'error'
+    );
   } finally {
     testBtn.disabled = false;
     testBtn.textContent = 'Test Connection';
@@ -405,13 +485,16 @@ async function testLlmConnection() {
 }
 
 // Helper function to show status messages
-function showStatus(message: string, type: 'success' | 'error' | 'info' = 'success') {
+function showStatus(
+  message: string,
+  type: 'success' | 'error' | 'info' = 'success'
+) {
   const statusDiv = document.getElementById('status');
   if (!statusDiv) return;
-  
+
   statusDiv.textContent = message;
   statusDiv.className = 'status';
-  
+
   if (type === 'error') {
     statusDiv.classList.add('error');
   } else if (type === 'info') {
@@ -419,9 +502,9 @@ function showStatus(message: string, type: 'success' | 'error' | 'info' = 'succe
   } else {
     statusDiv.classList.add('success');
   }
-  
+
   statusDiv.classList.remove('hidden');
-  
+
   // Auto-hide after 5 seconds (unless error)
   if (type !== 'error') {
     setTimeout(() => {

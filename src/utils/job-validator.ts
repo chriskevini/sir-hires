@@ -9,42 +9,48 @@
 const JOB_SCHEMA = {
   // Top-level required fields
   topLevelRequired: ['TITLE', 'COMPANY'],
-  
+
   // Top-level optional standard fields
   topLevelOptional: [
-    'ADDRESS', 
-    'REMOTE_TYPE', 
-    'SALARY_RANGE_MIN', 
-    'SALARY_RANGE_MAX', 
-    'EMPLOYMENT_TYPE', 
+    'ADDRESS',
+    'REMOTE_TYPE',
+    'SALARY_RANGE_MIN',
+    'SALARY_RANGE_MAX',
+    'EMPLOYMENT_TYPE',
     'EXPERIENCE_LEVEL',
-    'POSTED_DATE', 
-    'CLOSING_DATE'
+    'POSTED_DATE',
+    'CLOSING_DATE',
   ],
-  
+
   // Standard sections (all are list-based)
   standardSections: {
-    REQUIRED_SKILLS: { 
-      isList: true, 
-      required: true  // This section is required
+    REQUIRED_SKILLS: {
+      isList: true,
+      required: true, // This section is required
     },
-    DESCRIPTION: { 
-      isList: true 
+    DESCRIPTION: {
+      isList: true,
     },
-    PREFERRED_SKILLS: { 
-      isList: true 
+    PREFERRED_SKILLS: {
+      isList: true,
     },
-    ABOUT_COMPANY: { 
-      isList: true 
-    }
+    ABOUT_COMPANY: {
+      isList: true,
+    },
   },
-  
+
   // Enum field validation
   enums: {
     REMOTE_TYPE: ['ONSITE', 'REMOTE', 'HYBRID'],
-    EMPLOYMENT_TYPE: ['FULL-TIME', 'PART-TIME', 'CONTRACT', 'INTERNSHIP', 'COOP'],
-    EXPERIENCE_LEVEL: ['ENTRY', 'MID', 'SENIOR', 'LEAD']
-  }
+    EMPLOYMENT_TYPE: [
+      'FULL-TIME',
+      'PART-TIME',
+      'CONTRACT',
+      'INTERNSHIP',
+      'COOP',
+    ],
+    EXPERIENCE_LEVEL: ['ENTRY', 'MID', 'SENIOR', 'LEAD'],
+  },
 };
 
 /**
@@ -67,14 +73,14 @@ function validateJobTemplate(parsedJob) {
     warnings: [],
     info: [],
     customFields: [],
-    customSections: []
+    customSections: [],
   };
 
   if (!parsedJob) {
     result.valid = false;
     result.errors.push({
       type: 'invalid_input',
-      message: 'No parsed job provided'
+      message: 'No parsed job provided',
     });
     return result;
   }
@@ -83,13 +89,13 @@ function validateJobTemplate(parsedJob) {
   if (!parsedJob.type) {
     result.errors.push({
       type: 'missing_type',
-      message: 'Missing <JOB> type declaration at the start'
+      message: 'Missing <JOB> type declaration at the start',
     });
     result.valid = false;
   } else if (parsedJob.type !== 'JOB') {
     result.warnings.push({
       type: 'unexpected_type',
-      message: `Expected <JOB> but found <${parsedJob.type}>`
+      message: `Expected <JOB> but found <${parsedJob.type}>`,
     });
   }
 
@@ -103,14 +109,14 @@ function validateJobTemplate(parsedJob) {
   if (result.customFields.length > 0) {
     result.info.push({
       type: 'custom_fields',
-      message: `Your job includes ${result.customFields.length} custom field(s): ${result.customFields.join(', ')}. These are fully supported and will be preserved.`
+      message: `Your job includes ${result.customFields.length} custom field(s): ${result.customFields.join(', ')}. These are fully supported and will be preserved.`,
     });
   }
 
   if (result.customSections.length > 0) {
     result.info.push({
       type: 'custom_sections',
-      message: `Your job includes ${result.customSections.length} custom section(s): ${result.customSections.join(', ')}. These are fully supported and will be preserved.`
+      message: `Your job includes ${result.customSections.length} custom section(s): ${result.customSections.join(', ')}. These are fully supported and will be preserved.`,
     });
   }
 
@@ -125,19 +131,19 @@ function validateTopLevelFields(parsedJob, result) {
   const fieldNames = Object.keys(fields);
 
   // Check required fields
-  JOB_SCHEMA.topLevelRequired.forEach(requiredField => {
+  JOB_SCHEMA.topLevelRequired.forEach((requiredField) => {
     if (!fields[requiredField] || fields[requiredField].trim() === '') {
       result.errors.push({
         type: 'missing_required_field',
         field: requiredField,
-        message: `Required field "${requiredField}" is missing or empty`
+        message: `Required field "${requiredField}" is missing or empty`,
       });
       result.valid = false;
     }
   });
 
   // Validate enum fields
-  Object.keys(JOB_SCHEMA.enums).forEach(enumField => {
+  Object.keys(JOB_SCHEMA.enums).forEach((enumField) => {
     const value = fields[enumField];
     const allowedValues = JOB_SCHEMA.enums[enumField];
 
@@ -147,7 +153,7 @@ function validateTopLevelFields(parsedJob, result) {
         field: enumField,
         value: value,
         allowedValues: allowedValues,
-        message: `Invalid value "${value}" for ${enumField}. Allowed values: ${allowedValues.join(', ')}`
+        message: `Invalid value "${value}" for ${enumField}. Allowed values: ${allowedValues.join(', ')}`,
       });
       result.valid = false;
     }
@@ -155,10 +161,10 @@ function validateTopLevelFields(parsedJob, result) {
 
   // Identify custom fields
   const standardFields = [
-    ...JOB_SCHEMA.topLevelRequired, 
-    ...JOB_SCHEMA.topLevelOptional
+    ...JOB_SCHEMA.topLevelRequired,
+    ...JOB_SCHEMA.topLevelOptional,
   ];
-  fieldNames.forEach(fieldName => {
+  fieldNames.forEach((fieldName) => {
     if (!standardFields.includes(fieldName)) {
       result.customFields.push(fieldName);
     }
@@ -173,29 +179,29 @@ function validateSections(parsedJob, result) {
   const sectionNames = Object.keys(sections);
 
   // Check for required sections
-  Object.keys(JOB_SCHEMA.standardSections).forEach(sectionName => {
+  Object.keys(JOB_SCHEMA.standardSections).forEach((sectionName) => {
     const schema = JOB_SCHEMA.standardSections[sectionName];
-    
+
     if (schema.required) {
       if (!sections[sectionName]) {
         result.errors.push({
           type: 'missing_required_section',
           section: sectionName,
-          message: `Required section "${sectionName}" is missing`
+          message: `Required section "${sectionName}" is missing`,
         });
         result.valid = false;
       } else if (sections[sectionName].list.length === 0) {
         result.warnings.push({
           type: 'empty_section',
           section: sectionName,
-          message: `Required section "${sectionName}" is empty`
+          message: `Required section "${sectionName}" is empty`,
         });
       }
     }
   });
 
   // Validate each section
-  sectionNames.forEach(sectionName => {
+  sectionNames.forEach((sectionName) => {
     const section = sections[sectionName];
     const schema = JOB_SCHEMA.standardSections[sectionName];
 
@@ -224,7 +230,7 @@ function validateListSection(sectionName, section, result, isRequired) {
       result.warnings.push({
         type: 'empty_section',
         section: sectionName,
-        message: `Section "${sectionName}" is empty`
+        message: `Section "${sectionName}" is empty`,
       });
     }
   }
@@ -246,21 +252,21 @@ function getValidationSummary(validationResult) {
 
   if (validationResult.errors.length > 0) {
     parts.push(`\n\n🔴 Errors (${validationResult.errors.length}):`);
-    validationResult.errors.forEach(err => {
+    validationResult.errors.forEach((err) => {
       parts.push(`  - ${err.message}`);
     });
   }
 
   if (validationResult.warnings.length > 0) {
     parts.push(`\n\n🟡 Warnings (${validationResult.warnings.length}):`);
-    validationResult.warnings.forEach(warn => {
+    validationResult.warnings.forEach((warn) => {
       parts.push(`  - ${warn.message}`);
     });
   }
 
   if (validationResult.info.length > 0) {
     parts.push(`\n\nℹ️ Info (${validationResult.info.length}):`);
-    validationResult.info.forEach(info => {
+    validationResult.info.forEach((info) => {
       parts.push(`  - ${info.message}`);
     });
   }
@@ -272,9 +278,4 @@ function getValidationSummary(validationResult) {
 const validateJob = validateJobTemplate;
 
 // Export functions for use in other modules (ES6 modules)
-export {
-  validateJobTemplate,
-  validateJob,
-  getValidationSummary,
-  JOB_SCHEMA
-};
+export { validateJobTemplate, validateJob, getValidationSummary, JOB_SCHEMA };

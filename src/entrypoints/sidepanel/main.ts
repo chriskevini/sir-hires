@@ -1,7 +1,11 @@
 // Side panel script that manages the job in focus
 
 import { MainView } from '../job-details/main-view';
-import { checklistTemplates, parseJobTemplate, mapMarkdownFieldsToJob } from '../job-details/config';
+import {
+  checklistTemplates,
+  parseJobTemplate,
+  mapMarkdownFieldsToJob,
+} from '../job-details/config';
 
 let currentJobId = null;
 let currentJob = null;
@@ -14,7 +18,7 @@ let extractingJobData = null; // In-memory job data during extraction (before sa
 document.addEventListener('DOMContentLoaded', async () => {
   // Create MainView instance
   mainView = new MainView();
-  
+
   await loadJobInFocus();
   setupEventListeners();
   setupStorageListener();
@@ -24,14 +28,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function setupEventListeners() {
   // Footer buttons
-  document.getElementById('viewAllJobsBtn')?.addEventListener('click', async () => {
-    await browser.tabs.create({ url: 'job-details.html' });
-    // Close the side panel after opening viewer
-    window.close();
-  });
+  document
+    .getElementById('viewAllJobsBtn')
+    ?.addEventListener('click', async () => {
+      await browser.tabs.create({ url: 'job-details.html' });
+      // Close the side panel after opening viewer
+      window.close();
+    });
 
   // Restore backup button (in welcome state)
-  document.getElementById('restoreBackupBtn')?.addEventListener('click', restoreBackup);
+  document
+    .getElementById('restoreBackupBtn')
+    ?.addEventListener('click', restoreBackup);
 }
 
 // Setup event listeners for view custom events
@@ -55,37 +63,45 @@ function setupStorageListener() {
     if (area === 'local') {
       if (changes.jobInFocus || changes.jobs) {
         console.log('[Side Panel] Storage changed, reloading job in focus');
-        
+
         // Don't reload if this change was triggered by our own save
         if (isSavingLocally) {
-          console.log('[Side Panel] Change triggered by local save, skipping reload');
+          console.log(
+            '[Side Panel] Change triggered by local save, skipping reload'
+          );
           return;
         }
-        
+
         // Skip reload if current job is extracting (streaming handler manages UI updates)
         if (changes.jobs && currentJobId) {
           const updatedJob = changes.jobs.newValue?.[currentJobId];
           if (updatedJob?.isExtracting) {
-            console.log('[Side Panel] Job is extracting, skipping reload to prevent stream disruption');
+            console.log(
+              '[Side Panel] Job is extracting, skipping reload to prevent stream disruption'
+            );
             return;
           }
         }
-        
+
         // Check if user is currently editing a field
         const activeElement = document.activeElement;
-        const isEditing = activeElement && (
-          activeElement.contentEditable === 'true' ||
-          activeElement.classList.contains('inline-input') ||
-          activeElement.classList.contains('inline-select')
-        );
-        
+        const isEditing =
+          activeElement &&
+          (activeElement.contentEditable === 'true' ||
+            activeElement.classList.contains('inline-input') ||
+            activeElement.classList.contains('inline-select'));
+
         if (isEditing) {
           console.log('[Side Panel] User is editing, deferring reload');
           // Defer reload until after the current edit is done
-          activeElement.addEventListener('blur', () => {
-            // Add small delay to allow save to complete
-            setTimeout(() => loadJobInFocus(), 100);
-          }, { once: true });
+          activeElement.addEventListener(
+            'blur',
+            () => {
+              // Add small delay to allow save to complete
+              setTimeout(() => loadJobInFocus(), 100);
+            },
+            { once: true }
+          );
         } else {
           loadJobInFocus();
         }
@@ -100,7 +116,12 @@ function setupStreamListeners() {
     if (message.action === 'prepareForExtraction') {
       handlePrepareForExtraction(message.jobId, message.url, message.source);
     } else if (message.action === 'extractionStarted') {
-      handleExtractionStarted(message.jobId, message.url, message.source, message.rawText);
+      handleExtractionStarted(
+        message.jobId,
+        message.url,
+        message.source,
+        message.rawText
+      );
     } else if (message.action === 'extractionChunk') {
       handleExtractionChunk(message.jobId, message.chunk);
     } else if (message.action === 'extractionComplete') {
@@ -117,10 +138,10 @@ function setupStreamListeners() {
 // This ensures the Researching view (with textarea) is ready to receive streaming chunks
 function handlePrepareForExtraction(jobId, url, source) {
   console.log('[Side Panel] Preparing for extraction, job:', jobId);
-  
+
   // Update currentJobId to the extracting job
   currentJobId = jobId;
-  
+
   // Create minimal in-memory job structure (placeholder)
   extractingJobData = {
     id: jobId,
@@ -135,10 +156,12 @@ function handlePrepareForExtraction(jobId, url, source) {
     postedDate: '',
     deadline: '',
     applicationStatus: 'Researching',
-    statusHistory: [{
-      status: 'Researching',
-      timestamp: new Date().toISOString()
-    }],
+    statusHistory: [
+      {
+        status: 'Researching',
+        timestamp: new Date().toISOString(),
+      },
+    ],
     checklist: initializeAllChecklists(),
     content: '', // Will be populated by streaming chunks
     rawDescription: '', // Will be set by extractionStarted
@@ -147,33 +170,42 @@ function handlePrepareForExtraction(jobId, url, source) {
     responsibilities: '',
     requirements: '',
     isExtracting: true,
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   };
-  
+
   // Store as current job for display
   currentJob = extractingJobData;
-  
+
   // Display extraction UI immediately (creates textarea for streaming)
   displayJob(currentJob);
-  
-  console.log('[Side Panel] Created placeholder job, Researching view displayed:', jobId);
+
+  console.log(
+    '[Side Panel] Created placeholder job, Researching view displayed:',
+    jobId
+  );
 }
 
 // Handle extraction start - update placeholder job with raw text
 function handleExtractionStarted(jobId, url, source, rawText) {
   console.log('[Side Panel] Extraction started for job:', jobId);
-  
+
   if (jobId !== currentJobId) {
-    console.warn('[Side Panel] Extraction started for different job than expected');
+    console.warn(
+      '[Side Panel] Extraction started for different job than expected'
+    );
     // Fallback: create new placeholder if mismatch
     handlePrepareForExtraction(jobId, url, source);
   }
-  
+
   // Update placeholder job with raw text
   if (extractingJobData && extractingJobData.id === jobId) {
     extractingJobData.rawDescription = rawText;
     extractingJobData.updatedAt = new Date().toISOString();
-    console.log('[Side Panel] Updated placeholder job with raw text (', rawText.length, 'chars)');
+    console.log(
+      '[Side Panel] Updated placeholder job with raw text (',
+      rawText.length,
+      'chars)'
+    );
   } else {
     console.warn('[Side Panel] No placeholder job found, creating new one');
     // Fallback: create job if prepareForExtraction was missed
@@ -190,10 +222,12 @@ function handleExtractionStarted(jobId, url, source, rawText) {
       postedDate: '',
       deadline: '',
       applicationStatus: 'Researching',
-      statusHistory: [{
-        status: 'Researching',
-        timestamp: new Date().toISOString()
-      }],
+      statusHistory: [
+        {
+          status: 'Researching',
+          timestamp: new Date().toISOString(),
+        },
+      ],
       checklist: initializeAllChecklists(),
       content: '',
       rawDescription: rawText,
@@ -202,9 +236,9 @@ function handleExtractionStarted(jobId, url, source, rawText) {
       responsibilities: '',
       requirements: '',
       isExtracting: true,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
-    
+
     currentJob = extractingJobData;
     displayJob(currentJob);
   }
@@ -213,28 +247,35 @@ function handleExtractionStarted(jobId, url, source, rawText) {
 // Helper function to initialize all checklists (same as popup.js)
 function initializeAllChecklists() {
   const checklist = {};
-  
+
   // Create checklist arrays for each status
-  Object.keys(checklistTemplates).forEach(status => {
+  Object.keys(checklistTemplates).forEach((status) => {
     const template = checklistTemplates[status];
     const timestamp = Date.now();
-    
+
     // Create checklist items with unique IDs
     checklist[status] = template.map((templateItem, index) => ({
       id: `item_${timestamp}_${status}_${index}_${Math.random().toString(36).substr(2, 9)}`,
       text: templateItem.text,
       checked: false,
-      order: templateItem.order
+      order: templateItem.order,
     }));
   });
-  
+
   return checklist;
 }
 
 // Handle streaming extraction chunk
 async function handleExtractionChunk(jobId, chunk) {
-  console.log('[Side Panel] Received chunk for job:', jobId, 'current:', currentJobId, 'chunk:', chunk.substring(0, 50) + '...');
-  
+  console.log(
+    '[Side Panel] Received chunk for job:',
+    jobId,
+    'current:',
+    currentJobId,
+    'chunk:',
+    chunk.substring(0, 50) + '...'
+  );
+
   if (jobId !== currentJobId) {
     console.log('[Side Panel] Received chunk for different job, ignoring');
     return;
@@ -246,15 +287,18 @@ async function handleExtractionChunk(jobId, chunk) {
     const jobs = result.jobs || {};
     const storageJob = jobs[jobId];
 
-    console.log('[Side Panel] Chunk handler - job exists in storage:', !!storageJob);
+    console.log(
+      '[Side Panel] Chunk handler - job exists in storage:',
+      !!storageJob
+    );
 
     if (storageJob) {
       // Job exists in storage - this is a re-extraction, use storage-based flow
       console.log('[Side Panel] Re-extraction: updating job in storage');
-      
+
       // Set flag to prevent reload loop
       isSavingLocally = true;
-      
+
       // Append chunk to job.content field (full content for storage)
       storageJob.content = (storageJob.content || '') + chunk;
       storageJob.updatedAt = new Date().toISOString();
@@ -268,22 +312,24 @@ async function handleExtractionChunk(jobId, chunk) {
     } else {
       // Job NOT in storage - this is a new extraction, use in-memory flow
       console.log('[Side Panel] New extraction: using in-memory job');
-      
+
       if (!extractingJobData) {
-        console.warn('[Side Panel] No in-memory job data, creating minimal structure');
+        console.warn(
+          '[Side Panel] No in-memory job data, creating minimal structure'
+        );
         // Fallback: create minimal structure if extractionStarted was missed
         extractingJobData = {
           id: jobId,
           content: '',
           isExtracting: true,
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
         };
       }
-      
+
       // Append chunk to in-memory job
       extractingJobData.content = (extractingJobData.content || '') + chunk;
       extractingJobData.updatedAt = new Date().toISOString();
-      
+
       // Update local reference
       currentJob = extractingJobData;
     }
@@ -295,39 +341,45 @@ async function handleExtractionChunk(jobId, chunk) {
       // partial tokens like "COMP" or ">" during streaming.
       // This ensures user never sees incomplete keys or broken markdown syntax.
       streamBuffer += chunk;
-      
+
       // Split by newlines - lines array will have complete lines, last element is incomplete
       const lines = streamBuffer.split('\n');
-      
+
       // Last element is always the incomplete line (doesn't end with \n yet)
       const incompleteLine = lines.pop();
-      
+
       // If we have complete lines, append them to textarea
       if (lines.length > 0) {
         const completeLines = lines.join('\n') + '\n'; // Rejoin with newlines
         textarea.value = (textarea.value || '') + completeLines;
-        
+
         // Clear placeholder on first content display
         if (textarea.placeholder) {
           textarea.placeholder = '';
         }
-        
+
         console.log('[Side Panel] Displayed', lines.length, 'complete line(s)');
       } else if (!textarea.value) {
         // Still waiting for first complete line - show placeholder
         textarea.placeholder = 'Receiving data from LLM...';
       }
-      
+
       // Keep incomplete line in buffer for next chunk
       streamBuffer = incompleteLine || '';
-      
+
       // Note: User controls scroll position, we don't auto-scroll
     } else {
       // Fallback: If textarea not found or not readonly, do full re-render
       displayJob(currentJob);
     }
 
-    console.log('[Side Panel] Appended chunk (', chunk.length, 'chars) to', storageJob ? 'storage' : 'in-memory', 'job');
+    console.log(
+      '[Side Panel] Appended chunk (',
+      chunk.length,
+      'chars) to',
+      storageJob ? 'storage' : 'in-memory',
+      'job'
+    );
 
     // Reset flag after a short delay (only if we saved to storage)
     if (storageJob) {
@@ -335,7 +387,6 @@ async function handleExtractionChunk(jobId, chunk) {
         isSavingLocally = false;
       }, 50);
     }
-
   } catch (error) {
     console.error('[Side Panel] Error handling extraction chunk:', error);
     isSavingLocally = false;
@@ -347,7 +398,9 @@ async function handleExtractionComplete(jobId, fullContent) {
   console.log('[Side Panel] Extraction complete for job:', jobId);
 
   if (jobId !== currentJobId) {
-    console.log('[Side Panel] Completed job is not in focus, skipping UI update');
+    console.log(
+      '[Side Panel] Completed job is not in focus, skipping UI update'
+    );
     streamBuffer = ''; // Reset buffer even if not in focus
     extractingJobData = null; // Clear in-memory data
     return;
@@ -365,9 +418,13 @@ async function handleExtractionComplete(jobId, fullContent) {
     // Flush any remaining buffered content to textarea (for visual continuity)
     if (oldTextarea && oldTextarea.hasAttribute('readonly') && streamBuffer) {
       oldTextarea.value = (oldTextarea.value || '') + streamBuffer;
-      console.log('[Side Panel] Flushed remaining buffer:', streamBuffer.length, 'chars');
+      console.log(
+        '[Side Panel] Flushed remaining buffer:',
+        streamBuffer.length,
+        'chars'
+      );
     }
-    
+
     // Reset stream buffer
     streamBuffer = '';
 
@@ -377,29 +434,35 @@ async function handleExtractionComplete(jobId, fullContent) {
     const storageJob = jobs[jobId];
 
     let job;
-    
+
     if (storageJob) {
       // Job exists in storage - this is a re-extraction
       console.log('[Side Panel] Re-extraction complete: updating existing job');
       job = storageJob;
     } else {
       // Job NOT in storage - this is a new extraction, create from in-memory data
-      console.log('[Side Panel] New extraction complete: creating job in storage for FIRST time');
-      
+      console.log(
+        '[Side Panel] New extraction complete: creating job in storage for FIRST time'
+      );
+
       if (!extractingJobData) {
-        console.warn('[Side Panel] No in-memory job data found, creating minimal job');
+        console.warn(
+          '[Side Panel] No in-memory job data found, creating minimal job'
+        );
         extractingJobData = {
           id: jobId,
           applicationStatus: 'Researching',
-          statusHistory: [{
-            status: 'Researching',
-            timestamp: new Date().toISOString()
-          }],
+          statusHistory: [
+            {
+              status: 'Researching',
+              timestamp: new Date().toISOString(),
+            },
+          ],
           checklist: initializeAllChecklists(),
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
         };
       }
-      
+
       job = extractingJobData;
     }
 
@@ -411,13 +474,13 @@ async function handleExtractionComplete(jobId, fullContent) {
     // Parse the markdown content and map fields to job object
     const parsed = parseJobTemplate(fullContent);
     const mappedFields = mapMarkdownFieldsToJob(parsed.topLevelFields);
-    
+
     // Update job with mapped fields
     Object.assign(job, mappedFields);
-    
-    console.log('[Side Panel] Updated job fields from markdown:', { 
-      jobTitle: job.jobTitle, 
-      company: job.company 
+
+    console.log('[Side Panel] Updated job fields from markdown:', {
+      jobTitle: job.jobTitle,
+      company: job.company,
     });
 
     // Save to storage (FIRST time for new extractions, update for re-extractions)
@@ -451,7 +514,6 @@ async function handleExtractionComplete(jobId, fullContent) {
     setTimeout(() => {
       isSavingLocally = false;
     }, 200);
-
   } catch (error) {
     console.error('[Side Panel] Error handling extraction completion:', error);
     isSavingLocally = false;
@@ -486,7 +548,7 @@ async function handleExtractionError(jobId, errorMessage) {
     if (storageJob) {
       // Job exists in storage - update with error
       console.log('[Side Panel] Extraction error for existing job');
-      
+
       // Update job with error marker in content
       // ResearchingView will display this in the validation panel
       storageJob.content = storageJob.content || '';
@@ -505,15 +567,17 @@ async function handleExtractionError(jobId, errorMessage) {
       displayJob(currentJob);
     } else {
       // Job NOT in storage - discard in-memory job, show error
-      console.log('[Side Panel] Extraction error for new job: discarding in-memory data');
-      
+      console.log(
+        '[Side Panel] Extraction error for new job: discarding in-memory data'
+      );
+
       extractingJobData = null;
       currentJob = null;
       currentJobId = null;
-      
+
       // Clear jobInFocus
       await browser.storage.local.set({ jobInFocus: null });
-      
+
       // Show empty state
       showEmptyState();
     }
@@ -525,7 +589,6 @@ async function handleExtractionError(jobId, errorMessage) {
     setTimeout(() => {
       isSavingLocally = false;
     }, 200);
-
   } catch (error) {
     console.error('[Side Panel] Error handling extraction error:', error);
     isSavingLocally = false;
@@ -540,7 +603,9 @@ async function handleExtractionCancelled(jobId) {
   console.log('[Side Panel] currentJobId:', currentJobId);
 
   if (jobId !== currentJobId) {
-    console.log('[Side Panel] Cancelled job is not in focus, skipping UI update');
+    console.log(
+      '[Side Panel] Cancelled job is not in focus, skipping UI update'
+    );
     streamBuffer = ''; // Reset buffer even if not in focus
     extractingJobData = null; // Clear in-memory data
     return;
@@ -559,15 +624,17 @@ async function handleExtractionCancelled(jobId) {
 
     if (storageJob) {
       // Job exists in storage - this is a re-extraction cancellation
-      console.log('[Side Panel] Re-extraction cancelled: clearing extraction flag');
-      
+      console.log(
+        '[Side Panel] Re-extraction cancelled: clearing extraction flag'
+      );
+
       // Set flag to prevent reload loop
       isSavingLocally = true;
-      
+
       // Clear extraction state but keep the job
       storageJob.isExtracting = false;
       storageJob.updatedAt = new Date().toISOString();
-      
+
       // Clear extraction error if present
       if (storageJob.extractionError) {
         delete storageJob.extractionError;
@@ -583,7 +650,10 @@ async function handleExtractionCancelled(jobId) {
       // Trigger MainView re-render to clear extraction UI
       displayJob(currentJob);
 
-      console.log('[Side Panel] Cleared extraction state for existing job:', jobId);
+      console.log(
+        '[Side Panel] Cleared extraction state for existing job:',
+        jobId
+      );
 
       // Reset flag after a short delay
       setTimeout(() => {
@@ -591,26 +661,32 @@ async function handleExtractionCancelled(jobId) {
       }, 200);
     } else {
       // Job NOT in storage - this is a new extraction cancellation
-      console.log('[Side Panel] New extraction cancelled: discarding in-memory job');
-      
+      console.log(
+        '[Side Panel] New extraction cancelled: discarding in-memory job'
+      );
+
       // Clear in-memory extraction data (no storage cleanup needed!)
       extractingJobData = null;
       currentJob = null;
       currentJobId = null;
-      
+
       // Clear jobInFocus from storage
       await browser.storage.local.set({ jobInFocus: null });
-      
+
       // Show empty state
       showEmptyState();
-      
-      console.log('[Side Panel] Discarded in-memory job, no fragments in storage');
-    }
 
+      console.log(
+        '[Side Panel] Discarded in-memory job, no fragments in storage'
+      );
+    }
   } catch (error) {
-    console.error('[Side Panel] Error handling extraction cancellation:', error);
+    console.error(
+      '[Side Panel] Error handling extraction cancellation:',
+      error
+    );
     isSavingLocally = false;
-    
+
     // Cleanup in-memory state on error
     extractingJobData = null;
   }
@@ -624,9 +700,14 @@ async function loadJobInFocus() {
     const jobs = result.jobs || {};
 
     // If no job in focus or job was deleted, but there are saved jobs
-    if ((!jobInFocusId || !jobs[jobInFocusId]) && Object.keys(jobs).length > 0) {
-      console.log('[Side Panel] No job in focus but jobs exist, setting newest job as focus');
-      
+    if (
+      (!jobInFocusId || !jobs[jobInFocusId]) &&
+      Object.keys(jobs).length > 0
+    ) {
+      console.log(
+        '[Side Panel] No job in focus but jobs exist, setting newest job as focus'
+      );
+
       // Find the newest job (by updated_at timestamp)
       const jobEntries = Object.entries(jobs);
       jobEntries.sort((a, b) => {
@@ -634,7 +715,7 @@ async function loadJobInFocus() {
         const timeB = new Date(b[1].updatedAt || 0).getTime();
         return timeB - timeA; // Descending order (newest first)
       });
-      
+
       // Set the newest job as focus
       const newestJobId = jobEntries[0][0];
       jobInFocusId = newestJobId;
@@ -651,10 +732,13 @@ async function loadJobInFocus() {
     if (!jobs[jobInFocusId]) {
       // Job in focus but not in storage yet - likely a new extraction starting
       // Set currentJobId and wait for extraction to start (handleExtractionStarted will create in-memory job)
-      console.log('[Side Panel] Job in focus but not in storage yet (extraction pending):', jobInFocusId);
+      console.log(
+        '[Side Panel] Job in focus but not in storage yet (extraction pending):',
+        jobInFocusId
+      );
       currentJobId = jobInFocusId;
       currentJob = null;
-      
+
       // Show empty state for now (will be replaced when extraction starts)
       showEmptyState();
       return;
@@ -675,12 +759,12 @@ function showEmptyState() {
   document.getElementById('emptyState').classList.remove('hidden');
   document.getElementById('jobDetails').classList.add('hidden');
   document.getElementById('footer').classList.add('hidden');
-  
+
   // Cleanup MainView
   if (mainView) {
     mainView.cleanup();
   }
-  
+
   currentJobId = null;
   currentJob = null;
 }
@@ -698,7 +782,7 @@ function displayJob(job) {
   }
 
   const jobContent = document.getElementById('jobContent');
-  
+
   // Use MainView to render the appropriate view based on job status
   // Pass index as 0 since sidepanel only shows one job at a time
   mainView.render(jobContent, job, 0);
@@ -710,32 +794,31 @@ async function saveFieldValue(field, value) {
     showError('No job in focus to update');
     return;
   }
-  
+
   // Set flag to prevent reload loop
   isSavingLocally = true;
-  
+
   try {
     // Update current job object
     currentJob[field] = value;
     currentJob.updatedAt = new Date().toISOString();
-    
+
     // Get all jobs from storage
     const result = await browser.storage.local.get(['jobs']);
     const jobs = result.jobs || {};
-    
+
     // Update the job
     jobs[currentJobId] = currentJob;
-    
+
     // Save back to storage
     await browser.storage.local.set({ jobs: jobs });
-    
+
     console.log(`[Side Panel] Updated field ${field}:`, value);
-    
+
     // Reset flag after a short delay (allow storage event to fire)
     setTimeout(() => {
       isSavingLocally = false;
     }, 200);
-    
   } catch (error) {
     console.error('[Side Panel] Error saving field:', error);
     showError('Failed to save changes');
@@ -750,55 +833,63 @@ async function deleteJob() {
     showError('No job to delete');
     return;
   }
-  
-  if (!confirm('Are you sure you want to delete this job? This cannot be undone.')) {
+
+  if (
+    !confirm('Are you sure you want to delete this job? This cannot be undone.')
+  ) {
     return;
   }
-  
+
   try {
     // Get all jobs from storage
     const result = await browser.storage.local.get(['jobs', 'jobInFocus']);
     const jobs = result.jobs || {};
     const job = jobs[currentJobId];
-    
+
     // Check if job is extracting (could be in storage or in-memory)
-    const isExtracting = (job && job.isExtracting) || (extractingJobData && extractingJobData.id === currentJobId);
-    
+    const isExtracting =
+      (job && job.isExtracting) ||
+      (extractingJobData && extractingJobData.id === currentJobId);
+
     // If job is currently extracting, cancel the extraction
     if (isExtracting) {
       console.log(`[Side Panel] Cancelling extraction for job ${currentJobId}`);
-      browser.runtime.sendMessage({
-        action: 'cancelExtraction',
-        jobId: currentJobId
-      }).catch(err => {
-        console.error('[Side Panel] Failed to send cancellation:', err);
-      });
-      
+      browser.runtime
+        .sendMessage({
+          action: 'cancelExtraction',
+          jobId: currentJobId,
+        })
+        .catch((err) => {
+          console.error('[Side Panel] Failed to send cancellation:', err);
+        });
+
       // Clear in-memory extraction data
       extractingJobData = null;
       streamBuffer = '';
     }
-    
+
     // Delete the job from storage (if it exists)
     if (job) {
       delete jobs[currentJobId];
     }
-    
+
     // Clear job in focus if it was this job
     const updates = { jobs };
     if (result.jobInFocus === currentJobId) {
       updates.jobInFocus = null;
     }
-    
+
     // Save back to storage
     await browser.storage.local.set(updates);
-    
-    console.log(`[Side Panel] Deleted job ${currentJobId}`, job ? '(from storage)' : '(in-memory only)');
+
+    console.log(
+      `[Side Panel] Deleted job ${currentJobId}`,
+      job ? '(from storage)' : '(in-memory only)'
+    );
     showSuccess('Job deleted');
-    
+
     // Reload to show empty state or next job
     await loadJobInFocus();
-    
   } catch (error) {
     console.error('[Side Panel] Error deleting job:', error);
     showError('Failed to delete job');
@@ -812,7 +903,7 @@ async function restoreBackup() {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'application/json,.json';
-    
+
     input.onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -830,7 +921,7 @@ async function restoreBackup() {
         // Confirm overwrite
         const jobCount = Object.keys(backup.data.jobs || {}).length;
         const confirmMsg = `This will overwrite all your current data with the backup from ${new Date(backup.exportDate).toLocaleString()}.\n\nBackup contains ${jobCount} job(s).\n\nThis cannot be undone. Continue?`;
-        
+
         if (!confirm(confirmMsg)) {
           return;
         }
@@ -838,15 +929,16 @@ async function restoreBackup() {
         // Restore all data
         await browser.storage.local.set({
           jobs: backup.data.jobs || {},
-          userProfile: backup.data.userProfile || backup.data.masterResume || null,
+          userProfile:
+            backup.data.userProfile || backup.data.masterResume || null,
           llmSettings: backup.data.llmSettings || null,
-          jobInFocus: backup.data.jobInFocus || null
+          jobInFocus: backup.data.jobInFocus || null,
           // Note: Don't restore dataVersion - let migration determine it
         });
 
         console.log('[Side Panel] Backup restored successfully');
         showSuccess('Backup restored successfully! Reloading...');
-        
+
         // Reload after a brief delay to show the success message
         // Migration will run automatically on next load
         setTimeout(() => {
@@ -880,11 +972,11 @@ function showSuccess(message) {
 function showToast(message, type = 'info') {
   const toast = document.getElementById('toast');
   if (!toast) return;
-  
+
   toast.textContent = message;
   toast.className = `toast ${type}`;
   toast.classList.remove('hidden');
-  
+
   // Auto-hide after 3 seconds
   setTimeout(() => {
     toast.classList.add('hidden');

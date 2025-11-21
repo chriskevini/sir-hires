@@ -30,7 +30,7 @@ export class EditableField {
   render() {
     const displayValue = this.value || this.placeholder;
     const emptyClass = this.value ? '' : 'empty-content';
-    
+
     return `
       <span 
         class="editable-field ${this.className} ${emptyClass}" 
@@ -48,7 +48,7 @@ export class EditableField {
    */
   attachListeners(element, indicator) {
     if (!element) return;
-    
+
     this.element = element;
     this.indicator = indicator;
 
@@ -56,7 +56,7 @@ export class EditableField {
     element.addEventListener('mouseenter', () => {
       element.classList.add('editing-hover');
     });
-    
+
     element.addEventListener('mouseleave', () => {
       element.classList.remove('editing-hover');
     });
@@ -65,7 +65,7 @@ export class EditableField {
     element.addEventListener('focus', () => {
       element.classList.add('editing-active');
       this.originalValue = element.textContent.trim();
-      
+
       // Select all text if it's a placeholder
       if (element.classList.contains('empty-content')) {
         setTimeout(() => {
@@ -82,7 +82,7 @@ export class EditableField {
     element.addEventListener('blur', async () => {
       element.classList.remove('editing-active');
       const newValue = element.textContent.trim();
-      
+
       // Remove empty-content class if there's a value
       if (newValue) {
         element.classList.remove('empty-content');
@@ -90,7 +90,7 @@ export class EditableField {
         element.classList.add('empty-content');
         element.textContent = this.placeholder;
       }
-      
+
       // Only save if value changed
       if (newValue !== this.originalValue && this.onSave) {
         await this.save(newValue);
@@ -122,13 +122,13 @@ export class EditableField {
       await this.onSave(this.fieldName, newValue);
       this.value = newValue;
       this.showIndicator('saved', '✓');
-      
+
       // Hide after 2 seconds
       setTimeout(() => this.hideIndicator(), 2000);
     } catch (error) {
       console.error(`[EditableField] Error saving ${this.fieldName}:`, error);
       this.showIndicator('error', '✗');
-      
+
       // Hide after 2 seconds
       setTimeout(() => this.hideIndicator(), 2000);
     }
@@ -141,7 +141,7 @@ export class EditableField {
    */
   showIndicator(state, icon) {
     if (!this.indicator) return;
-    
+
     this.indicator.textContent = icon;
     this.indicator.className = `save-indicator ${state}`;
   }
@@ -151,7 +151,7 @@ export class EditableField {
    */
   hideIndicator() {
     if (!this.indicator) return;
-    
+
     this.indicator.className = 'save-indicator';
     this.indicator.textContent = '';
   }

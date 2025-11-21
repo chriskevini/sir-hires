@@ -21,11 +21,11 @@ export class SynthesisModal extends BaseView {
     this.onThinkingUpdate = null; // Callback for thinking stream updates
     this.onDocumentUpdate = null; // Callback for document stream updates
     this.onError = null; // Callback when generation fails
-    
+
     // Initialize LLM client
     this.llmClient = new LLMClient({
       endpoint: llmConfig.synthesis.endpoint,
-      modelsEndpoint: llmConfig.synthesis.modelsEndpoint
+      modelsEndpoint: llmConfig.synthesis.modelsEndpoint,
     });
   }
 
@@ -88,7 +88,10 @@ export class SynthesisModal extends BaseView {
     this.availableModels = await this.llmClient.fetchModels();
 
     // Set default model if available
-    if (this.availableModels.length > 0 && !this.availableModels.find(m => m.id === this.selectedModel)) {
+    if (
+      this.availableModels.length > 0 &&
+      !this.availableModels.find((m) => m.id === this.selectedModel)
+    ) {
       this.selectedModel = this.availableModels[0].id;
     }
   }
@@ -111,7 +114,8 @@ export class SynthesisModal extends BaseView {
       responsibilities: this.activeJob.responsibilities || 'Not provided',
       requirements: this.activeJob.requirements || 'Not provided',
       narrativeStrategy: this.activeJob.narrativeStrategy || 'Not provided',
-      currentDraft: this.activeJob.documents?.[this.activeDocumentKey]?.text || ''
+      currentDraft:
+        this.activeJob.documents?.[this.activeDocumentKey]?.text || '',
     };
   }
 
@@ -122,46 +126,55 @@ export class SynthesisModal extends BaseView {
    */
   buildUserPrompt(context) {
     const sections = [];
-    
+
     // Only include sections with actual data
     if (context.masterResume && context.masterResume !== 'Not provided') {
       sections.push(`[MASTER RESUME]\n${context.masterResume}`);
     }
-    
+
     if (context.jobTitle && context.jobTitle !== 'Not provided') {
       sections.push(`[JOB TITLE]\n${context.jobTitle}`);
     }
-    
+
     if (context.company && context.company !== 'Not provided') {
       sections.push(`[COMPANY]\n${context.company}`);
     }
-    
+
     if (context.aboutJob && context.aboutJob !== 'Not provided') {
       sections.push(`[ABOUT THE JOB]\n${context.aboutJob}`);
     }
-    
+
     if (context.aboutCompany && context.aboutCompany !== 'Not provided') {
       sections.push(`[ABOUT THE COMPANY]\n${context.aboutCompany}`);
     }
-    
-    if (context.responsibilities && context.responsibilities !== 'Not provided') {
+
+    if (
+      context.responsibilities &&
+      context.responsibilities !== 'Not provided'
+    ) {
       sections.push(`[RESPONSIBILITIES]\n${context.responsibilities}`);
     }
-    
+
     if (context.requirements && context.requirements !== 'Not provided') {
       sections.push(`[REQUIREMENTS]\n${context.requirements}`);
     }
-    
-    if (context.narrativeStrategy && context.narrativeStrategy !== 'Not provided') {
+
+    if (
+      context.narrativeStrategy &&
+      context.narrativeStrategy !== 'Not provided'
+    ) {
       sections.push(`[NARRATIVE STRATEGY]\n${context.narrativeStrategy}`);
     }
-    
+
     if (context.currentDraft && context.currentDraft !== 'Not provided') {
       sections.push(`[CURRENT DRAFT]\n${context.currentDraft}`);
     }
-    
+
     // Join sections with double newlines and add closing instruction
-    return sections.join('\n\n') + '\n\nSynthesize the document now, strictly following the STREAMING PROTOCOL.';
+    return (
+      sections.join('\n\n') +
+      '\n\nSynthesize the document now, strictly following the STREAMING PROTOCOL.'
+    );
   }
 
   /**
@@ -175,7 +188,15 @@ export class SynthesisModal extends BaseView {
    * @param {number} maxTokens - Maximum tokens to generate (default: 2000)
    * @returns {Object} Result with { content, thinkingContent, truncated, currentTokens }
    */
-  async synthesizeDocument(documentKey, model, systemPrompt, userPrompt, onThinkingUpdate = null, onDocumentUpdate = null, maxTokens = 2000) {
+  async synthesizeDocument(
+    documentKey,
+    model,
+    systemPrompt,
+    userPrompt,
+    onThinkingUpdate = null,
+    onDocumentUpdate = null,
+    maxTokens = 2000
+  ) {
     // Use LLMClient to stream completion
     const result = await this.llmClient.streamCompletion({
       model,
@@ -184,7 +205,7 @@ export class SynthesisModal extends BaseView {
       maxTokens,
       temperature: llmConfig.synthesis.temperature,
       onThinkingUpdate,
-      onDocumentUpdate
+      onDocumentUpdate,
     });
 
     // Check for truncation
@@ -194,7 +215,7 @@ export class SynthesisModal extends BaseView {
       content: result.documentContent,
       thinkingContent: result.thinkingContent,
       truncated: truncated,
-      currentTokens: maxTokens
+      currentTokens: maxTokens,
     };
   }
 
@@ -257,11 +278,15 @@ export class SynthesisModal extends BaseView {
 
     // User profile exists - show full modal UI
     // Get model options
-    const modelOptions = this.availableModels.length > 0
-      ? this.availableModels.map(model => 
-          `<option value="${model.id}" ${model.id === this.selectedModel ? 'selected' : ''}>${model.id}</option>`
-        ).join('')
-      : `<option value="${llmConfig.synthesis.defaultModel}">${llmConfig.synthesis.defaultModel} (not loaded)</option>`;
+    const modelOptions =
+      this.availableModels.length > 0
+        ? this.availableModels
+            .map(
+              (model) =>
+                `<option value="${model.id}" ${model.id === this.selectedModel ? 'selected' : ''}>${model.id}</option>`
+            )
+            .join('')
+        : `<option value="${llmConfig.synthesis.defaultModel}">${llmConfig.synthesis.defaultModel} (not loaded)</option>`;
 
     // Build data checklist with filled/missing indicators
     const dataFields = [
@@ -269,31 +294,60 @@ export class SynthesisModal extends BaseView {
       { key: 'jobTitle', label: 'Job Title', value: this.activeJob.jobTitle },
       { key: 'company', label: 'Company', value: this.activeJob.company },
       { key: 'aboutJob', label: 'About Job', value: this.activeJob.aboutJob },
-      { key: 'aboutCompany', label: 'About Company', value: this.activeJob.aboutCompany },
-      { key: 'responsibilities', label: 'Responsibilities', value: this.activeJob.responsibilities },
-      { key: 'requirements', label: 'Requirements', value: this.activeJob.requirements },
-      { key: 'narrativeStrategy', label: 'Narrative Strategy', value: this.activeJob.narrativeStrategy },
-      { key: 'currentDraft', label: 'Current Draft', value: this.activeJob.documents?.[this.activeDocumentKey]?.text }
+      {
+        key: 'aboutCompany',
+        label: 'About Company',
+        value: this.activeJob.aboutCompany,
+      },
+      {
+        key: 'responsibilities',
+        label: 'Responsibilities',
+        value: this.activeJob.responsibilities,
+      },
+      {
+        key: 'requirements',
+        label: 'Requirements',
+        value: this.activeJob.requirements,
+      },
+      {
+        key: 'narrativeStrategy',
+        label: 'Narrative Strategy',
+        value: this.activeJob.narrativeStrategy,
+      },
+      {
+        key: 'currentDraft',
+        label: 'Current Draft',
+        value: this.activeJob.documents?.[this.activeDocumentKey]?.text,
+      },
     ];
 
-    const checklistHTML = dataFields.map(field => {
-      const isFilled = field.value && field.value.trim().length > 0;
-      const bulletClass = isFilled ? 'data-bullet-filled' : 'data-bullet-empty';
-      const bulletIcon = isFilled ? '✓' : '○';
-      return `
+    const checklistHTML = dataFields
+      .map((field) => {
+        const isFilled = field.value && field.value.trim().length > 0;
+        const bulletClass = isFilled
+          ? 'data-bullet-filled'
+          : 'data-bullet-empty';
+        const bulletIcon = isFilled ? '✓' : '○';
+        return `
         <li class="data-checklist-item">
           <span class="${bulletClass}">${bulletIcon}</span>
           <span class="data-field-label">${field.label}</span>
         </li>
       `;
-    }).join('');
+      })
+      .join('');
 
-    const missingFields = dataFields.filter(f => !f.value || f.value.trim() === '');
-    const missingFieldsWarning = missingFields.length > 0 ? `
+    const missingFields = dataFields.filter(
+      (f) => !f.value || f.value.trim() === ''
+    );
+    const missingFieldsWarning =
+      missingFields.length > 0
+        ? `
       <div class="missing-fields-warning">
         <p>⚠️ <strong>${missingFields.length} field${missingFields.length === 1 ? ' is' : 's are'} missing.</strong> We recommend doing more research for better document synthesis.</p>
       </div>
-    ` : '';
+    `
+        : '';
 
     // Show helpful tip about the template prefill
     const draftInstructions = `
@@ -327,9 +381,11 @@ export class SynthesisModal extends BaseView {
             <select id="synthesisModelSelect">
               ${modelOptions}
             </select>
-            ${this.availableModels.length === 0 ? 
-              '<span class="model-warning">⚠️ No models loaded</span>' : 
-              ''}
+            ${
+              this.availableModels.length === 0
+                ? '<span class="model-warning">⚠️ No models loaded</span>'
+                : ''
+            }
           </div>
           <div class="max-tokens-group">
             <label for="synthesisMaxTokens">Max Tokens:</label>
@@ -343,8 +399,6 @@ export class SynthesisModal extends BaseView {
       </div>
     `;
   }
-
-
 
   /**
    * Attach event listeners
@@ -404,20 +458,18 @@ export class SynthesisModal extends BaseView {
     }
   }
 
-
-
   /**
    * Handle generate button click
    */
   async handleGenerate() {
     const generateBtn = document.getElementById('synthesisModalGenerateBtn');
     const maxTokensInput = document.getElementById('synthesisMaxTokens');
-    
+
     if (!generateBtn || !maxTokensInput) return;
 
     // Get max tokens from input
     const maxTokens = parseInt(maxTokensInput.value) || 2000;
-    
+
     if (maxTokens < 100 || maxTokens > 32000) {
       alert('Max tokens must be between 100 and 32000');
       return;
@@ -451,34 +503,34 @@ export class SynthesisModal extends BaseView {
       // Synthesize document with system + user prompts and streaming callbacks
       // This runs in the background while modal is closed
       // Wrap callbacks to inject documentKey parameter
-      const wrappedOnThinkingUpdate = this.onThinkingUpdate 
-        ? (delta) => this.onThinkingUpdate(capturedDocumentKey, delta) 
+      const wrappedOnThinkingUpdate = this.onThinkingUpdate
+        ? (delta) => this.onThinkingUpdate(capturedDocumentKey, delta)
         : null;
-      const wrappedOnDocumentUpdate = this.onDocumentUpdate 
-        ? (delta) => this.onDocumentUpdate(capturedDocumentKey, delta) 
+      const wrappedOnDocumentUpdate = this.onDocumentUpdate
+        ? (delta) => this.onDocumentUpdate(capturedDocumentKey, delta)
         : null;
-      
+
       const result = await this.synthesizeDocument(
         capturedDocumentKey,
         this.selectedModel,
         systemPrompt,
         userPrompt,
-        wrappedOnThinkingUpdate,  // Pass wrapped thinking callback
-        wrappedOnDocumentUpdate,  // Pass wrapped document callback
+        wrappedOnThinkingUpdate, // Pass wrapped thinking callback
+        wrappedOnDocumentUpdate, // Pass wrapped document callback
         maxTokens
       );
 
       // Check for truncation
       if (result.truncated) {
         console.warn('[SynthesisModal] Response truncated due to token limit');
-        
+
         // Show alert to user
         alert(
           `⚠️ Response was truncated due to token limit (${result.currentTokens} tokens).\n\n` +
-          `This often happens with thinking models that use reasoning before output.\n\n` +
-          `Please reopen the synthesis modal, increase "Max Tokens", and try again.`
+            `This often happens with thinking models that use reasoning before output.\n\n` +
+            `Please reopen the synthesis modal, increase "Max Tokens", and try again.`
         );
-        
+
         // Still call onGenerate to save truncated content
         if (this.onGenerate) {
           this.onGenerate(capturedJobIndex, capturedDocumentKey, result);
@@ -492,18 +544,18 @@ export class SynthesisModal extends BaseView {
       }
     } catch (error) {
       console.error('[SynthesisModal] Synthesis failed:', error);
-      
+
       // Re-enable button and restore text if modal is still open
       if (this.isOpen) {
         generateBtn.disabled = false;
         generateBtn.innerHTML = originalText;
       }
-      
+
       // Call error callback if available
       if (this.onError) {
         this.onError(capturedJobIndex, capturedDocumentKey, error);
       }
-      
+
       // Still show alert to user
       alert(`Failed to generate document: ${error.message}`);
     }
@@ -514,7 +566,7 @@ export class SynthesisModal extends BaseView {
    */
   cleanup() {
     super.cleanup();
-    
+
     // Remove modal from DOM if needed
     const overlay = document.getElementById('synthesisModalOverlay');
     if (overlay) {

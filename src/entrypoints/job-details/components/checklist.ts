@@ -22,9 +22,13 @@ export class ChecklistComponent extends BaseView {
   render(checklist, status, jobIndex, isExpanded = false) {
     // Always show expander (3 dots), with expanded dropdown above if isExpanded is true
     const expanderHtml = this.renderExpander(status, jobIndex);
-    
+
     if (isExpanded) {
-      const expandedHtml = this.renderExpandedDropdown(checklist, status, jobIndex);
+      const expandedHtml = this.renderExpandedDropdown(
+        checklist,
+        status,
+        jobIndex
+      );
       return `
         <div class="checklist-wrapper">
           ${expandedHtml}
@@ -32,7 +36,7 @@ export class ChecklistComponent extends BaseView {
         </div>
       `;
     }
-    
+
     return expanderHtml;
   }
 
@@ -45,13 +49,15 @@ export class ChecklistComponent extends BaseView {
   renderExpander(status, jobIndex) {
     // Calculate next status color for expander dots
     const currentIndex = statusOrder.indexOf(status);
-    const nextStatus = currentIndex >= 0 && currentIndex < statusOrder.length - 1 
-      ? statusOrder[currentIndex + 1] 
-      : null;
-    const nextColor = nextStatus && progressConfig[nextStatus] 
-      ? progressConfig[nextStatus].color 
-      : '#666'; // fallback gray
-    
+    const nextStatus =
+      currentIndex >= 0 && currentIndex < statusOrder.length - 1
+        ? statusOrder[currentIndex + 1]
+        : null;
+    const nextColor =
+      nextStatus && progressConfig[nextStatus]
+        ? progressConfig[nextStatus].color
+        : '#666'; // fallback gray
+
     return `
       <div class="checklist-expander" data-index="${jobIndex}">
         <div class="checklist-dots">
@@ -73,16 +79,18 @@ export class ChecklistComponent extends BaseView {
   renderExpandedDropdown(checklist, status, jobIndex) {
     // Get items for current status
     const items = checklist && checklist[status] ? checklist[status] : [];
-    
+
     // Calculate next status color for checked bullets
     const currentIndex = statusOrder.indexOf(status);
-    const nextStatus = currentIndex >= 0 && currentIndex < statusOrder.length - 1 
-      ? statusOrder[currentIndex + 1] 
-      : null;
-    const nextColor = nextStatus && progressConfig[nextStatus] 
-      ? progressConfig[nextStatus].color 
-      : '#1a73e8'; // fallback blue
-    
+    const nextStatus =
+      currentIndex >= 0 && currentIndex < statusOrder.length - 1
+        ? statusOrder[currentIndex + 1]
+        : null;
+    const nextColor =
+      nextStatus && progressConfig[nextStatus]
+        ? progressConfig[nextStatus].color
+        : '#1a73e8'; // fallback blue
+
     // Handle empty or missing checklist for this status
     if (!items || items.length === 0) {
       return `
@@ -98,12 +106,16 @@ export class ChecklistComponent extends BaseView {
 
     const sortedItems = [...items].sort((a, b) => a.order - b.order);
 
-    const itemsHtml = sortedItems.map(item => `
+    const itemsHtml = sortedItems
+      .map(
+        (item) => `
       <div class="checklist-item" data-item-id="${item.id}" data-index="${jobIndex}">
         <span class="checklist-text">${this.escapeHtml(item.text)}</span>
         <span class="checklist-bullet ${item.checked ? 'checked' : ''}" style="${item.checked ? `color: ${nextColor}` : ''}">${item.checked ? '●' : '○'}</span>
       </div>
-    `).join('');
+    `
+      )
+      .join('');
 
     return `
       <div class="checklist-dropdown expanded" data-index="${jobIndex}">
@@ -123,59 +135,81 @@ export class ChecklistComponent extends BaseView {
    * @param {boolean} isExpanded - Whether checklist is expanded (global state)
    * @param {boolean} animate - Whether to animate the transition (default: false)
    */
-  update(container, checklist, status, jobIndex, isExpanded = false, animate = false) {
+  update(
+    container,
+    checklist,
+    status,
+    jobIndex,
+    isExpanded = false,
+    animate = false
+  ) {
     if (!container) {
       console.error('Checklist container not found');
       return;
     }
 
     // Check if we're transitioning states
-    const currentDropdown = container.querySelector('.checklist-dropdown.expanded');
+    const currentDropdown = container.querySelector(
+      '.checklist-dropdown.expanded'
+    );
     const wasExpanded = currentDropdown !== null;
-    
+
     if (wasExpanded && !isExpanded && animate) {
       // COLLAPSE: Animate collapse before removing (user-triggered)
       currentDropdown.classList.remove('expanded');
       currentDropdown.classList.add('collapsing');
-      
+
       // Wait for animation to complete, then update
       setTimeout(() => {
         this.cleanup();
-        container.innerHTML = this.render(checklist, status, jobIndex, isExpanded);
+        container.innerHTML = this.render(
+          checklist,
+          status,
+          jobIndex,
+          isExpanded
+        );
         this.attachListeners(container);
       }, 300); // Match animation duration
-      
     } else if (!wasExpanded && isExpanded && animate) {
       // EXPAND: Render in expanded state, then trigger animation (user-triggered)
       this.cleanup();
-      container.innerHTML = this.render(checklist, status, jobIndex, isExpanded);
+      container.innerHTML = this.render(
+        checklist,
+        status,
+        jobIndex,
+        isExpanded
+      );
       this.attachListeners(container);
-      
+
       // Trigger animation on next frame
       const dropdown = container.querySelector('.checklist-dropdown.expanded');
       if (dropdown) {
         // Start from collapsed state
         dropdown.style.transform = 'scaleY(0)';
         dropdown.style.opacity = '0';
-        
+
         // Trigger animation
         requestAnimationFrame(() => {
           dropdown.classList.add('expanding');
           // Remove inline styles to let animation take over
           dropdown.style.transform = '';
           dropdown.style.opacity = '';
-          
+
           // Clean up animation class after animation completes
           setTimeout(() => {
             dropdown.classList.remove('expanding');
           }, 300);
         });
       }
-      
     } else {
       // NO ANIMATION: Non-user-triggered update or no state change
       this.cleanup();
-      container.innerHTML = this.render(checklist, status, jobIndex, isExpanded);
+      container.innerHTML = this.render(
+        checklist,
+        status,
+        jobIndex,
+        isExpanded
+      );
       this.attachListeners(container);
     }
   }
@@ -203,13 +237,15 @@ export class ChecklistComponent extends BaseView {
       };
       this.trackListener(expanderContainer, 'click', toggleHandler);
     }
-    
+
     // Handle expanded dropdown
-    const expandedDropdown = container.querySelector('.checklist-dropdown.expanded');
+    const expandedDropdown = container.querySelector(
+      '.checklist-dropdown.expanded'
+    );
     if (expandedDropdown) {
       // Click on items to toggle checked state
       const items = expandedDropdown.querySelectorAll('.checklist-item');
-      items.forEach(item => {
+      items.forEach((item) => {
         const itemClickHandler = (e) => {
           e.stopPropagation();
           const index = parseInt(item.dataset.index, 10);

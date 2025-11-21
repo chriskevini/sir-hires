@@ -21,9 +21,11 @@ export class Sidebar extends BaseView {
       return '<div style="text-align: center; padding: 20px; color: #666; font-size: 13px;">No jobs found</div>';
     }
 
-    return jobs.map((job, index) => 
-      this.renderJobCard(job, index, selectedIndex, jobInFocusId)
-    ).join('');
+    return jobs
+      .map((job, index) =>
+        this.renderJobCard(job, index, selectedIndex, jobInFocusId)
+      )
+      .join('');
   }
 
   /**
@@ -84,7 +86,7 @@ export class Sidebar extends BaseView {
    */
   attachListeners(container, jobs) {
     const cards = container.querySelectorAll('.job-card-compact');
-    
+
     cards.forEach((card, index) => {
       const clickHandler = () => {
         if (this.onJobSelect) {

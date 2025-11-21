@@ -10,32 +10,32 @@ export const statusOrder = [
   'Deciding',
   'Accepted',
   'Rejected',
-  'Withdrawn'
+  'Withdrawn',
 ];
 
 // Status badge color configuration (v0.2.0)
 // Used for both badge styling and progress bar colors
 export const statusColors = {
-  'Researching': { bg: '#f5f5f5', text: '#666' }, // Gray to match progress bar
-  'Drafting': { bg: '#d4edda', text: '#155724' },
+  Researching: { bg: '#f5f5f5', text: '#666' }, // Gray to match progress bar
+  Drafting: { bg: '#d4edda', text: '#155724' },
   'Awaiting Review': { bg: '#e8f0fe', text: '#1967d2' }, // Blue to match progress bar
-  'Interviewing': { bg: '#fff3cd', text: '#856404' },
-  'Deciding': { bg: '#f3e8fd', text: '#7627bb' },
-  'Accepted': { bg: '#ceead6', text: '#0d652d' },
-  'Rejected': { bg: '#f8d7da', text: '#721c24' },
-  'Withdrawn': { bg: '#e2e3e5', text: '#383d41' }
+  Interviewing: { bg: '#fff3cd', text: '#856404' },
+  Deciding: { bg: '#f3e8fd', text: '#7627bb' },
+  Accepted: { bg: '#ceead6', text: '#0d652d' },
+  Rejected: { bg: '#f8d7da', text: '#721c24' },
+  Withdrawn: { bg: '#e2e3e5', text: '#383d41' },
 };
 
 // Progress bar visual configuration for each status (v0.2.0)
 export const progressConfig = {
-  'Researching': { fill: 0, color: '#757575', textColor: '#666' },
-  'Drafting': { fill: 15, color: '#4caf50', textColor: '#fff' },
+  Researching: { fill: 0, color: '#757575', textColor: '#666' },
+  Drafting: { fill: 15, color: '#4caf50', textColor: '#fff' },
   'Awaiting Review': { fill: 35, color: '#2196f3', textColor: '#fff' },
-  'Interviewing': { fill: 60, color: '#ff9800', textColor: '#fff' },
-  'Deciding': { fill: 85, color: '#9c27b0', textColor: '#fff' },
-  'Accepted': { fill: 100, color: '#4caf50', textColor: '#fff' },
-  'Rejected': { fill: 100, color: '#f44336', textColor: '#fff' },
-  'Withdrawn': { fill: 100, color: '#757575', textColor: '#fff' }
+  Interviewing: { fill: 60, color: '#ff9800', textColor: '#fff' },
+  Deciding: { fill: 85, color: '#9c27b0', textColor: '#fff' },
+  Accepted: { fill: 100, color: '#4caf50', textColor: '#fff' },
+  Rejected: { fill: 100, color: '#f44336', textColor: '#fff' },
+  Withdrawn: { fill: 100, color: '#757575', textColor: '#fff' },
 };
 
 // Navigation button configuration for each status (v0.2.0)
@@ -66,7 +66,7 @@ export function getNavigationButtons(status) {
       buttons.left = { label: 'Interviewing', target: 'Interviewing' };
       buttons.right = [
         { label: 'Accepted', target: 'Accepted' },
-        { label: 'Rejected', target: 'Rejected' }
+        { label: 'Rejected', target: 'Rejected' },
       ];
       break;
 
@@ -109,7 +109,7 @@ export const domIds = {
   resumeHint: 'resumeHint',
   createBackupBtn: 'createBackupBtn',
   restoreBackupBtn: 'restoreBackupBtn',
-  clearAllBtn: 'clearAllBtn'
+  clearAllBtn: 'clearAllBtn',
 };
 
 // CSS class names
@@ -120,13 +120,13 @@ export const cssClasses = {
   noJobs: 'no-jobs',
   errorState: 'error-state',
   hidden: 'hidden',
-  hasResume: 'has-resume'
+  hasResume: 'has-resume',
 };
 
 // Animation configuration
 export const animationConfig = {
   duration: 400, // milliseconds
-  easing: 'cubic-bezier(0.4, 0.0, 0.2, 1)'
+  easing: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
 };
 
 // Default values (v0.2.0)
@@ -136,8 +136,8 @@ export const defaults = {
     search: '',
     source: 'all',
     status: 'all',
-    sort: 'newest'
-  }
+    sort: 'newest',
+  },
 };
 
 // LLM configuration for different tasks
@@ -147,7 +147,7 @@ export const llmConfig = {
     defaultModel: 'NuExtract-2.0-2B',
     alternativeModels: ['NuExtract-2.0-8B'],
     endpoint: 'http://localhost:1234/v1/chat/completions',
-    description: 'Optimized for structured data extraction from job postings'
+    description: 'Optimized for structured data extraction from job postings',
   },
 
   // Document synthesis LLM (for resume/cover letter generation)
@@ -302,8 +302,8 @@ CLOSING_DATE: N/A
 Analyze the job listing provided below and output the <JOB> data sheet:
 
 `,
-    }
-  }
+    },
+  },
 };
 
 // Default document templates
@@ -374,48 +374,47 @@ Dear [RECIPIENT NAME or RECIPIENT TITLE],
 Sincerely,
 [YOUR SIGNATURE]
 [YOUR FULL NAME]
-`
+`,
 };
 
 // Checklist templates for each status
 export const checklistTemplates = {
-  'Researching': [
+  Researching: [
     { text: 'Review job description thoroughly', order: 0 },
     { text: 'Research company culture and values', order: 1 },
     { text: 'Create narrative strategy', order: 2 },
   ],
-  'Drafting': [
+  Drafting: [
     { text: 'Create tailored resume/CV', order: 0 },
     { text: 'Write cover letter', order: 1 },
     { text: 'Prepare all required documents', order: 2 },
-    { text: 'Review application for errors', order: 3 }
+    { text: 'Review application for errors', order: 3 },
   ],
   'Awaiting Review': [
     { text: 'Confirm application submitted', order: 0 },
     { text: 'Connect with a team member', order: 1 },
-    { text: 'Follow up if needed', order: 2 }
+    { text: 'Follow up if needed', order: 2 },
   ],
-  'Interviewing': [
+  Interviewing: [
     { text: 'Research interviewer backgrounds', order: 0 },
     { text: 'Prepare STAR responses', order: 1 },
     { text: 'Prepare questions to ask', order: 2 },
-    { text: 'Send thank you notes', order: 3 }
+    { text: 'Send thank you notes', order: 3 },
   ],
-  'Deciding': [
+  Deciding: [
     { text: 'Review offer details', order: 0 },
     { text: 'Analyze total compensation', order: 1 },
     { text: 'Negotiate if appropriate', order: 2 },
     { text: 'Compare with other offers', order: 3 },
   ],
-  'Accepted': [
+  Accepted: [
     { text: 'Sign offer letter', order: 0 },
     { text: 'Complete onboarding paperwork', order: 1 },
-    { text: 'Withdraw from other applications', order: 2 }
+    { text: 'Withdraw from other applications', order: 2 },
   ],
-  'Rejected': [
+  Rejected: [
     { text: 'Request feedback if appropriate', order: 0 },
-    { text: 'Update notes with learnings', order: 1 }
+    { text: 'Update notes with learnings', order: 1 },
   ],
-  'Withdrawn': [
-  ]
+  Withdrawn: [],
 };

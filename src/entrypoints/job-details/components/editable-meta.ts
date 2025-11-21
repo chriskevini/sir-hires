@@ -32,7 +32,7 @@ export class EditableMeta {
   render() {
     const displayValue = this.getDisplayValue();
     const optionsJson = JSON.stringify(this.options).replace(/"/g, '&quot;');
-    
+
     return `
       <div 
         class="meta-item editable-meta" 
@@ -60,7 +60,7 @@ export class EditableMeta {
       }
       return this.value;
     }
-    
+
     // Placeholder when empty
     if (this.label) {
       return `(Add ${this.label})`;
@@ -77,10 +77,10 @@ export class EditableMeta {
     if (!dateString) return '';
     try {
       const date = new Date(dateString + 'T00:00:00'); // Parse as local date
-      return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
       });
     } catch (error) {
       return dateString;
@@ -111,7 +111,7 @@ export class EditableMeta {
    */
   attachListeners(element) {
     if (!element) return;
-    
+
     this.element = element;
     this.indicator = element.querySelector('.save-indicator');
 
@@ -146,20 +146,21 @@ export class EditableMeta {
     input.type = 'text';
     input.className = 'inline-input';
     input.value = this.value;
-    
+
     const originalDisplay = valueSpan.textContent;
     valueSpan.textContent = '';
     valueSpan.appendChild(input);
     input.focus();
     input.select();
-    
+
     // Handle blur (save)
     input.addEventListener('blur', async () => {
       const newValue = input.value.trim();
       await this.save(newValue);
-      valueSpan.textContent = newValue || (this.label ? `(Add ${this.label})` : '(Click to edit)');
+      valueSpan.textContent =
+        newValue || (this.label ? `(Add ${this.label})` : '(Click to edit)');
     });
-    
+
     // Handle Enter key
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -178,17 +179,21 @@ export class EditableMeta {
     input.type = 'date';
     input.className = 'inline-input';
     input.value = this.isoToDateInput(this.value);
-    
+
     const originalDisplay = valueSpan.textContent;
     valueSpan.textContent = '';
     valueSpan.appendChild(input);
     input.focus();
-    
+
     // Handle blur (save)
     input.addEventListener('blur', async () => {
       const newValue = this.dateInputToISO(input.value);
       await this.save(newValue);
-      valueSpan.textContent = newValue ? this.formatDate(newValue) : (this.label ? `(Add ${this.label})` : '(Click to edit)');
+      valueSpan.textContent = newValue
+        ? this.formatDate(newValue)
+        : this.label
+          ? `(Add ${this.label})`
+          : '(Click to edit)';
     });
   }
 
@@ -199,15 +204,15 @@ export class EditableMeta {
   createSelectInput(valueSpan) {
     const select = document.createElement('select');
     select.className = 'inline-select';
-    
+
     // Add empty option
     const emptyOption = document.createElement('option');
     emptyOption.value = '';
     emptyOption.textContent = '(None)';
     select.appendChild(emptyOption);
-    
+
     // Add options
-    this.options.forEach(opt => {
+    this.options.forEach((opt) => {
       const option = document.createElement('option');
       option.value = opt;
       option.textContent = opt;
@@ -216,19 +221,20 @@ export class EditableMeta {
       }
       select.appendChild(option);
     });
-    
+
     const originalDisplay = valueSpan.textContent;
     valueSpan.textContent = '';
     valueSpan.appendChild(select);
     select.focus();
-    
+
     // Handle change (save immediately)
     const handleSelect = async () => {
       const newValue = select.value;
       await this.save(newValue);
-      valueSpan.textContent = newValue || (this.label ? `(Select ${this.label})` : '(Click to edit)');
+      valueSpan.textContent =
+        newValue || (this.label ? `(Select ${this.label})` : '(Click to edit)');
     };
-    
+
     select.addEventListener('change', handleSelect);
     select.addEventListener('blur', () => {
       // If select is still in the span, restore original display
@@ -252,13 +258,13 @@ export class EditableMeta {
       await this.onSave(this.fieldName, newValue);
       this.value = newValue;
       this.showIndicator('saved', '✓');
-      
+
       // Hide after 2 seconds
       setTimeout(() => this.hideIndicator(), 2000);
     } catch (error) {
       console.error(`[EditableMeta] Error saving ${this.fieldName}:`, error);
       this.showIndicator('error', '✗');
-      
+
       // Hide after 2 seconds
       setTimeout(() => this.hideIndicator(), 2000);
     }
@@ -271,7 +277,7 @@ export class EditableMeta {
    */
   showIndicator(state, icon) {
     if (!this.indicator) return;
-    
+
     this.indicator.textContent = icon;
     this.indicator.className = `save-indicator ${state}`;
   }
@@ -281,7 +287,7 @@ export class EditableMeta {
    */
   hideIndicator() {
     if (!this.indicator) return;
-    
+
     this.indicator.className = 'save-indicator';
     this.indicator.textContent = '';
   }

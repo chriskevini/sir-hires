@@ -2,7 +2,6 @@ import { LLMClient } from '../utils/llm-client';
 import { llmConfig } from '../config';
 
 export default defineBackground(() => {
-
   // Global keepalive to prevent service worker termination
   // Chrome terminates inactive service workers after ~30 seconds
   // This interval pings storage every 20 seconds to keep it alive
@@ -16,14 +15,14 @@ export default defineBackground(() => {
     if (globalKeepAliveInterval) {
       return; // Already running
     }
-    
+
     console.log('[Background] Starting global keepalive');
-    
+
     // Fire immediately first
     browser.storage.local.get(['_keepalive']).then(() => {
       console.log('[Background] Global keepalive ping (immediate)');
     });
-    
+
     // Then continue every 20 seconds
     globalKeepAliveInterval = setInterval(() => {
       browser.storage.local.get(['_keepalive']).then(() => {
@@ -42,8 +41,12 @@ export default defineBackground(() => {
 
   // Migration function: Convert snake_case properties to camelCase
   async function migrateStorageSchema() {
-    const result = await browser.storage.local.get(['jobs', 'masterResume', 'schemaMigrated']);
-    
+    const result = await browser.storage.local.get([
+      'jobs',
+      'masterResume',
+      'schemaMigrated',
+    ]);
+
     // Check if migration already completed
     if (result.schemaMigrated) {
       console.log('[Migration] Schema already migrated to camelCase');
@@ -56,7 +59,7 @@ export default defineBackground(() => {
     // Migrate jobs
     const jobs = result.jobs || {};
     const migratedJobs: Record<string, any> = {};
-    
+
     Object.entries(jobs).forEach(([key, job]: [string, any]) => {
       migratedJobs[key] = {
         id: job.id,
@@ -68,7 +71,8 @@ export default defineBackground(() => {
         remoteType: job.remote_type || job.remoteType || '',
         postedDate: job.posted_date || job.postedDate || '',
         deadline: job.deadline || '',
-        applicationStatus: job.application_status || job.applicationStatus || 'Researching',
+        applicationStatus:
+          job.application_status || job.applicationStatus || 'Researching',
         statusHistory: job.status_history || job.statusHistory || [],
         url: job.url || '',
         source: job.source || '',
@@ -78,9 +82,10 @@ export default defineBackground(() => {
         responsibilities: job.responsibilities || '',
         requirements: job.requirements || '',
         notes: job.notes || '',
-        narrativeStrategy: job.narrative_strategy || job.narrativeStrategy || '',
+        narrativeStrategy:
+          job.narrative_strategy || job.narrativeStrategy || '',
         updatedAt: job.updated_at || job.updatedAt || new Date().toISOString(),
-        targetedResume: job.targeted_resume || job.targetedResume || ''
+        targetedResume: job.targeted_resume || job.targetedResume || '',
       };
       migrationCount++;
     });
@@ -90,35 +95,46 @@ export default defineBackground(() => {
     if (result.masterResume) {
       migratedMasterResume = {
         content: result.masterResume.content || '',
-        updatedAt: result.masterResume.updated_at || result.masterResume.updatedAt || new Date().toISOString()
+        updatedAt:
+          result.masterResume.updated_at ||
+          result.masterResume.updatedAt ||
+          new Date().toISOString(),
       };
     }
 
     // Save migrated data
     const dataToSave: Record<string, any> = {
       jobs: migratedJobs,
-      schemaMigrated: true
+      schemaMigrated: true,
     };
-    
+
     if (migratedMasterResume) {
       dataToSave.masterResume = migratedMasterResume;
     }
 
     await browser.storage.local.set(dataToSave);
-    console.log(`[Migration] Successfully migrated ${migrationCount} jobs to camelCase`);
+    console.log(
+      `[Migration] Successfully migrated ${migrationCount} jobs to camelCase`
+    );
   }
 
   // Migration function: Convert masterResume to userProfile with Profile Template
   async function migrateResumeToProfile() {
-    const result = await browser.storage.local.get(['masterResume', 'userProfile', 'profileMigrated']);
-    
+    const result = await browser.storage.local.get([
+      'masterResume',
+      'userProfile',
+      'profileMigrated',
+    ]);
+
     // Check if migration already completed
     if (result.profileMigrated) {
       console.log('[Migration] Profile already migrated to userProfile');
       return;
     }
 
-    console.log('[Migration] Starting masterResume to userProfile migration...');
+    console.log(
+      '[Migration] Starting masterResume to userProfile migration...'
+    );
 
     // If userProfile already exists, don't migrate
     if (result.userProfile) {
@@ -130,7 +146,7 @@ export default defineBackground(() => {
     // If masterResume exists, migrate it
     if (result.masterResume && result.masterResume.content) {
       const oldContent = result.masterResume.content;
-      
+
       // Wrap old content in comment block and add Profile Template starter
       const migratedContent = `<PROFILE>
 NAME: Your Full Name
@@ -159,18 +175,23 @@ BULLETS:
 - Your interests
 
 // OLD CONTENT:
-${oldContent.split('\n').map(line => '// ' + line).join('\n')}`;
+${oldContent
+  .split('\n')
+  .map((line) => '// ' + line)
+  .join('\n')}`;
 
       const userProfile = {
         content: migratedContent,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       };
 
-      await browser.storage.local.set({ 
+      await browser.storage.local.set({
         userProfile: userProfile,
-        profileMigrated: true
+        profileMigrated: true,
       });
-      console.log('[Migration] Successfully migrated masterResume to userProfile');
+      console.log(
+        '[Migration] Successfully migrated masterResume to userProfile'
+      );
     } else {
       // No masterResume to migrate, just mark as migrated
       console.log('[Migration] No masterResume found, marking as migrated');
@@ -181,11 +202,11 @@ ${oldContent.split('\n').map(line => '// ' + line).join('\n')}`;
   // Listen for installation
   browser.runtime.onInstalled.addListener(async (details) => {
     console.log('Sir Hires extension installed');
-    
+
     // Run migrations in order
     await migrateStorageSchema();
     await migrateResumeToProfile();
-    
+
     // Initialize storage if needed
     const result = await browser.storage.local.get(['jobs']);
     if (!result.jobs) {
@@ -194,7 +215,9 @@ ${oldContent.split('\n').map(line => '// ' + line).join('\n')}`;
 
     // Disable side panel on action click (we want popup to open instead)
     try {
-      await browser.sidePanel.setPanelBehavior({ openPanelOnActionClick: false });
+      await browser.sidePanel.setPanelBehavior({
+        openPanelOnActionClick: false,
+      });
     } catch (error) {
       console.error('Error setting side panel behavior:', error);
     }
@@ -203,20 +226,23 @@ ${oldContent.split('\n').map(line => '// ' + line).join('\n')}`;
   // Helper function to call LLM API
   async function callLLMAPI(endpoint: string, requestBody: any) {
     console.log('[Background] Calling LLM API:', endpoint);
-    console.log('[Background] Request body:', JSON.stringify(requestBody, null, 2));
-    
+    console.log(
+      '[Background] Request body:',
+      JSON.stringify(requestBody, null, 2)
+    );
+
     try {
       // Add a timeout for the fetch request (60 seconds)
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
-      
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
-        signal: controller.signal
+        signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
@@ -230,16 +256,21 @@ ${oldContent.split('\n').map(line => '// ' + line).join('\n')}`;
       }
 
       const data = await response.json();
-      console.log('[Background] LLM API success, response length:', JSON.stringify(data).length);
+      console.log(
+        '[Background] LLM API success, response length:',
+        JSON.stringify(data).length
+      );
       return data;
     } catch (error: any) {
       console.error('[Background] Error calling LLM API:', error);
-      
+
       // Provide more specific error messages
       if (error.name === 'AbortError') {
         throw new Error('LLM request timed out after 60 seconds');
       } else if (error.message.includes('Failed to fetch')) {
-        throw new Error('Cannot connect to LM Studio. Make sure it is running on ' + endpoint);
+        throw new Error(
+          'Cannot connect to LM Studio. Make sure it is running on ' + endpoint
+        );
       } else {
         throw error;
       }
@@ -260,19 +291,30 @@ ${oldContent.split('\n').map(line => '// ' + line).join('\n')}`;
   });
 
   // Helper function to send messages with retry logic (for sidepanel timing issues)
-  async function sendMessageWithRetry(message: any, maxRetries: number = 5, delayMs: number = 200): Promise<void> {
+  async function sendMessageWithRetry(
+    message: any,
+    maxRetries: number = 5,
+    delayMs: number = 200
+  ): Promise<void> {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         await browser.runtime.sendMessage(message);
-        console.log(`[Background] Message sent successfully: ${message.action}`);
+        console.log(
+          `[Background] Message sent successfully: ${message.action}`
+        );
         return; // Success!
       } catch (err: any) {
         if (err.message?.includes('Receiving end does not exist')) {
           if (attempt < maxRetries) {
-            console.log(`[Background] Sidepanel not ready, retrying (${attempt}/${maxRetries})...`);
-            await new Promise(resolve => setTimeout(resolve, delayMs));
+            console.log(
+              `[Background] Sidepanel not ready, retrying (${attempt}/${maxRetries})...`
+            );
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
           } else {
-            console.error(`[Background] Failed to send message after ${maxRetries} attempts:`, err);
+            console.error(
+              `[Background] Failed to send message after ${maxRetries} attempts:`,
+              err
+            );
             throw err;
           }
         } else {
@@ -287,16 +329,16 @@ ${oldContent.split('\n').map(line => '// ' + line).join('\n')}`;
   // Handle messages from other parts of the extension
   browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Note: WXT handles async message handlers automatically
-    
+
     if (request.action === 'getJobs') {
-      browser.storage.local.get(['jobs']).then(result => {
+      browser.storage.local.get(['jobs']).then((result) => {
         sendResponse({ jobs: result.jobs || [] });
       });
       return true;
     }
-    
+
     if (request.action === 'saveJob') {
-      browser.storage.local.get(['jobs']).then(result => {
+      browser.storage.local.get(['jobs']).then((result) => {
         const jobs = result.jobs || [];
         jobs.push(request.job);
         browser.storage.local.set({ jobs }).then(() => {
@@ -323,25 +365,28 @@ ${oldContent.split('\n').map(line => '// ' + line).join('\n')}`;
     if (request.action === 'streamExtractJob') {
       // Handle streaming job extraction with LLM
       const { jobId, url, source, rawText, llmSettings } = request;
-      console.log('[Background] Received streaming extraction request for job:', jobId);
-      
+      console.log(
+        '[Background] Received streaming extraction request for job:',
+        jobId
+      );
+
       // Start global keepalive BEFORE responding to ensure worker stays alive
       startGlobalKeepAlive();
-      
+
       // Immediately acknowledge receipt so popup can close
       sendResponse({ success: true, message: 'Extraction started' });
-      
+
       // Start streaming in background (don't await)
       (async () => {
         const streamId = jobId; // Use jobId as streamId for tracking
-        
+
         try {
           console.log('[Background] Starting LLM streaming for job:', jobId);
 
           // Initialize LLM client
           const llmClient = new LLMClient({
             endpoint: llmSettings.endpoint,
-            modelsEndpoint: llmSettings.modelsEndpoint
+            modelsEndpoint: llmSettings.modelsEndpoint,
           });
 
           // Store in activeExtractions for cancellation
@@ -349,13 +394,17 @@ ${oldContent.split('\n').map(line => '// ' + line).join('\n')}`;
 
           // Send initial metadata to sidepanel (for creating in-memory job)
           // Use retry logic because sidepanel may not be fully loaded yet
-          await sendMessageWithRetry({
-            action: 'extractionStarted',
-            jobId: jobId,
-            url: url,
-            source: source,
-            rawText: rawText
-          }, 5, 200); // 5 retries, 200ms delay between retries
+          await sendMessageWithRetry(
+            {
+              action: 'extractionStarted',
+              jobId: jobId,
+              url: url,
+              source: source,
+              rawText: rawText,
+            },
+            5,
+            200
+          ); // 5 retries, 200ms delay between retries
 
           // Prepare prompts from config
           const systemPrompt = llmConfig.synthesis.prompts.jobExtractor.trim();
@@ -371,29 +420,46 @@ ${oldContent.split('\n').map(line => '// ' + line).join('\n')}`;
             temperature: llmSettings.temperature || 0.3,
             onThinkingUpdate: (delta: string) => {
               // Ignore thinking stream (we only care about the document)
-              console.log('[Background] Thinking:', delta.substring(0, 50) + '...');
+              console.log(
+                '[Background] Thinking:',
+                delta.substring(0, 50) + '...'
+              );
             },
             onDocumentUpdate: (delta: string) => {
               // Send document chunks to sidepanel (no retry for chunks - stream is real-time)
-              console.log('[Background] Sending chunk to sidepanel:', delta.substring(0, 50) + '...');
-              browser.runtime.sendMessage({
-                action: 'extractionChunk',
-                jobId: jobId,
-                chunk: delta
-              }).catch((err: any) => {
-                console.error('[Background] Failed to send chunk to sidepanel:', err);
-              });
-            }
+              console.log(
+                '[Background] Sending chunk to sidepanel:',
+                delta.substring(0, 50) + '...'
+              );
+              browser.runtime
+                .sendMessage({
+                  action: 'extractionChunk',
+                  jobId: jobId,
+                  chunk: delta,
+                })
+                .catch((err: any) => {
+                  console.error(
+                    '[Background] Failed to send chunk to sidepanel:',
+                    err
+                  );
+                });
+            },
           });
 
           // Check if stream was cancelled
           if (result.cancelled) {
-            console.log('[Background] Streaming extraction cancelled for job:', jobId);
+            console.log(
+              '[Background] Streaming extraction cancelled for job:',
+              jobId
+            );
             await sendMessageWithRetry({
               action: 'extractionCancelled',
-              jobId: jobId
+              jobId: jobId,
             }).catch((err: any) => {
-              console.error('[Background] Failed to send cancellation to sidepanel:', err);
+              console.error(
+                '[Background] Failed to send cancellation to sidepanel:',
+                err
+              );
             });
             return;
           }
@@ -402,33 +468,41 @@ ${oldContent.split('\n').map(line => '// ' + line).join('\n')}`;
           await sendMessageWithRetry({
             action: 'extractionComplete',
             jobId: jobId,
-            fullContent: result.documentContent
+            fullContent: result.documentContent,
           }).catch((err: any) => {
-            console.error('[Background] Failed to send completion to sidepanel:', err);
+            console.error(
+              '[Background] Failed to send completion to sidepanel:',
+              err
+            );
           });
 
-          console.log('[Background] Streaming extraction completed for job:', jobId);
-
+          console.log(
+            '[Background] Streaming extraction completed for job:',
+            jobId
+          );
         } catch (error: any) {
           console.error('[Background] Streaming extraction failed:', error);
-          
+
           // Send error to sidepanel
           await sendMessageWithRetry({
             action: 'extractionError',
             jobId: jobId,
-            error: error.message
+            error: error.message,
           }).catch((err: any) => {
-            console.error('[Background] Failed to send error to sidepanel:', err);
+            console.error(
+              '[Background] Failed to send error to sidepanel:',
+              err
+            );
           });
         } finally {
           // Clean up activeExtractions
           activeExtractions.delete(jobId);
-          
+
           // Stop global keepalive when done
           stopGlobalKeepAlive();
         }
       })();
-      
+
       return true; // Keep message channel open for async response
     }
 
@@ -436,7 +510,7 @@ ${oldContent.split('\n').map(line => '// ' + line).join('\n')}`;
       // Handle cancellation of ongoing extraction
       const { jobId } = request;
       console.log('[Background] Received cancellation request for job:', jobId);
-      
+
       const extraction = activeExtractions.get(jobId);
       if (extraction) {
         const { llmClient, streamId } = extraction;
@@ -447,7 +521,7 @@ ${oldContent.split('\n').map(line => '// ' + line).join('\n')}`;
         console.log('[Background] No active extraction found for job:', jobId);
         sendResponse({ success: false, message: 'No active extraction found' });
       }
-      
+
       return true;
     }
 

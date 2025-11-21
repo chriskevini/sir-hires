@@ -19,13 +19,13 @@ export class JobDetailsApp {
     this.state = new StateManager();
     this.storage = new StorageService();
     this.jobService = new JobService();
-    
+
     // Initialize UI components
     this.animation = new AnimationController(this.state, config);
     this.navigation = new Navigation();
     this.sidebar = new Sidebar();
     this.mainView = new MainView();
-    
+
     // Initialize navigation service
     this.navigationService = new NavigationService(
       this.state,
@@ -46,7 +46,8 @@ export class JobDetailsApp {
     this.handleSaveNarrative = this.handleSaveNarrative.bind(this);
     this.handleOpenUrl = this.handleOpenUrl.bind(this);
     this.handleDeleteJob = this.handleDeleteJob.bind(this);
-    this.handleChecklistToggleExpand = this.handleChecklistToggleExpand.bind(this);
+    this.handleChecklistToggleExpand =
+      this.handleChecklistToggleExpand.bind(this);
     this.handleChecklistToggleItem = this.handleChecklistToggleItem.bind(this);
     this.handleInitializeDocuments = this.handleInitializeDocuments.bind(this);
     this.handleSaveDocument = this.handleSaveDocument.bind(this);
@@ -84,10 +85,14 @@ export class JobDetailsApp {
     const statusFilter = document.getElementById(domIds.statusFilter);
     const sortFilter = document.getElementById(domIds.sortFilter);
 
-    if (searchInput) searchInput.addEventListener('input', () => this.filterJobs());
-    if (sourceFilter) sourceFilter.addEventListener('change', () => this.filterJobs());
-    if (statusFilter) statusFilter.addEventListener('change', () => this.filterJobs());
-    if (sortFilter) sortFilter.addEventListener('change', () => this.filterJobs());
+    if (searchInput)
+      searchInput.addEventListener('input', () => this.filterJobs());
+    if (sourceFilter)
+      sourceFilter.addEventListener('change', () => this.filterJobs());
+    if (statusFilter)
+      statusFilter.addEventListener('change', () => this.filterJobs());
+    if (sortFilter)
+      sortFilter.addEventListener('change', () => this.filterJobs());
 
     // Sidebar job selection
     this.sidebar.setOnJobSelect((index) => this.selectJob(index));
@@ -105,11 +110,20 @@ export class JobDetailsApp {
     document.addEventListener('view:deleteJob', this.handleDeleteJob);
 
     // Checklist events
-    document.addEventListener('checklist:toggleExpand', this.handleChecklistToggleExpand);
-    document.addEventListener('checklist:toggleItem', this.handleChecklistToggleItem);
+    document.addEventListener(
+      'checklist:toggleExpand',
+      this.handleChecklistToggleExpand
+    );
+    document.addEventListener(
+      'checklist:toggleItem',
+      this.handleChecklistToggleItem
+    );
 
     // Document events (Drafting view)
-    document.addEventListener('view:initializeDocuments', this.handleInitializeDocuments);
+    document.addEventListener(
+      'view:initializeDocuments',
+      this.handleInitializeDocuments
+    );
     document.addEventListener('view:saveDocument', this.handleSaveDocument);
 
     // Master resume button
@@ -123,9 +137,12 @@ export class JobDetailsApp {
     const restoreBackupBtn = document.getElementById(domIds.restoreBackupBtn);
     const clearAllBtn = document.getElementById(domIds.clearAllBtn);
 
-    if (createBackupBtn) createBackupBtn.addEventListener('click', () => this.createBackup());
-    if (restoreBackupBtn) restoreBackupBtn.addEventListener('click', () => this.restoreBackup());
-    if (clearAllBtn) clearAllBtn.addEventListener('click', () => this.clearAllData());
+    if (createBackupBtn)
+      createBackupBtn.addEventListener('click', () => this.createBackup());
+    if (restoreBackupBtn)
+      restoreBackupBtn.addEventListener('click', () => this.restoreBackup());
+    if (clearAllBtn)
+      clearAllBtn.addEventListener('click', () => this.clearAllData());
   }
 
   /**
@@ -143,12 +160,13 @@ export class JobDetailsApp {
 
     try {
       // Load data from storage
-      const [jobs, jobInFocusId, masterResume, checklistExpanded] = await Promise.all([
-        this.storage.getAllJobs(),
-        this.storage.getJobInFocus(),
-        this.storage.getMasterResume(),
-        this.storage.getChecklistExpanded()
-      ]);
+      const [jobs, jobInFocusId, masterResume, checklistExpanded] =
+        await Promise.all([
+          this.storage.getAllJobs(),
+          this.storage.getJobInFocus(),
+          this.storage.getMasterResume(),
+          this.storage.getChecklistExpanded(),
+        ]);
 
       // Store in state
       this.state.setAllJobs(jobs);
@@ -217,7 +235,8 @@ export class JobDetailsApp {
       this.selectJob(indexToSelect);
     } else {
       const detailPanel = document.getElementById(domIds.detailPanel);
-      detailPanel.innerHTML = '<div class="detail-panel-empty">No jobs match your filters</div>';
+      detailPanel.innerHTML =
+        '<div class="detail-panel-empty">No jobs match your filters</div>';
       this.state.setSelectedIndex(-1);
     }
   }
@@ -231,7 +250,7 @@ export class JobDetailsApp {
   determineJobToSelect(jobs, jobInFocusId) {
     // Priority 1: Job in focus
     if (jobInFocusId) {
-      const focusIndex = jobs.findIndex(job => job.id === jobInFocusId);
+      const focusIndex = jobs.findIndex((job) => job.id === jobInFocusId);
       if (focusIndex !== -1) {
         console.log('Auto-selecting job in focus at index:', focusIndex);
         return focusIndex;
@@ -274,7 +293,7 @@ export class JobDetailsApp {
 
     // Get global index (in allJobs array)
     const allJobs = this.state.getAllJobs();
-    const globalIndex = allJobs.findIndex(j => j.id === job.id);
+    const globalIndex = allJobs.findIndex((j) => j.id === job.id);
 
     // Get checklist expanded state
     const checklistExpanded = this.state.getChecklistExpanded();
@@ -305,7 +324,7 @@ export class JobDetailsApp {
       search: document.getElementById(domIds.searchInput)?.value || '',
       source: document.getElementById(domIds.sourceFilter)?.value || '',
       status: document.getElementById(domIds.statusFilter)?.value || '',
-      sort: document.getElementById(domIds.sortFilter)?.value || 'newest'
+      sort: document.getElementById(domIds.sortFilter)?.value || 'newest',
     };
   }
 
@@ -327,7 +346,7 @@ export class JobDetailsApp {
       try {
         const filters = JSON.parse(saved);
         this.state.updateFilters(filters);
-        
+
         const searchInput = document.getElementById(domIds.searchInput);
         const sourceFilter = document.getElementById(domIds.sourceFilter);
         const statusFilter = document.getElementById(domIds.statusFilter);
@@ -348,7 +367,7 @@ export class JobDetailsApp {
    */
   populateSourceFilter() {
     const jobs = this.state.getAllJobs();
-    const sources = [...new Set(jobs.map(job => job.source).filter(Boolean))];
+    const sources = [...new Set(jobs.map((job) => job.source).filter(Boolean))];
     const select = document.getElementById(domIds.sourceFilter);
 
     if (!select) return;
@@ -356,7 +375,7 @@ export class JobDetailsApp {
     // Keep the "All Sources" option
     select.innerHTML = '<option value="">All Sources</option>';
 
-    sources.forEach(source => {
+    sources.forEach((source) => {
       const option = document.createElement('option');
       option.value = source;
       option.textContent = source;
@@ -417,7 +436,11 @@ export class JobDetailsApp {
     const resumeHint = document.getElementById(domIds.resumeHint);
     if (!resumeHint) return;
 
-    if (!masterResume || !masterResume.content || masterResume.content.trim() === '') {
+    if (
+      !masterResume ||
+      !masterResume.content ||
+      masterResume.content.trim() === ''
+    ) {
       resumeHint.classList.remove('hidden');
     } else {
       resumeHint.classList.add('hidden');
@@ -442,7 +465,9 @@ export class JobDetailsApp {
 
     // Check if animation is active
     if (this.state.isAnimationActive()) {
-      console.log('[Viewer] Animation in progress, setting pending reload flag');
+      console.log(
+        '[Viewer] Animation in progress, setting pending reload flag'
+      );
       this.state.setPendingReload(true);
       return;
     }
@@ -497,7 +522,10 @@ export class JobDetailsApp {
     await this.storage.updateJob(job.id, job);
 
     // Visual feedback
-    this.showSaveConfirmation(`btn-save-notes[data-index="${index}"]`, 'Saved!');
+    this.showSaveConfirmation(
+      `btn-save-notes[data-index="${index}"]`,
+      'Saved!'
+    );
 
     console.log(`Updated notes for job at index ${index}`);
   }
@@ -522,7 +550,10 @@ export class JobDetailsApp {
     await this.storage.updateJob(job.id, job);
 
     // Visual feedback
-    this.showSaveConfirmation(`btn-save-narrative[data-index="${index}"]`, 'Saved!');
+    this.showSaveConfirmation(
+      `btn-save-narrative[data-index="${index}"]`,
+      'Saved!'
+    );
 
     console.log(`Updated narrative strategy for job at index ${index}`);
   }
@@ -569,7 +600,7 @@ export class JobDetailsApp {
    */
   async handleChecklistToggleExpand(event) {
     const { index, isExpanded } = event.detail;
-    
+
     // Toggle global checklist expanded state
     this.state.setChecklistExpanded(isExpanded);
     await this.storage.setChecklistExpanded(isExpanded);
@@ -577,8 +608,12 @@ export class JobDetailsApp {
     // Re-render the checklist for the current job WITH ANIMATION (user-triggered)
     const jobs = this.state.getAllJobs();
     const job = jobs[index];
-    
-    if (job && this.mainView.currentView && this.mainView.currentView.renderChecklist) {
+
+    if (
+      job &&
+      this.mainView.currentView &&
+      this.mainView.currentView.renderChecklist
+    ) {
       this.mainView.currentView.renderChecklist(job, index, isExpanded, true); // animate = true
     }
 
@@ -606,7 +641,7 @@ export class JobDetailsApp {
       return;
     }
 
-    const item = currentStatusItems.find(i => i.id === itemId);
+    const item = currentStatusItems.find((i) => i.id === itemId);
     if (item) {
       item.checked = !item.checked;
       job.updatedAt = new Date().toISOString();
@@ -617,10 +652,16 @@ export class JobDetailsApp {
       const checklistExpanded = this.state.getChecklistExpanded();
 
       // Re-render the checklist
-      if (this.mainView.currentView && this.mainView.currentView.renderChecklist) {
-        this.mainView.currentView.renderChecklist(job, index, checklistExpanded);
+      if (
+        this.mainView.currentView &&
+        this.mainView.currentView.renderChecklist
+      ) {
+        this.mainView.currentView.renderChecklist(
+          job,
+          index,
+          checklistExpanded
+        );
       }
-
     }
   }
 
@@ -701,21 +742,21 @@ export class JobDetailsApp {
    */
   async createBackup() {
     const storageData = await this.storage.createBackup();
-    
+
     // Get version from manifest
     const manifestData = browser.runtime.getManifest();
     const version = manifestData.version;
-    
+
     // Create V1 format backup with metadata wrapper
     // Note: dataVersion is excluded from backup data (it's internal migration tracking)
     const { dataVersion, ...cleanData } = storageData;
-    
+
     const backup = {
-      version: version,  // Use semantic version from manifest (e.g., "0.2.0")
+      version: version, // Use semantic version from manifest (e.g., "0.2.0")
       exportDate: new Date().toISOString(),
-      data: cleanData
+      data: cleanData,
     };
-    
+
     const dataStr = JSON.stringify(backup, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
@@ -741,34 +782,38 @@ export class JobDetailsApp {
       try {
         const text = await file.text();
         const backup = JSON.parse(text);
-        
+
         // Validate and extract data based on format
         let dataToRestore;
         let backupVersion;
         let exportDate;
-        
+
         if (backup.version && backup.data) {
           // V1 format with metadata wrapper
           backupVersion = backup.version;
           exportDate = backup.exportDate;
           dataToRestore = backup.data;
-          
+
           // Show confirmation with metadata
           const jobCount = Object.keys(dataToRestore.jobs || {}).length;
-          const dateStr = exportDate ? new Date(exportDate).toLocaleString() : 'Unknown';
+          const dateStr = exportDate
+            ? new Date(exportDate).toLocaleString()
+            : 'Unknown';
           const confirmMsg = `Restore backup from ${dateStr}?\n\nVersion: ${backupVersion}\nJobs: ${jobCount}\n\nThis will overwrite all current data.`;
-          
+
           if (!confirm(confirmMsg)) {
             return;
           }
         } else if (backup.jobs) {
           // Legacy V2 format (raw storage) - support for backwards compatibility
-          backupVersion = backup.dataVersion ? `0.${backup.dataVersion}.0` : '0.1.0';
+          backupVersion = backup.dataVersion
+            ? `0.${backup.dataVersion}.0`
+            : '0.1.0';
           dataToRestore = backup;
-          
+
           const jobCount = Object.keys(dataToRestore.jobs || {}).length;
           const confirmMsg = `Restore legacy backup?\n\nVersion: ${backupVersion} (estimated)\nJobs: ${jobCount}\n\nThis will overwrite all current data.`;
-          
+
           if (!confirm(confirmMsg)) {
             return;
           }
@@ -776,13 +821,13 @@ export class JobDetailsApp {
           alert('Invalid backup file format.');
           return;
         }
-        
+
         await this.storage.restoreBackup(dataToRestore);
-        
+
         // Run migration check after restore in case backup has old status names
         const migration = new MigrationService(this.storage);
         await migration.checkAndMigrate();
-        
+
         alert('Backup restored successfully!');
         await this.loadJobs();
       } catch (error) {
@@ -797,11 +842,19 @@ export class JobDetailsApp {
    * Clear all data
    */
   async clearAllData() {
-    if (!confirm('Are you sure you want to delete ALL jobs? This cannot be undone!')) {
+    if (
+      !confirm(
+        'Are you sure you want to delete ALL jobs? This cannot be undone!'
+      )
+    ) {
       return;
     }
 
-    if (!confirm('This will permanently delete all your saved jobs. Are you absolutely sure?')) {
+    if (
+      !confirm(
+        'This will permanently delete all your saved jobs. Are you absolutely sure?'
+      )
+    ) {
       return;
     }
 
@@ -818,12 +871,24 @@ export class JobDetailsApp {
     browser.storage.onChanged.removeListener(this.handleStorageChange);
     document.removeEventListener('view:saveField', this.handleSaveField);
     document.removeEventListener('view:saveNotes', this.handleSaveNotes);
-    document.removeEventListener('view:saveNarrative', this.handleSaveNarrative);
+    document.removeEventListener(
+      'view:saveNarrative',
+      this.handleSaveNarrative
+    );
     document.removeEventListener('view:openUrl', this.handleOpenUrl);
     document.removeEventListener('view:deleteJob', this.handleDeleteJob);
-    document.removeEventListener('checklist:toggleExpand', this.handleChecklistToggleExpand);
-    document.removeEventListener('checklist:toggleItem', this.handleChecklistToggleItem);
-    document.removeEventListener('view:initializeDocuments', this.handleInitializeDocuments);
+    document.removeEventListener(
+      'checklist:toggleExpand',
+      this.handleChecklistToggleExpand
+    );
+    document.removeEventListener(
+      'checklist:toggleItem',
+      this.handleChecklistToggleItem
+    );
+    document.removeEventListener(
+      'view:initializeDocuments',
+      this.handleInitializeDocuments
+    );
     document.removeEventListener('view:saveDocument', this.handleSaveDocument);
 
     // Cleanup components

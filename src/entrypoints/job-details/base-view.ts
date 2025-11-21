@@ -71,10 +71,10 @@ export class BaseView {
     if (!dateString) return 'Unknown';
     try {
       const date = new Date(dateString + 'T00:00:00'); // Parse as local date
-      return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
       });
     } catch (error) {
       return dateString;
@@ -92,16 +92,16 @@ export class BaseView {
       const date = new Date(dateString + 'T00:00:00');
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       const diffTime = date - today;
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
+
       if (diffDays === 0) return 'Today';
       if (diffDays === 1) return 'Tomorrow';
       if (diffDays === -1) return 'Yesterday';
       if (diffDays > 1) return `in ${diffDays} days`;
       if (diffDays < -1) return `${Math.abs(diffDays)} days ago`;
-      
+
       return this.formatAbsoluteDate(dateString);
     } catch (error) {
       return dateString;
@@ -115,10 +115,10 @@ export class BaseView {
    */
   getRemoteIcon(remoteType) {
     const icons = {
-      'Remote': '🏠',
-      'Hybrid': '🏢🏠',
+      Remote: '🏠',
+      Hybrid: '🏢🏠',
       'On-site': '🏢',
-      'Not specified': ''
+      'Not specified': '',
     };
     return icons[remoteType] || '💻';
   }
@@ -130,18 +130,18 @@ export class BaseView {
    */
   markdownToHtml(text) {
     if (!text) return '';
-    
+
     let html = this.escapeHtml(text);
-    
+
     // Convert line breaks
     html = html.replace(/\n\n/g, '</p><p>');
     html = html.replace(/\n/g, '<br>');
-    
+
     // Wrap in paragraphs if not empty
     if (html.trim()) {
       html = `<p>${html}</p>`;
     }
-    
+
     return html;
   }
 
@@ -171,37 +171,49 @@ export class BaseView {
    */
   renderJobMeta(job) {
     const items = [];
-    
+
     if (job.location) {
-      items.push(`<div class="job-meta-item">📍 ${this.escapeHtml(job.location)}</div>`);
+      items.push(
+        `<div class="job-meta-item">📍 ${this.escapeHtml(job.location)}</div>`
+      );
     }
-    
+
     if (job.salary) {
-      items.push(`<div class="job-meta-item">💰 ${this.escapeHtml(job.salary)}</div>`);
+      items.push(
+        `<div class="job-meta-item">💰 ${this.escapeHtml(job.salary)}</div>`
+      );
     }
-    
+
     if (job.jobType) {
-      items.push(`<div class="job-meta-item">💼 ${this.escapeHtml(job.jobType)}</div>`);
+      items.push(
+        `<div class="job-meta-item">💼 ${this.escapeHtml(job.jobType)}</div>`
+      );
     }
-    
+
     if (job.remoteType && job.remoteType !== 'Not specified') {
-      items.push(`<div class="job-meta-item">${this.getRemoteIcon(job.remoteType)} ${this.escapeHtml(job.remoteType)}</div>`);
+      items.push(
+        `<div class="job-meta-item">${this.getRemoteIcon(job.remoteType)} ${this.escapeHtml(job.remoteType)}</div>`
+      );
     }
-    
+
     if (job.postedDate) {
       const absolute = this.formatAbsoluteDate(job.postedDate);
       const relative = this.formatRelativeDate(job.postedDate);
-      items.push(`<div class="job-meta-item">📅 Posted: <span title="${this.escapeHtml(absolute)}">${this.escapeHtml(relative)}</span></div>`);
+      items.push(
+        `<div class="job-meta-item">📅 Posted: <span title="${this.escapeHtml(absolute)}">${this.escapeHtml(relative)}</span></div>`
+      );
     }
-    
+
     if (job.deadline) {
       const absolute = this.formatAbsoluteDate(job.deadline);
       const relative = this.formatRelativeDate(job.deadline);
-      items.push(`<div class="job-meta-item">⏰ Deadline: <span title="${this.escapeHtml(absolute)}">${this.escapeHtml(relative)}</span></div>`);
+      items.push(
+        `<div class="job-meta-item">⏰ Deadline: <span title="${this.escapeHtml(absolute)}">${this.escapeHtml(relative)}</span></div>`
+      );
     }
-    
+
     if (items.length === 0) return '';
-    
+
     return `<div class="job-meta">${items.join('')}</div>`;
   }
 

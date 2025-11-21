@@ -4,9 +4,9 @@ export class JobService {
   constructor(config) {
     this.config = config;
   }
-  
+
   // ===== Filtering =====
-  
+
   /**
    * Filter jobs based on search, source, and status criteria
    * @param {Array} jobs - Array of job objects to filter
@@ -15,11 +15,11 @@ export class JobService {
    */
   filterJobs(jobs, filters) {
     let filtered = [...jobs];
-    
+
     // Search filter - searches across multiple fields
     if (filters.search && filters.search.trim()) {
       const searchLower = filters.search.toLowerCase().trim();
-      filtered = filtered.filter(job => {
+      filtered = filtered.filter((job) => {
         return (
           job.jobTitle?.toLowerCase().includes(searchLower) ||
           job.company?.toLowerCase().includes(searchLower) ||
@@ -32,25 +32,25 @@ export class JobService {
         );
       });
     }
-    
+
     // Source filter
     if (filters.source && filters.source !== 'all') {
-      filtered = filtered.filter(job => job.source === filters.source);
+      filtered = filtered.filter((job) => job.source === filters.source);
     }
-    
+
     // Status filter
     if (filters.status && filters.status !== 'all') {
-      filtered = filtered.filter(job => {
+      filtered = filtered.filter((job) => {
         const status = job.applicationStatus || 'Researching';
         return status === filters.status;
       });
     }
-    
+
     return filtered;
   }
-  
+
   // ===== Sorting =====
-  
+
   /**
    * Sort jobs based on specified criteria
    * @param {Array} jobs - Array of job objects to sort
@@ -59,8 +59,8 @@ export class JobService {
    */
   sortJobs(jobs, sortBy) {
     const sorted = [...jobs]; // Create a copy to avoid mutating the original array
-    
-    switch(sortBy) {
+
+    switch (sortBy) {
       case 'newest':
         sorted.sort((a, b) => {
           const dateA = a.updatedAt || a.postedDate || '';
@@ -68,7 +68,7 @@ export class JobService {
           return dateB.localeCompare(dateA);
         });
         break;
-      
+
       case 'oldest':
         sorted.sort((a, b) => {
           const dateA = a.updatedAt || a.postedDate || '';
@@ -76,7 +76,7 @@ export class JobService {
           return dateA.localeCompare(dateB);
         });
         break;
-      
+
       case 'deadline-soon':
         sorted.sort((a, b) => {
           // Jobs with deadlines come first, then by date ascending
@@ -86,7 +86,7 @@ export class JobService {
           return a.deadline.localeCompare(b.deadline);
         });
         break;
-      
+
       case 'deadline-latest':
         sorted.sort((a, b) => {
           // Jobs with deadlines come first, then by date descending
@@ -96,7 +96,7 @@ export class JobService {
           return b.deadline.localeCompare(a.deadline);
         });
         break;
-      
+
       case 'company-az':
         sorted.sort((a, b) => {
           const companyA = (a.company || '').toLowerCase();
@@ -104,7 +104,7 @@ export class JobService {
           return companyA.localeCompare(companyB);
         });
         break;
-      
+
       case 'company-za':
         sorted.sort((a, b) => {
           const companyA = (a.company || '').toLowerCase();
@@ -112,7 +112,7 @@ export class JobService {
           return companyB.localeCompare(companyA);
         });
         break;
-      
+
       case 'title-az':
         sorted.sort((a, b) => {
           const titleA = (a.jobTitle || '').toLowerCase();
@@ -120,7 +120,7 @@ export class JobService {
           return titleA.localeCompare(titleB);
         });
         break;
-      
+
       case 'title-za':
         sorted.sort((a, b) => {
           const titleA = (a.jobTitle || '').toLowerCase();
@@ -128,7 +128,7 @@ export class JobService {
           return titleB.localeCompare(titleA);
         });
         break;
-      
+
       default:
         // Default to newest first
         sorted.sort((a, b) => {
@@ -137,12 +137,12 @@ export class JobService {
           return dateB.localeCompare(dateA);
         });
     }
-    
+
     return sorted;
   }
-  
+
   // ===== Status Management =====
-  
+
   /**
    * Update a job's status and maintain status history
    * @param {Object} job - Job object to update
@@ -151,29 +151,31 @@ export class JobService {
    */
   updateJobStatus(job, newStatus) {
     const oldStatus = job.applicationStatus || 'Researching';
-    
+
     // Initialize status history if needed
     if (!job.statusHistory) {
-      job.statusHistory = [{
-        status: oldStatus,
-        date: job.updatedAt || new Date().toISOString()
-      }];
+      job.statusHistory = [
+        {
+          status: oldStatus,
+          date: job.updatedAt || new Date().toISOString(),
+        },
+      ];
     }
-    
+
     // Add new status to history
     job.statusHistory.push({
       status: newStatus,
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
     });
-    
+
     // Update job
     return {
       ...job,
       applicationStatus: newStatus,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
   }
-  
+
   /**
    * Get the order index of a status
    * @param {string} status - Status value
@@ -183,7 +185,7 @@ export class JobService {
     const index = this.config.statusOrder.indexOf(status);
     return index === -1 ? 0 : index;
   }
-  
+
   /**
    * Check if a status is terminal (cannot progress further)
    * @param {string} status - Status value
@@ -192,9 +194,9 @@ export class JobService {
   isTerminalState(status) {
     return this.config.terminalStates.includes(status);
   }
-  
+
   // ===== Validation =====
-  
+
   /**
    * Validate a status transition (currently no restrictions)
    * @param {string} oldStatus - Current status
@@ -209,7 +211,7 @@ export class JobService {
     }
     return true;
   }
-  
+
   /**
    * Validate job data
    * @param {Object} job - Job object to validate
@@ -217,23 +219,23 @@ export class JobService {
    */
   validateJob(job) {
     const errors = [];
-    
+
     if (!job.jobTitle || job.jobTitle.trim() === '') {
       errors.push('Job title is required');
     }
-    
+
     if (!job.company || job.company.trim() === '') {
       errors.push('Company name is required');
     }
-    
+
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
-  
+
   // ===== Backup/Restore =====
-  
+
   /**
    * Prepare backup data for export
    * @param {Array} jobs - Array of jobs
@@ -245,10 +247,10 @@ export class JobService {
       jobs,
       userProfile: masterResume,
       exportDate: new Date().toISOString(),
-      version: '1.0'
+      version: '1.0',
     };
   }
-  
+
   /**
    * Validate backup data
    * @param {Object} data - Backup data to validate
@@ -258,13 +260,13 @@ export class JobService {
     if (!data || typeof data !== 'object') {
       return false;
     }
-    
+
     // Must have at least jobs or userProfile (or old masterResume for backward compatibility)
     return Boolean(data.jobs || data.userProfile || data.masterResume);
   }
-  
+
   // ===== Utility Methods =====
-  
+
   /**
    * Get all unique sources from jobs
    * @param {Array} jobs - Array of jobs
@@ -272,14 +274,14 @@ export class JobService {
    */
   getUniqueSources(jobs) {
     const sources = new Set();
-    jobs.forEach(job => {
+    jobs.forEach((job) => {
       if (job.source) {
         sources.add(job.source);
       }
     });
     return Array.from(sources).sort();
   }
-  
+
   /**
    * Get jobs by status
    * @param {Array} jobs - Array of jobs
@@ -287,9 +289,11 @@ export class JobService {
    * @returns {Array} Jobs with the specified status
    */
   getJobsByStatus(jobs, status) {
-    return jobs.filter(job => (job.applicationStatus || 'Researching') === status);
+    return jobs.filter(
+      (job) => (job.applicationStatus || 'Researching') === status
+    );
   }
-  
+
   /**
    * Get status statistics
    * @param {Array} jobs - Array of jobs
@@ -297,18 +301,18 @@ export class JobService {
    */
   getStatusStats(jobs) {
     const stats = {};
-    
-    this.config.statusOrder.forEach(status => {
+
+    this.config.statusOrder.forEach((status) => {
       stats[status] = 0;
     });
-    
-    jobs.forEach(job => {
+
+    jobs.forEach((job) => {
       const status = job.applicationStatus || 'Researching';
       if (stats[status] !== undefined) {
         stats[status]++;
       }
     });
-    
+
     return stats;
   }
 }

@@ -12,21 +12,25 @@ export class DraftingView extends BaseView {
     this.activeTab = 'tailoredResume';
     this.autoSaveInterval = null;
     this.lastSavedContent = {}; // Track last saved content to detect changes
-    
+
     // Configuration for default documents
     this.defaultDocuments = {
       tailoredResume: {
         label: 'Resume/CV',
         order: 0,
-        defaultTitle: (job) => `${job.jobTitle || 'Resume'} - ${job.company || 'Company'}`,
-        placeholder: 'Write your tailored resume here using Markdown formatting...\n\nExample:\n# Your Name\nemail@example.com | linkedin.com/in/yourprofile\n\n## Summary\nExperienced software engineer...'
+        defaultTitle: (job) =>
+          `${job.jobTitle || 'Resume'} - ${job.company || 'Company'}`,
+        placeholder:
+          'Write your tailored resume here using Markdown formatting...\n\nExample:\n# Your Name\nemail@example.com | linkedin.com/in/yourprofile\n\n## Summary\nExperienced software engineer...',
       },
       coverLetter: {
         label: 'Cover Letter',
         order: 1,
-        defaultTitle: (job) => `Cover Letter - ${job.jobTitle || 'Position'} at ${job.company || 'Company'}`,
-        placeholder: 'Write your cover letter here using Markdown formatting...\n\nExample:\nDear Hiring Manager,\n\nI am writing to express my interest...'
-      }
+        defaultTitle: (job) =>
+          `Cover Letter - ${job.jobTitle || 'Position'} at ${job.company || 'Company'}`,
+        placeholder:
+          'Write your cover letter here using Markdown formatting...\n\nExample:\nDear Hiring Manager,\n\nI am writing to express my interest...',
+      },
     };
   }
 
@@ -111,7 +115,7 @@ export class DraftingView extends BaseView {
    */
   renderTopbar(job, index) {
     const documentKeys = this.getDocumentKeys(job);
-    
+
     return `
       <div class="editor-topbar">
         <div class="tab-container">
@@ -146,17 +150,19 @@ export class DraftingView extends BaseView {
    * @returns {string} HTML string
    */
   renderTabs(job, documentKeys) {
-    return documentKeys.map(key => {
-      const config = this.defaultDocuments[key];
-      const label = config ? config.label : key;
-      const isActive = key === this.activeTab ? 'active' : '';
-      
-      return `
+    return documentKeys
+      .map((key) => {
+        const config = this.defaultDocuments[key];
+        const label = config ? config.label : key;
+        const isActive = key === this.activeTab ? 'active' : '';
+
+        return `
         <button class="tab-btn ${isActive}" data-tab="${key}">
           ${this.escapeHtml(label)}
         </button>
       `;
-    }).join('');
+      })
+      .join('');
   }
 
   /**
@@ -167,10 +173,10 @@ export class DraftingView extends BaseView {
    */
   renderEditors(job, index) {
     const documentKeys = this.getDocumentKeys(job);
-    
+
     return `
       <div class="editor-wrapper">
-        ${documentKeys.map(key => this.renderEditorPanel(job, index, key)).join('')}
+        ${documentKeys.map((key) => this.renderEditorPanel(job, index, key)).join('')}
       </div>
     `;
   }
@@ -186,14 +192,16 @@ export class DraftingView extends BaseView {
     const doc = this.getDocument(job, documentKey);
     const config = this.defaultDocuments[documentKey];
     const isActive = documentKey === this.activeTab ? 'active' : '';
-    const placeholder = config ? config.placeholder : 'Write your document here...';
-    
+    const placeholder = config
+      ? config.placeholder
+      : 'Write your document here...';
+
     // Store last saved content for change detection
     this.lastSavedContent[documentKey] = {
       text: doc.text,
-      lastEdited: doc.lastEdited
+      lastEdited: doc.lastEdited,
     };
-    
+
     return `
       <div class="editor-content ${isActive}" data-content="${documentKey}">
         ${this.renderThinkingPanel()}
@@ -216,10 +224,10 @@ export class DraftingView extends BaseView {
   renderFooter(job, index) {
     const doc = this.getDocument(job, this.activeTab);
     const wordCount = this.countWords(doc.text);
-    
+
     // Get initial save status text
     const initialStatus = this.getInitialSaveStatus(doc);
-    
+
     return `
       <div class="editor-footer">
         <div class="editor-status">
@@ -241,7 +249,7 @@ export class DraftingView extends BaseView {
     if (!doc.lastEdited) {
       return 'No changes yet';
     }
-    
+
     const lastEditedDate = new Date(doc.lastEdited);
     return `Last saved ${this.formatSaveTime(lastEditedDate)}`;
   }
@@ -256,22 +264,22 @@ export class DraftingView extends BaseView {
   attachListeners(container, job, index, isExpanded = false) {
     // Tab switching
     this.attachTabListeners(container, job, index);
-    
+
     // Auto-save
     this.startAutoSave(container, job, index);
-    
+
     // Export dropdown
     this.attachExportDropdownListeners(container, job, index);
-    
+
     // Synthesize button
     this.attachSynthesizeListener(container, job, index);
-    
+
     // Word count updates
     this.attachWordCountListeners(container);
-    
+
     // Thinking panel toggle
     this.attachThinkingPanelListeners(container);
-    
+
     // Render and attach checklist
     this.renderChecklist(job, index, isExpanded);
   }
@@ -284,8 +292,8 @@ export class DraftingView extends BaseView {
    */
   attachTabListeners(container, job, index) {
     const tabButtons = container.querySelectorAll('.tab-btn');
-    
-    tabButtons.forEach(btn => {
+
+    tabButtons.forEach((btn) => {
       const tabKey = btn.dataset.tab;
       const clickHandler = () => this.switchTab(container, tabKey);
       this.trackListener(btn, 'click', clickHandler);
@@ -299,18 +307,18 @@ export class DraftingView extends BaseView {
    */
   switchTab(container, newTabKey) {
     this.activeTab = newTabKey;
-    
+
     // Update tab buttons
-    container.querySelectorAll('.tab-btn').forEach(btn => {
+    container.querySelectorAll('.tab-btn').forEach((btn) => {
       if (btn.dataset.tab === newTabKey) {
         btn.classList.add('active');
       } else {
         btn.classList.remove('active');
       }
     });
-    
+
     // Update editor visibility
-    container.querySelectorAll('.editor-content').forEach(editor => {
+    container.querySelectorAll('.editor-content').forEach((editor) => {
       if (editor.dataset.content === newTabKey) {
         editor.classList.add('active');
         // Focus the textarea
@@ -320,10 +328,10 @@ export class DraftingView extends BaseView {
         editor.classList.remove('active');
       }
     });
-    
+
     // Update word count for new tab
     this.updateWordCount(container);
-    
+
     // Update save indicator for new tab
     this.updateSaveIndicatorForTab(container, newTabKey);
   }
@@ -336,16 +344,16 @@ export class DraftingView extends BaseView {
   updateSaveIndicatorForTab(container, documentKey) {
     const indicator = container.querySelector('#saveStatus');
     if (!indicator) return;
-    
+
     // Get the document from lastSavedContent
     const doc = this.lastSavedContent[documentKey];
-    
+
     if (!doc || !doc.lastEdited) {
       indicator.textContent = 'No changes yet';
       indicator.classList.add('visible', 'saved');
       return;
     }
-    
+
     const lastEditedDate = new Date(doc.lastEdited);
     indicator.textContent = `Last saved ${this.formatSaveTime(lastEditedDate)}`;
     indicator.classList.add('visible', 'saved');
@@ -362,17 +370,17 @@ export class DraftingView extends BaseView {
     if (this.autoSaveInterval) {
       clearInterval(this.autoSaveInterval);
     }
-    
+
     // Add blur listeners for immediate save when user clicks away
     const textareas = container.querySelectorAll('.document-editor');
-    textareas.forEach(textarea => {
+    textareas.forEach((textarea) => {
       const blurHandler = () => {
         const documentKey = textarea.dataset.field.replace('-text', '');
         this.saveDocumentOnBlur(container, job, index, documentKey);
       };
       this.trackListener(textarea, 'blur', blurHandler);
     });
-    
+
     // Auto-save every 5 seconds as backup (for long typing sessions)
     this.autoSaveInterval = setInterval(() => {
       this.performAutoSave(container, job, index);
@@ -387,15 +395,23 @@ export class DraftingView extends BaseView {
    * @param {string} documentKey - The document key (e.g., 'tailoredResume', 'coverLetter')
    */
   saveDocumentOnBlur(container, job, index, documentKey) {
-    const textarea = container.querySelector(`[data-field="${documentKey}-text"]`);
+    const textarea = container.querySelector(
+      `[data-field="${documentKey}-text"]`
+    );
     if (!textarea) return;
-    
+
     const currentText = textarea.value;
     const lastSaved = this.lastSavedContent[documentKey] || {};
-    
+
     // Only save if content changed
     if (currentText !== lastSaved.text) {
-      this.saveDocumentImmediately(container, job, index, documentKey, currentText);
+      this.saveDocumentImmediately(
+        container,
+        job,
+        index,
+        documentKey,
+        currentText
+      );
     }
   }
 
@@ -409,25 +425,25 @@ export class DraftingView extends BaseView {
    */
   saveDocumentImmediately(container, job, index, documentKey, text) {
     // Generate default title from config
-    const defaultTitle = this.defaultDocuments[documentKey]?.defaultTitle 
-      ? this.defaultDocuments[documentKey].defaultTitle(job) 
+    const defaultTitle = this.defaultDocuments[documentKey]?.defaultTitle
+      ? this.defaultDocuments[documentKey].defaultTitle(job)
       : 'Untitled';
-    
+
     const now = new Date().toISOString();
-    
+
     // Dispatch save event
     this.saveDocument(index, documentKey, {
       title: defaultTitle,
-      text: text
+      text: text,
     });
-    
+
     // Update last saved content with lastEdited timestamp
     this.lastSavedContent[documentKey] = {
       title: defaultTitle,
       text: text,
-      lastEdited: now
+      lastEdited: now,
     };
-    
+
     // Update save indicator immediately (no "Saving..." flash)
     this.updateSaveIndicator(container, 'saved');
   }
@@ -441,25 +457,25 @@ export class DraftingView extends BaseView {
   performAutoSave(container, job, index) {
     const documentKeys = this.getDocumentKeys(job);
     let hasChanges = false;
-    
-    documentKeys.forEach(key => {
+
+    documentKeys.forEach((key) => {
       const textArea = container.querySelector(`[data-field="${key}-text"]`);
-      
+
       if (!textArea) {
         console.warn(`Textarea not found for ${key}`);
         return;
       }
-      
+
       const currentText = textArea.value;
       const lastSaved = this.lastSavedContent[key] || {};
-      
+
       // Check if content changed
       if (currentText !== lastSaved.text) {
         this.saveDocumentImmediately(container, job, index, key, currentText);
         hasChanges = true;
       }
     });
-    
+
     if (hasChanges) {
       // Auto-save completed
     }
@@ -473,7 +489,7 @@ export class DraftingView extends BaseView {
    */
   saveDocument(index, documentKey, documentData) {
     const event = new CustomEvent('view:saveDocument', {
-      detail: { index, documentKey, documentData }
+      detail: { index, documentKey, documentData },
     });
     document.dispatchEvent(event);
   }
@@ -489,10 +505,10 @@ export class DraftingView extends BaseView {
       console.warn('Save status indicator not found');
       return;
     }
-    
+
     indicator.classList.remove('saving', 'saved');
     indicator.classList.add('visible', status);
-    
+
     if (status === 'saved') {
       const now = new Date();
       indicator.textContent = `Last saved ${this.formatSaveTime(now)}`;
@@ -508,10 +524,20 @@ export class DraftingView extends BaseView {
    */
   formatSaveTime(date) {
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const daysDiff = Math.floor((todayStart - dateStart) / (1000 * 60 * 60 * 24));
-    
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+    const dateStart = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
+    const daysDiff = Math.floor(
+      (todayStart - dateStart) / (1000 * 60 * 60 * 24)
+    );
+
     if (daysDiff === 0) {
       // Today - show time without seconds
       const hours = date.getHours();
@@ -545,16 +571,16 @@ export class DraftingView extends BaseView {
   attachExportDropdownListeners(container, job, index) {
     const dropdownBtn = container.querySelector('#exportDropdownBtn');
     const dropdownMenu = container.querySelector('#exportDropdownMenu');
-    
+
     if (!dropdownBtn || !dropdownMenu) return;
-    
+
     // Toggle dropdown
     const toggleHandler = (e) => {
       e.stopPropagation();
       dropdownMenu.classList.toggle('hidden');
     };
     this.trackListener(dropdownBtn, 'click', toggleHandler);
-    
+
     // Close on outside click
     const outsideClickHandler = (e) => {
       if (!dropdownMenu.contains(e.target) && e.target !== dropdownBtn) {
@@ -562,9 +588,9 @@ export class DraftingView extends BaseView {
       }
     };
     this.trackListener(document, 'click', outsideClickHandler);
-    
+
     // Export actions
-    dropdownMenu.querySelectorAll('.dropdown-item').forEach(item => {
+    dropdownMenu.querySelectorAll('.dropdown-item').forEach((item) => {
       const exportHandler = () => {
         const exportType = item.dataset.export;
         this.handleExport(container, job, index, exportType);
@@ -583,7 +609,7 @@ export class DraftingView extends BaseView {
    */
   handleExport(container, job, index, exportType) {
     const doc = this.getDocument(job, this.activeTab);
-    
+
     if (exportType === 'md') {
       this.exportMarkdown(doc);
     } else if (exportType === 'pdf') {
@@ -604,20 +630,26 @@ export class DraftingView extends BaseView {
     const blob = new Blob([doc.text], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const filename = `${doc.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`;
-    
-    browser.downloads.download({
-      url: url,
-      filename: filename,
-      saveAs: true
-    }, (downloadId) => {
-      if (browser.runtime.lastError) {
-        console.error('Export failed:', browser.runtime.lastError);
-        this.showToast(`Failed to export: ${browser.runtime.lastError.message}`, 'error');
+
+    browser.downloads.download(
+      {
+        url: url,
+        filename: filename,
+        saveAs: true,
+      },
+      (downloadId) => {
+        if (browser.runtime.lastError) {
+          console.error('Export failed:', browser.runtime.lastError);
+          this.showToast(
+            `Failed to export: ${browser.runtime.lastError.message}`,
+            'error'
+          );
+        }
+        // Note: No success toast here because the browser's save dialog provides feedback
+        // and the callback fires before the user completes the save action
+        URL.revokeObjectURL(url);
       }
-      // Note: No success toast here because the browser's save dialog provides feedback
-      // and the callback fires before the user completes the save action
-      URL.revokeObjectURL(url);
-    });
+    );
   }
 
   /**
@@ -633,15 +665,18 @@ export class DraftingView extends BaseView {
     try {
       // Create a temporary window with the content
       const printWindow = window.open('', '_blank');
-      
+
       if (!printWindow) {
-        this.showToast('Failed to open print window. Please allow popups for this site.', 'error');
+        this.showToast(
+          'Failed to open print window. Please allow popups for this site.',
+          'error'
+        );
         return;
       }
-      
+
       // Convert markdown to simple HTML (basic conversion)
       const htmlContent = this.markdownToHtml(doc.text);
-      
+
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -669,9 +704,9 @@ export class DraftingView extends BaseView {
         </body>
         </html>
       `);
-      
+
       printWindow.document.close();
-      
+
       // Wait for content to load, then trigger print
       printWindow.onload = () => {
         printWindow.print();
@@ -691,22 +726,24 @@ export class DraftingView extends BaseView {
    */
   attachSynthesizeListener(container, job, index) {
     const synthesizeBtn = container.querySelector('#synthesizeBtn');
-    
+
     if (synthesizeBtn) {
       const clickHandler = async () => {
         // Open synthesis modal with current job, index, and active tab
         await this.synthesisModal.open(job, index, this.activeTab);
-        
+
         // Set callback for when generation starts (before stream)
         this.synthesisModal.onGenerationStart = (jobIndex, documentKey) => {
           // Set flag to replace template on first document delta
           this.isFirstDocumentDelta = true;
-          
+
           // Show thinking panel with loading message
           this.showThinkingPanel(container);
-          
+
           // Display loading message
-          const activeEditor = container.querySelector('.editor-content.active');
+          const activeEditor = container.querySelector(
+            '.editor-content.active'
+          );
           if (activeEditor) {
             const content = activeEditor.querySelector('.thinking-content');
             if (content) {
@@ -714,117 +751,144 @@ export class DraftingView extends BaseView {
             }
           }
         };
-        
+
         // Set streaming callback for thinking updates
         this.synthesisModal.onThinkingUpdate = (documentKey, thinkingDelta) => {
           // Show thinking panel on first update (get active editor's panel)
-          const activeEditor = container.querySelector('.editor-content.active');
+          const activeEditor = container.querySelector(
+            '.editor-content.active'
+          );
           if (activeEditor) {
             const panel = activeEditor.querySelector('.thinking-stream-panel');
             if (panel && panel.classList.contains('hidden')) {
               this.showThinkingPanel(container);
             }
-            
+
             // Clear loading message on first thinking update
             const content = activeEditor.querySelector('.thinking-content');
             if (content && content.value.startsWith('⏳ Loading model')) {
               content.value = '';
             }
           }
-          
+
           // Append thinking content
           this.updateThinkingStream(container, thinkingDelta);
         };
-        
+
         // Set streaming callback for document updates
         this.synthesisModal.onDocumentUpdate = (documentKey, documentDelta) => {
           // Clear loading message on first document update (if no thinking block)
-          const activeEditor = container.querySelector('.editor-content.active');
+          const activeEditor = container.querySelector(
+            '.editor-content.active'
+          );
           if (activeEditor) {
-            const thinkingContent = activeEditor.querySelector('.thinking-content');
-            if (thinkingContent && thinkingContent.value.startsWith('⏳ Loading model')) {
+            const thinkingContent =
+              activeEditor.querySelector('.thinking-content');
+            if (
+              thinkingContent &&
+              thinkingContent.value.startsWith('⏳ Loading model')
+            ) {
               thinkingContent.value = '';
               // Hide thinking panel if no thinking content was generated
-              const panel = activeEditor.querySelector('.thinking-stream-panel');
+              const panel = activeEditor.querySelector(
+                '.thinking-stream-panel'
+              );
               if (panel && !panel.classList.contains('hidden')) {
                 this.hideThinkingPanel(container);
               }
             }
           }
-          
+
           // Get the textarea for the document being generated
-          const textarea = container.querySelector(`[data-field="${documentKey}-text"]`);
+          const textarea = container.querySelector(
+            `[data-field="${documentKey}-text"]`
+          );
           if (textarea) {
             // On first delta, replace template; thereafter append
             if (this.isFirstDocumentDelta) {
-              textarea.value = documentDelta;  // Replace template
+              textarea.value = documentDelta; // Replace template
               this.isFirstDocumentDelta = false;
             } else {
-              textarea.value += documentDelta;  // Append subsequent deltas
+              textarea.value += documentDelta; // Append subsequent deltas
             }
-            
+
             // Update word count in real-time
             this.updateWordCount(container);
           } else {
-            console.warn(`[DraftingView] Streaming: Textarea not found for ${documentKey}`);
+            console.warn(
+              `[DraftingView] Streaming: Textarea not found for ${documentKey}`
+            );
           }
         };
-        
+
         // Set callback to handle generation completion
         this.synthesisModal.onGenerate = (jobIndex, documentKey, result) => {
           // Get the textarea for the active document
-          const textarea = container.querySelector(`[data-field="${documentKey}-text"]`);
+          const textarea = container.querySelector(
+            `[data-field="${documentKey}-text"]`
+          );
           if (!textarea) {
-            console.error(`[DraftingView] Textarea not found for ${documentKey}`);
-            console.error(`[DraftingView] Available editors:`, container.querySelectorAll('.editor-content'));
-            console.error(`[DraftingView] Active editor:`, container.querySelector('.editor-content.active'));
+            console.error(
+              `[DraftingView] Textarea not found for ${documentKey}`
+            );
+            console.error(
+              `[DraftingView] Available editors:`,
+              container.querySelectorAll('.editor-content')
+            );
+            console.error(
+              `[DraftingView] Active editor:`,
+              container.querySelector('.editor-content.active')
+            );
             this.showToast('Failed to insert generated content', 'error');
             return;
           }
-          
+
           // Content is already in editor from streaming updates
           const generatedContent = result.content || textarea.value;
-          
+
           // Update save indicator to trigger save
           this.updateSaveIndicator(container, 'saving');
-          
+
           // Perform immediate save
-          const defaultTitle = this.defaultDocuments[documentKey]?.defaultTitle 
-            ? this.defaultDocuments[documentKey].defaultTitle(job) 
+          const defaultTitle = this.defaultDocuments[documentKey]?.defaultTitle
+            ? this.defaultDocuments[documentKey].defaultTitle(job)
             : 'Untitled';
-          
+
           const now = new Date().toISOString();
-          
+
           this.saveDocument(index, documentKey, {
             title: defaultTitle,
-            text: generatedContent
+            text: generatedContent,
           });
-          
+
           // Update last saved content
           this.lastSavedContent[documentKey] = {
             title: defaultTitle,
             text: generatedContent,
-            lastEdited: now
+            lastEdited: now,
           };
-          
+
           // Update save indicator
           setTimeout(() => {
             this.updateSaveIndicator(container, 'saved');
           }, 500);
-          
+
           // Update word count
           this.updateWordCount(container);
-          
+
           // Show success toast
           this.showToast('Document generated successfully!', 'success');
         };
-        
+
         // Set callback to handle generation errors
         this.synthesisModal.onError = (jobIndex, documentKey, error) => {
-          console.error(`[DraftingView] Generation failed for ${documentKey}:`, error);
-          
+          console.error(
+            `[DraftingView] Generation failed for ${documentKey}:`,
+            error
+          );
+
           // Keep thinking panel visible on error so user can see what the model was thinking
-          
+
           // Show error toast
           this.showToast(`Generation failed: ${error.message}`, 'error');
         };
@@ -839,8 +903,8 @@ export class DraftingView extends BaseView {
    */
   attachWordCountListeners(container) {
     const textareas = container.querySelectorAll('.document-editor');
-    
-    textareas.forEach(textarea => {
+
+    textareas.forEach((textarea) => {
       const inputHandler = () => this.updateWordCount(container);
       this.trackListener(textarea, 'input', inputHandler);
     });
@@ -851,11 +915,13 @@ export class DraftingView extends BaseView {
    * @param {HTMLElement} container - The container element
    */
   updateWordCount(container) {
-    const activeEditor = container.querySelector('.editor-content.active .document-editor');
+    const activeEditor = container.querySelector(
+      '.editor-content.active .document-editor'
+    );
     const wordCountSpan = container.querySelector('#wordCount');
-    
+
     if (!activeEditor || !wordCountSpan) return;
-    
+
     const text = activeEditor.value;
     const wordCount = this.countWords(text);
     wordCountSpan.textContent = `${wordCount} words`;
@@ -881,18 +947,18 @@ export class DraftingView extends BaseView {
     if (!job.documents) {
       job.documents = this.createDefaultDocuments(job);
     }
-    
+
     if (job.documents[documentKey]) {
       return job.documents[documentKey];
     }
-    
+
     // Fallback default
     const config = this.defaultDocuments[documentKey];
     return {
       title: config ? config.defaultTitle(job) : 'Untitled Document',
       text: '',
       lastEdited: null,
-      order: config ? config.order : 0
+      order: config ? config.order : 0,
     };
   }
 
@@ -905,7 +971,7 @@ export class DraftingView extends BaseView {
     if (!job.documents) {
       return ['tailoredResume', 'coverLetter'];
     }
-    
+
     return Object.keys(job.documents).sort((a, b) => {
       const orderA = job.documents[a]?.order ?? 999;
       const orderB = job.documents[b]?.order ?? 999;
@@ -924,14 +990,14 @@ export class DraftingView extends BaseView {
         title: this.defaultDocuments.tailoredResume.defaultTitle(job),
         text: documentTemplates.tailoredResume,
         lastEdited: null,
-        order: 0
+        order: 0,
       },
       coverLetter: {
         title: this.defaultDocuments.coverLetter.defaultTitle(job),
         text: documentTemplates.coverLetter,
         lastEdited: null,
-        order: 1
-      }
+        order: 1,
+      },
     };
   }
 
@@ -943,10 +1009,10 @@ export class DraftingView extends BaseView {
   initializeJobDocuments(job, index) {
     if (!job.documents) {
       job.documents = this.createDefaultDocuments(job);
-      
+
       // Dispatch event to save initialized documents
       const event = new CustomEvent('view:initializeDocuments', {
-        detail: { index, documents: job.documents }
+        detail: { index, documents: job.documents },
       });
       document.dispatchEvent(event);
     }
@@ -969,24 +1035,24 @@ export class DraftingView extends BaseView {
     // Set up callbacks first (before update)
     this.checklistComponent.setOnToggleExpand((jobIndex, isExpanded) => {
       const event = new CustomEvent('checklist:toggleExpand', {
-        detail: { index: jobIndex, isExpanded }
+        detail: { index: jobIndex, isExpanded },
       });
       document.dispatchEvent(event);
     });
 
     this.checklistComponent.setOnToggleItem((jobIndex, itemId) => {
       const event = new CustomEvent('checklist:toggleItem', {
-        detail: { index: jobIndex, itemId }
+        detail: { index: jobIndex, itemId },
       });
       document.dispatchEvent(event);
     });
-    
+
     // Use update() method to handle animation
     this.checklistComponent.update(
       checklistContainer,
-      job.checklist, 
-      job.applicationStatus, 
-      index, 
+      job.checklist,
+      job.applicationStatus,
+      index,
       isExpanded,
       animate
     );
@@ -1012,7 +1078,7 @@ export class DraftingView extends BaseView {
     // Create toast element
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    
+
     // Choose icon based on type
     let icon = '';
     switch (type) {
@@ -1028,19 +1094,19 @@ export class DraftingView extends BaseView {
       default:
         icon = 'ℹ';
     }
-    
+
     toast.innerHTML = `
       <span class="toast-icon">${icon}</span>
       <span class="toast-message">${this.escapeHtml(message)}</span>
     `;
-    
+
     container.appendChild(toast);
-    
+
     // Trigger animation
     setTimeout(() => {
       toast.classList.add('show');
     }, 10);
-    
+
     // Auto-remove after duration
     setTimeout(() => {
       toast.classList.remove('show');
@@ -1057,19 +1123,19 @@ export class DraftingView extends BaseView {
    */
   cleanup() {
     super.cleanup();
-    
+
     // Clear auto-save interval
     if (this.autoSaveInterval) {
       clearInterval(this.autoSaveInterval);
       this.autoSaveInterval = null;
     }
-    
+
     // Clear last saved content
     this.lastSavedContent = {};
-    
+
     // Cleanup checklist
     this.checklistComponent.cleanup();
-    
+
     // Cleanup synthesis modal
     this.synthesisModal.cleanup();
 
@@ -1088,7 +1154,7 @@ export class DraftingView extends BaseView {
     // Get the active editor-content container
     const activeEditor = container.querySelector('.editor-content.active');
     if (!activeEditor) return;
-    
+
     const panel = activeEditor.querySelector('.thinking-stream-panel');
     if (panel) {
       panel.classList.remove('hidden');
@@ -1108,7 +1174,7 @@ export class DraftingView extends BaseView {
     // Get the active editor-content container
     const activeEditor = container.querySelector('.editor-content.active');
     if (!activeEditor) return;
-    
+
     const panel = activeEditor.querySelector('.thinking-stream-panel');
     if (panel) {
       panel.classList.add('hidden');
@@ -1124,7 +1190,7 @@ export class DraftingView extends BaseView {
     // Get the active editor-content container
     const activeEditor = container.querySelector('.editor-content.active');
     if (!activeEditor) return;
-    
+
     const content = activeEditor.querySelector('.thinking-content');
     if (content) {
       content.value += delta;
@@ -1140,19 +1206,19 @@ export class DraftingView extends BaseView {
   attachThinkingPanelListeners(container) {
     // Attach listener to all thinking panel headers
     const headers = container.querySelectorAll('.thinking-header');
-    
-    headers.forEach(header => {
+
+    headers.forEach((header) => {
       // Find the thinking-content and toggle button within the same thinking-stream-panel
       const panel = header.closest('.thinking-stream-panel');
       if (!panel) return;
-      
+
       const content = panel.querySelector('.thinking-content');
       const toggleBtn = panel.querySelector('.thinking-toggle-btn');
       if (!content || !toggleBtn) return;
-      
+
       const clickHandler = () => {
         const isExpanded = content.style.display !== 'none';
-        
+
         if (isExpanded) {
           // Collapse
           content.style.display = 'none';

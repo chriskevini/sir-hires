@@ -10,8 +10,8 @@ export class MainView {
   constructor() {
     // View instances
     this.views = {
-      'Researching': new ResearchingView(),
-      'Drafting': new DraftingView(),
+      Researching: new ResearchingView(),
+      Drafting: new DraftingView(),
       // Other views would be added here as they're implemented:
       // 'Awaiting Review': new AwaitingReviewView(),
       // 'Interviewing': new InterviewingView(),
@@ -39,7 +39,8 @@ export class MainView {
     }
 
     if (!job) {
-      container.innerHTML = '<div class="detail-panel-empty">No job selected</div>';
+      container.innerHTML =
+        '<div class="detail-panel-empty">No job selected</div>';
       return;
     }
 
@@ -91,9 +92,14 @@ export class MainView {
    */
   createWIPView() {
     const checklistComponent = new ChecklistComponent();
-    
+
     // Helper function to render checklist (needs to be defined outside the returned object)
-    const renderChecklist = (job, index, isExpanded = false, animate = false) => {
+    const renderChecklist = (
+      job,
+      index,
+      isExpanded = false,
+      animate = false
+    ) => {
       const checklistContainer = document.getElementById('checklistContainer');
       if (!checklistContainer) {
         console.error('Checklist container not found');
@@ -103,29 +109,29 @@ export class MainView {
       // Set up callbacks first (before update)
       checklistComponent.setOnToggleExpand((jobIndex, isExpanded) => {
         const event = new CustomEvent('checklist:toggleExpand', {
-          detail: { index: jobIndex, isExpanded }
+          detail: { index: jobIndex, isExpanded },
         });
         document.dispatchEvent(event);
       });
-      
+
       checklistComponent.setOnToggleItem((jobIndex, itemId) => {
         const event = new CustomEvent('checklist:toggleItem', {
-          detail: { index: jobIndex, itemId }
+          detail: { index: jobIndex, itemId },
         });
         document.dispatchEvent(event);
       });
-      
+
       // Use update() method to handle animation
       checklistComponent.update(
         checklistContainer,
-        job.checklist, 
-        job.applicationStatus, 
-        index, 
+        job.checklist,
+        job.applicationStatus,
+        index,
         isExpanded,
         animate
       );
     };
-    
+
     return {
       render: (job, index) => {
         const status = job.applicationStatus || 'Unknown';
@@ -166,7 +172,7 @@ export class MainView {
         if (viewBtn) {
           viewBtn.addEventListener('click', () => {
             const event = new CustomEvent('view:openUrl', {
-              detail: { url: job.url }
+              detail: { url: job.url },
             });
             document.dispatchEvent(event);
           });
@@ -177,12 +183,12 @@ export class MainView {
         if (deleteBtn) {
           deleteBtn.addEventListener('click', () => {
             const event = new CustomEvent('view:deleteJob', {
-              detail: { index }
+              detail: { index },
             });
             document.dispatchEvent(event);
           });
         }
-        
+
         // Render checklist in the fixed container
         renderChecklist(job, index, isExpanded);
       },
@@ -190,13 +196,14 @@ export class MainView {
       cleanup: () => {
         // Cleanup checklist
         checklistComponent.cleanup();
-        
+
         // Clear checklist container
-        const checklistContainer = document.getElementById('checklistContainer');
+        const checklistContainer =
+          document.getElementById('checklistContainer');
         if (checklistContainer) {
           checklistContainer.innerHTML = '';
         }
-      }
+      },
     };
   }
 
@@ -235,7 +242,12 @@ export class MainView {
       return;
     }
 
-    this.currentView.attachListeners(container, this.currentJob, this.currentIndex, this.currentIsExpanded);
+    this.currentView.attachListeners(
+      container,
+      this.currentJob,
+      this.currentIndex,
+      this.currentIsExpanded
+    );
   }
 
   /**
@@ -247,7 +259,7 @@ export class MainView {
     }
 
     // Cleanup all view instances
-    Object.values(this.views).forEach(view => {
+    Object.values(this.views).forEach((view) => {
       if (view && view.cleanup) {
         view.cleanup();
       }

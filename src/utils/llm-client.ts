@@ -14,8 +14,10 @@ export class LLMClient {
    * @param {number} config.detectionWindow - Characters to scan for thinking tags (default: 50)
    */
   constructor(config = {}) {
-    this.endpoint = config.endpoint || 'http://localhost:1234/v1/chat/completions';
-    this.modelsEndpoint = config.modelsEndpoint || 'http://localhost:1234/v1/models';
+    this.endpoint =
+      config.endpoint || 'http://localhost:1234/v1/chat/completions';
+    this.modelsEndpoint =
+      config.modelsEndpoint || 'http://localhost:1234/v1/models';
     this.detectionWindow = config.detectionWindow || 50;
     this.activeStreams = new Map(); // Track active streams for cancellation
   }
@@ -28,7 +30,7 @@ export class LLMClient {
     try {
       const response = await fetch(this.modelsEndpoint, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       if (!response.ok) {
@@ -51,11 +53,13 @@ export class LLMClient {
     try {
       const response = await fetch(this.modelsEndpoint, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       if (!response.ok) {
-        console.error(`[LLMClient] Connection test failed: HTTP ${response.status}`);
+        console.error(
+          `[LLMClient] Connection test failed: HTTP ${response.status}`
+        );
         return false;
       }
 
@@ -83,7 +87,7 @@ export class LLMClient {
    * Stream completion from LLM with thinking/document separation
    * Uses three-state machine to route content:
    *   DETECTING → IN_THINKING_BLOCK → IN_DOCUMENT
-   * 
+   *
    * @param {Object} options - Completion options
    * @param {string} options.streamId - Unique ID for this stream (for cancellation)
    * @param {string} options.model - Model ID to use
@@ -104,24 +108,26 @@ export class LLMClient {
       maxTokens = 2000,
       temperature = 0.7,
       onThinkingUpdate = null,
-      onDocumentUpdate = null
+      onDocumentUpdate = null,
     } = options;
 
     // Test connection first
     const isConnected = await this.testConnection();
     if (!isConnected) {
-      throw new Error('Cannot connect to LM Studio. Please ensure LM Studio is running on http://localhost:1234');
+      throw new Error(
+        'Cannot connect to LM Studio. Please ensure LM Studio is running on http://localhost:1234'
+      );
     }
 
     // Create abort controller for cancellation
     const abortController = new AbortController();
-    
+
     // Register this stream for cancellation
-    this.activeStreams.set(streamId, { 
-      abortController, 
-      reader: null 
+    this.activeStreams.set(streamId, {
+      abortController,
+      reader: null,
     });
-    
+
     console.log('[LLMClient] Registered stream for cancellation:', streamId);
 
     try {
@@ -133,19 +139,19 @@ export class LLMClient {
           model: model,
           messages: [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
+            { role: 'user', content: userPrompt },
           ],
           max_tokens: maxTokens,
           temperature: temperature,
-          stream: true  // Enable streaming
+          stream: true, // Enable streaming
         }),
-        signal: abortController.signal  // Enable cancellation
+        signal: abortController.signal, // Enable cancellation
       });
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error('[LLMClient] LLM API error:', errorText);
-        
+
         // Try to parse JSON error for better message
         try {
           const errorJson = JSON.parse(errorText);
@@ -153,42 +159,46 @@ export class LLMClient {
             // Model not loaded - provide comprehensive instructions
             throw new Error(
               `Model "${model}" failed to load.\n\n` +
-              `Option 1 - Enable JIT Loading (Recommended):\n` +
-              `1. Open LM Studio → Developer tab → Server Settings\n` +
-              `2. Enable "JIT Loading" (should be on by default)\n` +
-              `3. Try generating again (model will auto-load)\n\n` +
-              `Option 2 - Manually Load:\n` +
-              `• In LM Studio: Click "${model}" in the left sidebar\n` +
-              `• Or via CLI: lms load "${model}" --yes\n\n` +
-              `Option 3 - Check Model Status:\n` +
-              `• The model might not be downloaded yet\n` +
-              `• Download it from LM Studio's model library first`
+                `Option 1 - Enable JIT Loading (Recommended):\n` +
+                `1. Open LM Studio → Developer tab → Server Settings\n` +
+                `2. Enable "JIT Loading" (should be on by default)\n` +
+                `3. Try generating again (model will auto-load)\n\n` +
+                `Option 2 - Manually Load:\n` +
+                `• In LM Studio: Click "${model}" in the left sidebar\n` +
+                `• Or via CLI: lms load "${model}" --yes\n\n` +
+                `Option 3 - Check Model Status:\n` +
+                `• The model might not be downloaded yet\n` +
+                `• Download it from LM Studio's model library first`
             );
           }
-          throw new Error(errorJson.error?.message || `LLM API error: HTTP ${response.status}`);
+          throw new Error(
+            errorJson.error?.message || `LLM API error: HTTP ${response.status}`
+          );
         } catch (parseError) {
           // If parseError is our custom error, re-throw it
           if (parseError.message.includes('failed to load')) {
             throw parseError;
           }
           // If not JSON, use raw error text
-          throw new Error(`LLM API error: HTTP ${response.status} - ${errorText}`);
+          throw new Error(
+            `LLM API error: HTTP ${response.status} - ${errorText}`
+          );
         }
       }
 
       // Process SSE stream
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      
+
       // Store reader reference for cancellation
       const streamInfo = this.activeStreams.get(streamId);
       if (streamInfo) {
         streamInfo.reader = reader;
       }
-    
+
       // Simplified state machine: null → IN_THINKING | IN_DOCUMENT
       // State is determined by first delta, no detection window needed
-      let state = null;  // null → IN_THINKING | IN_DOCUMENT
+      let state = null; // null → IN_THINKING | IN_DOCUMENT
       let buffer = '';
       let thinkingContent = '';
       let documentContent = '';
@@ -209,97 +219,108 @@ export class LLMClient {
             if (!line.startsWith('data: ')) continue;
 
             try {
-              const jsonStr = line.slice(6);  // Remove "data: " prefix
+              const jsonStr = line.slice(6); // Remove "data: " prefix
               const data = JSON.parse(jsonStr);
-            
-            const delta = data.choices?.[0]?.delta?.content || '';
-            if (!delta) {
-              // Check for finish reason
-              finishReason = data.choices?.[0]?.finish_reason || finishReason;
-              continue;
-            }
 
-            // State determination: First delta decides the mode
-            if (state === null) {
-              // Check if first delta contains thinking tag
-              if (/<(?:think|thinking|reasoning)>/i.test(delta)) {
-                console.log('[LLMClient] Detected thinking mode');
-                state = 'IN_THINKING';
-                buffer = delta;
-                
-                // Check if opening tag is complete in first delta
-                // If so, extract any content after it
-                const match = delta.match(/^(.*?)<(?:think|thinking|reasoning)>(.*)$/is);
-                if (match) {
-                  const afterTag = match[2];
-                  if (afterTag) {
-                    // Content after opening tag in same delta
-                    const parsedDelta = this.parseThinking(afterTag);
-                    if (onThinkingUpdate && parsedDelta) {
-                      onThinkingUpdate(parsedDelta);
+              const delta = data.choices?.[0]?.delta?.content || '';
+              if (!delta) {
+                // Check for finish reason
+                finishReason = data.choices?.[0]?.finish_reason || finishReason;
+                continue;
+              }
+
+              // State determination: First delta decides the mode
+              if (state === null) {
+                // Check if first delta contains thinking tag
+                if (/<(?:think|thinking|reasoning)>/i.test(delta)) {
+                  console.log('[LLMClient] Detected thinking mode');
+                  state = 'IN_THINKING';
+                  buffer = delta;
+
+                  // Check if opening tag is complete in first delta
+                  // If so, extract any content after it
+                  const match = delta.match(
+                    /^(.*?)<(?:think|thinking|reasoning)>(.*)$/is
+                  );
+                  if (match) {
+                    const afterTag = match[2];
+                    if (afterTag) {
+                      // Content after opening tag in same delta
+                      const parsedDelta = this.parseThinking(afterTag);
+                      if (onThinkingUpdate && parsedDelta) {
+                        onThinkingUpdate(parsedDelta);
+                      }
+                      thinkingContent += parsedDelta;
                     }
-                    thinkingContent += parsedDelta;
                   }
+                } else {
+                  // Standard model without thinking tags
+                  console.log(
+                    '[LLMClient] Detected standard mode (no thinking tags)'
+                  );
+                  state = 'IN_DOCUMENT';
+                  if (onDocumentUpdate) {
+                    onDocumentUpdate(delta);
+                  }
+                  documentContent += delta;
                 }
-              } else {
-                // Standard model without thinking tags
-                console.log('[LLMClient] Detected standard mode (no thinking tags)');
-                state = 'IN_DOCUMENT';
+                continue;
+              }
+
+              // Process subsequent deltas based on state
+              if (state === 'IN_THINKING') {
+                buffer += delta;
+
+                // Check for end of thinking block
+                if (/<\/(?:think|thinking|reasoning)>/i.test(buffer)) {
+                  console.log(
+                    '[LLMClient] Thinking block complete, switching to document mode'
+                  );
+                  state = 'IN_DOCUMENT';
+
+                  // Extract thinking content and document start
+                  const match = buffer.match(
+                    /^.*?<(?:think|thinking|reasoning)>(.*?)<\/(?:think|thinking|reasoning)>(.*)$/is
+                  );
+                  if (match) {
+                    const thinkingPart = match[1];
+                    const documentPart = match[2];
+
+                    // Send final thinking content (without tags)
+                    const parsedThinking = this.parseThinking(thinkingPart);
+                    if (onThinkingUpdate && parsedThinking) {
+                      onThinkingUpdate(parsedThinking);
+                    }
+                    thinkingContent += parsedThinking;
+
+                    // Start document content
+                    if (onDocumentUpdate && documentPart) {
+                      onDocumentUpdate(documentPart);
+                    }
+                    documentContent += documentPart;
+                    buffer = '';
+                  }
+                } else {
+                  // Still in thinking block, send parsed delta
+                  const parsedDelta = this.parseThinking(delta);
+                  if (onThinkingUpdate && parsedDelta) {
+                    onThinkingUpdate(parsedDelta);
+                  }
+                  thinkingContent += parsedDelta;
+                }
+              } else if (state === 'IN_DOCUMENT') {
+                // Route to document stream
                 if (onDocumentUpdate) {
                   onDocumentUpdate(delta);
                 }
                 documentContent += delta;
               }
-              continue;
-            }
-
-            // Process subsequent deltas based on state
-            if (state === 'IN_THINKING') {
-              buffer += delta;
-              
-              // Check for end of thinking block
-              if (/<\/(?:think|thinking|reasoning)>/i.test(buffer)) {
-                console.log('[LLMClient] Thinking block complete, switching to document mode');
-                state = 'IN_DOCUMENT';
-                
-                // Extract thinking content and document start
-                const match = buffer.match(/^.*?<(?:think|thinking|reasoning)>(.*?)<\/(?:think|thinking|reasoning)>(.*)$/is);
-                if (match) {
-                  const thinkingPart = match[1];
-                  const documentPart = match[2];
-                  
-                  // Send final thinking content (without tags)
-                  const parsedThinking = this.parseThinking(thinkingPart);
-                  if (onThinkingUpdate && parsedThinking) {
-                    onThinkingUpdate(parsedThinking);
-                  }
-                  thinkingContent += parsedThinking;
-                  
-                  // Start document content
-                  if (onDocumentUpdate && documentPart) {
-                    onDocumentUpdate(documentPart);
-                  }
-                  documentContent += documentPart;
-                  buffer = '';
-                }
-              } else {
-                // Still in thinking block, send parsed delta
-                const parsedDelta = this.parseThinking(delta);
-                if (onThinkingUpdate && parsedDelta) {
-                  onThinkingUpdate(parsedDelta);
-                }
-                thinkingContent += parsedDelta;
-              }
-            } else if (state === 'IN_DOCUMENT') {
-              // Route to document stream
-              if (onDocumentUpdate) {
-                onDocumentUpdate(delta);
-              }
-              documentContent += delta;
-            }
-
             } catch (error) {
-              console.error('[LLMClient] Failed to parse SSE line:', line, error);
+              console.error(
+                '[LLMClient] Failed to parse SSE line:',
+                line,
+                error
+              );
             }
           }
         }
@@ -314,9 +335,8 @@ export class LLMClient {
         thinkingContent: thinkingContent.trim(),
         documentContent: documentContent.trim(),
         finishReason: finishReason,
-        cancelled: false
+        cancelled: false,
       };
-      
     } catch (error) {
       // Handle abortion/cancellation
       if (error.name === 'AbortError') {
@@ -325,7 +345,7 @@ export class LLMClient {
           thinkingContent: '',
           documentContent: '',
           finishReason: 'cancelled',
-          cancelled: true
+          cancelled: true,
         };
       }
       throw error;
@@ -348,20 +368,20 @@ export class LLMClient {
     }
 
     console.log('[LLMClient] Cancelling stream:', streamId);
-    
+
     // Abort the fetch request
     streamInfo.abortController.abort();
-    
+
     // Cancel the reader if available
     if (streamInfo.reader) {
-      streamInfo.reader.cancel().catch(err => {
+      streamInfo.reader.cancel().catch((err) => {
         console.error('[LLMClient] Error cancelling reader:', err);
       });
     }
-    
+
     // Remove from active streams
     this.activeStreams.delete(streamId);
-    
+
     console.log('[LLMClient] Stream cancelled successfully:', streamId);
   }
 }

@@ -4,7 +4,14 @@
 import { statusOrder, defaults } from './config';
 
 export class NavigationService {
-  constructor(stateManager, storageService, jobService, animationController, navigation, mainView) {
+  constructor(
+    stateManager,
+    storageService,
+    jobService,
+    animationController,
+    navigation,
+    mainView
+  ) {
     this.state = stateManager;
     this.storage = storageService;
     this.jobService = jobService;
@@ -23,14 +30,14 @@ export class NavigationService {
   async navigateToState(jobIndex, newStatus, direction) {
     const jobs = this.state.getAllJobs();
     const job = jobs[jobIndex];
-    
+
     if (!job) {
       console.error('Job not found at index:', jobIndex);
       return false;
     }
 
     const oldStatus = job.applicationStatus || defaults.status;
-    
+
     console.log(`Navigating from ${oldStatus} to ${newStatus}`);
 
     // Update job status and history (in memory only, don't save yet)
@@ -78,16 +85,18 @@ export class NavigationService {
 
     // Initialize status history if it doesn't exist
     if (!job.statusHistory) {
-      job.statusHistory = [{
-        status: oldStatus,
-        date: job.updatedAt || new Date().toISOString()
-      }];
+      job.statusHistory = [
+        {
+          status: oldStatus,
+          date: job.updatedAt || new Date().toISOString(),
+        },
+      ];
     }
 
     // Add new status to history
     job.statusHistory.push({
       status: newStatus,
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
     });
 
     // Update timestamp

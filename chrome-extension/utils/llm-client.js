@@ -164,13 +164,15 @@ export class LLMClient {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     
-    // State machine for content routing
-    let state = 'DETECTING';  // DETECTING → IN_THINKING_BLOCK → IN_DOCUMENT
+    // Simplified state machine: null → IN_THINKING | IN_DOCUMENT
+    // State is determined by first delta, no detection window needed
+    let state = null;  // null → IN_THINKING | IN_DOCUMENT
     let buffer = '';
     let thinkingContent = '';
     let documentContent = '';
     let finishReason = null;
-    let charsProcessed = 0;
+
+    console.log('[LLMClient] Starting stream processing...');
 
     try {
       while (true) {
@@ -195,37 +197,56 @@ export class LLMClient {
               continue;
             }
 
-            buffer += delta;
-            charsProcessed += delta.length;
-
-            // State machine logic
-            if (state === 'DETECTING' && charsProcessed <= this.detectionWindow) {
-              // Check for thinking patterns in first N chars
-              // Support <think>, <thinking>, and <reasoning> tags
-              if (/<(?:think|thinking|reasoning)>/i.test(buffer)) {
-                state = 'IN_THINKING_BLOCK';
-              } else if (charsProcessed >= this.detectionWindow) {
-                // No thinking pattern detected, treat as standard model
-                state = 'IN_DOCUMENT';
-                // Send buffered content to document
-                if (onDocumentUpdate) {
-                  onDocumentUpdate(buffer);
+            // State determination: First delta decides the mode
+            if (state === null) {
+              // Check if first delta contains thinking tag
+              if (/<(?:think|thinking|reasoning)>/i.test(delta)) {
+                console.log('[LLMClient] Detected thinking mode');
+                state = 'IN_THINKING';
+                buffer = delta;
+                
+                // Check if opening tag is complete in first delta
+                // If so, extract any content after it
+                const match = delta.match(/^(.*?)<(?:think|thinking|reasoning)>(.*)$/is);
+                if (match) {
+                  const afterTag = match[2];
+                  if (afterTag) {
+                    // Content after opening tag in same delta
+                    const parsedDelta = this.parseThinking(afterTag);
+                    if (onThinkingUpdate && parsedDelta) {
+                      onThinkingUpdate(parsedDelta);
+                    }
+                    thinkingContent += parsedDelta;
+                  }
                 }
-                documentContent += buffer;
-                buffer = '';
+              } else {
+                // Standard model without thinking tags
+                console.log('[LLMClient] Detected standard mode (no thinking tags)');
+                state = 'IN_DOCUMENT';
+                if (onDocumentUpdate) {
+                  onDocumentUpdate(delta);
+                }
+                documentContent += delta;
               }
-            } else if (state === 'IN_THINKING_BLOCK') {
-              // Check for end of thinking block (support all three closing tags)
+              continue;
+            }
+
+            // Process subsequent deltas based on state
+            if (state === 'IN_THINKING') {
+              buffer += delta;
+              
+              // Check for end of thinking block
               if (/<\/(?:think|thinking|reasoning)>/i.test(buffer)) {
+                console.log('[LLMClient] Thinking block complete, switching to document mode');
                 state = 'IN_DOCUMENT';
                 
                 // Extract thinking content and document start
-                const match = buffer.match(/^(.*?)<\/(?:think|thinking|reasoning)>(.*)$/is);
+                const match = buffer.match(/^.*?<(?:think|thinking|reasoning)>(.*?)<\/(?:think|thinking|reasoning)>(.*)$/is);
                 if (match) {
                   const thinkingPart = match[1];
                   const documentPart = match[2];
                   
-                  // Send parsed thinking (without tags)
+                  // Send final thinking content (without tags)
                   const parsedThinking = this.parseThinking(thinkingPart);
                   if (onThinkingUpdate && parsedThinking) {
                     onThinkingUpdate(parsedThinking);
@@ -240,7 +261,7 @@ export class LLMClient {
                   buffer = '';
                 }
               } else {
-                // Still in thinking block, accumulate and send parsed content
+                // Still in thinking block, send parsed delta
                 const parsedDelta = this.parseThinking(delta);
                 if (onThinkingUpdate && parsedDelta) {
                   onThinkingUpdate(parsedDelta);
@@ -248,7 +269,7 @@ export class LLMClient {
                 thinkingContent += parsedDelta;
               }
             } else if (state === 'IN_DOCUMENT') {
-              // Route to document
+              // Route to document stream
               if (onDocumentUpdate) {
                 onDocumentUpdate(delta);
               }
@@ -264,6 +285,8 @@ export class LLMClient {
       console.error('[LLMClient] Stream processing error:', error);
       throw error;
     }
+
+    console.log('[LLMClient] Stream complete, final state:', state);
 
     return {
       thinkingContent: thinkingContent.trim(),

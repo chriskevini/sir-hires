@@ -263,20 +263,6 @@ export class JobService {
     return Boolean(data.jobs || data.userProfile || data.masterResume);
   }
   
-  /**
-   * Validate backup data
-   * @param {Object} data - Backup data to validate
-   * @returns {boolean} True if valid backup data
-   */
-  validateBackupData(data) {
-    if (!data || typeof data !== 'object') {
-      return false;
-    }
-    
-    // Must have at least jobs or masterResume
-    return Boolean(data.jobs || data.masterResume);
-  }
-  
   // ===== Utility Methods =====
   
   /**

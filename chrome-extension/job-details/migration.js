@@ -242,12 +242,12 @@ export class MigrationService {
         });
         
         migratedJob.checklist = newChecklist;
-        console.log(`  Checklist format verified`);
+        console.log('  Checklist format verified');
       }
     } else {
       // No checklist exists, initialize new one
       migratedJob.checklist = this.storage.initializeAllChecklists();
-      console.log(`  Initialized new checklist for all statuses`);
+      console.log('  Initialized new checklist for all statuses');
     }
 
     return migratedJob;

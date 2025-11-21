@@ -154,13 +154,71 @@ sir-hires/
   - Interview prep questions and answers
   - Job comparison tool
 
+## Development
+
+### Setup
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Run tests:**
+   ```bash
+   npm test                 # Run all tests
+   npm run test:watch       # Run tests in watch mode
+   npm run test:coverage    # Generate coverage report
+   ```
+
+3. **Lint and format code:**
+   ```bash
+   npm run lint            # Check for linting errors
+   npm run lint:fix        # Auto-fix linting errors
+   npm run format          # Format code with Prettier
+   npm run format:check    # Check formatting without changes
+   ```
+
+4. **Load extension in Chrome:**
+   - Open Chrome and go to `chrome://extensions/`
+   - Enable "Developer mode"
+   - Click "Load unpacked"
+   - Select the `chrome-extension` folder
+
+### Testing
+
+The project uses **Jest** for unit testing and **ESLint/Prettier** for code quality.
+
+- Tests are located in `chrome-extension/__tests__/`
+- Run `npm test` to execute all tests
+- Aim for >80% coverage on utility modules
+- See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed testing guidelines
+
+### Code Quality
+
+We enforce consistent code style using:
+- **ESLint**: JavaScript linting
+- **Prettier**: Code formatting
+- **Jest**: Unit testing
+
+Run `npm run lint:fix && npm run format` before committing to ensure code quality.
+
 ## Contributing
 
-This is an early-stage project. If you'd like to contribute:
-1. Open an issue to discuss your idea
-2. Fork the repository
-3. Make your changes
-4. Submit a pull request
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on:
+
+- Setting up your development environment
+- Project architecture and design patterns
+- Coding standards and best practices
+- Writing tests
+- Submitting pull requests
+
+**Quick start:**
+1. Read [CONTRIBUTING.md](CONTRIBUTING.md)
+2. Open an issue to discuss your idea
+3. Fork the repository
+4. Create a feature branch
+5. Make your changes with tests
+6. Submit a pull request
 
 ## License
 

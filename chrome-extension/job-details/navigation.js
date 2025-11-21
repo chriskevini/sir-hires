@@ -61,7 +61,7 @@ export class Navigation {
     let html = '';
 
     // Left button container (always render to maintain flexbox layout)
-    html += `<div class="nav-button-container left">`;
+    html += '<div class="nav-button-container left">';
     if (buttons.left) {
       const targetConfig = progressConfig[buttons.left.target] || progressConfig['Researching'];
       html += `
@@ -73,7 +73,7 @@ export class Navigation {
         </div>
       `;
     }
-    html += `</div>`;
+    html += '</div>';
 
     // Right button(s) container (always render to maintain flexbox layout)
     const multipleClass = buttons.right && buttons.right.length > 1 ? ' multiple' : '';
@@ -93,7 +93,7 @@ export class Navigation {
       });
     }
 
-    html += `</div>`;
+    html += '</div>';
 
     return html;
   }

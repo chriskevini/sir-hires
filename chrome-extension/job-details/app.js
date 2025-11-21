@@ -213,7 +213,7 @@ export class JobDetailsApp {
 
     // Auto-select job
     if (jobs.length > 0) {
-      let indexToSelect = this.determineJobToSelect(jobs, jobInFocusId);
+      const indexToSelect = this.determineJobToSelect(jobs, jobInFocusId);
       this.selectJob(indexToSelect);
     } else {
       const detailPanel = document.getElementById(domIds.detailPanel);

@@ -153,16 +153,16 @@ export class LLMClient {
             // Model not loaded - provide comprehensive instructions
             throw new Error(
               `Model "${model}" failed to load.\n\n` +
-              `Option 1 - Enable JIT Loading (Recommended):\n` +
-              `1. Open LM Studio → Developer tab → Server Settings\n` +
-              `2. Enable "JIT Loading" (should be on by default)\n` +
-              `3. Try generating again (model will auto-load)\n\n` +
-              `Option 2 - Manually Load:\n` +
+              'Option 1 - Enable JIT Loading (Recommended):\n' +
+              '1. Open LM Studio → Developer tab → Server Settings\n' +
+              '2. Enable "JIT Loading" (should be on by default)\n' +
+              '3. Try generating again (model will auto-load)\n\n' +
+              'Option 2 - Manually Load:\n' +
               `• In LM Studio: Click "${model}" in the left sidebar\n` +
               `• Or via CLI: lms load "${model}" --yes\n\n` +
-              `Option 3 - Check Model Status:\n` +
-              `• The model might not be downloaded yet\n` +
-              `• Download it from LM Studio's model library first`
+              'Option 3 - Check Model Status:\n' +
+              '• The model might not be downloaded yet\n' +
+              '• Download it from LM Studio\'s model library first'
             );
           }
           throw new Error(errorJson.error?.message || `LLM API error: HTTP ${response.status}`);

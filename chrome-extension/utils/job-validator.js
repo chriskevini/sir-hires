@@ -271,12 +271,10 @@ function getValidationSummary(validationResult) {
 // Short aliases for convenience
 const validateJob = validateJobTemplate;
 
-// Export functions for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    validateJobTemplate,
-    validateJob,
-    getValidationSummary,
-    JOB_SCHEMA
-  };
-}
+// Export functions for use in other modules (ES6 modules)
+export {
+  validateJobTemplate,
+  validateJob,
+  getValidationSummary,
+  JOB_SCHEMA
+};

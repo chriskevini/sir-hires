@@ -73,6 +73,12 @@ A Chrome extension / webapp with job data extraction, application lifecycle trac
 
 ## Documentation
 
+**For Contributors:**
+- 🚀 [QUICKSTART.md](./QUICKSTART.md) - Get started with development in 5 minutes
+- 📖 [CONTRIBUTING.md](./CONTRIBUTING.md) - Comprehensive contribution guidelines
+- 🧪 [tests/README.md](./tests/README.md) - Testing guide and patterns
+
+**For Users:**
 See [chrome-extension/README.md](chrome-extension/README.md) for detailed documentation, including:
 - Installation instructions
 - How to set up LLM-enhanced extraction with LM Studio

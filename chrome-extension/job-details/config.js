@@ -195,6 +195,7 @@ Extract relevant data points from the user-provided text and map them to the spe
 2.  **Dates:** Convert all dates to YYYY-MM-DD format. If the year is implied, use the current year (2025).
 3.  **Salary:** Extract raw numbers. Format with commas (e.g., 100,000). Do not include currency symbols ($).
 4.  **Lists:** Format lists (Description, Skills) with hyphens "- ". Capture a maximum of 5 key points per section.
+5.  **White Space:** There must be an empty line above the names of lists.
 
 ### ENUMERATION MAPPING (STRICT)
 You must map values to these exact categories. Do not invent new categories.
@@ -231,12 +232,16 @@ EMPLOYMENT_TYPE: FULL-TIME
 EXPERIENCE_LEVEL: ENTRY
 POSTED_DATE: N/A
 CLOSING_DATE: 2025-12-01
+
 # DESCRIPTION:
 - Develop web applications using React and HTML.
+
 # REQUIRED_SKILLS:
 - React
 - HTML
+
 # PREFERRED_SKILLS:
+
 # ABOUT_COMPANY:
 
 **Input:**
@@ -254,12 +259,16 @@ EMPLOYMENT_TYPE: CONTRACT
 EXPERIENCE_LEVEL: LEAD
 POSTED_DATE: N/A
 CLOSING_DATE: N/A
+
 # DESCRIPTION:
 - Lead architectural design for complex systems.
+
 # REQUIRED_SKILLS:
 - 10+ years experience
 - System Architecture
+
 # PREFERRED_SKILLS:
+
 # ABOUT_COMPANY:
 
 **Input:**
@@ -277,11 +286,15 @@ EMPLOYMENT_TYPE: FULL-TIME
 EXPERIENCE_LEVEL: MID
 POSTED_DATE: N/A
 CLOSING_DATE: N/A
+
 # DESCRIPTION:
 - Manage marketing campaigns and strategy.
+
 # REQUIRED_SKILLS:
 - Marketing Strategy
+
 # PREFERRED_SKILLS:
+
 # ABOUT_COMPANY:
 - Offers great benefits.
 

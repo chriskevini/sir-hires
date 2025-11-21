@@ -20,7 +20,7 @@ export class ResearchingView extends BaseView {
    */
   render(job, index) {
     // Check if job is currently being extracted (streaming in progress)
-    const isExtracting = job.isExtracting === true;
+    const isExtracting = !!job.isExtracting;
     
     if (isExtracting) {
       return this.renderExtractionState(job, index);
@@ -232,7 +232,7 @@ CLOSING_DATE: 2025-12-31
    */
   attachListeners(container, job, index, isExpanded = false) {
     // Check if job is currently being extracted
-    const isExtracting = job.isExtracting === true;
+    const isExtracting = !!job.isExtracting;
     
     // Extraction state has no interactive elements (just shows spinner)
     if (isExtracting) {

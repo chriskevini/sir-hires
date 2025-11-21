@@ -25,6 +25,44 @@ function initializeAllChecklists() {
   return checklist;
 }
 
+/**
+ * Create a minimal job object for streaming extraction
+ * @param {string} jobId - Unique job identifier
+ * @param {string} url - Job posting URL
+ * @param {string} source - Job board source
+ * @param {string} rawText - Raw job description text
+ * @returns {Object} Minimal job object with isExtracting flag set
+ */
+function createMinimalJob(jobId, url, source, rawText) {
+  return {
+    id: jobId,
+    url: url,
+    source: source,
+    jobTitle: 'Extracting...',
+    company: 'Extracting...',
+    location: '',
+    salary: '',
+    jobType: '',
+    remoteType: '',
+    postedDate: '',
+    deadline: '',
+    applicationStatus: 'Researching',
+    statusHistory: [{
+      status: 'Researching',
+      timestamp: new Date().toISOString()
+    }],
+    checklist: initializeAllChecklists(),
+    content: '', // Will be populated by streaming
+    rawDescription: rawText,
+    aboutJob: '',
+    aboutCompany: '',
+    responsibilities: '',
+    requirements: '',
+    isExtracting: true, // Flag to track extraction in progress
+    updatedAt: new Date().toISOString()
+  };
+}
+
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
   await loadSettings();
@@ -84,33 +122,7 @@ async function extractJobData() {
         if (response && response.success) {
           // Create minimal job record immediately
           const jobId = response.jobId;
-          const minimalJob = {
-            id: jobId,
-            url: response.url,
-            source: response.source,
-            jobTitle: 'Extracting...',
-            company: 'Extracting...',
-            location: '',
-            salary: '',
-            jobType: '',
-            remoteType: '',
-            postedDate: '',
-            deadline: '',
-            applicationStatus: 'Researching',
-            statusHistory: [{
-              status: 'Researching',
-              timestamp: new Date().toISOString()
-            }],
-            checklist: initializeAllChecklists(),
-            content: '', // Will be populated by streaming
-            rawDescription: response.rawText,
-            aboutJob: '',
-            aboutCompany: '',
-            responsibilities: '',
-            requirements: '',
-            isExtracting: true, // Flag to track extraction in progress
-            updatedAt: new Date().toISOString()
-          };
+          const minimalJob = createMinimalJob(jobId, response.url, response.source, response.rawText);
           
           // Save minimal job and set as focus
           const result = await chrome.storage.local.get(['jobs']);
@@ -166,33 +178,7 @@ async function extractJobData() {
 
         if (response && response.success) {
           const jobId = response.jobId;
-          const minimalJob = {
-            id: jobId,
-            url: response.url,
-            source: response.source,
-            jobTitle: 'Extracting...',
-            company: 'Extracting...',
-            location: '',
-            salary: '',
-            jobType: '',
-            remoteType: '',
-            postedDate: '',
-            deadline: '',
-            applicationStatus: 'Researching',
-            statusHistory: [{
-              status: 'Researching',
-              timestamp: new Date().toISOString()
-            }],
-            checklist: initializeAllChecklists(),
-            content: '',
-            rawDescription: response.rawText,
-            aboutJob: '',
-            aboutCompany: '',
-            responsibilities: '',
-            requirements: '',
-            isExtracting: true, // Flag to track extraction in progress
-            updatedAt: new Date().toISOString()
-          };
+          const minimalJob = createMinimalJob(jobId, response.url, response.source, response.rawText);
           
           const result = await chrome.storage.local.get(['jobs']);
           const jobs = result.jobs || {};

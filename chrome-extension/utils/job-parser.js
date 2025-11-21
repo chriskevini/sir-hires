@@ -181,6 +181,37 @@ function getAllSections(parsedJob) {
   return parsedJob.sections || {};
 }
 
+/**
+ * Map parsed MarkdownDB template fields to legacy job object fields
+ * This function converts field names from the MarkdownDB Job Template format
+ * to the legacy storage schema field names for backward compatibility.
+ * 
+ * @param {Object} fields - Parsed topLevelFields from parseJobTemplate()
+ * @returns {Object} Job fields compatible with storage schema
+ */
+function mapMarkdownFieldsToJob(fields) {
+  const mapped = {};
+  
+  // Map field names from MarkdownDB template to job storage schema
+  if (fields.TITLE) mapped.jobTitle = fields.TITLE;
+  if (fields.COMPANY) mapped.company = fields.COMPANY;
+  if (fields.ADDRESS) mapped.location = fields.ADDRESS;
+  if (fields.EMPLOYMENT_TYPE) mapped.jobType = fields.EMPLOYMENT_TYPE;
+  if (fields.REMOTE_TYPE) mapped.remoteType = fields.REMOTE_TYPE;
+  if (fields.POSTED_DATE) mapped.postedDate = fields.POSTED_DATE;
+  if (fields.CLOSING_DATE) mapped.deadline = fields.CLOSING_DATE;
+  if (fields.EXPERIENCE_LEVEL) mapped.experienceLevel = fields.EXPERIENCE_LEVEL;
+  
+  // Handle salary range - combine min/max into single string
+  if (fields.SALARY_RANGE_MIN || fields.SALARY_RANGE_MAX) {
+    const min = fields.SALARY_RANGE_MIN || '';
+    const max = fields.SALARY_RANGE_MAX || '';
+    mapped.salary = min && max ? `${min} - ${max}` : (min || max);
+  }
+  
+  return mapped;
+}
+
 // Short aliases for convenience
 const parseJob = parseJobTemplate;
 
@@ -194,5 +225,6 @@ export {
   extractAboutCompany,
   getTopLevelField,
   getAllTopLevelFields,
-  getAllSections
+  getAllSections,
+  mapMarkdownFieldsToJob
 };

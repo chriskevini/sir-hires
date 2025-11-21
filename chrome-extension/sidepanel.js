@@ -1,7 +1,7 @@
 // Side panel script that manages the job in focus
 
 import { MainView } from './job-details/main-view.js';
-import { parseJobTemplate } from './utils/job-parser.js';
+import { parseJobTemplate, mapMarkdownFieldsToJob } from './utils/job-parser.js';
 
 let currentJobId = null;
 let currentJob = null;
@@ -175,23 +175,12 @@ async function handleExtractionComplete(jobId, fullContent) {
     job.updatedAt = new Date().toISOString();
     job.isExtracting = false; // Clear extraction flag
 
-    // Parse the markdown content to extract job fields
+    // Parse the markdown content and map fields to job object
     const parsed = parseJobTemplate(fullContent);
-    const fields = parsed.topLevelFields;
+    const mappedFields = mapMarkdownFieldsToJob(parsed.topLevelFields);
     
-    // Update job fields from parsed markdown
-    if (fields.TITLE) job.jobTitle = fields.TITLE;
-    if (fields.COMPANY) job.company = fields.COMPANY;
-    if (fields.ADDRESS) job.location = fields.ADDRESS;
-    if (fields.SALARY_RANGE_MIN || fields.SALARY_RANGE_MAX) {
-      const min = fields.SALARY_RANGE_MIN || '';
-      const max = fields.SALARY_RANGE_MAX || '';
-      job.salary = min && max ? `${min} - ${max}` : (min || max);
-    }
-    if (fields.EMPLOYMENT_TYPE) job.jobType = fields.EMPLOYMENT_TYPE;
-    if (fields.REMOTE_TYPE) job.remoteType = fields.REMOTE_TYPE;
-    if (fields.POSTED_DATE) job.postedDate = fields.POSTED_DATE;
-    if (fields.CLOSING_DATE) job.deadline = fields.CLOSING_DATE;
+    // Update job with mapped fields
+    Object.assign(job, mappedFields);
     
     console.log('[Side Panel] Updated job fields from markdown:', { 
       jobTitle: job.jobTitle, 

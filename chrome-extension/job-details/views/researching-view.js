@@ -96,7 +96,8 @@ export class ResearchingView extends BaseView {
    * Render extraction state UI (streaming in progress)
    */
   renderExtractionState(job, index) {
-    const partialContent = job.content || '';
+    // Only show complete lines (defensive fallback if re-render happens during extraction)
+    const partialContent = this.getCompleteLines(job.content || '');
 
     return `
       <div class="job-card researching-editor">
@@ -127,6 +128,28 @@ export class ResearchingView extends BaseView {
         </div>
       </div>
     `;
+  }
+
+  /**
+   * Get only complete lines from content (lines ending with \n)
+   * This prevents showing incomplete tokens during streaming
+   * @param {string} content - The full content with possibly incomplete last line
+   * @returns {string} Content with only complete lines
+   */
+  getCompleteLines(content) {
+    if (!content) return '';
+    
+    // Split by newlines
+    const lines = content.split('\n');
+    
+    // If last line is non-empty, it's incomplete (doesn't end with \n)
+    // Remove it to only show complete lines
+    if (lines.length > 0 && lines[lines.length - 1] !== '') {
+      lines.pop();
+    }
+    
+    // Rejoin with newlines
+    return lines.join('\n') + (lines.length > 0 ? '\n' : '');
   }
 
   /**

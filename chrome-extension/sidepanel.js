@@ -7,6 +7,7 @@ let currentJobId = null;
 let currentJob = null;
 let mainView = null; // MainView instance for rendering state-based views
 let isSavingLocally = false; // Flag to prevent reload loops
+let streamBuffer = ''; // Buffer for incomplete lines during streaming
 
 // Initialize side panel
 document.addEventListener('DOMContentLoaded', async () => {
@@ -58,6 +59,15 @@ function setupStorageListener() {
         if (isSavingLocally) {
           console.log('[Side Panel] Change triggered by local save, skipping reload');
           return;
+        }
+        
+        // Skip reload if current job is extracting (streaming handler manages UI updates)
+        if (changes.jobs && currentJobId) {
+          const updatedJob = changes.jobs.newValue?.[currentJobId];
+          if (updatedJob?.isExtracting) {
+            console.log('[Side Panel] Job is extracting, skipping reload to prevent stream disruption');
+            return;
+          }
         }
         
         // Check if user is currently editing a field
@@ -123,7 +133,7 @@ async function handleExtractionChunk(jobId, chunk) {
       return;
     }
 
-    // Append chunk to job.content field
+    // Append chunk to job.content field (full content for storage)
     job.content = (job.content || '') + chunk;
     job.updatedAt = new Date().toISOString();
 
@@ -137,7 +147,36 @@ async function handleExtractionChunk(jobId, chunk) {
     // Update textarea directly (no full re-render for better performance)
     const textarea = document.querySelector('#jobEditor');
     if (textarea && textarea.hasAttribute('readonly')) {
-      textarea.value = job.content;
+      // Line buffering strategy: Only display complete lines to prevent showing
+      // partial tokens like "COMP" or ">" during streaming.
+      // This ensures user never sees incomplete keys or broken markdown syntax.
+      streamBuffer += chunk;
+      
+      // Split by newlines - lines array will have complete lines, last element is incomplete
+      const lines = streamBuffer.split('\n');
+      
+      // Last element is always the incomplete line (doesn't end with \n yet)
+      const incompleteLine = lines.pop();
+      
+      // If we have complete lines, append them to textarea
+      if (lines.length > 0) {
+        const completeLines = lines.join('\n') + '\n'; // Rejoin with newlines
+        textarea.value = (textarea.value || '') + completeLines;
+        
+        // Clear placeholder on first content display
+        if (textarea.placeholder) {
+          textarea.placeholder = '';
+        }
+        
+        console.log('[Side Panel] Displayed', lines.length, 'complete line(s)');
+      } else if (!textarea.value) {
+        // Still waiting for first complete line - show placeholder
+        textarea.placeholder = 'Receiving data from LLM...';
+      }
+      
+      // Keep incomplete line in buffer for next chunk
+      streamBuffer = incompleteLine || '';
+      
       // Note: User controls scroll position, we don't auto-scroll
     } else {
       // Fallback: If textarea not found or not readonly, do full re-render
@@ -163,6 +202,7 @@ async function handleExtractionComplete(jobId, fullContent) {
 
   if (jobId !== currentJobId) {
     console.log('[Side Panel] Completed job is not in focus, skipping UI update');
+    streamBuffer = ''; // Reset buffer even if not in focus
     return;
   }
 
@@ -178,8 +218,19 @@ async function handleExtractionComplete(jobId, fullContent) {
     if (!job) {
       console.log('[Side Panel] Job deleted, ignoring extraction completion');
       isSavingLocally = false;
+      streamBuffer = ''; // Reset buffer
       return;
     }
+
+    // Flush any remaining buffered content to textarea
+    const textarea = document.querySelector('#jobEditor');
+    if (textarea && textarea.hasAttribute('readonly') && streamBuffer) {
+      textarea.value = (textarea.value || '') + streamBuffer;
+      console.log('[Side Panel] Flushed remaining buffer:', streamBuffer.length, 'chars');
+    }
+    
+    // Reset stream buffer
+    streamBuffer = '';
 
     // Set final content (in case chunks were missed)
     job.content = fullContent;
@@ -219,6 +270,7 @@ async function handleExtractionComplete(jobId, fullContent) {
   } catch (error) {
     console.error('[Side Panel] Error handling extraction completion:', error);
     isSavingLocally = false;
+    streamBuffer = ''; // Reset buffer on error
   }
 }
 
@@ -228,8 +280,12 @@ async function handleExtractionError(jobId, errorMessage) {
 
   if (jobId !== currentJobId) {
     console.log('[Side Panel] Error for different job, skipping UI update');
+    streamBuffer = ''; // Reset buffer even if not in focus
     return;
   }
+
+  // Reset stream buffer
+  streamBuffer = '';
 
   // Set flag to prevent reload loop
   isSavingLocally = true;
@@ -283,8 +339,12 @@ async function handleExtractionCancelled(jobId) {
 
   if (jobId !== currentJobId) {
     console.log('[Side Panel] Cancelled job is not in focus, skipping UI update');
+    streamBuffer = ''; // Reset buffer even if not in focus
     return;
   }
+
+  // Reset stream buffer
+  streamBuffer = '';
 
   // Set flag to prevent reload loop
   isSavingLocally = true;
@@ -395,6 +455,12 @@ function displayJob(job) {
   document.getElementById('emptyState').classList.add('hidden');
   document.getElementById('jobDetails').classList.remove('hidden');
   document.getElementById('footer').classList.remove('hidden');
+
+  // Reset stream buffer when switching jobs or re-rendering
+  // (unless job is currently extracting, in which case keep the buffer)
+  if (!job.isExtracting) {
+    streamBuffer = '';
+  }
 
   const jobContent = document.getElementById('jobContent');
   

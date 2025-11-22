@@ -217,23 +217,38 @@ ${oldContent
       console.error('Error setting side panel behavior:', error);
     }
 
-    // Create context menu for job extraction
+    // Create context menu items
     try {
       await browser.contextMenus.create({
         id: 'extract-job',
         title: 'Extract Job from This Page',
         contexts: ['page', 'selection'],
       });
-      console.info('[Background] Context menu created');
+
+      await browser.contextMenus.create({
+        id: 'open-settings',
+        title: 'Open LLM Settings',
+        contexts: ['action'],
+      });
+
+      await browser.contextMenus.create({
+        id: 'view-all-jobs',
+        title: 'View All Jobs',
+        contexts: ['action'],
+      });
+
+      console.info('[Background] Context menus created');
     } catch (error) {
-      console.error('[Background] Error creating context menu:', error);
+      console.error('[Background] Error creating context menus:', error);
     }
   });
 
   // Handle context menu clicks
   browser.contextMenus.onClicked.addListener((info, tab) => {
+    console.info('[Background] Context menu clicked:', info.menuItemId);
+
     if (info.menuItemId === 'extract-job' && tab?.id && tab.windowId) {
-      console.info('[Background] Context menu clicked - triggering extraction');
+      console.info('[Background] Opening sidepanel for extraction');
 
       // CRITICAL: Call sidePanel.open() synchronously (no await) to preserve user gesture
       // Chrome MV3 loses gesture context after ANY async operation, even with await
@@ -254,9 +269,35 @@ ${oldContent
         })
         .catch((error: any) => {
           console.error(
-            '[Background] Error handling context menu click:',
+            '[Background] Error handling extraction context menu:',
             error
           );
+        });
+    } else if (info.menuItemId === 'open-settings') {
+      console.info('[Background] Opening popup for settings');
+
+      // Open popup window (extension popup)
+      browser.action
+        .openPopup()
+        .then(() => {
+          console.info('[Background] Popup opened successfully');
+        })
+        .catch((error: any) => {
+          console.error('[Background] Error opening popup:', error);
+        });
+    } else if (info.menuItemId === 'view-all-jobs') {
+      console.info('[Background] Opening job details page');
+
+      // Open job-details page in a new tab
+      browser.tabs
+        .create({
+          url: browser.runtime.getURL('job-details.html'),
+        })
+        .then(() => {
+          console.info('[Background] Job details page opened successfully');
+        })
+        .catch((error: any) => {
+          console.error('[Background] Error opening job details:', error);
         });
     }
   });

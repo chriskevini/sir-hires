@@ -16,7 +16,6 @@ export const App: React.FC = () => {
 
   // Local state for UI controls
   const [searchTerm, setSearchTerm] = useState('');
-  const [_sourceFilter, _setSourceFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [sortOrder, setSortOrder] = useState('newest');
   const [isLoading, setIsLoading] = useState(true);
@@ -86,10 +85,6 @@ export const App: React.FC = () => {
       }
 
       // Source filter - removed, no longer stored
-      if (sourceFilter && sourceFilter !== '') {
-        // Source is no longer stored, skip filter
-        return true;
-      }
 
       // Status filter
       if (statusFilter && statusFilter !== '') {
@@ -129,7 +124,7 @@ export const App: React.FC = () => {
 
     jobState.setFilteredJobs(filtered);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, sourceFilter, statusFilter, sortOrder]); // Don't include jobState - it's used, not watched
+  }, [searchTerm, statusFilter, sortOrder]); // Don't include jobState - it's used, not watched
 
   /**
    * Select a job by index in filtered list
@@ -370,7 +365,6 @@ export const App: React.FC = () => {
   }, [
     jobState.allJobs,
     searchTerm,
-    sourceFilter,
     statusFilter,
     sortOrder,
     filterJobs,

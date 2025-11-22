@@ -1,5 +1,6 @@
 import React from 'react';
-import { parseJobTemplate } from '../../utils/job-parser';
+import { useParsedJob } from './ParsedJobProvider';
+import { getJobTitle, getCompanyName } from '../../utils/job-parser';
 import type { Job } from '../../entrypoints/job-details/hooks/useJobState';
 import { defaults } from '../../entrypoints/job-details/config';
 
@@ -73,6 +74,9 @@ export function JobViewRouter({
   onToggleChecklistItem,
   emptyStateMessage = 'No job selected',
 }: JobViewRouterProps) {
+  // Parse job at top level (hooks must be called unconditionally)
+  const parsed = useParsedJob(job?.id || null);
+
   // Handle empty state
   if (!job) {
     return <div className="detail-panel-empty">{emptyStateMessage}</div>;
@@ -111,20 +115,17 @@ export function JobViewRouter({
 
     default: {
       // WIP view for unimplemented states
-      // Parse content for job title and company
-      const parsed = parseJobTemplate(job.content || '');
+      // Use parsed data from top-level hook call
+      const jobTitle = parsed ? getJobTitle(parsed) || 'Untitled' : 'Untitled';
+      const company = parsed ? getCompanyName(parsed) || 'Unknown' : 'Unknown';
 
       return (
         <div className="job-card">
           <div className="detail-panel-content">
             <div className="job-header">
               <div>
-                <div className="job-title">
-                  {parsed.topLevelFields['TITLE'] || 'Untitled'}
-                </div>
-                <div className="company">
-                  {parsed.topLevelFields['COMPANY'] || 'Unknown'}
-                </div>
+                <div className="job-title">{jobTitle}</div>
+                <div className="company">{company}</div>
               </div>
             </div>
 

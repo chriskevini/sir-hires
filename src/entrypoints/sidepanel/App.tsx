@@ -9,6 +9,7 @@ import {
   useJobHandlers,
 } from '../job-details/hooks';
 import { JobViewRouter } from '../../components/features/JobViewRouter';
+import { ParsedJobProvider } from '../../components/features/ParsedJobProvider';
 import type { Job } from '../job-details/hooks';
 import type {
   ExtractionEvent,
@@ -347,20 +348,22 @@ export const App: React.FC = () => {
    */
   const renderJobView = () => {
     return (
-      <JobViewRouter
-        job={currentJob}
-        index={jobState.selectedJobIndex}
-        isChecklistExpanded={jobState.checklistExpanded}
-        ResearchingView={ResearchingView}
-        DraftingView={DraftingView}
-        onDeleteJob={handlers.handleDeleteJob}
-        onSaveField={handlers.handleSaveField}
-        onSaveDocument={handlers.handleSaveDocument}
-        onInitializeDocuments={handlers.handleInitializeDocuments}
-        onToggleChecklistExpand={handlers.handleChecklistToggleExpand}
-        onToggleChecklistItem={handlers.handleChecklistToggleItem}
-        emptyStateMessage="No job selected"
-      />
+      <ParsedJobProvider jobs={jobState.allJobs}>
+        <JobViewRouter
+          job={currentJob}
+          index={jobState.selectedJobIndex}
+          isChecklistExpanded={jobState.checklistExpanded}
+          ResearchingView={ResearchingView}
+          DraftingView={DraftingView}
+          onDeleteJob={handlers.handleDeleteJob}
+          onSaveField={handlers.handleSaveField}
+          onSaveDocument={handlers.handleSaveDocument}
+          onInitializeDocuments={handlers.handleInitializeDocuments}
+          onToggleChecklistExpand={handlers.handleChecklistToggleExpand}
+          onToggleChecklistItem={handlers.handleChecklistToggleItem}
+          emptyStateMessage="No job selected"
+        />
+      </ParsedJobProvider>
     );
   };
 

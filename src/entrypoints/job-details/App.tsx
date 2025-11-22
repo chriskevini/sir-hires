@@ -4,21 +4,22 @@ import { DraftingView } from './views/drafting-view';
 import { useJobState, useJobStorage, useJobHandlers } from './hooks';
 import { JobViewRouter } from '../../components/features/JobViewRouter';
 import {
-  parseJobTemplate,
-  getJobTitle,
-  getCompanyName,
-} from '../../utils/job-parser';
+  ParsedJobProvider,
+  useGetParsedJob,
+} from '../../components/features/ParsedJobProvider';
+import { getJobTitle, getCompanyName } from '../../utils/job-parser';
 import { initDevModeValidation } from '../../utils/dev-validators';
 import { defaults } from './config';
 
 /**
- * Main App component for Job Details viewer
- * Replaces the old JobDetailsApp class with React architecture
+ * Inner App component that consumes ParsedJobProvider
+ * Contains all the app logic and UI
  */
-export const App: React.FC = () => {
+const AppContent: React.FC = () => {
   // Initialize hooks
   const jobState = useJobState();
   const storage = useJobStorage();
+  const getParsedJob = useGetParsedJob();
 
   // Local state for UI controls
   const [searchTerm, setSearchTerm] = useState('');
@@ -73,13 +74,15 @@ export const App: React.FC = () => {
 
   /**
    * Filter jobs based on current filter settings
+   * Optimized with ParsedJobProvider cache to reduce redundant parsing operations
    */
   const filterJobs = useCallback(() => {
     const allJobs = jobState.allJobs;
 
+    // Filter jobs using provider's cached parsing
     let filtered = allJobs.filter((job) => {
-      // Parse content for search and sort
-      const parsed = parseJobTemplate(job.content || '');
+      const parsed = getParsedJob(job.id);
+      if (!parsed) return true; // Include jobs with no content
 
       // Search filter
       if (searchTerm) {
@@ -103,7 +106,7 @@ export const App: React.FC = () => {
       return true;
     });
 
-    // Sort jobs
+    // Sort jobs using provider's cached parsing
     if (sortOrder === 'newest') {
       filtered = filtered.sort(
         (a, b) =>
@@ -118,25 +121,25 @@ export const App: React.FC = () => {
       );
     } else if (sortOrder === 'company') {
       filtered = filtered.sort((a, b) => {
-        const parsedA = parseJobTemplate(a.content || '');
-        const parsedB = parseJobTemplate(b.content || '');
-        return (getCompanyName(parsedA) || '').localeCompare(
-          getCompanyName(parsedB) || ''
-        );
+        const parsedA = getParsedJob(a.id) || null;
+        const parsedB = getParsedJob(b.id) || null;
+        const companyA = parsedA ? getCompanyName(parsedA) || '' : '';
+        const companyB = parsedB ? getCompanyName(parsedB) || '' : '';
+        return companyA.localeCompare(companyB);
       });
     } else if (sortOrder === 'title') {
       filtered = filtered.sort((a, b) => {
-        const parsedA = parseJobTemplate(a.content || '');
-        const parsedB = parseJobTemplate(b.content || '');
-        return (getJobTitle(parsedA) || '').localeCompare(
-          getJobTitle(parsedB) || ''
-        );
+        const parsedA = getParsedJob(a.id) || null;
+        const parsedB = getParsedJob(b.id) || null;
+        const titleA = parsedA ? getJobTitle(parsedA) || '' : '';
+        const titleB = parsedB ? getJobTitle(parsedB) || '' : '';
+        return titleA.localeCompare(titleB);
       });
     }
 
     jobState.setFilteredJobs(filtered);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, statusFilter, sortOrder]); // Don't include jobState - it's used, not watched
+  }, [searchTerm, statusFilter, sortOrder, getParsedJob]); // Don't include jobState - it's used, not watched
 
   /**
    * Select a job by index in filtered list
@@ -359,7 +362,7 @@ export const App: React.FC = () => {
                 (j) => j.id === job.id
               );
               const isSelected = globalIndex === jobState.selectedJobIndex;
-              const parsed = parseJobTemplate(job.content || '');
+              const parsed = getParsedJob(job.id);
 
               return (
                 <div
@@ -369,10 +372,10 @@ export const App: React.FC = () => {
                 >
                   <div className="job-card-header">
                     <div className="job-title">
-                      {getJobTitle(parsed) || 'Untitled'}
+                      {parsed ? getJobTitle(parsed) || 'Untitled' : 'Untitled'}
                     </div>
                     <div className="company">
-                      {getCompanyName(parsed) || 'Unknown'}
+                      {parsed ? getCompanyName(parsed) || 'Unknown' : 'Unknown'}
                     </div>
                   </div>
                 </div>
@@ -387,5 +390,19 @@ export const App: React.FC = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+/**
+ * Main App component for Job Details viewer
+ * Wraps AppContent with ParsedJobProvider for caching
+ */
+export const App: React.FC = () => {
+  const jobState = useJobState();
+
+  return (
+    <ParsedJobProvider jobs={jobState.allJobs}>
+      <AppContent />
+    </ParsedJobProvider>
   );
 };

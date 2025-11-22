@@ -1,12 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { llmConfig } from '../config';
 import { LLMClient } from '../../../utils/llm-client';
 import type { Job } from '../hooks';
-import {
-  parseJobTemplate,
-  getJobTitle,
-  getCompanyName,
-} from '../../../utils/job-parser';
+import { useParsedJob } from '../../../components/features/ParsedJobProvider';
+import { getJobTitle, getCompanyName } from '../../../utils/job-parser';
 import { userProfileStorage } from '../../../utils/storage';
 
 interface SynthesisFormProps {
@@ -95,21 +92,23 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
     }
   };
 
+  // Get parsed job from provider (cached)
+  const parsed = useParsedJob(job?.id || '');
+
   const buildContext = async () => {
     if (!job) return {};
 
-    // Parse content for job metadata
-    const parsed = parseJobTemplate(job.content || '');
-
     return {
       masterResume: userProfile || 'Not provided',
-      jobTitle: getJobTitle(parsed) || 'Not provided',
-      company: getCompanyName(parsed) || 'Not provided',
-      aboutJob: job.aboutJob || 'Not provided',
-      aboutCompany: job.aboutCompany || 'Not provided',
-      responsibilities: job.responsibilities || 'Not provided',
-      requirements: job.requirements || 'Not provided',
-      narrativeStrategy: job.narrativeStrategy || 'Not provided',
+      jobTitle: parsed ? getJobTitle(parsed) || 'Not provided' : 'Not provided',
+      company: parsed
+        ? getCompanyName(parsed) || 'Not provided'
+        : 'Not provided',
+      aboutJob: (job as any).aboutJob || 'Not provided',
+      aboutCompany: (job as any).aboutCompany || 'Not provided',
+      responsibilities: (job as any).responsibilities || 'Not provided',
+      requirements: (job as any).requirements || 'Not provided',
+      narrativeStrategy: (job as any).narrativeStrategy || 'Not provided',
       currentDraft: job.documents?.[documentKey || '']?.text || '',
     };
   };
@@ -260,12 +259,6 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
 
   const hasUserProfile = userProfile.trim().length > 0;
 
-  // Parse content for job metadata (must be at top level, before any early returns)
-  const parsed = useMemo(
-    () => parseJobTemplate(job?.content || ''),
-    [job?.content]
-  );
-
   // If no user profile, show only error warning + Cancel button
   if (!hasUserProfile) {
     return (
@@ -313,20 +306,40 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
 
   const dataFields = [
     { key: 'masterResume', label: 'Profile', value: userProfile },
-    { key: 'jobTitle', label: 'Job Title', value: getJobTitle(parsed) },
-    { key: 'company', label: 'Company', value: getCompanyName(parsed) },
-    { key: 'aboutJob', label: 'About Job', value: job?.aboutJob },
-    { key: 'aboutCompany', label: 'About Company', value: job?.aboutCompany },
+    {
+      key: 'jobTitle',
+      label: 'Job Title',
+      value: parsed ? getJobTitle(parsed) : undefined,
+    },
+    {
+      key: 'company',
+      label: 'Company',
+      value: parsed ? getCompanyName(parsed) : undefined,
+    },
+    {
+      key: 'aboutJob',
+      label: 'About Job',
+      value: (job as any)?.aboutJob,
+    },
+    {
+      key: 'aboutCompany',
+      label: 'About Company',
+      value: (job as any)?.aboutCompany,
+    },
     {
       key: 'responsibilities',
       label: 'Responsibilities',
-      value: job?.responsibilities,
+      value: (job as any)?.responsibilities,
     },
-    { key: 'requirements', label: 'Requirements', value: job?.requirements },
+    {
+      key: 'requirements',
+      label: 'Requirements',
+      value: (job as any)?.requirements,
+    },
     {
       key: 'narrativeStrategy',
       label: 'Narrative Strategy',
-      value: job?.narrativeStrategy,
+      value: (job as any)?.narrativeStrategy,
     },
     {
       key: 'currentDraft',

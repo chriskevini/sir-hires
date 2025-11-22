@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Checklist } from '../components/checklist';
-import { parseJobTemplate } from '@/utils/job-parser';
+import { useParsedJob } from '@/components/features/ParsedJobProvider';
 import { escapeHtml } from '@/utils/shared-utils';
 import {
   useToggleState,
@@ -16,6 +16,7 @@ import { ExtractionErrorView } from '../components/ExtractionErrorView';
 import { MigrationPromptView } from '../components/MigrationPromptView';
 
 interface Job {
+  id: string;
   url: string;
   content?: string;
   isExtracting?: boolean;
@@ -53,15 +54,15 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
       initialContent: job.content || '',
     });
 
-  // Parse job content on-read (MarkdownDB pattern)
+  // Parse job content on-read (MarkdownDB pattern) using cached provider
+  const parsed = useParsedJob(job.id);
   const parsedJob = useMemo(() => {
-    const parsed = parseJobTemplate(job.content || '');
-    const fields = parsed.topLevelFields as Record<string, string>;
+    const fields = (parsed?.topLevelFields as Record<string, string>) || {};
     return {
       jobTitle: fields.TITLE || '',
       company: fields.COMPANY || '',
     };
-  }, [job.content]);
+  }, [parsed]);
 
   // Use validation hook
   const validation = useJobValidation({

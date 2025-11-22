@@ -5,7 +5,8 @@ import { SynthesisForm } from '../components/SynthesisForm';
 import { EditorToolbar } from '@/components/ui/EditorToolbar';
 import { EditorContentPanel } from '@/components/ui/EditorContentPanel';
 import { EditorFooter } from '@/components/ui/EditorFooter';
-import { parseJobTemplate } from '@/utils/job-parser';
+import { useParsedJob } from '@/components/features/ParsedJobProvider';
+import { getJobTitle, getCompanyName } from '@/utils/job-parser';
 import { escapeHtml } from '@/utils/shared-utils';
 import { formatSaveTime } from '@/utils/date-utils';
 import { defaultDocuments, countWords } from '@/utils/document-config';
@@ -14,14 +15,7 @@ import { useAutoSave } from '../hooks/useAutoSave';
 import { useTabState } from '../hooks/useTabState';
 import { useToggleState } from '../hooks/useToggleState';
 import { useDocumentManager } from '../hooks/useDocumentManager';
-
-interface Job {
-  content?: string;
-  url: string;
-  documents?: Record<string, Document>;
-  checklist?: any;
-  applicationStatus: string;
-}
+import type { Job, JobDocument } from '../hooks';
 
 interface Document {
   title: string;
@@ -65,10 +59,14 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     useToggleState(false);
   const [wordCount, setWordCount] = React.useState<number>(0);
 
-  // Parse job content on-read (MarkdownDB pattern)
+  // Parse job content on-read (MarkdownDB pattern) using cached provider
+  const parsed = useParsedJob(job.id);
   const parsedJob = useMemo(
-    () => parseJobTemplate(job.content || ''),
-    [job.content]
+    () => ({
+      jobTitle: parsed ? getJobTitle(parsed) || '' : '',
+      company: parsed ? getCompanyName(parsed) || '' : '',
+    }),
+    [parsed]
   );
 
   // Use document manager hook
@@ -76,10 +74,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     useDocumentManager({
       job,
       jobIndex: index,
-      parsedJob: {
-        jobTitle: parsedJob.jobTitle,
-        company: parsedJob.company,
-      },
+      parsedJob,
       onInitializeDocuments,
     });
 
@@ -274,7 +269,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
       {/* Checklist in sidebar */}
       <Checklist
-        checklist={job.checklist}
+        checklist={job.checklist || {}}
         status={job.applicationStatus || 'drafting'}
         jobIndex={index}
         isExpanded={isChecklistExpanded}

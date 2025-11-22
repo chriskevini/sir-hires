@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback, useState } from 'react';
+import { browser } from 'wxt/browser';
 import { ResearchingView } from '../job-details/views/researching-view';
 import { DraftingView } from '../job-details/views/drafting-view';
 import {
@@ -8,7 +9,24 @@ import {
 } from '../job-details/hooks';
 import { defaults } from '../job-details/config';
 import type { Job } from '../job-details/hooks';
-import type { ExtractionEvent } from '../job-details/hooks';
+import type {
+  ExtractionEvent,
+  ExtractionStartedMessage,
+  ExtractionChunkMessage,
+  ExtractionCompleteMessage,
+} from '../job-details/hooks';
+
+/**
+ * Ephemeral extraction state (not persisted to storage)
+ * Used to display live extraction progress in the UI
+ */
+interface ExtractingJob {
+  id: string;
+  url: string;
+  source: string;
+  chunks: string[];
+  isExtracting: boolean;
+}
 
 /**
  * Sidepanel App - Shows the "job in focus" for quick editing
@@ -22,6 +40,11 @@ export const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentJob, setCurrentJob] = useState<Job | null>(null);
+
+  // Ephemeral extraction state (React state only, not storage)
+  const [extractingJob, setExtractingJob] = useState<ExtractingJob | null>(
+    null
+  );
 
   /**
    * Load the job in focus from storage
@@ -321,25 +344,107 @@ export const App: React.FC = () => {
       console.info('[Sidepanel] Received extraction event:', event.action);
 
       switch (event.action) {
-        case 'extractionStarted':
-          console.info('[Sidepanel] Extraction started for job:', event.jobId);
-          // The job will be created in storage by the background script
-          // We'll reload when storage changes
-          break;
+        case 'extractionStarted': {
+          const startEvent = event as ExtractionStartedMessage;
+          console.info(
+            '[Sidepanel] Extraction started for job:',
+            startEvent.jobId
+          );
 
-        case 'extractionChunk':
+          // Create ephemeral extraction state (React state only)
+          setExtractingJob({
+            id: startEvent.jobId,
+            url: startEvent.url,
+            source: startEvent.source,
+            chunks: [],
+            isExtracting: true,
+          });
+
+          // Clear any previous errors
+          setError(null);
+          break;
+        }
+
+        case 'extractionChunk': {
+          const chunkEvent = event as ExtractionChunkMessage;
           console.info(
             '[Sidepanel] Received extraction chunk for job:',
-            event.jobId
+            chunkEvent.jobId
           );
-          // Chunks are handled by the storage sync mechanism
-          break;
 
-        case 'extractionComplete':
-          console.info('[Sidepanel] Extraction complete for job:', event.jobId);
-          // Reload to show the completed job
-          loadJobInFocus();
+          // Append chunk to ephemeral state
+          setExtractingJob((prev) => {
+            if (!prev || prev.id !== chunkEvent.jobId) {
+              console.warn(
+                '[Sidepanel] Received chunk for unexpected job:',
+                chunkEvent.jobId
+              );
+              return prev;
+            }
+
+            return {
+              ...prev,
+              chunks: [...prev.chunks, chunkEvent.chunk],
+            };
+          });
           break;
+        }
+
+        case 'extractionComplete': {
+          const completeEvent = event as ExtractionCompleteMessage;
+          console.info(
+            '[Sidepanel] Extraction complete for job:',
+            completeEvent.jobId
+          );
+
+          // Save to storage now that extraction is complete
+          (async () => {
+            try {
+              if (!extractingJob || extractingJob.id !== completeEvent.jobId) {
+                console.error(
+                  '[Sidepanel] No extracting job found for completion:',
+                  completeEvent.jobId
+                );
+                return;
+              }
+
+              // Create a complete job object
+              const now = new Date().toISOString();
+              const newJob: Job = {
+                id: completeEvent.jobId,
+                url: extractingJob.url,
+                applicationStatus: 'Researching',
+                content: completeEvent.fullContent,
+                checklist: storage.initializeAllChecklists(),
+                documents: undefined, // Will be initialized when switching to Drafting
+                createdAt: now,
+                updatedAt: now,
+              };
+
+              // Get current jobs and add the new one
+              const currentStorage = await browser.storage.local.get('jobs');
+              const jobsObj = (currentStorage.jobs || {}) as Record<
+                string,
+                Job
+              >;
+              jobsObj[newJob.id] = newJob;
+              await browser.storage.local.set({ jobs: jobsObj });
+
+              console.info('[Sidepanel] Saved completed job to storage');
+
+              // Clear ephemeral extraction state
+              setExtractingJob(null);
+
+              // Reload to display the completed job
+              await loadJobInFocus();
+            } catch (err) {
+              console.error('[Sidepanel] Error saving completed job:', err);
+              setError('Failed to save extracted job');
+              setExtractingJob(null);
+            }
+          })();
+          break;
+        }
 
         case 'extractionError':
           console.error(
@@ -347,6 +452,9 @@ export const App: React.FC = () => {
             event.jobId,
             event.error
           );
+
+          // Clear ephemeral state and show error
+          setExtractingJob(null);
           setError(`Extraction failed: ${event.error}`);
           break;
 
@@ -355,6 +463,9 @@ export const App: React.FC = () => {
             '[Sidepanel] Extraction cancelled for job:',
             event.jobId
           );
+
+          // Clear ephemeral state
+          setExtractingJob(null);
           break;
 
         default:
@@ -367,7 +478,7 @@ export const App: React.FC = () => {
     return () => {
       extractionEvents.offExtractionEvent(handleExtraction);
     };
-  }, [extractionEvents, loadJobInFocus]);
+  }, [extractionEvents, extractingJob, loadJobInFocus, storage]);
 
   /**
    * Render the appropriate view
@@ -470,6 +581,69 @@ export const App: React.FC = () => {
     return (
       <div className="container">
         <div className="loading">Loading job details...</div>
+      </div>
+    );
+  }
+
+  // Extracting state (ephemeral - not yet saved to storage)
+  if (extractingJob) {
+    const chunkCount = extractingJob.chunks.length;
+    const previewText =
+      extractingJob.chunks.length > 0
+        ? extractingJob.chunks.join('').substring(0, 200) + '...'
+        : 'Waiting for data...';
+
+    return (
+      <div className="container">
+        <div className="job-card">
+          <div className="detail-panel-content">
+            <div className="job-header">
+              <div>
+                <div className="job-title">Extracting Job Data...</div>
+                <div className="company">{extractingJob.url}</div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: '20px',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ fontSize: '48px', marginBottom: '20px' }}>⚡</div>
+              <div
+                style={{
+                  fontSize: '16px',
+                  fontWeight: 500,
+                  marginBottom: '10px',
+                }}
+              >
+                Streaming extraction in progress...
+              </div>
+              <div style={{ fontSize: '14px', color: '#666' }}>
+                Received {chunkCount} chunk{chunkCount !== 1 ? 's' : ''}
+              </div>
+
+              {previewText && (
+                <div
+                  style={{
+                    marginTop: '20px',
+                    padding: '15px',
+                    background: '#f5f5f5',
+                    borderRadius: '4px',
+                    textAlign: 'left',
+                    fontSize: '12px',
+                    fontFamily: 'monospace',
+                    maxHeight: '200px',
+                    overflow: 'auto',
+                  }}
+                >
+                  {previewText}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

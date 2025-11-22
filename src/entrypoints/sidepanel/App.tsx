@@ -276,14 +276,17 @@ export const App: React.FC = () => {
         const text = await file.text();
         const backup = JSON.parse(text);
 
-        // Validate backup structure
-        if (!backup.version || !backup.data) {
+        // Validate backup structure (support both old nested and new flat format)
+        const isOldFormat = backup.data !== undefined;
+        const backupData = isOldFormat ? backup.data : backup;
+
+        if (!backup.version) {
           alert('Invalid backup file format.');
           return;
         }
 
         // Confirm overwrite
-        const jobCount = Object.keys(backup.data.jobs || {}).length;
+        const jobCount = Object.keys(backupData.jobs || {}).length;
         const confirmMsg = `This will overwrite all your current data with the backup from ${new Date(backup.exportDate).toLocaleString()}.\n\nBackup contains ${jobCount} job(s).\n\nThis cannot be undone. Continue?`;
 
         // eslint-disable-next-line no-undef
@@ -291,14 +294,17 @@ export const App: React.FC = () => {
           return;
         }
 
-        // Restore all data
-        await browser.storage.local.set({
-          jobs: backup.data.jobs || {},
+        // Normalize old format to new format if needed
+        const normalizedData = {
+          jobs: backupData.jobs || {},
           userProfile:
-            backup.data.userProfile || backup.data.masterResume || null,
-          llmSettings: backup.data.llmSettings || null,
-          jobInFocus: backup.data.jobInFocus || null,
-        });
+            backupData.userProfile || backupData.masterResume || null,
+          llmSettings: backupData.llmSettings || null,
+          jobInFocus: backupData.jobInFocus || null,
+        };
+
+        // Restore all data using storage helper
+        await storage.restoreBackup(normalizedData);
 
         console.info('[Sidepanel] Backup restored successfully');
         alert('Backup restored successfully! Reloading...');
@@ -422,13 +428,9 @@ export const App: React.FC = () => {
               };
 
               // Get current jobs and add the new one
-              const currentStorage = await browser.storage.local.get('jobs');
-              const jobsObj = (currentStorage.jobs || {}) as Record<
-                string,
-                Job
-              >;
-              jobsObj[newJob.id] = newJob;
-              await browser.storage.local.set({ jobs: jobsObj });
+              const currentJobs = await storage.getAllJobs();
+              const updatedJobs = [...currentJobs, newJob];
+              await storage.saveAllJobs(updatedJobs);
 
               console.info('[Sidepanel] Saved completed job to storage');
 

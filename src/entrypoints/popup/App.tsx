@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import { browser } from 'wxt/browser';
 import { checklistTemplates, llmConfig } from '../../config';
+import {
+  llmSettingsStorage,
+  jobsStorage,
+  jobInFocusStorage,
+} from '../../utils/storage';
 import './styles.css';
 
 interface LLMSettings {
@@ -35,8 +40,7 @@ export function App() {
 
   const loadSettings = async () => {
     try {
-      const result = await browser.storage.local.get(['llmSettings']);
-      const settings: LLMSettings = result.llmSettings || {
+      const settings = (await llmSettingsStorage.getValue()) || {
         endpoint: 'http://localhost:1234/v1/chat/completions',
         modelsEndpoint: 'http://localhost:1234/v1/models',
         model: '',
@@ -95,15 +99,15 @@ export function App() {
     setExtracting(true);
 
     try {
-      const result = await browser.storage.local.get(['llmSettings']);
-      const llmSettings: LLMSettings = result.llmSettings || {
-        endpoint: 'http://localhost:1234/v1/chat/completions',
-        modelsEndpoint: 'http://localhost:1234/v1/models',
-        model: '',
-        maxTokens: 2000,
-        temperature: 0.3,
-        enabled: true,
-      };
+      const llmSettings: LLMSettings =
+        (await llmSettingsStorage.getValue()) || {
+          endpoint: 'http://localhost:1234/v1/chat/completions',
+          modelsEndpoint: 'http://localhost:1234/v1/models',
+          model: '',
+          maxTokens: 2000,
+          temperature: 0.3,
+          enabled: true,
+        };
 
       if (!llmSettings.endpoint || llmSettings.endpoint.trim() === '') {
         showStatus(
@@ -173,8 +177,7 @@ export function App() {
 
   const determineJobId = async (preCheckResponse: any): Promise<string> => {
     if (preCheckResponse && preCheckResponse.url) {
-      const storageResult = await browser.storage.local.get(['jobs']);
-      const jobs = storageResult.jobs || {};
+      const jobs = (await jobsStorage.getValue()) || {};
 
       const existingJobId = Object.keys(jobs).find((id) => {
         const job = jobs[id];
@@ -219,9 +222,7 @@ export function App() {
         );
       });
 
-    await browser.storage.local.set({
-      jobInFocus: extractionJobId,
-    });
+    await jobInFocusStorage.setValue(extractionJobId);
     console.info('[Popup] Set jobInFocus for main app:', extractionJobId);
 
     showStatus('✨ Starting extraction...', 'success');
@@ -318,7 +319,7 @@ export function App() {
         temperature: 0.3,
       };
 
-      await browser.storage.local.set({ llmSettings: settings });
+      await llmSettingsStorage.setValue(settings);
       showStatus('Settings saved successfully!', 'success');
 
       setTimeout(() => {

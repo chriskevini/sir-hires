@@ -13,8 +13,11 @@ export { useTabState } from './useTabState';
 export { useJobValidation } from './useJobValidation';
 export { useSimpleAutoSave } from './useSimpleAutoSave';
 export { useDocumentManager } from './useDocumentManager';
+export { useParsedJob } from './useParsedJob';
+export { useJobHandlers } from './useJobHandlers';
 
 // Re-export types
+export type { JobHandlers } from './useJobHandlers';
 export type {
   Job,
   JobDocument,

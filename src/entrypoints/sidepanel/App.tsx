@@ -6,8 +6,9 @@ import {
   useJobState,
   useJobStorage,
   useExtractionEvents,
+  useJobHandlers,
 } from '../job-details/hooks';
-import { defaults } from '../job-details/config';
+import { JobViewRouter } from '../../components/features/JobViewRouter';
 import type { Job } from '../job-details/hooks';
 import type {
   ExtractionEvent,
@@ -40,6 +41,11 @@ export const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentJob, setCurrentJob] = useState<Job | null>(null);
+
+  // Suppress reload flag for document auto-save (needed by useJobHandlers)
+  const [suppressReloadUntil, setSuppressReloadUntil] = useState<number | null>(
+    null
+  );
 
   // Ephemeral extraction state (React state only, not storage)
   const [extractingJob, setExtractingJob] = useState<ExtractingJob | null>(
@@ -95,161 +101,15 @@ export const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty deps - uses latest jobState/storage via closure
+  }, [storage, jobState]); // storage is stable (from useJobStorage), jobState setters are stable
 
-  /**
-   * Handle storage change events
-   */
-  const handleStorageChange = useCallback(
-    (changes: Record<string, unknown>) => {
-      console.info('[Sidepanel] Storage changed:', Object.keys(changes));
-
-      // Reload if jobs or job in focus changed
-      if (changes.jobs || changes.jobInFocus) {
-        console.info('[Sidepanel] Reloading job in focus...');
-        loadJobInFocus();
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [] // Empty deps - uses latest loadJobInFocus via closure
-  );
-
-  /**
-   * Handle save field event
-   */
-  const handleSaveField = useCallback(
-    async (_index: number, fieldName: string, value: string) => {
-      if (!currentJob) {
-        console.error('[Sidepanel] No current job to update');
-        return;
-      }
-
-      const updatedJob = {
-        ...currentJob,
-        [fieldName]: value,
-        updatedAt: new Date().toISOString(),
-      };
-
-      await storage.updateJob(currentJob.id, updatedJob);
-      console.info(`[Sidepanel] Updated ${fieldName} for job ${currentJob.id}`);
-    },
-    [currentJob, storage]
-  );
-
-  /**
-   * Handle delete job event
-   */
-  const handleDeleteJob = useCallback(async () => {
-    if (!currentJob) {
-      console.error('[Sidepanel] No current job to delete');
-      return;
-    }
-
-    // eslint-disable-next-line no-undef
-    if (!confirm('Are you sure you want to delete this job?')) {
-      return;
-    }
-
-    await storage.deleteJob(currentJob.id);
-    await loadJobInFocus();
-    console.info(`[Sidepanel] Deleted job ${currentJob.id}`);
-  }, [currentJob, storage, loadJobInFocus]);
-
-  /**
-   * Handle checklist toggle expand
-   */
-  const handleChecklistToggleExpand = useCallback(
-    async (_index: number, isExpanded: boolean) => {
-      jobState.setChecklistExpanded(isExpanded);
-      await storage.setChecklistExpanded(isExpanded);
-      console.info(`[Sidepanel] Toggled checklist expand to ${isExpanded}`);
-    },
-    [jobState, storage]
-  );
-
-  /**
-   * Handle checklist toggle item
-   */
-  const handleChecklistToggleItem = useCallback(
-    async (_index: number, itemId: string) => {
-      if (!currentJob || !currentJob.checklist) {
-        console.error('[Sidepanel] Job or checklist not found');
-        return;
-      }
-
-      const currentStatusItems =
-        currentJob.checklist[currentJob.applicationStatus || ''];
-      if (!currentStatusItems) {
-        console.error(
-          '[Sidepanel] Checklist not found for status:',
-          currentJob.applicationStatus
-        );
-        return;
-      }
-
-      const item = currentStatusItems.find(
-        (i: { id: string; checked: boolean }) => i.id === itemId
-      );
-      if (item) {
-        item.checked = !item.checked;
-
-        const updatedJob = {
-          ...currentJob,
-          updatedAt: new Date().toISOString(),
-        };
-
-        await storage.updateJob(currentJob.id, updatedJob);
-        console.info(`[Sidepanel] Toggled checklist item ${itemId}`);
-      }
-    },
-    [currentJob, storage]
-  );
-
-  /**
-   * Handle initialize documents (Drafting view)
-   */
-  const handleInitializeDocuments = useCallback(async () => {
-    if (!currentJob) {
-      console.error('[Sidepanel] No current job');
-      return;
-    }
-
-    if (!currentJob.documents) {
-      const initializedDocs = storage.initializeDocuments(currentJob);
-      const updatedJob = {
-        ...currentJob,
-        documents: initializedDocs,
-        updatedAt: new Date().toISOString(),
-      };
-
-      await storage.updateJob(currentJob.id, updatedJob);
-      console.info(
-        `[Sidepanel] Initialized documents for job ${currentJob.id}`
-      );
-    }
-  }, [currentJob, storage]);
-
-  /**
-   * Handle save document
-   */
-  const handleSaveDocument = useCallback(
-    async (
-      _index: number,
-      documentKey: string,
-      documentData: { title: string; text: string }
-    ) => {
-      if (!currentJob) {
-        console.error('[Sidepanel] No current job');
-        return;
-      }
-
-      await storage.saveDocument(currentJob.id, documentKey, documentData);
-      console.info(
-        `[Sidepanel] Saved document ${documentKey} for job ${currentJob.id}`
-      );
-    },
-    [currentJob, storage]
+  // Initialize shared job handlers
+  const handlers = useJobHandlers(
+    jobState,
+    storage,
+    loadJobInFocus,
+    suppressReloadUntil,
+    setSuppressReloadUntil
   );
 
   /**
@@ -334,13 +194,13 @@ export const App: React.FC = () => {
    * Register storage change listener
    */
   useEffect(() => {
-    storage.onStorageChange(handleStorageChange);
+    storage.onStorageChange(handlers.handleStorageChange);
 
     return () => {
-      storage.offStorageChange(handleStorageChange);
+      storage.offStorageChange(handlers.handleStorageChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handleStorageChange]); // Only watch handleStorageChange - storage methods are stable
+  }, [handlers.handleStorageChange]); // Only watch handleStorageChange - storage methods are stable
 
   /**
    * Register extraction event listener
@@ -486,96 +346,22 @@ export const App: React.FC = () => {
    * Render the appropriate view
    */
   const renderJobView = () => {
-    if (!currentJob) {
-      return null;
-    }
-
-    const status = currentJob.applicationStatus || defaults.status;
-    const index = jobState.selectedJobIndex;
-
-    // Route to the appropriate view based on status
-    switch (status) {
-      case 'Researching':
-        return (
-          <ResearchingView
-            job={currentJob}
-            index={index}
-            isChecklistExpanded={jobState.checklistExpanded}
-            onDeleteJob={handleDeleteJob}
-            onSaveField={handleSaveField}
-            onToggleChecklistExpand={handleChecklistToggleExpand}
-            onToggleChecklistItem={handleChecklistToggleItem}
-          />
-        );
-
-      case 'Drafting':
-        return (
-          <DraftingView
-            job={currentJob}
-            index={index}
-            isChecklistExpanded={jobState.checklistExpanded}
-            onDeleteJob={handleDeleteJob}
-            onSaveDocument={handleSaveDocument}
-            onInitializeDocuments={handleInitializeDocuments}
-            onToggleChecklistExpand={handleChecklistToggleExpand}
-            onToggleChecklistItem={handleChecklistToggleItem}
-          />
-        );
-
-      default:
-        // WIP view for unimplemented states
-        return (
-          <div className="job-card">
-            <div className="detail-panel-content">
-              <div className="job-header">
-                <div>
-                  <div className="job-title">WIP: {status}</div>
-                  <div className="company">View under construction</div>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  textAlign: 'center',
-                  padding: '60px 20px',
-                  color: '#666',
-                }}
-              >
-                <div style={{ fontSize: '48px', marginBottom: '20px' }}>🚧</div>
-                <div
-                  style={{
-                    fontSize: '18px',
-                    fontWeight: 500,
-                    marginBottom: '10px',
-                  }}
-                >
-                  {status} Panel - Work in Progress
-                </div>
-                <div style={{ fontSize: '14px' }}>
-                  This panel is coming soon!
-                </div>
-              </div>
-
-              <div className="job-actions">
-                {currentJob.url && (
-                  <button
-                    className="btn btn-link"
-                    onClick={() => window.open(currentJob.url, '_blank')}
-                  >
-                    View Job Posting
-                  </button>
-                )}
-                <button
-                  className="btn btn-delete"
-                  onClick={() => handleDeleteJob()}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-    }
+    return (
+      <JobViewRouter
+        job={currentJob}
+        index={jobState.selectedJobIndex}
+        isChecklistExpanded={jobState.checklistExpanded}
+        ResearchingView={ResearchingView}
+        DraftingView={DraftingView}
+        onDeleteJob={handlers.handleDeleteJob}
+        onSaveField={handlers.handleSaveField}
+        onSaveDocument={handlers.handleSaveDocument}
+        onInitializeDocuments={handlers.handleInitializeDocuments}
+        onToggleChecklistExpand={handlers.handleChecklistToggleExpand}
+        onToggleChecklistItem={handlers.handleChecklistToggleItem}
+        emptyStateMessage="No job selected"
+      />
+    );
   };
 
   // Loading state

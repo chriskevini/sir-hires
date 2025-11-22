@@ -243,6 +243,58 @@ function mapMarkdownFieldsToJob(
   return mapped;
 }
 
+/**
+ * Convenience getter: Extract job title from parsed template
+ * ✅ CORRECT PATTERN - Use this instead of accessing parsed.topLevelFields['TITLE'] directly
+ *
+ * @param parsedJob - Result from parseJobTemplate()
+ * @returns Job title or null if not found
+ *
+ * @example
+ * const parsed = parseJobTemplate(job.content);
+ * const title = getJobTitle(parsed); // ✅ CORRECT
+ * // NOT: const title = parsed.topLevelFields['TITLE']; // ❌ WRONG
+ */
+function getJobTitle(parsedJob: JobTemplateData): string | null {
+  return getTopLevelField(parsedJob, 'TITLE');
+}
+
+/**
+ * Convenience getter: Extract company name from parsed template
+ * ✅ CORRECT PATTERN - Use this instead of accessing parsed.topLevelFields['COMPANY'] directly
+ *
+ * @param parsedJob - Result from parseJobTemplate()
+ * @returns Company name or null if not found
+ *
+ * @example
+ * const parsed = parseJobTemplate(job.content);
+ * const company = getCompanyName(parsed); // ✅ CORRECT
+ * // NOT: const company = parsed.topLevelFields['COMPANY']; // ❌ WRONG
+ */
+function getCompanyName(parsedJob: JobTemplateData): string | null {
+  return getTopLevelField(parsedJob, 'COMPANY');
+}
+
+/**
+ * Convenience getter: Extract location from parsed template
+ *
+ * @param parsedJob - Result from parseJobTemplate()
+ * @returns Location or null if not found
+ */
+function getLocation(parsedJob: JobTemplateData): string | null {
+  return getTopLevelField(parsedJob, 'ADDRESS');
+}
+
+/**
+ * Convenience getter: Extract job type from parsed template
+ *
+ * @param parsedJob - Result from parseJobTemplate()
+ * @returns Job type or null if not found
+ */
+function getJobType(parsedJob: JobTemplateData): string | null {
+  return getTopLevelField(parsedJob, 'EMPLOYMENT_TYPE');
+}
+
 // Short aliases for convenience
 const parseJob = parseJobTemplate;
 
@@ -258,4 +310,8 @@ export {
   getAllTopLevelFields,
   getAllSections,
   mapMarkdownFieldsToJob,
+  getJobTitle,
+  getCompanyName,
+  getLocation,
+  getJobType,
 };

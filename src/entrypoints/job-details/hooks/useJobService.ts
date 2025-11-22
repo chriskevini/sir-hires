@@ -1,7 +1,11 @@
 import { useCallback, useMemo } from 'react';
 import { statusOrder, terminalStates } from '../config';
 import type { Job, Filters } from './useJobState';
-import { parseJobTemplate } from '../../../utils/job-parser';
+import {
+  parseJobTemplate,
+  getJobTitle,
+  getCompanyName,
+} from '../../../utils/job-parser';
 
 export interface JobServiceConfig {
   statusOrder: string[];
@@ -51,9 +55,11 @@ export function useJobService() {
       filtered = filtered.filter((job) => {
         // Parse content for search
         const parsed = parseJobTemplate(job.content || '');
+        const jobTitle = getJobTitle(parsed);
+        const company = getCompanyName(parsed);
         return (
-          parsed.jobTitle?.toLowerCase().includes(searchLower) ||
-          parsed.company?.toLowerCase().includes(searchLower) ||
+          jobTitle?.toLowerCase().includes(searchLower) ||
+          company?.toLowerCase().includes(searchLower) ||
           job.location?.toLowerCase().includes(searchLower) ||
           job.rawDescription?.toLowerCase().includes(searchLower) ||
           job.aboutJob?.toLowerCase().includes(searchLower) ||
@@ -247,12 +253,14 @@ export function useJobService() {
   const validateJob = useCallback((job: Job): ValidationResult => {
     const errors: string[] = [];
     const parsed = parseJobTemplate(job.content || '');
+    const jobTitle = getJobTitle(parsed);
+    const company = getCompanyName(parsed);
 
-    if (!parsed.jobTitle || parsed.jobTitle.trim() === '') {
+    if (!jobTitle || jobTitle.trim() === '') {
       errors.push('Job title is required');
     }
 
-    if (!parsed.company || parsed.company.trim() === '') {
+    if (!company || company.trim() === '') {
       errors.push('Company name is required');
     }
 

@@ -2,7 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { llmConfig } from '../config';
 import { LLMClient } from '../../../utils/llm-client';
 import type { Job } from '../hooks';
-import { parseJobTemplate } from '../../../utils/job-parser';
+import {
+  parseJobTemplate,
+  getJobTitle,
+  getCompanyName,
+} from '../../../utils/job-parser';
 import { userProfileStorage } from '../../../utils/storage';
 
 interface SynthesisFormProps {
@@ -99,8 +103,8 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
 
     return {
       masterResume: userProfile || 'Not provided',
-      jobTitle: parsed.jobTitle || 'Not provided',
-      company: parsed.company || 'Not provided',
+      jobTitle: getJobTitle(parsed) || 'Not provided',
+      company: getCompanyName(parsed) || 'Not provided',
       aboutJob: job.aboutJob || 'Not provided',
       aboutCompany: job.aboutCompany || 'Not provided',
       responsibilities: job.responsibilities || 'Not provided',
@@ -309,8 +313,8 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
 
   const dataFields = [
     { key: 'masterResume', label: 'Profile', value: userProfile },
-    { key: 'jobTitle', label: 'Job Title', value: parsed.jobTitle },
-    { key: 'company', label: 'Company', value: parsed.company },
+    { key: 'jobTitle', label: 'Job Title', value: getJobTitle(parsed) },
+    { key: 'company', label: 'Company', value: getCompanyName(parsed) },
     { key: 'aboutJob', label: 'About Job', value: job?.aboutJob },
     { key: 'aboutCompany', label: 'About Company', value: job?.aboutCompany },
     {

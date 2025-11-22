@@ -2,7 +2,11 @@ import { useEffect, useCallback, useRef } from 'react';
 import { browser } from 'wxt/browser';
 import { checklistTemplates } from '../config';
 import type { Job, JobDocument, ChecklistItem } from './useJobState';
-import { parseJobTemplate } from '../../../utils/job-parser';
+import {
+  parseJobTemplate,
+  getJobTitle,
+  getCompanyName,
+} from '../../../utils/job-parser';
 import {
   jobsStorage,
   jobInFocusStorage,
@@ -42,15 +46,17 @@ export function useJobStorage() {
     (job: Job): Record<string, JobDocument> => {
       // Parse content for title generation
       const parsed = parseJobTemplate(job.content || '');
+      const jobTitle = getJobTitle(parsed);
+      const company = getCompanyName(parsed);
       return {
         tailoredResume: {
-          title: `${parsed.jobTitle || 'Resume'} - ${parsed.company || 'Company'}`,
+          title: `${jobTitle || 'Resume'} - ${company || 'Company'}`,
           text: '',
           lastEdited: null,
           order: 0,
         },
         coverLetter: {
-          title: `Cover Letter - ${parsed.jobTitle || 'Position'} at ${parsed.company || 'Company'}`,
+          title: `Cover Letter - ${jobTitle || 'Position'} at ${company || 'Company'}`,
           text: '',
           lastEdited: null,
           order: 1,

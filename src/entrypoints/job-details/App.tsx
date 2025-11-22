@@ -3,7 +3,11 @@ import { ResearchingView } from './views/researching-view';
 import { DraftingView } from './views/drafting-view';
 import { useJobState, useJobStorage, useJobHandlers } from './hooks';
 import { JobViewRouter } from '../../components/features/JobViewRouter';
-import { parseJobTemplate } from '../../utils/job-parser';
+import {
+  parseJobTemplate,
+  getJobTitle,
+  getCompanyName,
+} from '../../utils/job-parser';
 import { defaults } from './config';
 
 /**
@@ -79,9 +83,11 @@ export const App: React.FC = () => {
       // Search filter
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
+        const jobTitle = getJobTitle(parsed);
+        const company = getCompanyName(parsed);
         const matchesSearch =
-          parsed.jobTitle?.toLowerCase().includes(searchLower) ||
-          parsed.company?.toLowerCase().includes(searchLower);
+          jobTitle?.toLowerCase().includes(searchLower) ||
+          company?.toLowerCase().includes(searchLower);
         if (!matchesSearch) return false;
       }
 
@@ -113,13 +119,17 @@ export const App: React.FC = () => {
       filtered = filtered.sort((a, b) => {
         const parsedA = parseJobTemplate(a.content || '');
         const parsedB = parseJobTemplate(b.content || '');
-        return (parsedA.company || '').localeCompare(parsedB.company || '');
+        return (getCompanyName(parsedA) || '').localeCompare(
+          getCompanyName(parsedB) || ''
+        );
       });
     } else if (sortOrder === 'title') {
       filtered = filtered.sort((a, b) => {
         const parsedA = parseJobTemplate(a.content || '');
         const parsedB = parseJobTemplate(b.content || '');
-        return (parsedA.jobTitle || '').localeCompare(parsedB.jobTitle || '');
+        return (getJobTitle(parsedA) || '').localeCompare(
+          getJobTitle(parsedB) || ''
+        );
       });
     }
 
@@ -357,9 +367,11 @@ export const App: React.FC = () => {
                 >
                   <div className="job-card-header">
                     <div className="job-title">
-                      {parsed.jobTitle || 'Untitled'}
+                      {getJobTitle(parsed) || 'Untitled'}
                     </div>
-                    <div className="company">{parsed.company || 'Unknown'}</div>
+                    <div className="company">
+                      {getCompanyName(parsed) || 'Unknown'}
+                    </div>
                   </div>
                 </div>
               );

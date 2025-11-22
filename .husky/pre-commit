@@ -1,1 +1,7 @@
+#!/bin/sh
+
+# Run MarkdownDB pattern validation
+./scripts/validate-markdowndb-pattern.sh
+
+# Run lint-staged
 npx lint-staged

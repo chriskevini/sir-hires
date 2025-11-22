@@ -8,6 +8,7 @@ import {
   getJobTitle,
   getCompanyName,
 } from '../../utils/job-parser';
+import { initDevModeValidation } from '../../utils/dev-validators';
 import { defaults } from './config';
 
 /**
@@ -184,6 +185,7 @@ export const App: React.FC = () => {
    */
   useEffect(() => {
     console.info('Initializing JobDetailsApp...');
+    initDevModeValidation(); // Enable MarkdownDB pattern validation in dev mode
     loadJobs();
     console.info('JobDetailsApp initialized');
   }, [loadJobs]);

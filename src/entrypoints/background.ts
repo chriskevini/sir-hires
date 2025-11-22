@@ -10,6 +10,7 @@ export default defineBackground(() => {
 
   // Track active extractions for cancellation
   // Map: jobId → { llmClient, streamId }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const activeExtractions = new Map<string, any>();
 
   function startGlobalKeepAlive() {
@@ -59,34 +60,21 @@ export default defineBackground(() => {
 
     // Migrate jobs
     const jobs = result.jobs || {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const migratedJobs: Record<string, any> = {};
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     Object.entries(jobs).forEach(([key, job]: [string, any]) => {
       migratedJobs[key] = {
         id: job.id,
-        jobTitle: job.job_title || job.jobTitle || '',
-        company: job.company || '',
-        location: job.location || '',
-        salary: job.salary || '',
-        jobType: job.job_type || job.jobType || '',
-        remoteType: job.remote_type || job.remoteType || '',
-        postedDate: job.posted_date || job.postedDate || '',
-        deadline: job.deadline || '',
+        content: job.content || '',
+        url: job.url || '',
         applicationStatus:
           job.application_status || job.applicationStatus || 'Researching',
-        statusHistory: job.status_history || job.statusHistory || [],
-        url: job.url || '',
-        source: job.source || '',
-        rawDescription: job.raw_description || job.rawDescription || '',
-        aboutJob: job.about_job || job.aboutJob || '',
-        aboutCompany: job.about_company || job.aboutCompany || '',
-        responsibilities: job.responsibilities || '',
-        requirements: job.requirements || '',
-        notes: job.notes || '',
-        narrativeStrategy:
-          job.narrative_strategy || job.narrativeStrategy || '',
+        checklist: job.checklist || {},
+        documents: job.documents || {},
         updatedAt: job.updated_at || job.updatedAt || new Date().toISOString(),
-        targetedResume: job.targeted_resume || job.targetedResume || '',
+        createdAt: job.created_at || job.createdAt || new Date().toISOString(),
       };
       migrationCount++;
     });

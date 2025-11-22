@@ -68,7 +68,7 @@ my-extension/
 
   ```typescript
   // src/utils/storage.ts
-  import { storage } from 'wxt/storage';
+  import { storage } from 'wxt/utils/storage';
 
   export const themeItem = storage.defineItem<string>('local:theme', {
     defaultValue: 'light',
@@ -77,6 +77,8 @@ my-extension/
   // Example usage in React component
   // const theme = await themeItem.getValue();
   ```
+
+  **Note:** WXT has auto-imports enabled, so `storage` is available globally without explicit import in most files. However, for explicit imports, use `'wxt/utils/storage'`.
 
 ### MarkdownDB Storage Pattern
 

@@ -1,5 +1,6 @@
 import { LLMClient } from '../utils/llm-client';
 import { llmConfig } from '../config';
+import { jobsStorage, keepaliveStorage } from '../utils/storage';
 
 export default defineBackground(() => {
   // Global keepalive to prevent service worker termination
@@ -19,13 +20,13 @@ export default defineBackground(() => {
     console.info('[Background] Starting global keepalive');
 
     // Fire immediately first
-    browser.storage.local.get(['_keepalive']).then(() => {
+    keepaliveStorage.getValue().then(() => {
       console.info('[Background] Global keepalive ping (immediate)');
     });
 
     // Then continue every 20 seconds
     globalKeepAliveInterval = setInterval(() => {
-      browser.storage.local.get(['_keepalive']).then(() => {
+      keepaliveStorage.getValue().then(() => {
         console.info('[Background] Global keepalive ping');
       });
     }, 20000); // Ping every 20 seconds
@@ -210,9 +211,9 @@ ${oldContent
     await migrateResumeToProfile();
 
     // Initialize storage if needed
-    const result = await browser.storage.local.get(['jobs']);
-    if (!result.jobs) {
-      await browser.storage.local.set({ jobs: {} });
+    const jobs = await jobsStorage.getValue();
+    if (!jobs || Object.keys(jobs).length === 0) {
+      await jobsStorage.setValue({});
     }
 
     // Disable side panel on action click (we want popup to open instead)
@@ -327,18 +328,18 @@ ${oldContent
     // Note: WXT handles async message handlers automatically
 
     if (request.action === 'getJobs') {
-      browser.storage.local.get(['jobs']).then((result) => {
-        sendResponse({ jobs: result.jobs || [] });
+      jobsStorage.getValue().then((jobsObj) => {
+        sendResponse({ jobs: jobsObj || {} });
       });
       return true;
     }
 
     if (request.action === 'saveJob') {
-      browser.storage.local.get(['jobs']).then((result) => {
-        const jobs = result.jobs || [];
-        jobs.push(request.job);
-        browser.storage.local.set({ jobs }).then(() => {
-          sendResponse({ success: true, count: jobs.length });
+      jobsStorage.getValue().then((jobsObj) => {
+        const jobs = jobsObj || {};
+        jobs[request.job.id] = request.job;
+        jobsStorage.setValue(jobs).then(() => {
+          sendResponse({ success: true, count: Object.keys(jobs).length });
         });
       });
       return true;

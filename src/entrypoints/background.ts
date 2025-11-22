@@ -16,24 +16,24 @@ export default defineBackground(() => {
       return; // Already running
     }
 
-    console.log('[Background] Starting global keepalive');
+    console.info('[Background] Starting global keepalive');
 
     // Fire immediately first
     browser.storage.local.get(['_keepalive']).then(() => {
-      console.log('[Background] Global keepalive ping (immediate)');
+      console.info('[Background] Global keepalive ping (immediate)');
     });
 
     // Then continue every 20 seconds
     globalKeepAliveInterval = setInterval(() => {
       browser.storage.local.get(['_keepalive']).then(() => {
-        console.log('[Background] Global keepalive ping');
+        console.info('[Background] Global keepalive ping');
       });
     }, 20000); // Ping every 20 seconds
   }
 
   function stopGlobalKeepAlive() {
     if (globalKeepAliveInterval) {
-      console.log('[Background] Stopping global keepalive');
+      console.info('[Background] Stopping global keepalive');
       clearInterval(globalKeepAliveInterval);
       globalKeepAliveInterval = null;
     }
@@ -49,11 +49,11 @@ export default defineBackground(() => {
 
     // Check if migration already completed
     if (result.schemaMigrated) {
-      console.log('[Migration] Schema already migrated to camelCase');
+      console.info('[Migration] Schema already migrated to camelCase');
       return;
     }
 
-    console.log('[Migration] Starting snake_case to camelCase migration...');
+    console.info('[Migration] Starting snake_case to camelCase migration...');
     let migrationCount = 0;
 
     // Migrate jobs
@@ -113,7 +113,7 @@ export default defineBackground(() => {
     }
 
     await browser.storage.local.set(dataToSave);
-    console.log(
+    console.info(
       `[Migration] Successfully migrated ${migrationCount} jobs to camelCase`
     );
   }
@@ -128,17 +128,19 @@ export default defineBackground(() => {
 
     // Check if migration already completed
     if (result.profileMigrated) {
-      console.log('[Migration] Profile already migrated to userProfile');
+      console.info('[Migration] Profile already migrated to userProfile');
       return;
     }
 
-    console.log(
+    console.info(
       '[Migration] Starting masterResume to userProfile migration...'
     );
 
     // If userProfile already exists, don't migrate
     if (result.userProfile) {
-      console.log('[Migration] userProfile already exists, skipping migration');
+      console.info(
+        '[Migration] userProfile already exists, skipping migration'
+      );
       await browser.storage.local.set({ profileMigrated: true });
       return;
     }
@@ -189,12 +191,12 @@ ${oldContent
         userProfile: userProfile,
         profileMigrated: true,
       });
-      console.log(
+      console.info(
         '[Migration] Successfully migrated masterResume to userProfile'
       );
     } else {
       // No masterResume to migrate, just mark as migrated
-      console.log('[Migration] No masterResume found, marking as migrated');
+      console.info('[Migration] No masterResume found, marking as migrated');
       await browser.storage.local.set({ profileMigrated: true });
     }
   }
@@ -225,8 +227,8 @@ ${oldContent
 
   // Helper function to call LLM API
   async function callLLMAPI(endpoint: string, requestBody: any) {
-    console.log('[Background] Calling LLM API:', endpoint);
-    console.log(
+    console.info('[Background] Calling LLM API:', endpoint);
+    console.info(
       '[Background] Request body:',
       JSON.stringify(requestBody, null, 2)
     );
@@ -247,7 +249,7 @@ ${oldContent
 
       clearTimeout(timeoutId);
 
-      console.log('[Background] LLM API response status:', response.status);
+      console.info('[Background] LLM API response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -256,7 +258,7 @@ ${oldContent
       }
 
       const data = await response.json();
-      console.log(
+      console.info(
         '[Background] LLM API success, response length:',
         JSON.stringify(data).length
       );
@@ -293,14 +295,14 @@ ${oldContent
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         await browser.runtime.sendMessage(message);
-        console.log(
+        console.info(
           `[Background] Message sent successfully: ${message.action}`
         );
         return; // Success!
       } catch (err: any) {
         if (err.message?.includes('Receiving end does not exist')) {
           if (attempt < maxRetries) {
-            console.log(
+            console.info(
               `[Background] Sidepanel not ready, retrying (${attempt}/${maxRetries})...`
             );
             await new Promise((resolve) => setTimeout(resolve, delayMs));
@@ -359,7 +361,7 @@ ${oldContent
     if (request.action === 'streamExtractJob') {
       // Handle streaming job extraction with LLM
       const { jobId, url, source, rawText, llmSettings } = request;
-      console.log(
+      console.info(
         '[Background] Received streaming extraction request for job:',
         jobId
       );
@@ -375,7 +377,7 @@ ${oldContent
         const streamId = jobId; // Use jobId as streamId for tracking
 
         try {
-          console.log('[Background] Starting LLM streaming for job:', jobId);
+          console.info('[Background] Starting LLM streaming for job:', jobId);
 
           // Initialize LLM client
           const llmClient = new LLMClient({
@@ -410,7 +412,7 @@ ${oldContent
               ? llmSettings.model
               : llmConfig.extraction.defaultModel;
 
-          console.log(
+          console.info(
             '[Background] Using model for extraction:',
             modelToUse,
             llmSettings.model ? '(configured)' : '(default fallback)'
@@ -426,14 +428,14 @@ ${oldContent
             temperature: llmSettings.temperature || 0.3,
             onThinkingUpdate: (delta: string) => {
               // Ignore thinking stream (we only care about the document)
-              console.log(
+              console.info(
                 '[Background] Thinking:',
                 delta.substring(0, 50) + '...'
               );
             },
             onDocumentUpdate: (delta: string) => {
               // Send document chunks to sidepanel (no retry for chunks - stream is real-time)
-              console.log(
+              console.info(
                 '[Background] Sending chunk to sidepanel:',
                 delta.substring(0, 50) + '...'
               );
@@ -454,7 +456,7 @@ ${oldContent
 
           // Check if stream was cancelled
           if (result.cancelled) {
-            console.log(
+            console.info(
               '[Background] Streaming extraction cancelled for job:',
               jobId
             );
@@ -482,7 +484,7 @@ ${oldContent
             );
           });
 
-          console.log(
+          console.info(
             '[Background] Streaming extraction completed for job:',
             jobId
           );
@@ -515,16 +517,19 @@ ${oldContent
     if (request.action === 'cancelExtraction') {
       // Handle cancellation of ongoing extraction
       const { jobId } = request;
-      console.log('[Background] Received cancellation request for job:', jobId);
+      console.info(
+        '[Background] Received cancellation request for job:',
+        jobId
+      );
 
       const extraction = activeExtractions.get(jobId);
       if (extraction) {
         const { llmClient, streamId } = extraction;
-        console.log('[Background] Cancelling stream:', streamId);
+        console.info('[Background] Cancelling stream:', streamId);
         llmClient.cancelStream(streamId);
         sendResponse({ success: true, message: 'Extraction cancelled' });
       } else {
-        console.log('[Background] No active extraction found for job:', jobId);
+        console.info('[Background] No active extraction found for job:', jobId);
         sendResponse({ success: false, message: 'No active extraction found' });
       }
 
@@ -534,5 +539,5 @@ ${oldContent
     return false;
   });
 
-  console.log('Sir Hires background script loaded');
+  console.info('Sir Hires background script loaded');
 });

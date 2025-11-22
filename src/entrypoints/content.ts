@@ -291,14 +291,14 @@ function extractRawJobText() {
 
       if (text.length > 500) {
         // Increased threshold
-        console.log(
+        console.info(
           '[Content] Raw text extracted for LLM via selector:',
           selector,
           '(length:',
           text.length,
           ')'
         );
-        console.log('[Content] First 500 chars:', text.substring(0, 500));
+        console.info('[Content] First 500 chars:', text.substring(0, 500));
         return text;
       }
     }
@@ -332,14 +332,14 @@ function extractRawJobText() {
           text = text.substring(0, 10000);
         }
         if (text.length > 500) {
-          console.log(
+          console.info(
             '[Content] Raw text extracted for LLM via heading:',
             headingText,
             '(length:',
             text.length,
             ')'
           );
-          console.log('[Content] First 500 chars:', text.substring(0, 500));
+          console.info('[Content] First 500 chars:', text.substring(0, 500));
           return text;
         }
       }
@@ -372,24 +372,24 @@ function extractRawJobText() {
     if (text.length > 10000) {
       text = text.substring(0, 10000);
     }
-    console.log(
+    console.info(
       '[Content] Raw text extracted for LLM via largest text block (length:',
       text.length,
       ')'
     );
-    console.log('[Content] First 500 chars:', text.substring(0, 500));
+    console.info('[Content] First 500 chars:', text.substring(0, 500));
     return text;
   }
 
   // Last resort: get body text
   const bodyText = document.body.innerText || document.body.textContent || '';
   const truncated = bodyText.substring(0, 10000);
-  console.log(
+  console.info(
     '[Content] Raw text extracted for LLM - fallback to body (length:',
     truncated.length,
     ')'
   );
-  console.log('[Content] First 500 chars:', truncated.substring(0, 500));
+  console.info('[Content] First 500 chars:', truncated.substring(0, 500));
   return truncated;
 }
 
@@ -410,7 +410,7 @@ function extractRawJobText() {
 // - "date-time": ISO formatted dates
 // - ["option1", "option2"]: Enum (single choice)
 // - [["A", "B", "C"]]: Multi-label (multiple choices)
-async function extractAllFieldsWithLLM(rawText, llmSettings) {
+async function _extractAllFieldsWithLLM(rawText, llmSettings) {
   try {
     // Define the extraction template using NuExtract's type system
     const extractionTemplate = {
@@ -440,7 +440,7 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
     const templateStr = JSON.stringify(extractionTemplate, null, 2);
     const promptContent = `# Template:\n${templateStr}\n# Context:\n${rawText}`;
 
-    console.log(
+    console.info(
       '[Content] Extraction template being sent to LLM:',
       extractionTemplate
     );
@@ -464,7 +464,7 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
       requestBody: requestBody,
     });
 
-    console.log('[Content] LLM response received:', response);
+    console.info('[Content] LLM response received:', response);
 
     if (!response) {
       throw new Error(
@@ -503,13 +503,13 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
     const extracted = JSON.parse(jsonStr);
 
     // Log the parsed JSON object for easy inspection in Chrome DevTools
-    console.log('[Content] LLM extracted object:', extracted);
+    console.info('[Content] LLM extracted object:', extracted);
 
     // Parse dates through parseToISODate() to convert to YYYY-MM-DD format
     const postedDate = parseToISODate(extracted.postedDate || '');
     const deadline = parseToISODate(extracted.deadline || '');
 
-    console.log(
+    console.info(
       '[Content] Parsed dates - postedDate:',
       postedDate,
       'deadline:',
@@ -574,7 +574,7 @@ function setupMessageListener() {
             );
           }
 
-          console.log(
+          console.info(
             '[Content] Starting streaming extraction for job:',
             jobId
           );
@@ -584,7 +584,7 @@ function setupMessageListener() {
           const source = extractSource();
           const rawText = extractRawJobText();
 
-          console.log('[Content] Extracted raw text length:', rawText.length);
+          console.info('[Content] Extracted raw text length:', rawText.length);
 
           // Send extraction request to background which has access to LLMClient
           sendResponse({

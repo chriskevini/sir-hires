@@ -14,6 +14,7 @@ export default [
       'node_modules/**',
       'chrome-extension/**',
       'wxt-example/**',
+      'src/entrypoints/profile/main.tsx', // Temporary: tsconfig project issue
     ],
   },
   js.configs.recommended,
@@ -25,6 +26,7 @@ export default [
         ecmaVersion: 'latest',
         sourceType: 'module',
         project: './tsconfig.json',
+        tsconfigRootDir: import.meta.dirname,
         ecmaFeatures: {
           jsx: true,
         },
@@ -39,6 +41,10 @@ export default [
         HTMLElement: 'readonly',
         Element: 'readonly',
         Node: 'readonly',
+        alert: 'readonly',
+        requestAnimationFrame: 'readonly',
+        localStorage: 'readonly',
+        crypto: 'readonly',
         // Browser APIs
         fetch: 'readonly',
         setTimeout: 'readonly',
@@ -77,6 +83,7 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
 
       // General rules
+      'no-unused-vars': 'off', // Disable base rule (use @typescript-eslint/no-unused-vars instead)
       'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
     },
     settings: {

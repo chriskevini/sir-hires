@@ -9,19 +9,19 @@ interface SynthesisFormProps {
   jobIndex: number | null;
   documentKey: string | null;
   onGenerate: (
-    jobIndex: number,
-    documentKey: string,
-    result: {
+    _jobIndex: number,
+    _documentKey: string,
+    _result: {
       content: string;
       thinkingContent: string;
       truncated: boolean;
       currentTokens: number;
     }
   ) => void;
-  onGenerationStart?: (jobIndex: number, documentKey: string) => void;
-  onThinkingUpdate?: (documentKey: string, delta: string) => void;
-  onDocumentUpdate?: (documentKey: string, delta: string) => void;
-  onError?: (jobIndex: number, documentKey: string, error: Error) => void;
+  onGenerationStart?: (_jobIndex: number, _documentKey: string) => void;
+  onThinkingUpdate?: (_documentKey: string, _delta: string) => void;
+  onDocumentUpdate?: (_documentKey: string, _delta: string) => void;
+  onError?: (_jobIndex: number, _documentKey: string, _error: Error) => void;
   onClose: () => void;
 }
 
@@ -47,7 +47,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   const [maxTokens, setMaxTokens] = useState(2000);
   const [isGenerating, setIsGenerating] = useState(false);
   const [userProfile, setUserProfile] = useState('');
-  const [hasExistingContent, setHasExistingContent] = useState(false);
+  const [_hasExistingContent, setHasExistingContent] = useState(false);
   const [llmClient] = useState(
     () =>
       new LLMClient({
@@ -58,9 +58,13 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
 
   // Fetch available models when component mounts
   useEffect(() => {
-    fetchAvailableModels();
-    fetchUserProfile();
-    checkExistingContent();
+    const init = async () => {
+      await fetchAvailableModels();
+      await fetchUserProfile();
+      checkExistingContent();
+    };
+    init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job, documentKey]);
 
   const fetchAvailableModels = async () => {

@@ -1,16 +1,9 @@
-import React, {
-  useEffect,
-  useRef,
-  useState,
-  useCallback,
-  useMemo,
-} from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Checklist } from '../components/checklist';
 import { parseJobTemplate } from '@/utils/job-parser';
 import { validateJobTemplate } from '@/utils/job-validator';
-
-// Get browser global (works in WXT environment)
-declare const browser: typeof chrome;
+import { escapeHtml } from '@/utils/shared-utils';
+import { useDebounce } from '../hooks/useDebounce';
 
 interface Job {
   url: string;
@@ -52,22 +45,11 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   const [validation, setValidation] = useState<ValidationResult | null>(null);
   const [editorContent, setEditorContent] = useState(job.content || '');
 
-  const validationTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
-
   // Parse job content on-read (MarkdownDB pattern)
   const parsedJob = useMemo(
     () => parseJobTemplate(job.content || ''),
     [job.content]
   );
-
-  // Escape HTML utility
-  const escapeHtml = (text: string): string => {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  };
 
   // Get job template
   const getJobTemplate = (): string => {
@@ -112,44 +94,33 @@ CLOSING_DATE: 2025-12-31
     return lines.join('\n') + (lines.length > 0 ? '\n' : '');
   };
 
-  // Validation and auto-save effect
-  useEffect(() => {
-    if (!job.content || job.isExtracting || job.extractionError) {
-      return;
-    }
-
-    // Debounced validation
-    if (validationTimerRef.current) {
-      clearTimeout(validationTimerRef.current);
-    }
-    validationTimerRef.current = setTimeout(() => {
+  // Debounced validation (500ms)
+  useDebounce(
+    () => {
+      if (!job.content || job.isExtracting || job.extractionError) {
+        return;
+      }
       const parsed = parseJobTemplate(editorContent);
       const validationResult = validateJobTemplate(parsed);
       setValidation(validationResult);
-    }, 500);
+    },
+    500,
+    [editorContent, job.content, job.isExtracting, job.extractionError]
+  );
 
-    // Debounced auto-save
-    if (autoSaveTimerRef.current) {
-      clearTimeout(autoSaveTimerRef.current);
-    }
-    autoSaveTimerRef.current = setTimeout(() => {
+  // Debounced auto-save (2000ms)
+  useDebounce(
+    () => {
+      if (!job.content || job.isExtracting || job.extractionError) {
+        return;
+      }
       if (editorContent !== job.content) {
         onSaveField(index, 'content', editorContent);
       }
-    }, 2000);
-
-    return () => {
-      if (validationTimerRef.current) clearTimeout(validationTimerRef.current);
-      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-    };
-  }, [
-    editorContent,
-    index,
-    job.content,
-    job.isExtracting,
-    job.extractionError,
-    onSaveField,
-  ]);
+    },
+    2000,
+    [editorContent, job.content, job.isExtracting, job.extractionError, index]
+  );
 
   // Initialize validation on mount
   useEffect(() => {

@@ -362,13 +362,7 @@ export const App: React.FC = () => {
    */
   useEffect(() => {
     filterJobs();
-  }, [
-    jobState.allJobs,
-    searchTerm,
-    statusFilter,
-    sortOrder,
-    filterJobs,
-  ]);
+  }, [jobState.allJobs, searchTerm, statusFilter, sortOrder, filterJobs]);
 
   /**
    * Auto-select job after filtering

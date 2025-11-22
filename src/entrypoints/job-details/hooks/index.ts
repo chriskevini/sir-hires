@@ -4,6 +4,8 @@ export { useJobStorage } from './useJobStorage';
 export { useJobService } from './useJobService';
 export { useNavigation } from './useNavigation';
 export { useExtractionEvents } from './useExtractionEvents';
+export { useDebounce } from './useDebounce';
+export { useInterval } from './useInterval';
 
 // Re-export types
 export type {

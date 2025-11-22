@@ -215,6 +215,6 @@ export class StateManager {
   }
 
   logState() {
-    console.log('Current State:', this.getState());
+    console.info('Current State:', this.getState());
   }
 }

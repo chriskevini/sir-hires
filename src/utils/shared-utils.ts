@@ -6,10 +6,10 @@
 
 /**
  * Escape HTML to prevent XSS attacks
- * @param {string} text - The text to escape
- * @returns {string} - HTML-safe text
+ * @param text - The text to escape
+ * @returns HTML-safe text
  */
-function escapeHtml(text) {
+export function escapeHtml(text: string): string {
   if (!text) return '';
   const div = document.createElement('div');
   div.textContent = text;

@@ -10,6 +10,10 @@ import { Modal } from '../../../components/ui/Modal';
 import { SynthesisForm } from '../components/SynthesisForm';
 import { documentTemplates } from '../config';
 import { parseJobTemplate } from '@/utils/job-parser';
+import { escapeHtml } from '@/utils/shared-utils';
+import { formatSaveTime } from '@/utils/date-utils';
+import { markdownToHtml } from '@/utils/markdown-utils';
+import { useInterval } from '../hooks/useInterval';
 
 // Get browser global (works in WXT environment)
 declare const browser: typeof chrome;
@@ -33,11 +37,11 @@ interface DraftingViewProps {
   job: Job;
   index: number;
   isChecklistExpanded?: boolean;
-  onDeleteJob: (index: number) => void;
+  onDeleteJob: (_index: number) => void;
   onSaveDocument: (
-    index: number,
-    documentKey: string,
-    documentData: { title: string; text: string }
+    _index: number,
+    _documentKey: string,
+    _documentData: { title: string; text: string }
   ) => void;
   onInitializeDocuments: (
     index: number,
@@ -76,7 +80,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   const [saveStatus, setSaveStatus] = useState<string>('No changes yet');
   const [wordCount, setWordCount] = useState<number>(0);
 
-  const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const textareaRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
   // Parse job content on-read (MarkdownDB pattern)
@@ -103,14 +106,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
       placeholder:
         'Write your cover letter here using Markdown formatting...\n\nExample:\nDear Hiring Manager,\n\nI am writing to express my interest...',
     },
-  };
-
-  // Escape HTML utility
-  const escapeHtml = (text: string): string => {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
   };
 
   // Get document
@@ -195,62 +190,12 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   }, [activeTab, documentContents]);
 
   // Auto-save interval (every 5 seconds)
-  useEffect(() => {
-    autoSaveIntervalRef.current = setInterval(() => {
-      performAutoSave();
-    }, 5000);
-
-    return () => {
-      if (autoSaveIntervalRef.current) {
-        clearInterval(autoSaveIntervalRef.current);
-      }
-    };
-  }, [documentContents, lastSavedContent]);
+  useInterval(performAutoSave, 5000, [documentContents, lastSavedContent]);
 
   // Count words
   const countWords = (text: string): number => {
     if (!text || !text.trim()) return 0;
     return text.trim().split(/\s+/).length;
-  };
-
-  // Format save time
-  const formatSaveTime = (date: Date): string => {
-    const now = new Date();
-    const todayStart = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate()
-    );
-    const dateStart = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate()
-    );
-    const daysDiff = Math.floor(
-      (todayStart.getTime() - dateStart.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    if (daysDiff === 0) {
-      const hours = date.getHours();
-      const minutes = date.getMinutes().toString().padStart(2, '0');
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      const displayHours = hours % 12 || 12;
-      return `at ${displayHours}:${minutes} ${ampm}`;
-    } else if (daysDiff === 1) {
-      return '1 day ago';
-    } else if (daysDiff < 7) {
-      return `${daysDiff} days ago`;
-    } else if (daysDiff < 14) {
-      return '1 week ago';
-    } else if (daysDiff < 30) {
-      const weeks = Math.floor(daysDiff / 7);
-      return `${weeks} weeks ago`;
-    } else if (daysDiff < 60) {
-      return '1 month ago';
-    } else {
-      const months = Math.floor(daysDiff / 30);
-      return `${months} months ago`;
-    }
   };
 
   // Get initial save status
@@ -441,18 +386,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
       console.error('PDF export failed:', error);
       showToast(`Failed to export PDF: ${error.message}`, 'error');
     }
-  };
-
-  // Simple markdown to HTML conversion
-  const markdownToHtml = (text: string): string => {
-    if (!text) return '';
-    let html = escapeHtml(text);
-    html = html.replace(/\n\n/g, '</p><p>');
-    html = html.replace(/\n/g, '<br>');
-    if (html.trim()) {
-      html = `<p>${html}</p>`;
-    }
-    return html;
   };
 
   // Show toast notification

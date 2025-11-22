@@ -26,7 +26,7 @@ export class AnimationController {
     renderCallback,
     attachListenersCallback
   ) {
-    console.log('slideToPanel called:', { direction, status });
+    console.info('slideToPanel called:', { direction, status });
 
     const panelContainer = document.getElementById(
       this.config.domIds.detailPanel
@@ -91,9 +91,9 @@ export class AnimationController {
     wrapper.appendChild(newPanel);
 
     // Temporarily modify container - DON'T change padding
-    const originalPosition = panelContainer.style.position;
-    const originalOverflow = panelContainer.style.overflow;
-    const originalPadding = panelContainer.style.padding;
+    const _originalPosition = panelContainer.style.position;
+    const _originalOverflow = panelContainer.style.overflow;
+    const _originalPadding = panelContainer.style.padding;
 
     panelContainer.style.position = 'relative';
     panelContainer.style.overflow = 'hidden';
@@ -103,7 +103,7 @@ export class AnimationController {
     panelContainer.innerHTML = '';
     panelContainer.appendChild(wrapper);
 
-    console.log('Panels created, starting animation in 50ms');
+    console.info('Panels created, starting animation in 50ms');
 
     // Return a promise that resolves when animation completes
     return new Promise((resolve) => {
@@ -112,11 +112,11 @@ export class AnimationController {
         const endPos = direction === 'forward' ? '-100%' : '100%';
         oldPanel.style.transform = `translateX(${endPos})`;
         newPanel.style.transform = 'translateX(0)';
-        console.log('Animation triggered');
+        console.info('Animation triggered');
 
         // After animation, replace with final content
         setTimeout(() => {
-          console.log('Animation complete, cleaning up');
+          console.info('Animation complete, cleaning up');
 
           // Remove inline styles to let CSS take over
           panelContainer.style.removeProperty('position');
@@ -135,7 +135,9 @@ export class AnimationController {
           // Check if reload was pending
           const hadPendingReload = this.state.hasPendingReload();
           if (hadPendingReload) {
-            console.log('[Viewer] Animation complete, pending reload detected');
+            console.info(
+              '[Viewer] Animation complete, pending reload detected'
+            );
             this.state.setPendingReload(false);
           }
 

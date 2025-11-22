@@ -1,7 +1,10 @@
+import { parseProfile } from '@/utils/profile-parser';
+import { validateProfile } from '@/utils/profile-validator';
+
 // Profile Editor (formerly Master Resume Editor)
 let savedContent = '';
-let draftContent = '';
-let autoSaveInterval = null;
+let _draftContent = '';
+let _autoSaveInterval = null;
 let lastSavedTime = null;
 
 // Load profile on page load
@@ -19,7 +22,7 @@ async function loadProfile() {
       // Check for draft in localStorage
       const draft = localStorage.getItem('userProfileDraft');
       if (draft) {
-        draftContent = draft;
+        _draftContent = draft;
         document.getElementById('profileEditor').value = draft;
         updateLastSavedText('Draft recovered');
       }
@@ -32,7 +35,7 @@ async function loadProfile() {
 
 // Auto-save to browser.storage.local every 3 seconds
 function startAutoSave() {
-  autoSaveInterval = setInterval(async () => {
+  _autoSaveInterval = setInterval(async () => {
     const editor = document.getElementById('profileEditor');
     const currentContent = editor.value.trim();
 
@@ -656,7 +659,7 @@ function applyFix(fix) {
       cursorPosition = fix.text.length;
       break;
 
-    case 'insert_top_level_field':
+    case 'insert_top_level_field': {
       // Insert field after <PROFILE> line in correct position based on template order
       const profileMatch = content.match(/^<PROFILE>\s*\n/m);
       if (profileMatch) {
@@ -684,8 +687,9 @@ function applyFix(fix) {
         cursorPosition = '<PROFILE>\n'.length + fix.text.length;
       }
       break;
+    }
 
-    case 'insert_field_in_entry':
+    case 'insert_field_in_entry': {
       // Find the entry and insert field in the correct position based on template order
       const entryRegex = new RegExp(`^##\\s+${fix.entry}\\s*$`, 'm');
       const entryMatch = content.match(entryRegex);
@@ -717,6 +721,7 @@ function applyFix(fix) {
         cursorPosition = result.cursorPosition;
       }
       break;
+    }
   }
 
   setCursorAndScroll(editor, newContent, cursorPosition);

@@ -8,8 +8,8 @@ interface ChecklistProps {
   jobIndex: number;
   isExpanded?: boolean;
   animate?: boolean;
-  onToggleExpand: (index: number, isExpanded: boolean) => void;
-  onToggleItem: (index: number, itemId: string) => void;
+  onToggleExpand: (_index: number, _isExpanded: boolean) => void;
+  onToggleItem: (_index: number, _itemId: string) => void;
 }
 
 export const Checklist: React.FC<ChecklistProps> = ({
@@ -21,7 +21,7 @@ export const Checklist: React.FC<ChecklistProps> = ({
   onToggleExpand,
   onToggleItem,
 }) => {
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [_isAnimating, setIsAnimating] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const prevExpandedRef = useRef(isExpanded);
 

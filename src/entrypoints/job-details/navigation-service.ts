@@ -38,7 +38,7 @@ export class NavigationService {
 
     const oldStatus = job.applicationStatus || defaults.status;
 
-    console.log(`Navigating from ${oldStatus} to ${newStatus}`);
+    console.info(`Navigating from ${oldStatus} to ${newStatus}`);
 
     // Update job status and history (in memory only, don't save yet)
     this.updateJobStatus(job, oldStatus, newStatus);
@@ -68,7 +68,7 @@ export class NavigationService {
     // Save to storage AFTER animation completes
     // This prevents storage change listener from interrupting the animation
     await this.storage.updateJob(job.id, job);
-    console.log(`Job status saved to storage after animation: ${newStatus}`);
+    console.info(`Job status saved to storage after animation: ${newStatus}`);
 
     return hadPendingReload;
   }
@@ -158,7 +158,7 @@ export class NavigationService {
   async handleNavigationClick(jobIndex, targetStatus, direction) {
     // Don't navigate if animation is active
     if (this.state.isAnimationActive()) {
-      console.log('Animation in progress, ignoring navigation click');
+      console.info('Animation in progress, ignoring navigation click');
       return;
     }
 

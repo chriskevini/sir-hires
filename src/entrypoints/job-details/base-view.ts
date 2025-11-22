@@ -12,7 +12,7 @@ export class BaseView {
    * @param {number} index - The global index of the job in allJobs array
    * @returns {string} HTML string
    */
-  render(job, index) {
+  render(_job, _index) {
     throw new Error('render() must be implemented by subclass');
   }
 
@@ -22,7 +22,7 @@ export class BaseView {
    * @param {Object} job - The job object
    * @param {number} index - The global index of the job
    */
-  attachListeners(container, job, index) {
+  attachListeners(_container, _job, _index) {
     // Default: no listeners (subclass can override)
   }
 
@@ -76,7 +76,7 @@ export class BaseView {
         month: 'short',
         day: 'numeric',
       });
-    } catch (error) {
+    } catch (_error) {
       return dateString;
     }
   }
@@ -103,7 +103,7 @@ export class BaseView {
       if (diffDays < -1) return `${Math.abs(diffDays)} days ago`;
 
       return this.formatAbsoluteDate(dateString);
-    } catch (error) {
+    } catch (_error) {
       return dateString;
     }
   }

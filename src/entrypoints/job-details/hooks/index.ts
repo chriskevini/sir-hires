@@ -3,6 +3,7 @@ export { useJobState } from './useJobState';
 export { useJobStorage } from './useJobStorage';
 export { useJobService } from './useJobService';
 export { useNavigation } from './useNavigation';
+export { useExtractionEvents } from './useExtractionEvents';
 
 // Re-export types
 export type {
@@ -23,3 +24,15 @@ export type {
 } from './useJobService';
 
 export type { NavigationHookParams } from './useNavigation';
+
+export type {
+  ExtractionEvent,
+  ExtractionEventType,
+  ExtractionMessage,
+  ExtractionStartedMessage,
+  ExtractionChunkMessage,
+  ExtractionCompleteMessage,
+  ExtractionErrorMessage,
+  ExtractionCancelledMessage,
+  ExtractionEventCallback,
+} from './useExtractionEvents';

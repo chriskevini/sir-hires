@@ -179,6 +179,15 @@ export function useJobStorage() {
     []
   );
 
+  // ===== Utility Methods (used by job operations) =====
+
+  /**
+   * Generate a unique ID for a job
+   */
+  const generateId = useCallback((): string => {
+    return `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }, []);
+
   // ===== Job Operations =====
 
   /**
@@ -266,13 +275,6 @@ export function useJobStorage() {
       console.error('Failed to delete job:', error);
       throw error;
     }
-  }, []);
-
-  /**
-   * Generate a unique ID for a job
-   */
-  const generateId = useCallback((): string => {
-    return `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }, []);
 
   // ===== Job In Focus Operations =====

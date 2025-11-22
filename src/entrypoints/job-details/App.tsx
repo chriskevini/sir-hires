@@ -62,7 +62,8 @@ export const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [jobState, storage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - uses latest jobState/storage via closure
 
   /**
    * Filter jobs based on current filter settings
@@ -118,7 +119,8 @@ export const App: React.FC = () => {
     }
 
     jobState.setFilteredJobs(filtered);
-  }, [jobState, searchTerm, sourceFilter, statusFilter, sortOrder]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, sourceFilter, statusFilter, sortOrder]); // Don't include jobState - it's used, not watched
 
   /**
    * Select a job by index in filtered list
@@ -181,7 +183,8 @@ export const App: React.FC = () => {
         loadJobs();
       }
     },
-    [jobState, loadJobs, suppressReloadUntil]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [suppressReloadUntil] // Only watch suppressReloadUntil - uses latest jobState/loadJobs via closure
   );
 
   /**
@@ -394,7 +397,13 @@ export const App: React.FC = () => {
 
     // Priority 3: First job
     jobState.setSelectedIndex(0);
-  }, [jobState]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    jobState.filteredJobs,
+    jobState.jobInFocusId,
+    jobState.selectedJobIndex,
+    jobState.allJobs.length,
+  ]); // Only watch specific properties that affect selection logic
 
   /**
    * Get the view component for the current job

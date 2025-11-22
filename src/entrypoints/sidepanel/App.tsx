@@ -1,9 +1,14 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { ResearchingView } from '../job-details/views/researching-view';
 import { DraftingView } from '../job-details/views/drafting-view';
-import { useJobState, useJobStorage } from '../job-details/hooks';
+import {
+  useJobState,
+  useJobStorage,
+  useExtractionEvents,
+} from '../job-details/hooks';
 import { defaults } from '../job-details/config';
 import type { Job } from '../job-details/hooks';
+import type { ExtractionEvent } from '../job-details/hooks';
 
 /**
  * Sidepanel App - Shows the "job in focus" for quick editing
@@ -12,6 +17,7 @@ import type { Job } from '../job-details/hooks';
 export const App: React.FC = () => {
   const jobState = useJobState();
   const storage = useJobStorage();
+  const extractionEvents = useExtractionEvents();
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +72,8 @@ export const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [jobState, storage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - uses latest jobState/storage via closure
 
   /**
    * Handle storage change events
@@ -81,7 +88,8 @@ export const App: React.FC = () => {
         loadJobInFocus();
       }
     },
-    [loadJobInFocus]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [] // Empty deps - uses latest loadJobInFocus via closure
   );
 
   /**
@@ -302,7 +310,64 @@ export const App: React.FC = () => {
     return () => {
       storage.offStorageChange(handleStorageChange);
     };
-  }, [storage, handleStorageChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handleStorageChange]); // Only watch handleStorageChange - storage methods are stable
+
+  /**
+   * Register extraction event listener
+   */
+  useEffect(() => {
+    const handleExtraction = (event: ExtractionEvent) => {
+      console.info('[Sidepanel] Received extraction event:', event.action);
+
+      switch (event.action) {
+        case 'extractionStarted':
+          console.info('[Sidepanel] Extraction started for job:', event.jobId);
+          // The job will be created in storage by the background script
+          // We'll reload when storage changes
+          break;
+
+        case 'extractionChunk':
+          console.info(
+            '[Sidepanel] Received extraction chunk for job:',
+            event.jobId
+          );
+          // Chunks are handled by the storage sync mechanism
+          break;
+
+        case 'extractionComplete':
+          console.info('[Sidepanel] Extraction complete for job:', event.jobId);
+          // Reload to show the completed job
+          loadJobInFocus();
+          break;
+
+        case 'extractionError':
+          console.error(
+            '[Sidepanel] Extraction error for job:',
+            event.jobId,
+            event.error
+          );
+          setError(`Extraction failed: ${event.error}`);
+          break;
+
+        case 'extractionCancelled':
+          console.info(
+            '[Sidepanel] Extraction cancelled for job:',
+            event.jobId
+          );
+          break;
+
+        default:
+          break;
+      }
+    };
+
+    extractionEvents.onExtractionEvent(handleExtraction);
+
+    return () => {
+      extractionEvents.offExtractionEvent(handleExtraction);
+    };
+  }, [extractionEvents, loadJobInFocus]);
 
   /**
    * Render the appropriate view
@@ -461,10 +526,7 @@ export const App: React.FC = () => {
                 <strong>💡 Tips:</strong>
               </p>
               <ul>
-                <li>
-                  Press <kbd>Ctrl+Shift+H</kbd> (<kbd>Cmd+Shift+H</kbd> on Mac)
-                  to toggle this panel anytime
-                </li>
+                <li>Open this panel anytime from Chrome's side panel menu</li>
                 <li>All job fields are editable - just click to edit!</li>
               </ul>
             </div>

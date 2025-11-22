@@ -19,15 +19,6 @@ export default defineConfig({
     host_permissions: [
       'http://localhost:*/*',
       'http://127.0.0.1:*/*'
-    ],
-    commands: {
-      'toggle-side-panel': {
-        suggested_key: {
-          default: 'Ctrl+Shift+H',
-          mac: 'Command+Shift+H'
-        },
-        description: 'Toggle Sir Hires side panel'
-      }
-    }
+    ]
   }
 });

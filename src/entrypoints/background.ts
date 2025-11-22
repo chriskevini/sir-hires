@@ -277,18 +277,12 @@ ${oldContent
     }
   }
 
-  // Listen for keyboard shortcut to toggle side panel
-  browser.commands.onCommand.addListener(async (command) => {
-    if (command === 'toggle-side-panel') {
-      try {
-        const window = await browser.windows.getCurrent();
-        await browser.sidePanel.open({ windowId: window.id });
-        console.log('Side panel toggled via keyboard shortcut');
-      } catch (error) {
-        console.error('Error toggling side panel:', error);
-      }
-    }
-  });
+  // Note: Keyboard shortcuts cannot open side panels in Chrome MV3
+  // The commands.onCommand API is not considered a "user gesture" by Chrome
+  // Users can open the side panel via:
+  // 1. Right-click context menu on the page
+  // 2. Clicking the extension icon (if setPanelBehavior is enabled)
+  // 3. Chrome's built-in side panel menu
 
   // Helper function to send messages with retry logic (for sidepanel timing issues)
   async function sendMessageWithRetry(

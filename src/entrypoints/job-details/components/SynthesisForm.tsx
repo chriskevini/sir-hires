@@ -3,6 +3,7 @@ import { llmConfig } from '../config';
 import { LLMClient } from '../../../utils/llm-client';
 import type { Job } from '../hooks';
 import { parseJobTemplate } from '../../../utils/job-parser';
+import { userProfileStorage } from '../../../utils/storage';
 
 interface SynthesisFormProps {
   job: Job | null;
@@ -78,8 +79,8 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   };
 
   const fetchUserProfile = async () => {
-    const result = await browser.storage.local.get(['userProfile']);
-    const profile = result.userProfile?.content || '';
+    const userProfileData = await userProfileStorage.getValue();
+    const profile = userProfileData?.content || '';
     setUserProfile(profile);
   };
 

@@ -3,6 +3,7 @@ import { ResearchingView } from './views/researching-view';
 import { DraftingView } from './views/drafting-view';
 import { useJobState, useJobStorage } from './hooks';
 import { defaults } from './config';
+import { parseJobTemplate } from '../../utils/job-parser';
 
 /**
  * Main App component for Job Details viewer
@@ -15,7 +16,7 @@ export const App: React.FC = () => {
 
   // Local state for UI controls
   const [searchTerm, setSearchTerm] = useState('');
-  const [sourceFilter, setSourceFilter] = useState('');
+  const [_sourceFilter, _setSourceFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [sortOrder, setSortOrder] = useState('newest');
   const [isLoading, setIsLoading] = useState(true);
@@ -72,18 +73,22 @@ export const App: React.FC = () => {
     const allJobs = jobState.allJobs;
 
     let filtered = allJobs.filter((job) => {
+      // Parse content for search and sort
+      const parsed = parseJobTemplate(job.content || '');
+
       // Search filter
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
         const matchesSearch =
-          job.jobTitle?.toLowerCase().includes(searchLower) ||
-          job.company?.toLowerCase().includes(searchLower);
+          parsed.jobTitle?.toLowerCase().includes(searchLower) ||
+          parsed.company?.toLowerCase().includes(searchLower);
         if (!matchesSearch) return false;
       }
 
-      // Source filter
+      // Source filter - removed, no longer stored
       if (sourceFilter && sourceFilter !== '') {
-        if (job.source !== sourceFilter) return false;
+        // Source is no longer stored, skip filter
+        return true;
       }
 
       // Status filter
@@ -109,13 +114,17 @@ export const App: React.FC = () => {
           new Date(b.updatedAt || 0).getTime()
       );
     } else if (sortOrder === 'company') {
-      filtered = filtered.sort((a, b) =>
-        (a.company || '').localeCompare(b.company || '')
-      );
+      filtered = filtered.sort((a, b) => {
+        const parsedA = parseJobTemplate(a.content || '');
+        const parsedB = parseJobTemplate(b.content || '');
+        return (parsedA.company || '').localeCompare(parsedB.company || '');
+      });
     } else if (sortOrder === 'title') {
-      filtered = filtered.sort((a, b) =>
-        (a.jobTitle || '').localeCompare(b.jobTitle || '')
-      );
+      filtered = filtered.sort((a, b) => {
+        const parsedA = parseJobTemplate(a.content || '');
+        const parsedB = parseJobTemplate(b.content || '');
+        return (parsedA.jobTitle || '').localeCompare(parsedB.jobTitle || '');
+      });
     }
 
     jobState.setFilteredJobs(filtered);
@@ -423,6 +432,8 @@ export const App: React.FC = () => {
     }
 
     const status = job.applicationStatus || defaults.status;
+    // Parse content once for WIP view (called at top level, not inside switch)
+    const parsed = parseJobTemplate(job.content || '');
 
     // Route to the appropriate view based on status
     switch (status) {
@@ -453,21 +464,18 @@ export const App: React.FC = () => {
           />
         );
 
-      default:
+      default: {
         // WIP view for unimplemented states
         return (
           <div className="job-card">
             <div className="detail-panel-content">
               <div className="job-header">
                 <div>
-                  <div className="job-title">{job.jobTitle || 'Untitled'}</div>
-                  <div className="company">{job.company || 'Unknown'}</div>
-                </div>
-                {job.source && (
-                  <div>
-                    <span className="badge">{job.source}</span>
+                  <div className="job-title">
+                    {parsed.jobTitle || 'Untitled'}
                   </div>
-                )}
+                  <div className="company">{parsed.company || 'Unknown'}</div>
+                </div>
               </div>
 
               <div
@@ -493,14 +501,12 @@ export const App: React.FC = () => {
               </div>
 
               <div className="job-actions">
-                {job.url && (
-                  <button
-                    className="btn btn-link"
-                    onClick={() => window.open(job.url, '_blank')}
-                  >
-                    View Job Posting
-                  </button>
-                )}
+                <button
+                  className="btn btn-link"
+                  onClick={() => window.open(job.url, '_blank')}
+                >
+                  View Job Posting
+                </button>
                 <button
                   className="btn btn-delete"
                   onClick={() => handleDeleteJob(index)}
@@ -511,6 +517,7 @@ export const App: React.FC = () => {
             </div>
           </div>
         );
+      }
     }
   };
 
@@ -559,20 +566,7 @@ export const App: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <select
-            id="sourceFilter"
-            value={sourceFilter}
-            onChange={(e) => setSourceFilter(e.target.value)}
-          >
-            <option value="">All Sources</option>
-            {Array.from(
-              new Set(jobState.allJobs.map((job) => job.source).filter(Boolean))
-            ).map((source) => (
-              <option key={source} value={source}>
-                {source}
-              </option>
-            ))}
-          </select>
+          {/* Source filter removed - source no longer stored */}
           <select
             id="statusFilter"
             value={statusFilter}
@@ -611,6 +605,7 @@ export const App: React.FC = () => {
                 (j) => j.id === job.id
               );
               const isSelected = globalIndex === jobState.selectedJobIndex;
+              const parsed = parseJobTemplate(job.content || '');
 
               return (
                 <div
@@ -620,15 +615,10 @@ export const App: React.FC = () => {
                 >
                   <div className="job-card-header">
                     <div className="job-title">
-                      {job.jobTitle || 'Untitled'}
+                      {parsed.jobTitle || 'Untitled'}
                     </div>
-                    <div className="company">{job.company || 'Unknown'}</div>
+                    <div className="company">{parsed.company || 'Unknown'}</div>
                   </div>
-                  {job.source && (
-                    <div className="job-card-meta">
-                      <span className="badge">{job.source}</span>
-                    </div>
-                  )}
                 </div>
               );
             })}

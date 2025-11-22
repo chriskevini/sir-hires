@@ -1,4 +1,10 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+} from 'react';
 import { Checklist } from '../components/checklist';
 import { parseJobTemplate } from '@/utils/job-parser';
 import { validateJobTemplate } from '@/utils/job-validator';
@@ -7,14 +13,12 @@ import { validateJobTemplate } from '@/utils/job-validator';
 declare const browser: typeof chrome;
 
 interface Job {
-  jobTitle?: string;
-  company?: string;
-  url?: string;
+  url: string;
   content?: string;
   isExtracting?: boolean;
   extractionError?: string;
   checklist?: any;
-  applicationStatus?: string;
+  applicationStatus: string;
 }
 
 interface ResearchingViewProps {
@@ -50,6 +54,12 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
 
   const validationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Parse job content on-read (MarkdownDB pattern)
+  const parsedJob = useMemo(
+    () => parseJobTemplate(job.content || ''),
+    [job.content]
+  );
 
   // Escape HTML utility
   const escapeHtml = (text: string): string => {
@@ -177,9 +187,9 @@ CLOSING_DATE: 2025-12-31
             <div className="editor-header">
               <div className="editor-title">
                 <strong>
-                  {escapeHtml(job.jobTitle || 'Untitled Position')}
+                  {escapeHtml(parsedJob.jobTitle || 'Untitled Position')}
                 </strong>{' '}
-                at {escapeHtml(job.company || 'Unknown Company')}
+                at {escapeHtml(parsedJob.company || 'Unknown Company')}
               </div>
               <div className="editor-status">
                 <span className="status-badge extracting">Extracting...</span>
@@ -237,16 +247,14 @@ CLOSING_DATE: 2025-12-31
           )}
 
           <div className="job-actions" style={{ marginTop: '24px' }}>
-            {job.url && (
-              <a
-                href={escapeHtml(job.url)}
-                className="btn btn-primary"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Retry Extraction ↗
-              </a>
-            )}
+            <a
+              href={escapeHtml(job.url)}
+              className="btn btn-primary"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Retry Extraction ↗
+            </a>
             <button className="btn btn-delete" onClick={handleDelete}>
               Delete Job
             </button>
@@ -268,24 +276,16 @@ CLOSING_DATE: 2025-12-31
             This job was saved in an old format and needs to be re-extracted
             from the job posting.
           </p>
-          {job.url ? (
-            <div className="migration-actions">
-              <a
-                href={escapeHtml(job.url)}
-                className="btn btn-primary"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Re-Extract from Original Posting ↗
-              </a>
-            </div>
-          ) : (
-            <p className="migration-note">
-              Unfortunately, the original job posting URL is not available. You
-              may need to delete this job and extract it again if you can find
-              the posting.
-            </p>
-          )}
+          <div className="migration-actions">
+            <a
+              href={escapeHtml(job.url)}
+              className="btn btn-primary"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Re-Extract from Original Posting ↗
+            </a>
+          </div>
           <div className="job-actions" style={{ marginTop: '24px' }}>
             <button className="btn btn-delete" onClick={handleDelete}>
               Delete This Job
@@ -348,9 +348,9 @@ CLOSING_DATE: 2025-12-31
             <div className="editor-header">
               <div className="editor-title">
                 <strong>
-                  {escapeHtml(job.jobTitle || 'Untitled Position')}
+                  {escapeHtml(parsedJob.jobTitle || 'Untitled Position')}
                 </strong>{' '}
-                at {escapeHtml(job.company || 'Unknown Company')}
+                at {escapeHtml(parsedJob.company || 'Unknown Company')}
               </div>
               <div className="editor-actions">
                 <button
@@ -359,16 +359,14 @@ CLOSING_DATE: 2025-12-31
                 >
                   {isTemplateVisible ? 'Hide' : 'Show'} Template
                 </button>
-                {job.url && (
-                  <a
-                    href={escapeHtml(job.url)}
-                    className="btn-link"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    View Original ↗
-                  </a>
-                )}
+                <a
+                  href={escapeHtml(job.url)}
+                  className="btn-link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  View Original ↗
+                </a>
               </div>
             </div>
             <textarea

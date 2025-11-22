@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { checklistTemplates } from '../config';
 import type { Job, JobDocument, ChecklistItem } from './useJobState';
+import { parseJobTemplate } from '../../../utils/job-parser';
 
 export interface StorageChanges {
   [key: string]: {
@@ -25,15 +26,17 @@ export function useJobStorage() {
    */
   const initializeDocuments = useCallback(
     (job: Job): Record<string, JobDocument> => {
+      // Parse content for title generation
+      const parsed = parseJobTemplate(job.content || '');
       return {
         tailoredResume: {
-          title: `${job.jobTitle || 'Resume'} - ${job.company || 'Company'}`,
+          title: `${parsed.jobTitle || 'Resume'} - ${parsed.company || 'Company'}`,
           text: '',
           lastEdited: null,
           order: 0,
         },
         coverLetter: {
-          title: `Cover Letter - ${job.jobTitle || 'Position'} at ${job.company || 'Company'}`,
+          title: `Cover Letter - ${parsed.jobTitle || 'Position'} at ${parsed.company || 'Company'}`,
           text: '',
           lastEdited: null,
           order: 1,

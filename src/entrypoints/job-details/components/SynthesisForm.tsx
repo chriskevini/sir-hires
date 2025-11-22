@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { llmConfig } from '../config';
 import { LLMClient } from '../../../utils/llm-client';
 import type { Job } from '../hooks';
+import { parseJobTemplate } from '../../../utils/job-parser';
 
 interface SynthesisFormProps {
   job: Job | null;
@@ -88,10 +89,13 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   const buildContext = async () => {
     if (!job) return {};
 
+    // Parse content for job metadata
+    const parsed = parseJobTemplate(job.content || '');
+
     return {
       masterResume: userProfile || 'Not provided',
-      jobTitle: job.jobTitle || 'Not provided',
-      company: job.company || 'Not provided',
+      jobTitle: parsed.jobTitle || 'Not provided',
+      company: parsed.company || 'Not provided',
       aboutJob: job.aboutJob || 'Not provided',
       aboutCompany: job.aboutCompany || 'Not provided',
       responsibilities: job.responsibilities || 'Not provided',
@@ -247,6 +251,12 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
 
   const hasUserProfile = userProfile.trim().length > 0;
 
+  // Parse content for job metadata (must be at top level, before any early returns)
+  const parsed = useMemo(
+    () => parseJobTemplate(job?.content || ''),
+    [job?.content]
+  );
+
   // If no user profile, show only error warning + Cancel button
   if (!hasUserProfile) {
     return (
@@ -294,8 +304,8 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
 
   const dataFields = [
     { key: 'masterResume', label: 'Profile', value: userProfile },
-    { key: 'jobTitle', label: 'Job Title', value: job?.jobTitle },
-    { key: 'company', label: 'Company', value: job?.company },
+    { key: 'jobTitle', label: 'Job Title', value: parsed.jobTitle },
+    { key: 'company', label: 'Company', value: parsed.company },
     { key: 'aboutJob', label: 'About Job', value: job?.aboutJob },
     { key: 'aboutCompany', label: 'About Company', value: job?.aboutCompany },
     {

@@ -1,20 +1,25 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+} from 'react';
 import { Checklist } from '../components/checklist';
 import { Modal } from '../../../components/ui/Modal';
 import { SynthesisForm } from '../components/SynthesisForm';
 import { documentTemplates } from '../config';
+import { parseJobTemplate } from '@/utils/job-parser';
 
 // Get browser global (works in WXT environment)
 declare const browser: typeof chrome;
 
 interface Job {
-  jobTitle?: string;
-  company?: string;
-  url?: string;
-  source?: string;
+  content?: string;
+  url: string;
   documents?: Record<string, Document>;
   checklist?: any;
-  applicationStatus?: string;
+  applicationStatus: string;
 }
 
 interface Document {
@@ -45,7 +50,7 @@ interface DraftingViewProps {
 interface DefaultDocConfig {
   label: string;
   order: number;
-  defaultTitle: (job: Job) => string;
+  defaultTitle: () => string;
   placeholder: string;
 }
 
@@ -74,21 +79,27 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const textareaRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
+  // Parse job content on-read (MarkdownDB pattern)
+  const parsedJob = useMemo(
+    () => parseJobTemplate(job.content || ''),
+    [job.content]
+  );
+
   // Default document configuration
   const defaultDocuments: Record<string, DefaultDocConfig> = {
     tailoredResume: {
       label: 'Resume/CV',
       order: 0,
-      defaultTitle: (job) =>
-        `${job.jobTitle || 'Resume'} - ${job.company || 'Company'}`,
+      defaultTitle: () =>
+        `${parsedJob.jobTitle || 'Resume'} - ${parsedJob.company || 'Company'}`,
       placeholder:
         'Write your tailored resume here using Markdown formatting...\n\nExample:\n# Your Name\nemail@example.com | linkedin.com/in/yourprofile\n\n## Summary\nExperienced software engineer...',
     },
     coverLetter: {
       label: 'Cover Letter',
       order: 1,
-      defaultTitle: (job) =>
-        `Cover Letter - ${job.jobTitle || 'Position'} at ${job.company || 'Company'}`,
+      defaultTitle: () =>
+        `Cover Letter - ${parsedJob.jobTitle || 'Position'} at ${parsedJob.company || 'Company'}`,
       placeholder:
         'Write your cover letter here using Markdown formatting...\n\nExample:\nDear Hiring Manager,\n\nI am writing to express my interest...',
     },
@@ -106,7 +117,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   const getDocument = (documentKey: string): Document => {
     if (!job.documents) {
       return {
-        title: defaultDocuments[documentKey]?.defaultTitle(job) || 'Untitled',
+        title: defaultDocuments[documentKey]?.defaultTitle() || 'Untitled',
         text: '',
         lastEdited: null,
         order: defaultDocuments[documentKey]?.order || 0,
@@ -119,7 +130,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
     const config = defaultDocuments[documentKey];
     return {
-      title: config ? config.defaultTitle(job) : 'Untitled Document',
+      title: config ? config.defaultTitle() : 'Untitled Document',
       text: '',
       lastEdited: null,
       order: config ? config.order : 0,
@@ -144,13 +155,13 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     if (!job.documents) {
       const newDocuments = {
         tailoredResume: {
-          title: defaultDocuments.tailoredResume.defaultTitle(job),
+          title: defaultDocuments.tailoredResume.defaultTitle(),
           text: documentTemplates.tailoredResume,
           lastEdited: null,
           order: 0,
         },
         coverLetter: {
-          title: defaultDocuments.coverLetter.defaultTitle(job),
+          title: defaultDocuments.coverLetter.defaultTitle(),
           text: documentTemplates.coverLetter,
           lastEdited: null,
           order: 1,
@@ -276,7 +287,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   // Save document immediately
   const saveDocumentImmediately = (documentKey: string, text: string) => {
     const defaultTitle =
-      defaultDocuments[documentKey]?.defaultTitle(job) || 'Untitled';
+      defaultDocuments[documentKey]?.defaultTitle() || 'Untitled';
     const now = new Date().toISOString();
 
     onSaveDocument(index, documentKey, {
@@ -484,22 +495,22 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           {/* Job Header */}
           <div className="job-header">
             <div>
-              <div className="job-title">{escapeHtml(job.jobTitle || '')}</div>
-              <div className="company">{escapeHtml(job.company || '')}</div>
+              <div className="job-title">
+                {escapeHtml(parsedJob.jobTitle || '')}
+              </div>
+              <div className="company">
+                {escapeHtml(parsedJob.company || '')}
+              </div>
             </div>
             <div>
-              {job.source && job.url ? (
-                <a
-                  href={escapeHtml(job.url)}
-                  className="badge badge-link"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {escapeHtml(job.source)}
-                </a>
-              ) : job.source ? (
-                <span className="badge">{escapeHtml(job.source)}</span>
-              ) : null}
+              <a
+                href={escapeHtml(job.url)}
+                className="badge badge-link"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                View Job Posting
+              </a>
             </div>
           </div>
 

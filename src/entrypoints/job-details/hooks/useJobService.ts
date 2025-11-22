@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { statusOrder, terminalStates } from '../config';
 import type { Job, Filters } from './useJobState';
+import { parseJobTemplate } from '../../../utils/job-parser';
 
 export interface JobServiceConfig {
   statusOrder: string[];
@@ -48,9 +49,11 @@ export function useJobService() {
     if (filters.search && filters.search.trim()) {
       const searchLower = filters.search.toLowerCase().trim();
       filtered = filtered.filter((job) => {
+        // Parse content for search
+        const parsed = parseJobTemplate(job.content || '');
         return (
-          job.jobTitle?.toLowerCase().includes(searchLower) ||
-          job.company?.toLowerCase().includes(searchLower) ||
+          parsed.jobTitle?.toLowerCase().includes(searchLower) ||
+          parsed.company?.toLowerCase().includes(searchLower) ||
           job.location?.toLowerCase().includes(searchLower) ||
           job.rawDescription?.toLowerCase().includes(searchLower) ||
           job.aboutJob?.toLowerCase().includes(searchLower) ||
@@ -61,10 +64,7 @@ export function useJobService() {
       });
     }
 
-    // Source filter
-    if (filters.source && filters.source !== 'all') {
-      filtered = filtered.filter((job) => job.source === filters.source);
-    }
+    // Source filter - removed since source field no longer exists
 
     // Status filter
     if (filters.status && filters.status !== 'all') {
@@ -122,32 +122,40 @@ export function useJobService() {
 
       case 'company-az':
         sorted.sort((a, b) => {
-          const companyA = (a.company || '').toLowerCase();
-          const companyB = (b.company || '').toLowerCase();
+          const parsedA = parseJobTemplate(a.content || '');
+          const parsedB = parseJobTemplate(b.content || '');
+          const companyA = (parsedA.company || '').toLowerCase();
+          const companyB = (parsedB.company || '').toLowerCase();
           return companyA.localeCompare(companyB);
         });
         break;
 
       case 'company-za':
         sorted.sort((a, b) => {
-          const companyA = (a.company || '').toLowerCase();
-          const companyB = (b.company || '').toLowerCase();
+          const parsedA = parseJobTemplate(a.content || '');
+          const parsedB = parseJobTemplate(b.content || '');
+          const companyA = (parsedA.company || '').toLowerCase();
+          const companyB = (parsedB.company || '').toLowerCase();
           return companyB.localeCompare(companyA);
         });
         break;
 
       case 'title-az':
         sorted.sort((a, b) => {
-          const titleA = (a.jobTitle || '').toLowerCase();
-          const titleB = (b.jobTitle || '').toLowerCase();
+          const parsedA = parseJobTemplate(a.content || '');
+          const parsedB = parseJobTemplate(b.content || '');
+          const titleA = (parsedA.jobTitle || '').toLowerCase();
+          const titleB = (parsedB.jobTitle || '').toLowerCase();
           return titleA.localeCompare(titleB);
         });
         break;
 
       case 'title-za':
         sorted.sort((a, b) => {
-          const titleA = (a.jobTitle || '').toLowerCase();
-          const titleB = (b.jobTitle || '').toLowerCase();
+          const parsedA = parseJobTemplate(a.content || '');
+          const parsedB = parseJobTemplate(b.content || '');
+          const titleA = (parsedA.jobTitle || '').toLowerCase();
+          const titleB = (parsedB.jobTitle || '').toLowerCase();
           return titleB.localeCompare(titleA);
         });
         break;
@@ -238,12 +246,13 @@ export function useJobService() {
    */
   const validateJob = useCallback((job: Job): ValidationResult => {
     const errors: string[] = [];
+    const parsed = parseJobTemplate(job.content || '');
 
-    if (!job.jobTitle || job.jobTitle.trim() === '') {
+    if (!parsed.jobTitle || parsed.jobTitle.trim() === '') {
       errors.push('Job title is required');
     }
 
-    if (!job.company || job.company.trim() === '') {
+    if (!parsed.company || parsed.company.trim() === '') {
       errors.push('Company name is required');
     }
 
@@ -290,15 +299,10 @@ export function useJobService() {
 
   /**
    * Get all unique sources from jobs
+   * Note: Source field no longer exists in MarkdownDB pattern - returns empty array
    */
-  const getUniqueSources = useCallback((jobs: Job[]): string[] => {
-    const sources = new Set<string>();
-    jobs.forEach((job) => {
-      if (job.source) {
-        sources.add(job.source);
-      }
-    });
-    return Array.from(sources).sort();
+  const getUniqueSources = useCallback((_jobs: Job[]): string[] => {
+    return [];
   }, []);
 
   /**

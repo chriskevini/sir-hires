@@ -3,23 +3,16 @@ import { useState, useCallback } from 'react';
 // Types
 export interface Job {
   id: string;
-  jobTitle: string;
-  company: string;
-  location?: string;
-  source?: string;
-  applicationStatus?: string;
-  updatedAt?: string;
-  postedDate?: string;
-  deadline?: string;
-  rawDescription?: string;
-  aboutJob?: string;
-  aboutCompany?: string;
-  responsibilities?: string;
-  requirements?: string;
-  statusHistory?: Array<{ status: string; date: string }>;
-  documents?: Record<string, JobDocument>;
+  content?: string; // Raw MarkdownDB template (source of truth)
+  url: string;
+  applicationStatus: string;
   checklist?: Record<string, ChecklistItem[]>;
-  [key: string]: unknown;
+  documents?: Record<string, JobDocument>;
+  updatedAt: string;
+  createdAt: string;
+  // Transient extraction state (not persisted)
+  isExtracting?: boolean;
+  extractionError?: string;
 }
 
 export interface JobDocument {

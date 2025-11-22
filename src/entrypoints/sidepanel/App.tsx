@@ -416,18 +416,9 @@ export const App: React.FC = () => {
             <div className="detail-panel-content">
               <div className="job-header">
                 <div>
-                  <div className="job-title">
-                    {currentJob.jobTitle || 'Untitled'}
-                  </div>
-                  <div className="company">
-                    {currentJob.company || 'Unknown'}
-                  </div>
+                  <div className="job-title">WIP: {status}</div>
+                  <div className="company">View under construction</div>
                 </div>
-                {currentJob.source && (
-                  <div>
-                    <span className="badge">{currentJob.source}</span>
-                  </div>
-                )}
               </div>
 
               <div

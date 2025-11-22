@@ -71,6 +71,46 @@ my-extension/
     // const theme = await themeItem.getValue();
     ```
 
+### MarkdownDB Storage Pattern
+
+Store structured data as raw MarkdownDB templates in a `content` field. Parse on-read in components.
+
+```typescript
+// ✅ CORRECT - Store only content, no parsed fields
+interface Job {
+  id: string;
+  content?: string;  // Raw MarkdownDB template (source of truth)
+  url: string;
+  applicationStatus: string;
+  // ... metadata only
+}
+
+// ❌ WRONG - Do not add parsed fields like jobTitle, company
+interface Job {
+  jobTitle: string;   // ❌ Parse from content instead
+  company: string;    // ❌ Parse from content instead
+}
+
+// ❌ WRONG - Do not store parsed fields
+await storage.update({ jobTitle: 'Engineer', company: 'Acme' });
+
+// ✅ CORRECT - Store only raw MarkdownDB
+await storage.update({ content: '<JOB>\nTITLE: Engineer\nCOMPANY: Acme...' });
+
+// ✅ CORRECT - Parse in components with useMemo
+function JobView({ job }: { job: Job }) {
+  const parsed = useMemo(
+    () => parseJobTemplate(job.content || ''),
+    [job.content]
+  );
+  return <h1>{parsed.jobTitle}</h1>;
+}
+```
+
+**Why:** Single source of truth, no sync issues, LLM-streamable, human-editable.
+
+**References:** `docs/refactors/markdown-db.md`, `src/utils/job-parser.ts`, `src/utils/profile-parser.ts`
+
 ### Modal Components & Portals
 * **React Portals:** Use `ReactDOM.createPortal(element, document.body)` to render modals, tooltips, and dropdowns outside the parent DOM hierarchy while maintaining React component tree relationships.
 * **Why Portals:** They allow components to escape parent CSS constraints (overflow, z-index, position) and always render on top without z-index conflicts.

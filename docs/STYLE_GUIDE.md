@@ -490,7 +490,313 @@ Before committing:
 
 ---
 
-## 15. Resources
+## 15. Modal & Overlay Patterns
+
+### Understanding React Portals
+
+**Portals are NOT a UI element type** - they're a **rendering technique** that allows components to render outside their parent's DOM hierarchy while staying in the React component tree.
+
+```tsx
+// Component stays in React tree (props/state flow normally)
+<Sidebar>
+  <Modal />  
+</Sidebar>
+
+// But DOM renders at document.body (escapes parent constraints)
+ReactDOM.createPortal(<div>Modal</div>, document.body)
+```
+
+**When to Use Portals:**
+- Modals and dialogs
+- Tooltips and popovers
+- Toast notifications
+- Dropdown menus
+- Context menus
+- Any UI that needs to "break out" of parent container constraints
+
+**Benefits:**
+- Escape parent CSS constraints (overflow: hidden, z-index, position)
+- Always render on top without z-index wars
+- Event bubbling still works through React tree (not DOM tree)
+- Maintains proper component communication via props/callbacks
+
+---
+
+### Pattern 1: Generic Modal Wrapper with Portal
+
+Create a reusable `Modal` component that handles common modal concerns:
+
+```tsx
+// src/components/ui/Modal.tsx
+import React, { useEffect } from 'react';
+import ReactDOM from 'react-dom';
+
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function Modal({ isOpen, onClose, title, children, className = '' }: ModalProps) {
+  // Handle Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  // Render modal at document.body using Portal
+  return ReactDOM.createPortal(
+    <div 
+      className={`modal-overlay ${isOpen ? 'visible' : ''}`}
+      onClick={(e) => {
+        // Close on overlay click (not content click)
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className={`modal-content ${className}`}>
+        {title && (
+          <div className="modal-header">
+            <h2>{title}</h2>
+            <button className="modal-close-btn" onClick={onClose}>
+              &times;
+            </button>
+          </div>
+        )}
+        <div className="modal-body">
+          {children}
+        </div>
+      </div>
+    </div>,
+    document.body // Render at document.body, not in parent component
+  );
+}
+```
+
+**Key Features:**
+- ✅ Uses `createPortal()` to render at `document.body`
+- ✅ Handles Escape key to close
+- ✅ Closes on overlay click (not content click)
+- ✅ Accepts custom className for styling
+- ✅ Reusable across all modals
+
+---
+
+### Pattern 2: Separating Modal Content for Reusability
+
+Extract business logic and UI into separate content components:
+
+```tsx
+// src/entrypoints/job-details/components/SynthesisForm.tsx
+import React, { useState } from 'react';
+import type { Job } from '../hooks';
+
+interface SynthesisFormProps {
+  job: Job;
+  onGenerate: (result: { content: string }) => void;
+  onCancel?: () => void;
+}
+
+export function SynthesisForm({ job, onGenerate, onCancel }: SynthesisFormProps) {
+  const [selectedModel, setSelectedModel] = useState('gpt-4');
+  const [maxTokens, setMaxTokens] = useState(2000);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleSubmit = async () => {
+    setIsGenerating(true);
+    try {
+      // Generation logic...
+      const result = { content: '...' };
+      onGenerate(result);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div className="synthesis-form">
+      <div className="form-group">
+        <label>Model:</label>
+        <select value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)}>
+          <option value="gpt-4">GPT-4</option>
+          <option value="claude-3">Claude 3</option>
+        </select>
+      </div>
+
+      <div className="form-group">
+        <label>Max Tokens:</label>
+        <input 
+          type="number" 
+          value={maxTokens} 
+          onChange={(e) => setMaxTokens(parseInt(e.target.value))}
+        />
+      </div>
+
+      <div className="form-actions">
+        {onCancel && (
+          <button onClick={onCancel} className="btn-secondary">
+            Cancel
+          </button>
+        )}
+        <button onClick={handleSubmit} disabled={isGenerating} className="btn-primary">
+          {isGenerating ? 'Generating...' : 'Generate'}
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+**Benefits:**
+- ✅ No modal-specific code (overlay, portals, etc.)
+- ✅ Can be used in modal OR inline in sidepanel
+- ✅ Easier to test (just test the form logic)
+- ✅ Follows Single Responsibility Principle
+
+---
+
+### Pattern 3: Composing Modal with Content
+
+**Usage as Modal:**
+```tsx
+// src/entrypoints/job-details/App.tsx
+import { Modal } from '@/components/ui/Modal';
+import { SynthesisForm } from './components/SynthesisForm';
+
+function JobDetailsApp() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [job, setJob] = useState<Job>(...);
+
+  const handleGenerate = (result: { content: string }) => {
+    // Save generated content
+    console.info('Generated:', result.content);
+    setIsModalOpen(false);
+  };
+
+  return (
+    <div>
+      <button onClick={() => setIsModalOpen(true)}>
+        Synthesize Document
+      </button>
+
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)}
+        title="Synthesize Document with LLM"
+      >
+        <SynthesisForm 
+          job={job} 
+          onGenerate={handleGenerate}
+          onCancel={() => setIsModalOpen(false)}
+        />
+      </Modal>
+    </div>
+  );
+}
+```
+
+**Usage Inline (No Modal):**
+```tsx
+// src/entrypoints/sidepanel/App.tsx
+import { SynthesisForm } from '@/entrypoints/job-details/components/SynthesisForm';
+
+function SidePanelApp() {
+  const [job, setJob] = useState<Job>(...);
+
+  const handleGenerate = (result: { content: string }) => {
+    console.info('Generated:', result.content);
+  };
+
+  return (
+    <div className="sidepanel">
+      <h2>Quick Synthesis</h2>
+      
+      {/* Same component, used inline without modal wrapper */}
+      <SynthesisForm 
+        job={job} 
+        onGenerate={handleGenerate}
+      />
+    </div>
+  );
+}
+```
+
+**Key Insight:** The `SynthesisForm` component doesn't know (or care) if it's rendered in a modal or inline. This is maximum flexibility.
+
+---
+
+### When to Extract Content Components
+
+**Extract content when:**
+- ✅ Building 3+ modals with similar structure (create generic `Modal` wrapper)
+- ✅ Component will be used as modal AND inline in different contexts
+- ✅ You want to test business logic separately from modal behavior
+- ✅ Team is building multiple features that need modals
+
+**Keep self-contained when:**
+- ✅ Only 1-2 modals in the entire app
+- ✅ Modal logic is simple and won't be reused
+- ✅ Component is only ever used as a modal (never inline)
+
+**Project Implementation:**
+All modals in this project follow the generic wrapper + content separation pattern for consistency and maximum flexibility
+
+---
+
+### Best Practices
+
+1. **Portal Rendering Location:** Always render modals/tooltips at `document.body`, not arbitrary DOM nodes
+2. **Event Handling:** Remember that React event bubbling works through component tree, not DOM tree
+3. **Focus Management:** Consider trapping focus within modal when open (accessibility)
+4. **Body Scroll Lock:** Add `overflow: hidden` to `<body>` when modal is open to prevent background scrolling
+5. **Animation:** Use CSS transitions on overlay/content, not on portal mount/unmount
+6. **Z-Index:** Portals eliminate most z-index issues, but define a consistent z-index scale in your CSS
+
+```css
+/* Example CSS for generic modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.modal-overlay.visible {
+  opacity: 1;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+```
+
+---
+
+## 16. Resources
 
 - [WXT Documentation](https://wxt.dev/)
 - [React Documentation](https://react.dev/)

@@ -71,6 +71,19 @@ my-extension/
     // const theme = await themeItem.getValue();
     ```
 
+### Modal Components & Portals
+* **React Portals:** Use `ReactDOM.createPortal(element, document.body)` to render modals, tooltips, and dropdowns outside the parent DOM hierarchy while maintaining React component tree relationships.
+* **Why Portals:** They allow components to escape parent CSS constraints (overflow, z-index, position) and always render on top without z-index conflicts.
+* **Generic Wrapper Pattern:** Create a reusable `Modal` component in `src/components/ui/Modal.tsx` that handles overlay, close functionality, and portal rendering.
+* **Content Separation:** Extract modal content into separate components (e.g., `SynthesisForm.tsx`) for maximum flexibility - these can be used as modals OR inline in other views.
+* **When to Use This Pattern:**
+    * Building 3+ modals with similar structure (create generic wrapper)
+    * Component needs to be displayed as modal AND inline in different contexts
+    * Need to avoid z-index/overflow issues with parent containers
+* **File Placement:**
+    * Generic modal wrapper: `src/components/ui/Modal.tsx`
+    * Modal content components: `src/components/features/` or `src/entrypoints/<page>/components/`
+
 ### Content Script UIs (React)
 To inject a React App into a webpage using Shadow DOM (isolated styles):
 1.  Define the content script with `export default defineContentScript`.

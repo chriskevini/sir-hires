@@ -200,8 +200,8 @@ ${oldContent
   }
 
   // Listen for installation
-  browser.runtime.onInstalled.addListener(async (details) => {
-    console.log('Sir Hires extension installed');
+  browser.runtime.onInstalled.addListener(async (_details) => {
+    console.info('Sir Hires extension installed');
 
     // Run migrations in order
     await migrateStorageSchema();
@@ -404,10 +404,22 @@ ${oldContent
           const systemPrompt = llmConfig.synthesis.prompts.jobExtractor.trim();
           const userPrompt = rawText;
 
+          // Use configured model or fallback to default extraction model
+          const modelToUse =
+            llmSettings.model && llmSettings.model.trim() !== ''
+              ? llmSettings.model
+              : llmConfig.extraction.defaultModel;
+
+          console.log(
+            '[Background] Using model for extraction:',
+            modelToUse,
+            llmSettings.model ? '(configured)' : '(default fallback)'
+          );
+
           // Stream completion with callbacks
           const result = await llmClient.streamCompletion({
             streamId: streamId, // Pass streamId for cancellation tracking
-            model: llmSettings.model,
+            model: modelToUse,
             systemPrompt: systemPrompt,
             userPrompt: userPrompt,
             maxTokens: llmSettings.maxTokens || 2000,

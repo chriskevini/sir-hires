@@ -144,8 +144,8 @@ export const defaults = {
 export const llmConfig = {
   // Data extraction LLM (for job data extraction from web pages)
   extraction: {
-    defaultModel: 'NuExtract-2.0-2B',
-    alternativeModels: ['NuExtract-2.0-8B'],
+    defaultModel: 'qwen/qwen3-4b-2507',
+    alternativeModels: [],
     endpoint: 'http://localhost:1234/v1/chat/completions',
     description: 'Optimized for structured data extraction from job postings',
   },

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { browser } from 'wxt/browser';
-import { checklistTemplates } from '../../config';
+import { checklistTemplates, llmConfig } from '../../config';
 import './styles.css';
 
 interface LLMSettings {
@@ -415,9 +415,11 @@ export function App() {
               id="llmModel"
               value={llmModel}
               onChange={(e) => setLlmModel(e.target.value)}
-              placeholder="NuExtract-2.0"
+              placeholder={llmConfig.extraction.defaultModel}
             />
-            <small>Leave empty to use LM Studio&apos;s loaded model</small>
+            <small>
+              Leave empty to use default ({llmConfig.extraction.defaultModel})
+            </small>
           </div>
           <div className="button-group">
             <button

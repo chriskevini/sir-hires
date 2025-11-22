@@ -155,14 +155,22 @@ export class LLMClient {
         // Try to parse JSON error for better message
         try {
           const errorJson = JSON.parse(errorText);
-          if (errorJson.error?.code === 'model_not_found') {
+          const errorMsg = errorJson.error?.message || '';
+
+          // Check if it's a "no models loaded" error (JIT loading issue)
+          if (
+            errorJson.error?.code === 'model_not_found' ||
+            errorMsg.toLowerCase().includes('no models loaded') ||
+            errorMsg.toLowerCase().includes('please load a model')
+          ) {
             // Model not loaded - provide comprehensive instructions
             throw new Error(
-              `Model "${model}" failed to load.\n\n` +
+              `Model "${model}" is not loaded in LM Studio.\n\n` +
                 `Option 1 - Enable JIT Loading (Recommended):\n` +
                 `1. Open LM Studio → Developer tab → Server Settings\n` +
-                `2. Enable "JIT Loading" (should be on by default)\n` +
-                `3. Try generating again (model will auto-load)\n\n` +
+                `2. Enable "Automatically Load Model" (should be on by default)\n` +
+                `3. Restart LM Studio server\n` +
+                `4. Try generating again (model will auto-load)\n\n` +
                 `Option 2 - Manually Load:\n` +
                 `• In LM Studio: Click "${model}" in the left sidebar\n` +
                 `• Or via CLI: lms load "${model}" --yes\n\n` +
@@ -176,7 +184,7 @@ export class LLMClient {
           );
         } catch (parseError) {
           // If parseError is our custom error, re-throw it
-          if (parseError.message.includes('failed to load')) {
+          if (parseError.message.includes('is not loaded')) {
             throw parseError;
           }
           // If not JSON, use raw error text

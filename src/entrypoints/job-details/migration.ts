@@ -12,15 +12,15 @@ export class MigrationService {
    * OLD (v0.1.0) → NEW (v0.2.0)
    */
   statusMigrationMap = {
-    'Saved': 'Researching',          // Initial state: researching the job
-    'Drafting': 'Drafting',          // No change
-    'Applied': 'Awaiting Review',    // Waiting for employer response
-    'Screening': 'Interviewing',     // Merge screening into interviewing
-    'Interviewing': 'Interviewing',  // No change
-    'Offer': 'Deciding',             // Deciding on offer
-    'Accepted': 'Accepted',          // No change (terminal)
-    'Rejected': 'Rejected',          // No change (terminal)
-    'Withdrawn': 'Withdrawn'         // No change (terminal)
+    Saved: 'Researching', // Initial state: researching the job
+    Drafting: 'Drafting', // No change
+    Applied: 'Awaiting Review', // Waiting for employer response
+    Screening: 'Interviewing', // Merge screening into interviewing
+    Interviewing: 'Interviewing', // No change
+    Offer: 'Deciding', // Deciding on offer
+    Accepted: 'Accepted', // No change (terminal)
+    Rejected: 'Rejected', // No change (terminal)
+    Withdrawn: 'Withdrawn', // No change (terminal)
   };
 
   /**
@@ -32,14 +32,16 @@ export class MigrationService {
       const result = await browser.storage.local.get('dataVersion');
       const currentDataVersion = result.dataVersion || 1;
 
-      console.log(`Current data version: ${currentDataVersion}`);
+      console.info(`Current data version: ${currentDataVersion}`);
 
       if (currentDataVersion < this.currentVersion) {
-        console.log(`Migration needed: v${currentDataVersion} → v${this.currentVersion}`);
+        console.info(
+          `Migration needed: v${currentDataVersion} → v${this.currentVersion}`
+        );
         await this.runMigrations(currentDataVersion);
-        console.log('Migration completed successfully');
+        console.info('Migration completed successfully');
       } else {
-        console.log('Data is up to date, no migration needed');
+        console.info('Data is up to date, no migration needed');
       }
     } catch (error) {
       console.error('Migration check failed:', error);
@@ -71,22 +73,24 @@ export class MigrationService {
    * Changes: Status name updates throughout job data
    */
   async migrateV1ToV2() {
-    console.log('Starting migration v1 → v2 (status name updates)...');
+    console.info('Starting migration v1 → v2 (status name updates)...');
 
     try {
       // Load all jobs from storage
       const jobs = await this.storage.getAllJobs();
-      console.log(`Found ${jobs.length} jobs to migrate`);
+      console.info(`Found ${jobs.length} jobs to migrate`);
 
       if (jobs.length === 0) {
-        console.log('No jobs to migrate, marking version as updated');
+        console.info('No jobs to migrate, marking version as updated');
         await browser.storage.local.set({ dataVersion: 2 });
         return;
       }
 
       // Migrate each job
       const migratedJobs = jobs.map((job, index) => {
-        console.log(`Migrating job ${index + 1}/${jobs.length}: ${job.jobTitle || 'Untitled'}`);
+        console.info(
+          `Migrating job ${index + 1}/${jobs.length}: ${job.jobTitle || 'Untitled'}`
+        );
         return this.migrateJobToV2(job);
       });
 
@@ -96,7 +100,9 @@ export class MigrationService {
       // Mark migration as complete
       await browser.storage.local.set({ dataVersion: 2 });
 
-      console.log(`Migration v1 → v2 complete: ${migratedJobs.length} jobs migrated`);
+      console.info(
+        `Migration v1 → v2 complete: ${migratedJobs.length} jobs migrated`
+      );
     } catch (error) {
       console.error('Migration v1 → v2 failed:', error);
       throw new Error(`Migration failed: ${error.message}`);
@@ -118,10 +124,12 @@ export class MigrationService {
 
       if (newStatus) {
         migratedJob.applicationStatus = newStatus;
-        console.log(`  Status: ${oldStatus} → ${newStatus}`);
+        console.info(`  Status: ${oldStatus} → ${newStatus}`);
       } else {
         // Unknown status, default to Researching
-        console.warn(`  Unknown status "${oldStatus}", defaulting to "Researching"`);
+        console.warn(
+          `  Unknown status "${oldStatus}", defaulting to "Researching"`
+        );
         migratedJob.applicationStatus = 'Researching';
       }
     } else {
@@ -131,28 +139,32 @@ export class MigrationService {
 
     // Migrate statusHistory array
     if (migratedJob.statusHistory && Array.isArray(migratedJob.statusHistory)) {
-      migratedJob.statusHistory = migratedJob.statusHistory.map(entry => {
+      migratedJob.statusHistory = migratedJob.statusHistory.map((entry) => {
         const oldStatus = entry.status;
         const newStatus = this.statusMigrationMap[oldStatus] || oldStatus;
 
         return {
           ...entry,
-          status: newStatus
+          status: newStatus,
         };
       });
-      console.log(`  Migrated ${migratedJob.statusHistory.length} status history entries`);
+      console.info(
+        `  Migrated ${migratedJob.statusHistory.length} status history entries`
+      );
     } else {
       // Initialize status history if missing
-      migratedJob.statusHistory = [{
-        status: migratedJob.applicationStatus,
-        date: migratedJob.updatedAt || new Date().toISOString()
-      }];
+      migratedJob.statusHistory = [
+        {
+          status: migratedJob.applicationStatus,
+          date: migratedJob.updatedAt || new Date().toISOString(),
+        },
+      ];
     }
 
     // Ensure job has an ID (should already exist from earlier refactor)
     if (!migratedJob.id) {
       migratedJob.id = this.storage.generateId();
-      console.log(`  Added missing ID: ${migratedJob.id}`);
+      console.info(`  Added missing ID: ${migratedJob.id}`);
     }
 
     return migratedJob;
@@ -163,22 +175,24 @@ export class MigrationService {
    * Changes: Checklist structure from { items: [] } to { [status]: [] }
    */
   async migrateV2ToV3() {
-    console.log('Starting migration v2 → v3 (checklist per status)...');
+    console.info('Starting migration v2 → v3 (checklist per status)...');
 
     try {
       // Load all jobs from storage
       const jobs = await this.storage.getAllJobs();
-      console.log(`Found ${jobs.length} jobs to migrate`);
+      console.info(`Found ${jobs.length} jobs to migrate`);
 
       if (jobs.length === 0) {
-        console.log('No jobs to migrate, marking version as updated');
+        console.info('No jobs to migrate, marking version as updated');
         await browser.storage.local.set({ dataVersion: 3 });
         return;
       }
 
       // Migrate each job
       const migratedJobs = jobs.map((job, index) => {
-        console.log(`Migrating job ${index + 1}/${jobs.length}: ${job.jobTitle || 'Untitled'}`);
+        console.info(
+          `Migrating job ${index + 1}/${jobs.length}: ${job.jobTitle || 'Untitled'}`
+        );
         return this.migrateJobToV3(job);
       });
 
@@ -188,7 +202,9 @@ export class MigrationService {
       // Mark migration as complete
       await browser.storage.local.set({ dataVersion: 3 });
 
-      console.log(`Migration v2 → v3 complete: ${migratedJobs.length} jobs migrated`);
+      console.info(
+        `Migration v2 → v3 complete: ${migratedJobs.length} jobs migrated`
+      );
     } catch (error) {
       console.error('Migration v2 → v3 failed:', error);
       throw new Error(`Migration failed: ${error.message}`);
@@ -208,46 +224,63 @@ export class MigrationService {
     if (migratedJob.checklist) {
       // Old format: { items: [...] }
       // New format: { Researching: [...], Drafting: [...], ... }
-      
-      if (migratedJob.checklist.items && Array.isArray(migratedJob.checklist.items)) {
-        console.log(`  Migrating checklist from old format (${migratedJob.checklist.items.length} items)`);
-        
+
+      if (
+        migratedJob.checklist.items &&
+        Array.isArray(migratedJob.checklist.items)
+      ) {
+        console.info(
+          `  Migrating checklist from old format (${migratedJob.checklist.items.length} items)`
+        );
+
         // Determine which status these items belong to
         const currentStatus = migratedJob.applicationStatus || 'Researching';
-        
+
         // Create new checklist structure with all statuses
         const newChecklist = this.storage.initializeAllChecklists();
-        
+
         // Preserve existing items in the current status
-        newChecklist[currentStatus] = migratedJob.checklist.items.map(item => ({
-          ...item,
-          // Ensure all required fields exist
-          id: item.id || `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          text: item.text || '',
-          checked: item.checked || false,
-          order: item.order !== undefined ? item.order : 0
-        }));
-        
+        newChecklist[currentStatus] = migratedJob.checklist.items.map(
+          (item) => ({
+            ...item,
+            // Ensure all required fields exist
+            id:
+              item.id ||
+              `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            text: item.text || '',
+            checked: item.checked || false,
+            order: item.order !== undefined ? item.order : 0,
+          })
+        );
+
         migratedJob.checklist = newChecklist;
-        console.log(`  Checklist migrated: preserved ${newChecklist[currentStatus].length} items in ${currentStatus} status`);
-      } else if (typeof migratedJob.checklist === 'object' && !Array.isArray(migratedJob.checklist)) {
+        console.info(
+          `  Checklist migrated: preserved ${newChecklist[currentStatus].length} items in ${currentStatus} status`
+        );
+      } else if (
+        typeof migratedJob.checklist === 'object' &&
+        !Array.isArray(migratedJob.checklist)
+      ) {
         // Already in new format or empty object, ensure all statuses exist
         const newChecklist = this.storage.initializeAllChecklists();
-        
+
         // Copy over any existing status arrays
-        Object.keys(migratedJob.checklist).forEach(status => {
-          if (Array.isArray(migratedJob.checklist[status]) && newChecklist[status] !== undefined) {
+        Object.keys(migratedJob.checklist).forEach((status) => {
+          if (
+            Array.isArray(migratedJob.checklist[status]) &&
+            newChecklist[status] !== undefined
+          ) {
             newChecklist[status] = migratedJob.checklist[status];
           }
         });
-        
+
         migratedJob.checklist = newChecklist;
-        console.log(`  Checklist format verified`);
+        console.info(`  Checklist format verified`);
       }
     } else {
       // No checklist exists, initialize new one
       migratedJob.checklist = this.storage.initializeAllChecklists();
-      console.log(`  Initialized new checklist for all statuses`);
+      console.info(`  Initialized new checklist for all statuses`);
     }
 
     return migratedJob;
@@ -268,6 +301,6 @@ export class MigrationService {
    */
   async setVersion(version) {
     await browser.storage.local.set({ dataVersion: version });
-    console.log(`Data version set to ${version}`);
+    console.info(`Data version set to ${version}`);
   }
 }

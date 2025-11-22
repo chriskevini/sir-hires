@@ -18,7 +18,7 @@ export class Navigation {
     const progressBarFill = document.getElementById('progressBarFill');
     const progressBarLabel = document.getElementById('progressBarLabel');
     const progressBar = document.getElementById('progressBar');
-    
+
     if (!progressBar || !progressBarFill || !progressBarLabel) {
       console.error('Progress bar elements not found');
       return;
@@ -63,7 +63,8 @@ export class Navigation {
     // Left button container (always render to maintain flexbox layout)
     html += `<div class="nav-button-container left">`;
     if (buttons.left) {
-      const targetConfig = progressConfig[buttons.left.target] || progressConfig['Researching'];
+      const targetConfig =
+        progressConfig[buttons.left.target] || progressConfig['Researching'];
       html += `
         <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;" data-color="${targetConfig.color}">
           <span class="nav-label">${buttons.left.label}</span>
@@ -76,12 +77,14 @@ export class Navigation {
     html += `</div>`;
 
     // Right button(s) container (always render to maintain flexbox layout)
-    const multipleClass = buttons.right && buttons.right.length > 1 ? ' multiple' : '';
+    const multipleClass =
+      buttons.right && buttons.right.length > 1 ? ' multiple' : '';
     html += `<div class="nav-button-container right${multipleClass}">`;
 
     if (buttons.right && buttons.right.length > 0) {
-      buttons.right.forEach(btn => {
-        const targetConfig = progressConfig[btn.target] || progressConfig['Researching'];
+      buttons.right.forEach((btn) => {
+        const targetConfig =
+          progressConfig[btn.target] || progressConfig['Researching'];
         html += `
           <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;" data-color="${targetConfig.color}">
             <span class="nav-label">${btn.label}</span>
@@ -114,7 +117,10 @@ export class Navigation {
     this.cleanupListeners();
 
     // Render new buttons
-    navButtonsContainer.innerHTML = this.renderNavigationButtons(status, jobIndex);
+    navButtonsContainer.innerHTML = this.renderNavigationButtons(
+      status,
+      jobIndex
+    );
 
     // Attach new listeners
     this.attachNavigationButtonListeners();
@@ -129,7 +135,7 @@ export class Navigation {
   applyButtonColors() {
     // Apply colors to all elements with data-color attributes
     // This includes nav-button-container (left button) and inner divs (right buttons)
-    document.querySelectorAll('[data-color]').forEach(element => {
+    document.querySelectorAll('[data-color]').forEach((element) => {
       const color = element.dataset.color;
       if (color) {
         element.style.setProperty('--nav-color', color);
@@ -142,8 +148,8 @@ export class Navigation {
    */
   attachNavigationButtonListeners() {
     const navButtons = document.querySelectorAll('.nav-button');
-    
-    navButtons.forEach(button => {
+
+    navButtons.forEach((button) => {
       const clickHandler = (e) => {
         const index = parseInt(e.currentTarget.dataset.index, 10);
         const target = e.currentTarget.dataset.target;
@@ -155,7 +161,11 @@ export class Navigation {
       };
 
       button.addEventListener('click', clickHandler);
-      this.listeners.push({ element: button, event: 'click', handler: clickHandler });
+      this.listeners.push({
+        element: button,
+        event: 'click',
+        handler: clickHandler,
+      });
     });
   }
 

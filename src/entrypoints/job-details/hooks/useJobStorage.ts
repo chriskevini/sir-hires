@@ -1,7 +1,21 @@
 import { useEffect, useCallback, useRef } from 'react';
+import { browser } from 'wxt/browser';
 import { checklistTemplates } from '../config';
 import type { Job, JobDocument, ChecklistItem } from './useJobState';
 import { parseJobTemplate } from '../../../utils/job-parser';
+import {
+  jobsStorage,
+  jobInFocusStorage,
+  userProfileStorage,
+  viewerFiltersStorage,
+  checklistExpandedStorage,
+  getAllStorageData,
+  restoreStorageFromBackup,
+  clearAllStorage,
+  getStorageStats,
+  type UserProfile,
+  type ViewerFilters,
+} from '../../../utils/storage';
 
 export interface StorageChanges {
   [key: string]: {
@@ -85,8 +99,7 @@ export function useJobStorage() {
       documentData: Partial<JobDocument>
     ): Promise<void> => {
       try {
-        const result = await browser.storage.local.get('jobs');
-        const jobsObj = (result.jobs || {}) as Record<string, Job>;
+        const jobsObj = await jobsStorage.getValue();
 
         if (!jobsObj[jobId]) {
           throw new Error(`Job ${jobId} not found`);
@@ -107,7 +120,7 @@ export function useJobStorage() {
         // Update job timestamp
         jobsObj[jobId].updatedAt = new Date().toISOString();
 
-        await browser.storage.local.set({ jobs: jobsObj });
+        await jobsStorage.setValue(jobsObj);
       } catch (error) {
         console.error('Failed to save document:', error);
         throw error;
@@ -198,8 +211,7 @@ export function useJobStorage() {
    */
   const getAllJobs = useCallback(async (): Promise<Job[]> => {
     try {
-      const result = await browser.storage.local.get('jobs');
-      const jobsObj = (result.jobs || {}) as Record<string, Job>;
+      const jobsObj = await jobsStorage.getValue();
 
       // Convert object to array and ensure all jobs have an ID
       const jobsArray = Object.values(jobsObj).map((job) => {
@@ -234,7 +246,7 @@ export function useJobStorage() {
           }
         });
 
-        await browser.storage.local.set({ jobs: jobsObj });
+        await jobsStorage.setValue(jobsObj);
       } catch (error) {
         console.error('Failed to save jobs:', error);
         throw error;
@@ -249,12 +261,11 @@ export function useJobStorage() {
   const updateJob = useCallback(
     async (jobId: string, jobData: Job): Promise<void> => {
       try {
-        const result = await browser.storage.local.get('jobs');
-        const jobsObj = (result.jobs || {}) as Record<string, Job>;
+        const jobsObj = await jobsStorage.getValue();
 
         jobsObj[jobId] = jobData;
 
-        await browser.storage.local.set({ jobs: jobsObj });
+        await jobsStorage.setValue(jobsObj);
       } catch (error) {
         console.error('Failed to update job:', error);
         throw error;
@@ -268,12 +279,11 @@ export function useJobStorage() {
    */
   const deleteJob = useCallback(async (jobId: string): Promise<void> => {
     try {
-      const result = await browser.storage.local.get('jobs');
-      const jobsObj = (result.jobs || {}) as Record<string, Job>;
+      const jobsObj = await jobsStorage.getValue();
 
       delete jobsObj[jobId];
 
-      await browser.storage.local.set({ jobs: jobsObj });
+      await jobsStorage.setValue(jobsObj);
     } catch (error) {
       console.error('Failed to delete job:', error);
       throw error;
@@ -287,8 +297,7 @@ export function useJobStorage() {
    */
   const getJobInFocus = useCallback(async (): Promise<string | null> => {
     try {
-      const result = await browser.storage.local.get('jobInFocus');
-      return (result.jobInFocus as string) || null;
+      return await jobInFocusStorage.getValue();
     } catch (error) {
       console.error('Failed to get job in focus:', error);
       return null;
@@ -300,7 +309,7 @@ export function useJobStorage() {
    */
   const setJobInFocus = useCallback(async (jobId: string): Promise<void> => {
     try {
-      await browser.storage.local.set({ jobInFocus: jobId });
+      await jobInFocusStorage.setValue(jobId);
     } catch (error) {
       console.error('Failed to set job in focus:', error);
       throw error;
@@ -312,7 +321,7 @@ export function useJobStorage() {
    */
   const clearJobInFocus = useCallback(async (): Promise<void> => {
     try {
-      await browser.storage.local.remove('jobInFocus');
+      await jobInFocusStorage.removeValue();
     } catch (error) {
       console.error('Failed to clear job in focus:', error);
       throw error;
@@ -326,8 +335,7 @@ export function useJobStorage() {
    */
   const getMasterResume = useCallback(async (): Promise<unknown> => {
     try {
-      const result = await browser.storage.local.get('userProfile');
-      return result.userProfile || null;
+      return await userProfileStorage.getValue();
     } catch (error) {
       console.error('Failed to load user profile:', error);
       return null;
@@ -340,7 +348,7 @@ export function useJobStorage() {
   const setMasterResume = useCallback(
     async (resumeData: unknown): Promise<void> => {
       try {
-        await browser.storage.local.set({ userProfile: resumeData });
+        await userProfileStorage.setValue(resumeData as UserProfile | null);
       } catch (error) {
         console.error('Failed to save user profile:', error);
         throw error;
@@ -356,7 +364,7 @@ export function useJobStorage() {
    */
   const setFilters = useCallback(async (filters: unknown): Promise<void> => {
     try {
-      await browser.storage.local.set({ viewerFilters: filters });
+      await viewerFiltersStorage.setValue(filters as ViewerFilters | null);
     } catch (error) {
       console.error('Failed to save filters:', error);
       throw error;
@@ -368,8 +376,7 @@ export function useJobStorage() {
    */
   const getFilters = useCallback(async (): Promise<unknown> => {
     try {
-      const result = await browser.storage.local.get('viewerFilters');
-      return result.viewerFilters || null;
+      return await viewerFiltersStorage.getValue();
     } catch (error) {
       console.error('Failed to load filters:', error);
       return null;
@@ -383,10 +390,7 @@ export function useJobStorage() {
    */
   const getChecklistExpanded = useCallback(async (): Promise<boolean> => {
     try {
-      const result = await browser.storage.local.get('checklistExpanded');
-      return result.checklistExpanded !== undefined
-        ? (result.checklistExpanded as boolean)
-        : false;
+      return await checklistExpandedStorage.getValue();
     } catch (error) {
       console.error('Failed to get checklist expanded state:', error);
       return false;
@@ -399,7 +403,7 @@ export function useJobStorage() {
   const setChecklistExpanded = useCallback(
     async (isExpanded: boolean): Promise<void> => {
       try {
-        await browser.storage.local.set({ checklistExpanded: isExpanded });
+        await checklistExpandedStorage.setValue(isExpanded);
       } catch (error) {
         console.error('Failed to set checklist expanded state:', error);
         throw error;
@@ -415,7 +419,7 @@ export function useJobStorage() {
    */
   const createBackup = useCallback(async (): Promise<unknown> => {
     try {
-      const data = await browser.storage.local.get(null);
+      const data = await getAllStorageData();
       return data;
     } catch (error) {
       console.error('Failed to create backup:', error);
@@ -429,12 +433,7 @@ export function useJobStorage() {
   const restoreBackup = useCallback(
     async (data: Record<string, unknown>): Promise<void> => {
       try {
-        await browser.storage.local.clear();
-
-        // Exclude dataVersion from restore to allow migration to detect and update it
-        const { dataVersion: _dataVersion, ...restoreData } = data;
-
-        await browser.storage.local.set(restoreData);
+        await restoreStorageFromBackup(data);
       } catch (error) {
         console.error('Failed to restore backup:', error);
         throw error;
@@ -448,7 +447,7 @@ export function useJobStorage() {
    */
   const clearAll = useCallback(async (): Promise<void> => {
     try {
-      await browser.storage.local.clear();
+      await clearAllStorage();
     } catch (error) {
       console.error('Failed to clear storage:', error);
       throw error;
@@ -504,17 +503,7 @@ export function useJobStorage() {
    */
   const getStorageInfo = useCallback(async () => {
     try {
-      const bytesInUse = await browser.storage.local.getBytesInUse();
-      const data = await browser.storage.local.get(null);
-
-      return {
-        bytesInUse,
-        jobCount: (data.jobs as Record<string, Job>)
-          ? Object.keys(data.jobs as Record<string, Job>).length
-          : 0,
-        hasMasterResume: Boolean(data.userProfile),
-        keys: Object.keys(data),
-      };
+      return await getStorageStats();
     } catch (error) {
       console.error('Failed to get storage info:', error);
       return null;

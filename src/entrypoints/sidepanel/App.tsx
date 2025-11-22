@@ -193,7 +193,9 @@ export const App: React.FC = () => {
       };
 
       await storage.updateJob(currentJob.id, updatedJob);
-      console.info(`[Sidepanel] Initialized documents for job ${currentJob.id}`);
+      console.info(
+        `[Sidepanel] Initialized documents for job ${currentJob.id}`
+      );
     }
   }, [currentJob, storage]);
 
@@ -261,7 +263,8 @@ export const App: React.FC = () => {
         // Restore all data
         await browser.storage.local.set({
           jobs: backup.data.jobs || {},
-          userProfile: backup.data.userProfile || backup.data.masterResume || null,
+          userProfile:
+            backup.data.userProfile || backup.data.masterResume || null,
           llmSettings: backup.data.llmSettings || null,
           jobInFocus: backup.data.jobInFocus || null,
         });
@@ -351,7 +354,9 @@ export const App: React.FC = () => {
                   <div className="job-title">
                     {currentJob.jobTitle || 'Untitled'}
                   </div>
-                  <div className="company">{currentJob.company || 'Unknown'}</div>
+                  <div className="company">
+                    {currentJob.company || 'Unknown'}
+                  </div>
                 </div>
                 {currentJob.source && (
                   <div>

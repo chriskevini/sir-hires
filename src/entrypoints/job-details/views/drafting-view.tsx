@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Checklist } from '../components/checklist';
-import { SynthesisModal } from '../components/synthesis-modal';
+import { Modal } from '../../../components/ui/Modal';
+import { SynthesisForm } from '../components/SynthesisForm';
 import { documentTemplates } from '../config';
 
 // Get browser global (works in WXT environment)
@@ -644,9 +645,12 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
       />
 
       {/* Synthesis Modal */}
-      {isSynthesisModalOpen && (
-        <SynthesisModal
-          isOpen={isSynthesisModalOpen}
+      <Modal
+        isOpen={isSynthesisModalOpen}
+        onClose={() => setIsSynthesisModalOpen(false)}
+        title="✨ Synthesize Document with LLM"
+      >
+        <SynthesisForm
           job={job}
           jobIndex={index}
           documentKey={activeTab}
@@ -678,7 +682,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
             showToast(`Generation failed: ${error.message}`, 'error');
           }}
         />
-      )}
+      </Modal>
     </>
   );
 };

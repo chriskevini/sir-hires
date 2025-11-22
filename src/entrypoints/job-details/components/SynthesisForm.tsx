@@ -3,12 +3,10 @@ import { llmConfig } from '../config';
 import { LLMClient } from '../../../utils/llm-client';
 import type { Job } from '../hooks';
 
-interface SynthesisModalProps {
-  isOpen: boolean;
+interface SynthesisFormProps {
   job: Job | null;
   jobIndex: number | null;
   documentKey: string | null;
-  onClose: () => void;
   onGenerate: (
     jobIndex: number,
     documentKey: string,
@@ -23,23 +21,23 @@ interface SynthesisModalProps {
   onThinkingUpdate?: (documentKey: string, delta: string) => void;
   onDocumentUpdate?: (documentKey: string, delta: string) => void;
   onError?: (jobIndex: number, documentKey: string, error: Error) => void;
+  onClose: () => void;
 }
 
 interface Model {
   id: string;
 }
 
-export const SynthesisModal: React.FC<SynthesisModalProps> = ({
-  isOpen,
+export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   job,
   jobIndex,
   documentKey,
-  onClose,
   onGenerate,
   onGenerationStart,
   onThinkingUpdate,
   onDocumentUpdate,
   onError,
+  onClose,
 }) => {
   const [availableModels, setAvailableModels] = useState<Model[]>([]);
   const [selectedModel, setSelectedModel] = useState(
@@ -57,14 +55,12 @@ export const SynthesisModal: React.FC<SynthesisModalProps> = ({
       })
   );
 
-  // Fetch available models when modal opens
+  // Fetch available models when component mounts
   useEffect(() => {
-    if (isOpen) {
-      fetchAvailableModels();
-      fetchUserProfile();
-      checkExistingContent();
-    }
-  }, [isOpen, job, documentKey]);
+    fetchAvailableModels();
+    fetchUserProfile();
+    checkExistingContent();
+  }, [job, documentKey]);
 
   const fetchAvailableModels = async () => {
     const models = await llmClient.fetchModels();
@@ -219,7 +215,7 @@ export const SynthesisModal: React.FC<SynthesisModalProps> = ({
 
       // Check for truncation
       if (result.truncated) {
-        console.warn('[SynthesisModal] Response truncated due to token limit');
+        console.warn('[SynthesisForm] Response truncated due to token limit');
 
         // Show alert to user
         alert(
@@ -236,7 +232,7 @@ export const SynthesisModal: React.FC<SynthesisModalProps> = ({
       // Call callback with generated content
       onGenerate(capturedJobIndex, capturedDocumentKey, result);
     } catch (error) {
-      console.error('[SynthesisModal] Synthesis failed:', error);
+      console.error('[SynthesisForm] Synthesis failed:', error);
 
       if (jobIndex !== null && documentKey && onError) {
         onError(jobIndex, documentKey, error as Error);
@@ -249,74 +245,40 @@ export const SynthesisModal: React.FC<SynthesisModalProps> = ({
     }
   };
 
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
-  const handleEscapeKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && isOpen) {
-      onClose();
-    }
-  };
-
-  useEffect(() => {
-    document.addEventListener('keydown', handleEscapeKey);
-    return () => document.removeEventListener('keydown', handleEscapeKey);
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
   const hasUserProfile = userProfile.trim().length > 0;
 
   // If no user profile, show only error warning + Cancel button
   if (!hasUserProfile) {
     return (
-      <div
-        className={`synthesis-modal-overlay ${isOpen ? 'visible' : ''}`}
-        onClick={handleOverlayClick}
-      >
-        <div className="synthesis-modal">
-          <div className="modal-header">
-            <h2>✨ Synthesize Document with LLM</h2>
-            <button className="modal-close-btn" onClick={onClose}>
-              &times;
+      <>
+        <div className="modal-body">
+          <div className="error-warning">
+            <p>
+              ℹ️ <strong>Please create a profile before continuing.</strong>
+            </p>
+            <button
+              className="btn-primary"
+              onClick={() => {
+                window.location.href = '/profile.html';
+              }}
+            >
+              Create Profile
             </button>
           </div>
+        </div>
 
-          <div className="modal-body">
-            <div className="error-warning">
-              <p>
-                ℹ️ <strong>Please create a profile before continuing.</strong>
-              </p>
-              <button
-                className="btn-primary"
-                onClick={() => {
-                  window.location.href = '/profile.html';
-                }}
-              >
-                Create Profile
-              </button>
-            </div>
-          </div>
-
-          <div className="modal-footer">
-            <div
-              className="action-buttons-group"
-              style={{ marginLeft: 'auto' }}
-            >
-              <button className="btn-secondary" onClick={onClose}>
-                Cancel
-              </button>
-            </div>
+        <div className="modal-footer">
+          <div className="action-buttons-group" style={{ marginLeft: 'auto' }}>
+            <button className="btn-secondary" onClick={onClose}>
+              Cancel
+            </button>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
-  // User profile exists - show full modal UI
+  // User profile exists - show full form UI
   const modelOptions =
     availableModels.length > 0
       ? availableModels.map((model) => (
@@ -359,99 +321,87 @@ export const SynthesisModal: React.FC<SynthesisModalProps> = ({
   );
 
   return (
-    <div
-      className={`synthesis-modal-overlay ${isOpen ? 'visible' : ''}`}
-      onClick={handleOverlayClick}
-    >
-      <div className="synthesis-modal">
-        <div className="modal-header">
-          <h2>✨ Synthesize Document with LLM</h2>
-          <button className="modal-close-btn" onClick={onClose}>
-            &times;
-          </button>
+    <>
+      <div className="modal-body">
+        <div className="data-checklist-section">
+          <label>Input Data Status:</label>
+          <ul className="data-checklist">
+            {dataFields.map((field) => {
+              const isFilled = field.value && field.value.trim().length > 0;
+              const bulletClass = isFilled
+                ? 'data-bullet-filled'
+                : 'data-bullet-empty';
+              const bulletIcon = isFilled ? '✓' : '○';
+              return (
+                <li key={field.key} className="data-checklist-item">
+                  <span className={bulletClass}>{bulletIcon}</span>
+                  <span className="data-field-label">{field.label}</span>
+                </li>
+              );
+            })}
+          </ul>
         </div>
 
-        <div className="modal-body">
-          <div className="data-checklist-section">
-            <label>Input Data Status:</label>
-            <ul className="data-checklist">
-              {dataFields.map((field) => {
-                const isFilled = field.value && field.value.trim().length > 0;
-                const bulletClass = isFilled
-                  ? 'data-bullet-filled'
-                  : 'data-bullet-empty';
-                const bulletIcon = isFilled ? '✓' : '○';
-                return (
-                  <li key={field.key} className="data-checklist-item">
-                    <span className={bulletClass}>{bulletIcon}</span>
-                    <span className="data-field-label">{field.label}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+        <div className="existing-content-info">
+          <p>
+            💡 <strong>Tip:</strong> You can paste your own document to be used
+            as a template during synthesis.
+          </p>
+        </div>
 
-          <div className="existing-content-info">
+        {missingFields.length > 0 && (
+          <div className="missing-fields-warning">
             <p>
-              💡 <strong>Tip:</strong> You can paste your own document to be
-              used as a template during synthesis.
+              ⚠️{' '}
+              <strong>
+                {missingFields.length} field
+                {missingFields.length === 1 ? ' is' : 's are'} missing.
+              </strong>{' '}
+              We recommend doing more research for better document synthesis.
             </p>
           </div>
+        )}
+      </div>
 
-          {missingFields.length > 0 && (
-            <div className="missing-fields-warning">
-              <p>
-                ⚠️{' '}
-                <strong>
-                  {missingFields.length} field
-                  {missingFields.length === 1 ? ' is' : 's are'} missing.
-                </strong>{' '}
-                We recommend doing more research for better document synthesis.
-              </p>
-            </div>
+      <div className="modal-footer">
+        <div className="model-selector-group">
+          <label htmlFor="synthesisModelSelect">Model:</label>
+          <select
+            id="synthesisModelSelect"
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+          >
+            {modelOptions}
+          </select>
+          {availableModels.length === 0 && (
+            <span className="model-warning">⚠️ No models loaded</span>
           )}
         </div>
-
-        <div className="modal-footer">
-          <div className="model-selector-group">
-            <label htmlFor="synthesisModelSelect">Model:</label>
-            <select
-              id="synthesisModelSelect"
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-            >
-              {modelOptions}
-            </select>
-            {availableModels.length === 0 && (
-              <span className="model-warning">⚠️ No models loaded</span>
-            )}
-          </div>
-          <div className="max-tokens-group">
-            <label htmlFor="synthesisMaxTokens">Max Tokens:</label>
-            <input
-              type="number"
-              id="synthesisMaxTokens"
-              value={maxTokens}
-              onChange={(e) => setMaxTokens(parseInt(e.target.value) || 2000)}
-              min={100}
-              max={32000}
-              step={100}
-            />
-          </div>
-          <div className="action-buttons-group">
-            <button className="btn-secondary" onClick={onClose}>
-              Cancel
-            </button>
-            <button
-              className="btn-primary"
-              onClick={handleGenerate}
-              disabled={isGenerating}
-            >
-              {isGenerating ? '⏳ Generating...' : 'Generate'}
-            </button>
-          </div>
+        <div className="max-tokens-group">
+          <label htmlFor="synthesisMaxTokens">Max Tokens:</label>
+          <input
+            type="number"
+            id="synthesisMaxTokens"
+            value={maxTokens}
+            onChange={(e) => setMaxTokens(parseInt(e.target.value) || 2000)}
+            min={100}
+            max={32000}
+            step={100}
+          />
+        </div>
+        <div className="action-buttons-group">
+          <button className="btn-secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="btn-primary"
+            onClick={handleGenerate}
+            disabled={isGenerating}
+          >
+            {isGenerating ? '⏳ Generating...' : 'Generate'}
+          </button>
         </div>
       </div>
-    </div>
+    </>
   );
 };

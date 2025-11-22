@@ -10,6 +10,8 @@ export { useAutoSave } from './useAutoSave';
 export { useEditorState } from './useEditorState';
 export { useToggleState } from './useToggleState';
 export { useTabState } from './useTabState';
+export { useJobValidation } from './useJobValidation';
+export { useSimpleAutoSave } from './useSimpleAutoSave';
 
 // Re-export types
 export type {

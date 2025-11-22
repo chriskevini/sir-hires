@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './styles.css';
+import { browser } from 'wxt/browser';
 
 // Import parser and validator utilities
 import { parseProfile } from '@/utils/profile-parser';
 import { validateProfile, PROFILE_SCHEMA } from '@/utils/profile-validator';
+
+// Import WXT storage
+import { userProfileStorage } from '@/utils/storage';
 
 // Types
 interface ValidationFix {
@@ -141,11 +145,11 @@ export default function ProfileApp() {
 
   const loadProfile = async () => {
     try {
-      const result = await browser.storage.local.get(['userProfile']);
+      const userProfile = await userProfileStorage.getValue();
 
-      if (result.userProfile && result.userProfile.content) {
-        const profileContent = result.userProfile.content;
-        const updatedAt = result.userProfile.updatedAt;
+      if (userProfile && userProfile.content) {
+        const profileContent = userProfile.content;
+        const updatedAt = userProfile.updatedAt;
 
         setContent(profileContent);
         setSavedContent(profileContent);
@@ -175,7 +179,7 @@ export default function ProfileApp() {
             updatedAt: new Date().toISOString(),
           };
 
-          await browser.storage.local.set({ userProfile: profileData });
+          await userProfileStorage.setValue(profileData);
 
           setSavedContent(currentContent);
           setLastSavedTime(profileData.updatedAt);

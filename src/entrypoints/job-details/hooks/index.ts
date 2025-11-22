@@ -12,6 +12,7 @@ export { useToggleState } from './useToggleState';
 export { useTabState } from './useTabState';
 export { useJobValidation } from './useJobValidation';
 export { useSimpleAutoSave } from './useSimpleAutoSave';
+export { useDocumentManager } from './useDocumentManager';
 
 // Re-export types
 export type {

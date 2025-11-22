@@ -2,19 +2,18 @@ import React, { useEffect, useMemo, useCallback } from 'react';
 import { Checklist } from '../components/checklist';
 import { Modal } from '../../../components/ui/Modal';
 import { SynthesisForm } from '../components/SynthesisForm';
-import { documentTemplates } from '../config';
+import { EditorToolbar } from '@/components/ui/EditorToolbar';
+import { EditorContentPanel } from '@/components/ui/EditorContentPanel';
+import { EditorFooter } from '@/components/ui/EditorFooter';
 import { parseJobTemplate } from '@/utils/job-parser';
 import { escapeHtml } from '@/utils/shared-utils';
 import { formatSaveTime } from '@/utils/date-utils';
-import { markdownToHtml } from '@/utils/markdown-utils';
+import { defaultDocuments, countWords } from '@/utils/document-config';
+import { exportMarkdown, exportPDF } from '@/utils/export-utils';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { useTabState } from '../hooks/useTabState';
 import { useToggleState } from '../hooks/useToggleState';
-import { TabBar } from '@/components/ui/TabBar';
-import { Dropdown } from '@/components/ui/Dropdown';
-
-// Get browser global (works in WXT environment)
-declare const browser: typeof chrome;
+import { useDocumentManager } from '../hooks/useDocumentManager';
 
 interface Job {
   content?: string;
@@ -49,13 +48,6 @@ interface DraftingViewProps {
   onToggleChecklistItem: (index: number, itemId: string) => void;
 }
 
-interface DefaultDocConfig {
-  label: string;
-  order: number;
-  defaultTitle: () => string;
-  placeholder: string;
-}
-
 export const DraftingView: React.FC<DraftingViewProps> = ({
   job,
   index,
@@ -79,20 +71,17 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     [job.content]
   );
 
-  // Get document keys first (needed for hooks)
-  const getDocumentKeys = (): string[] => {
-    if (!job.documents) {
-      return ['tailoredResume', 'coverLetter'];
-    }
-
-    return Object.keys(job.documents).sort((a, b) => {
-      const orderA = job.documents![a]?.order ?? 999;
-      const orderB = job.documents![b]?.order ?? 999;
-      return orderA - orderB;
+  // Use document manager hook
+  const { documentKeys, getDocument, getInitialSaveStatus } =
+    useDocumentManager({
+      job,
+      jobIndex: index,
+      parsedJob: {
+        jobTitle: parsedJob.jobTitle,
+        company: parsedJob.company,
+      },
+      onInitializeDocuments,
     });
-  };
-
-  const documentKeys = getDocumentKeys();
 
   // Tab state management
   const { activeTab, switchTab, getTabRef } = useTabState({
@@ -110,7 +99,11 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   } = useAutoSave(documentKeys, {
     interval: 5000,
     onSave: (key, content) => {
-      const defaultTitle = defaultDocuments[key]?.defaultTitle() || 'Untitled';
+      const defaultTitle =
+        defaultDocuments[key]?.defaultTitle(
+          parsedJob.jobTitle,
+          parsedJob.company
+        ) || 'Untitled';
       onSaveDocument(index, key, {
         title: defaultTitle,
         text: content,
@@ -119,71 +112,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     },
     getTimestamp: () => `Last saved ${formatSaveTime(new Date())}`,
   });
-
-  // Default document configuration
-  const defaultDocuments: Record<string, DefaultDocConfig> = {
-    tailoredResume: {
-      label: 'Resume/CV',
-      order: 0,
-      defaultTitle: () =>
-        `${parsedJob.jobTitle || 'Resume'} - ${parsedJob.company || 'Company'}`,
-      placeholder:
-        'Write your tailored resume here using Markdown formatting...\n\nExample:\n# Your Name\nemail@example.com | linkedin.com/in/yourprofile\n\n## Summary\nExperienced software engineer...',
-    },
-    coverLetter: {
-      label: 'Cover Letter',
-      order: 1,
-      defaultTitle: () =>
-        `Cover Letter - ${parsedJob.jobTitle || 'Position'} at ${parsedJob.company || 'Company'}`,
-      placeholder:
-        'Write your cover letter here using Markdown formatting...\n\nExample:\nDear Hiring Manager,\n\nI am writing to express my interest...',
-    },
-  };
-
-  // Get document
-  const getDocument = (documentKey: string): Document => {
-    if (!job.documents) {
-      return {
-        title: defaultDocuments[documentKey]?.defaultTitle() || 'Untitled',
-        text: '',
-        lastEdited: null,
-        order: defaultDocuments[documentKey]?.order || 0,
-      };
-    }
-
-    if (job.documents[documentKey]) {
-      return job.documents[documentKey];
-    }
-
-    const config = defaultDocuments[documentKey];
-    return {
-      title: config ? config.defaultTitle() : 'Untitled Document',
-      text: '',
-      lastEdited: null,
-      order: config ? config.order : 0,
-    };
-  };
-
-  // Initialize documents if needed
-  useEffect(() => {
-    if (!job.documents) {
-      const newDocuments = {
-        tailoredResume: {
-          title: defaultDocuments.tailoredResume.defaultTitle(),
-          text: documentTemplates.tailoredResume,
-          lastEdited: null,
-          order: 0,
-        },
-        coverLetter: {
-          title: defaultDocuments.coverLetter.defaultTitle(),
-          text: documentTemplates.coverLetter,
-          lastEdited: null,
-          order: 1,
-        },
-      };
-      onInitializeDocuments(index, newDocuments);
-    }
-  }, []);
 
   // Initialize document contents from job
   useEffect(() => {
@@ -203,21 +131,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     const count = countWords(text);
     setWordCount(count);
   }, [activeTab, documentContents]);
-
-  // Count words
-  const countWords = (text: string): number => {
-    if (!text || !text.trim()) return 0;
-    return text.trim().split(/\s+/).length;
-  };
-
-  // Get initial save status
-  const getInitialSaveStatus = (doc: Document): string => {
-    if (!doc.lastEdited) {
-      return 'No changes yet';
-    }
-    const lastEditedDate = new Date(doc.lastEdited);
-    return `Last saved ${formatSaveTime(lastEditedDate)}`;
-  };
 
   // Update save status on tab change
   useEffect(() => {
@@ -260,101 +173,13 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
       const doc = getDocument(activeTab);
 
       if (exportType === 'md') {
-        exportMarkdown(doc);
+        exportMarkdown(doc, showToast);
       } else if (exportType === 'pdf') {
-        exportPDF(doc);
+        exportPDF(doc, showToast);
       }
     },
-    [activeTab]
+    [activeTab, getDocument]
   );
-
-  // Export as Markdown
-  const exportMarkdown = (doc: Document) => {
-    if (!doc.text || !doc.text.trim()) {
-      showToast('Document is empty. Nothing to export.', 'error');
-      return;
-    }
-
-    const blob = new Blob([doc.text], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const filename = `${doc.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`;
-
-    browser.downloads.download(
-      {
-        url: url,
-        filename: filename,
-        saveAs: true,
-      },
-      () => {
-        if (browser.runtime.lastError) {
-          console.error('Export failed:', browser.runtime.lastError);
-          showToast(
-            `Failed to export: ${browser.runtime.lastError.message}`,
-            'error'
-          );
-        }
-        URL.revokeObjectURL(url);
-      }
-    );
-  };
-
-  // Export as PDF (using print dialog)
-  const exportPDF = (doc: Document) => {
-    if (!doc.text || !doc.text.trim()) {
-      showToast('Document is empty. Nothing to export.', 'error');
-      return;
-    }
-
-    try {
-      const printWindow = window.open('', '_blank');
-
-      if (!printWindow) {
-        showToast(
-          'Failed to open print window. Please allow popups for this site.',
-          'error'
-        );
-        return;
-      }
-
-      const htmlContent = markdownToHtml(doc.text);
-
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>${escapeHtml(doc.title)}</title>
-          <style>
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-              line-height: 1.6;
-              max-width: 800px;
-              margin: 40px auto;
-              padding: 20px;
-            }
-            h1 { font-size: 24px; margin-bottom: 10px; }
-            h2 { font-size: 20px; margin-top: 20px; margin-bottom: 10px; }
-            h3 { font-size: 16px; margin-top: 15px; margin-bottom: 8px; }
-            p { margin-bottom: 10px; }
-            @media print {
-              body { margin: 0; }
-            }
-          </style>
-        </head>
-        <body>
-          ${htmlContent}
-        </body>
-        </html>
-      `);
-
-      printWindow.document.close();
-      printWindow.onload = () => {
-        printWindow.print();
-      };
-    } catch (error: any) {
-      console.error('PDF export failed:', error);
-      showToast(`Failed to export PDF: ${error.message}`, 'error');
-    }
-  };
 
   // Show toast notification
   const showToast = (
@@ -399,45 +224,22 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           {/* Drafting Editor */}
           <div className="drafting-editor-container">
             {/* Topbar with tabs and actions */}
-            <div className="editor-topbar">
-              <TabBar
-                tabs={documentKeys.map((key) => ({
+            <EditorToolbar
+              documentKeys={documentKeys}
+              documentLabels={Object.fromEntries(
+                documentKeys.map((key) => [
                   key,
-                  label: defaultDocuments[key]?.label || key,
-                }))}
-                activeTab={activeTab}
-                onTabChange={switchTab}
-              />
-              <div className="editor-actions">
-                <button
-                  className="btn-synthesize"
-                  id="synthesizeBtn"
-                  onClick={() => setIsSynthesisModalOpen(true)}
-                >
-                  ✨ Synthesize with LLM
-                </button>
-                <Dropdown
-                  isOpen={exportDropdownOpen}
-                  onToggle={toggleExportDropdown}
-                  onClose={() => setExportDropdownOpen(false)}
-                  buttonLabel="Export"
-                  buttonIcon="📥"
-                  items={[
-                    {
-                      label: 'Export as Markdown (.md)',
-                      icon: '📄',
-                      onClick: () => handleExport('md'),
-                    },
-                    {
-                      label: 'Export as PDF (.pdf)',
-                      icon: '📑',
-                      onClick: () => handleExport('pdf'),
-                    },
-                  ]}
-                  className="export-dropdown"
-                />
-              </div>
-            </div>
+                  defaultDocuments[key]?.label || key,
+                ])
+              )}
+              activeTab={activeTab}
+              exportDropdownOpen={exportDropdownOpen}
+              onTabChange={switchTab}
+              onToggleExportDropdown={toggleExportDropdown}
+              onCloseExportDropdown={() => setExportDropdownOpen(false)}
+              onExport={handleExport}
+              onSynthesizeClick={() => setIsSynthesisModalOpen(true)}
+            />
 
             {/* Editor wrapper */}
             <div className="editor-wrapper">
@@ -449,61 +251,23 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
                   : 'Write your document here...';
 
                 return (
-                  <div
+                  <EditorContentPanel
                     key={key}
-                    className={`editor-content ${isActive ? 'active' : ''}`}
-                    data-content={key}
-                  >
-                    {/* Thinking panel (initially hidden) */}
-                    <div className="thinking-stream-panel hidden">
-                      <div className="thinking-header">
-                        <span className="thinking-title">
-                          🤔 AI Thinking Process
-                        </span>
-                        <button
-                          className="thinking-toggle-btn"
-                          title="Collapse"
-                        >
-                          ▼
-                        </button>
-                      </div>
-                      <textarea className="thinking-content" readOnly />
-                    </div>
-
-                    {/* Document editor */}
-                    <textarea
-                      ref={getTabRef(key)}
-                      className="document-editor"
-                      data-field={`${key}-text`}
-                      placeholder={escapeHtml(placeholder)}
-                      data-index={index}
-                      value={documentContents[key] || ''}
-                      onChange={(e) =>
-                        handleTextareaChange(key, e.target.value)
-                      }
-                      onBlur={() => handleTextareaBlur(key)}
-                    />
-                  </div>
+                    documentKey={key}
+                    isActive={isActive}
+                    value={documentContents[key] || ''}
+                    placeholder={placeholder}
+                    textareaRef={getTabRef(key)}
+                    onChange={(value) => handleTextareaChange(key, value)}
+                    onBlur={() => handleTextareaBlur(key)}
+                    index={index}
+                  />
                 );
               })}
             </div>
 
             {/* Footer with status and word count */}
-            <div className="editor-footer">
-              <div className="editor-status">
-                <span
-                  className="save-status-indicator visible saved"
-                  id="saveStatus"
-                >
-                  {saveStatus}
-                </span>
-              </div>
-              <div className="editor-meta">
-                <span className="word-count" id="wordCount">
-                  {wordCount} words
-                </span>
-              </div>
-            </div>
+            <EditorFooter saveStatus={saveStatus} wordCount={wordCount} />
           </div>
         </div>
       </div>

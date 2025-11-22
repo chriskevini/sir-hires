@@ -16,7 +16,6 @@ interface LLMSettings {
 type StatusType = 'success' | 'error' | 'info';
 
 export function App() {
-  const [showSettings, setShowSettings] = useState(true);
   const [statusMessage, setStatusMessage] = useState('');
   const [statusType, setStatusType] = useState<StatusType>('success');
   const [testing, setTesting] = useState(false);
@@ -56,34 +55,6 @@ export function App() {
       setTimeout(() => {
         setStatusMessage('');
       }, 5000);
-    }
-  };
-
-  const handleOpenApp = async () => {
-    try {
-      await browser.tabs.create({ url: 'job-details.html' });
-      console.info('Opened app in new tab');
-      window.close();
-    } catch (error) {
-      console.error('Error opening app:', error);
-      showStatus('Could not open app: ' + (error as Error).message, 'error');
-    }
-  };
-
-  const openSidePanel = async () => {
-    try {
-      const currentWindow = await browser.windows.getCurrent();
-      if (currentWindow.id !== undefined) {
-        await browser.sidePanel.open({ windowId: currentWindow.id });
-        console.info('Side panel opened');
-
-        setTimeout(() => {
-          window.close();
-        }, 100);
-      }
-    } catch (error) {
-      console.error('Error opening side panel:', error);
-      showStatus('Could not open side panel. Try using Ctrl+Shift+H.', 'error');
     }
   };
 
@@ -148,103 +119,75 @@ export function App() {
   return (
     <div className="container">
       <header>
-        <h1>Sir Hires</h1>
-        <button
-          id="settingsBtn"
-          className="btn-icon"
-          title="Settings"
-          onClick={() => setShowSettings(!showSettings)}
-        >
-          ⚙️
-        </button>
+        <h1>Sir Hires - Settings</h1>
       </header>
 
       {statusMessage && (
         <div className={`status ${statusType}`}>{statusMessage}</div>
       )}
 
-      {showSettings && (
-        <div id="settingsSection">
-          <h3>⚙️ LLM Settings</h3>
-          <div className="info-box">
-            <span className="info-icon">ℹ️</span>
-            <span>
-              Job extraction requires LM Studio running locally with a model
-              loaded.
-            </span>
-          </div>
-          <div className="form-group">
-            <label htmlFor="llmEndpoint">LLM API Endpoint</label>
-            <input
-              type="text"
-              id="llmEndpoint"
-              value={llmEndpoint}
-              onChange={(e) => setLlmEndpoint(e.target.value)}
-              placeholder="http://localhost:1234/v1/chat/completions"
-            />
-            <small>Default: LM Studio (http://localhost:1234)</small>
-          </div>
-          <div className="form-group">
-            <label htmlFor="llmModel">Model Name (optional)</label>
-            <input
-              type="text"
-              id="llmModel"
-              value={llmModel}
-              onChange={(e) => setLlmModel(e.target.value)}
-              placeholder={llmConfig.extraction.defaultModel}
-            />
-            <small>
-              Leave empty to use default ({llmConfig.extraction.defaultModel})
-            </small>
-          </div>
-          <div className="button-group">
-            <button
-              id="saveSettingsBtn"
-              className="btn btn-primary"
-              onClick={handleSaveSettings}
-            >
-              Save Settings
-            </button>
-            <button
-              id="testLlmBtn"
-              className="btn btn-secondary"
-              onClick={handleTestConnection}
-              disabled={testing}
-            >
-              {testing ? 'Testing...' : 'Test Connection'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div id="mainActions">
-        <button
-          id="openSidePanelBtn"
-          className="btn btn-primary btn-large"
-          onClick={openSidePanel}
-        >
-          Open Side Panel
-        </button>
-        <button
-          id="openAppBtn"
-          className="btn btn-secondary"
-          onClick={handleOpenApp}
-        >
-          Open Full App
-        </button>
-
-        <div className="tip-box">
-          <span className="tip-icon">💡</span>
-          <span className="tip-text">
-            Tip: Press <kbd>Ctrl+Shift+H</kbd> to toggle the side panel
+      <div id="settingsSection">
+        <h3>⚙️ LLM Configuration</h3>
+        <div className="info-box">
+          <span className="info-icon">ℹ️</span>
+          <span>
+            Job extraction requires LM Studio running locally with a model
+            loaded.
           </span>
         </div>
+        <div className="form-group">
+          <label htmlFor="llmEndpoint">LLM API Endpoint</label>
+          <input
+            type="text"
+            id="llmEndpoint"
+            value={llmEndpoint}
+            onChange={(e) => setLlmEndpoint(e.target.value)}
+            placeholder="http://localhost:1234/v1/chat/completions"
+          />
+          <small>Default: LM Studio (http://localhost:1234)</small>
+        </div>
+        <div className="form-group">
+          <label htmlFor="llmModel">Model Name (optional)</label>
+          <input
+            type="text"
+            id="llmModel"
+            value={llmModel}
+            onChange={(e) => setLlmModel(e.target.value)}
+            placeholder={llmConfig.extraction.defaultModel}
+          />
+          <small>
+            Leave empty to use default ({llmConfig.extraction.defaultModel})
+          </small>
+        </div>
+        <div className="button-group">
+          <button
+            id="saveSettingsBtn"
+            className="btn btn-primary"
+            onClick={handleSaveSettings}
+          >
+            Save Settings
+          </button>
+          <button
+            id="testLlmBtn"
+            className="btn btn-secondary"
+            onClick={handleTestConnection}
+            disabled={testing}
+          >
+            {testing ? 'Testing...' : 'Test Connection'}
+          </button>
+        </div>
 
-        <div className="info-box" style={{ marginTop: '15px' }}>
-          <span className="info-icon">📝</span>
+        <div className="info-box" style={{ marginTop: '20px' }}>
+          <span className="info-icon">💡</span>
           <span>
-            To extract job data, open the side panel and click "Extract Job
-            Data" while viewing a job posting.
+            <strong>Quick Tips:</strong>
+            <ul style={{ marginTop: '8px', marginBottom: '0' }}>
+              <li>Click the extension icon to open the side panel</li>
+              <li>Right-click any page to extract job data directly</li>
+              <li>
+                Press <kbd>Ctrl+Shift+H</kbd> to toggle the side panel
+              </li>
+            </ul>
           </span>
         </div>
       </div>

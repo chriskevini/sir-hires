@@ -1,6 +1,10 @@
 import { LLMClient } from '../utils/llm-client';
 import { llmConfig } from '../config';
-import { jobsStorage, keepaliveStorage } from '../utils/storage';
+import {
+  jobsStorage,
+  keepaliveStorage,
+  extractionTriggerStorage,
+} from '../utils/storage';
 
 export default defineBackground(() => {
   // Global keepalive to prevent service worker termination
@@ -211,6 +215,49 @@ ${oldContent
       });
     } catch (error) {
       console.error('Error setting side panel behavior:', error);
+    }
+
+    // Create context menu for job extraction
+    try {
+      await browser.contextMenus.create({
+        id: 'extract-job',
+        title: 'Extract Job from This Page',
+        contexts: ['page', 'selection'],
+      });
+      console.info('[Background] Context menu created');
+    } catch (error) {
+      console.error('[Background] Error creating context menu:', error);
+    }
+  });
+
+  // Handle context menu clicks
+  browser.contextMenus.onClicked.addListener((info, tab) => {
+    if (info.menuItemId === 'extract-job' && tab?.id && tab.windowId) {
+      console.info('[Background] Context menu clicked - triggering extraction');
+
+      // CRITICAL: Call sidePanel.open() synchronously (no await) to preserve user gesture
+      // Chrome MV3 loses gesture context after ANY async operation, even with await
+      // We must call the API synchronously within the event handler
+      browser.sidePanel
+        .open({ windowId: tab.windowId })
+        .then(() => {
+          console.info('[Background] Sidepanel opened successfully');
+
+          // Now set extraction trigger (sidepanel will detect this change)
+          // Even if sidepanel isn't fully loaded yet, the watch() will catch it
+          return extractionTriggerStorage.setValue(Date.now());
+        })
+        .then(() => {
+          console.info('[Background] Extraction trigger set');
+          // The sidepanel's extractionTriggerStorage.watch() will detect the change
+          // and automatically start the extraction flow
+        })
+        .catch((error: any) => {
+          console.error(
+            '[Background] Error handling context menu click:',
+            error
+          );
+        });
     }
   });
 

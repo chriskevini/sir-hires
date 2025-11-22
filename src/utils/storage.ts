@@ -149,6 +149,18 @@ export const schemaMigratedStorage = storage.defineItem<boolean>(
 );
 
 /**
+ * Extraction trigger - Signal to sidepanel to start extraction (timestamp)
+ * Set by context menu, cleared by sidepanel after handling
+ */
+export const extractionTriggerStorage = storage.defineItem<number | null>(
+  'local:extractionTrigger',
+  {
+    defaultValue: null,
+    version: 1,
+  }
+);
+
+/**
  * Profile migration flag - Tracks if masterResume to userProfile migration completed
  */
 export const profileMigratedStorage = storage.defineItem<boolean>(

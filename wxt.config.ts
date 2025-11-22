@@ -8,17 +8,16 @@ export default defineConfig({
   manifest: {
     name: 'Sir Hires',
     version: '0.2.0',
-    description: 'Privacy-first job search assistant. Extract and manage job postings locally - no servers, no tracking.',
+    description:
+      'Privacy-first job search assistant. Extract and manage job postings locally - no servers, no tracking.',
     permissions: [
       'activeTab',
       'storage',
       'scripting',
       'downloads',
-      'sidePanel'
+      'sidePanel',
+      'contextMenus',
     ],
-    host_permissions: [
-      'http://localhost:*/*',
-      'http://127.0.0.1:*/*'
-    ]
-  }
+    host_permissions: ['http://localhost:*/*', 'http://127.0.0.1:*/*'],
+  },
 });

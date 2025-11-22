@@ -14,6 +14,7 @@ import {
   llmSettingsStorage,
   jobsStorage,
   jobInFocusStorage,
+  extractionTriggerStorage,
   type LLMSettings,
 } from '../../utils/storage';
 import type { Job } from '../job-details/hooks';
@@ -535,6 +536,66 @@ export const App: React.FC = () => {
       extractionEvents.offExtractionEvent(handleExtraction);
     };
   }, [extractionEvents, extractingJob, loadJobInFocus, storage]);
+
+  /**
+   * Watch for extraction trigger from context menu (via storage)
+   * This is triggered when user clicks "Extract Job from This Page" in context menu
+   */
+  useEffect(() => {
+    console.info('[Sidepanel] 🔍 Setting up extraction trigger watcher...');
+
+    // Check for existing trigger on mount (in case it was set before sidepanel opened)
+    extractionTriggerStorage.getValue().then((currentValue) => {
+      console.info('[Sidepanel] Initial trigger check:', currentValue);
+      if (currentValue) {
+        console.info(
+          '[Sidepanel] ✅ Found existing trigger on mount, starting extraction'
+        );
+        // Trigger extraction
+        handleExtractJob();
+        // Clear the trigger
+        extractionTriggerStorage.setValue(null);
+      }
+    });
+
+    // Watch for new triggers
+    const unwatch = extractionTriggerStorage.watch(
+      (newValue: number | null, oldValue: number | null) => {
+        console.info(
+          '[Sidepanel] 📡 Extraction trigger storage change detected!'
+        );
+        console.info('[Sidepanel] Old value:', oldValue);
+        console.info('[Sidepanel] New value:', newValue);
+
+        // Only trigger if value changed (new timestamp set)
+        if (newValue && newValue !== oldValue) {
+          console.info(
+            '[Sidepanel] ✅ Valid extraction trigger received from context menu'
+          );
+          console.info(
+            '[Sidepanel] Timestamp:',
+            new Date(newValue).toISOString()
+          );
+
+          // Clear the trigger to prevent duplicate executions
+          extractionTriggerStorage.setValue(null);
+
+          // Trigger extraction
+          console.info(
+            '[Sidepanel] 🚀 Starting extraction from context menu trigger...'
+          );
+          handleExtractJob();
+        }
+      }
+    );
+
+    console.info('[Sidepanel] ✅ Extraction trigger watcher registered');
+
+    return () => {
+      console.info('[Sidepanel] 🧹 Cleaning up extraction trigger watcher');
+      unwatch();
+    };
+  }, [handleExtractJob]);
 
   /**
    * Render the appropriate view

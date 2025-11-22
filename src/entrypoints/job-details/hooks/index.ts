@@ -6,6 +6,10 @@ export { useNavigation } from './useNavigation';
 export { useExtractionEvents } from './useExtractionEvents';
 export { useDebounce } from './useDebounce';
 export { useInterval } from './useInterval';
+export { useAutoSave } from './useAutoSave';
+export { useEditorState } from './useEditorState';
+export { useToggleState } from './useToggleState';
+export { useTabState } from './useTabState';
 
 // Re-export types
 export type {

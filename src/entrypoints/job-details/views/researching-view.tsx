@@ -1,9 +1,14 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Checklist } from '../components/checklist';
 import { parseJobTemplate } from '@/utils/job-parser';
 import { validateJobTemplate } from '@/utils/job-validator';
 import { escapeHtml } from '@/utils/shared-utils';
 import { useDebounce } from '../hooks/useDebounce';
+import { useToggleState } from '../hooks/useToggleState';
+import { useEditorState } from '../hooks/useEditorState';
+import { ValidationPanel } from '@/components/ui/ValidationPanel';
+import { EditorHeader } from '@/components/ui/EditorHeader';
+import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel';
 
 interface Job {
   url: string;
@@ -40,10 +45,18 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   onToggleChecklistExpand,
   onToggleChecklistItem,
 }) => {
-  const [isTemplateVisible, setIsTemplateVisible] = useState(false);
-  const [isValidationCollapsed, setIsValidationCollapsed] = useState(true);
-  const [validation, setValidation] = useState<ValidationResult | null>(null);
-  const [editorContent, setEditorContent] = useState(job.content || '');
+  const [isTemplateVisible, toggleTemplateVisible, setTemplateVisible] =
+    useToggleState(false);
+  const [isValidationCollapsed, toggleValidationCollapsed] =
+    useToggleState(true);
+  const [validation, setValidation] = React.useState<ValidationResult | null>(
+    null
+  );
+
+  const { content: editorContent, handleChange: handleEditorChange } =
+    useEditorState({
+      initialContent: job.content || '',
+    });
 
   // Parse job content on-read (MarkdownDB pattern)
   const parsedJob = useMemo(
@@ -131,21 +144,9 @@ CLOSING_DATE: 2025-12-31
     }
   }, []);
 
-  // Sync editor content when job.content changes externally
-  useEffect(() => {
-    setEditorContent(job.content || '');
-  }, [job.content]);
-
-  const handleEditorChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      setEditorContent(e.target.value);
-    },
-    []
-  );
-
-  const handleDelete = useCallback(() => {
+  const handleDelete = () => {
     onDeleteJob(index);
-  }, [index, onDeleteJob]);
+  };
 
   // Render extraction state (streaming)
   if (job.isExtracting) {
@@ -155,17 +156,15 @@ CLOSING_DATE: 2025-12-31
       <div className="job-card researching-editor">
         <div className="editor-layout">
           <div className="editor-panel">
-            <div className="editor-header">
-              <div className="editor-title">
-                <strong>
-                  {escapeHtml(parsedJob.jobTitle || 'Untitled Position')}
-                </strong>{' '}
-                at {escapeHtml(parsedJob.company || 'Unknown Company')}
-              </div>
-              <div className="editor-status">
-                <span className="status-badge extracting">Extracting...</span>
-              </div>
-            </div>
+            <EditorHeader
+              title={escapeHtml(parsedJob.jobTitle || 'Untitled Position')}
+              subtitle={`at ${escapeHtml(parsedJob.company || 'Unknown Company')}`}
+              actions={
+                <div className="editor-status">
+                  <span className="status-badge extracting">Extracting...</span>
+                </div>
+              }
+            />
             <textarea
               id="jobEditor"
               className="job-markdown-editor extracting"
@@ -268,8 +267,6 @@ CLOSING_DATE: 2025-12-31
   }
 
   // Render normal editing state
-  const statusIcon = validation?.valid ? '✓' : '✗';
-  const statusText = validation?.valid ? 'Valid Job' : 'Invalid Job';
   const editorClass = validation?.valid
     ? 'job-markdown-editor is-valid'
     : 'job-markdown-editor has-errors';
@@ -280,15 +277,17 @@ CLOSING_DATE: 2025-12-31
 
   const messages = [
     ...(validation?.errors.map((e) => ({
-      type: 'error',
+      type: 'error' as const,
       message: e.message,
     })) || []),
     ...(validation?.warnings.map((w) => ({
-      type: 'warning',
+      type: 'warning' as const,
       message: w.message,
     })) || []),
-    ...(validation?.info.map((i) => ({ type: 'info', message: i.message })) ||
-      []),
+    ...(validation?.info.map((i) => ({
+      type: 'info' as const,
+      message: i.message,
+    })) || []),
   ];
 
   return (
@@ -296,50 +295,53 @@ CLOSING_DATE: 2025-12-31
       <div className="job-card researching-editor">
         <div className="editor-layout">
           {/* Template Panel */}
-          <div
-            id="templatePanel"
-            className={`template-panel ${isTemplateVisible ? '' : 'hidden'}`}
-          >
-            <div className="template-panel-header">
-              <h3>📖 Job Template</h3>
-              <button
-                className="template-panel-close"
-                onClick={() => setIsTemplateVisible(false)}
-              >
-                ✕
-              </button>
-            </div>
-            <div className="template-content">
-              {escapeHtml(getJobTemplate())}
-            </div>
-          </div>
+          {isTemplateVisible && (
+            <CollapsiblePanel
+              isCollapsed={false}
+              onToggle={() => setTemplateVisible(false)}
+              header={
+                <>
+                  <h3>📖 Job Template</h3>
+                  <button
+                    className="template-panel-close"
+                    onClick={() => setTemplateVisible(false)}
+                  >
+                    ✕
+                  </button>
+                </>
+              }
+              className="template-panel"
+            >
+              <div className="template-content">
+                {escapeHtml(getJobTemplate())}
+              </div>
+            </CollapsiblePanel>
+          )}
 
           {/* Editor Panel */}
           <div className="editor-panel">
-            <div className="editor-header">
-              <div className="editor-title">
-                <strong>
-                  {escapeHtml(parsedJob.jobTitle || 'Untitled Position')}
-                </strong>{' '}
-                at {escapeHtml(parsedJob.company || 'Unknown Company')}
-              </div>
-              <div className="editor-actions">
-                <button
-                  className="btn-template-toggle"
-                  onClick={() => setIsTemplateVisible(!isTemplateVisible)}
-                >
-                  {isTemplateVisible ? 'Hide' : 'Show'} Template
-                </button>
-                <a
-                  href={escapeHtml(job.url)}
-                  className="btn-link"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View Original ↗
-                </a>
-              </div>
-            </div>
+            <EditorHeader
+              title={escapeHtml(parsedJob.jobTitle || 'Untitled Position')}
+              subtitle={`at ${escapeHtml(parsedJob.company || 'Unknown Company')}`}
+              actions={
+                <>
+                  <button
+                    className="btn-template-toggle"
+                    onClick={toggleTemplateVisible}
+                  >
+                    {isTemplateVisible ? 'Hide' : 'Show'} Template
+                  </button>
+                  <a
+                    href={escapeHtml(job.url)}
+                    className="btn-link"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    View Original ↗
+                  </a>
+                </>
+              }
+            />
             <textarea
               id="jobEditor"
               className={editorClass}
@@ -351,58 +353,18 @@ CLOSING_DATE: 2025-12-31
         </div>
 
         {/* Validation Panel */}
-        <div
-          id="validationPanel"
-          className={`validation-panel ${isValidationCollapsed ? 'collapsed' : ''}`}
-        >
-          <div
-            className="validation-header"
-            onClick={() => setIsValidationCollapsed(!isValidationCollapsed)}
-          >
-            <div className="validation-header-left">
-              <div className="validation-status">
-                <span id="statusIcon" className="status-icon">
-                  {validation ? statusIcon : '⏳'}
-                </span>
-                <span id="statusText">
-                  {validation ? statusText : 'Validating...'}
-                </span>
-              </div>
-              <div id="validationCounts" className="validation-counts">
-                {errorCount > 0 && (
-                  <span className="count-errors">
-                    {errorCount} error{errorCount > 1 ? 's' : ''}
-                  </span>
-                )}
-                {warningCount > 0 && (
-                  <span className="count-warnings">
-                    {warningCount} warning{warningCount > 1 ? 's' : ''}
-                  </span>
-                )}
-                {infoCount > 0 && (
-                  <span className="count-info">{infoCount} custom</span>
-                )}
-              </div>
-            </div>
-            <span className="validation-toggle">
-              {isValidationCollapsed ? '▼' : '▲'}
-            </span>
-          </div>
-          <div id="validationContent" className="validation-content">
-            {messages.length === 0 ? (
-              <div className="validation-empty">No validation messages</div>
-            ) : (
-              messages.map((m, i) => (
-                <div
-                  key={i}
-                  className={`validation-message validation-${m.type}`}
-                >
-                  {escapeHtml(m.message)}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+        <ValidationPanel
+          isCollapsed={isValidationCollapsed}
+          onToggle={toggleValidationCollapsed}
+          isValid={validation?.valid ?? null}
+          errorCount={errorCount}
+          warningCount={warningCount}
+          infoCount={infoCount}
+          messages={messages.map((m) => ({
+            ...m,
+            message: escapeHtml(m.message),
+          }))}
+        />
 
         {/* Actions */}
         <div className="job-actions">

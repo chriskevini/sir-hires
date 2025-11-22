@@ -1,10 +1,4 @@
-import React, {
-  useEffect,
-  useRef,
-  useState,
-  useCallback,
-  useMemo,
-} from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import { Checklist } from '../components/checklist';
 import { Modal } from '../../../components/ui/Modal';
 import { SynthesisForm } from '../components/SynthesisForm';
@@ -13,7 +7,11 @@ import { parseJobTemplate } from '@/utils/job-parser';
 import { escapeHtml } from '@/utils/shared-utils';
 import { formatSaveTime } from '@/utils/date-utils';
 import { markdownToHtml } from '@/utils/markdown-utils';
-import { useInterval } from '../hooks/useInterval';
+import { useAutoSave } from '../hooks/useAutoSave';
+import { useTabState } from '../hooks/useTabState';
+import { useToggleState } from '../hooks/useToggleState';
+import { TabBar } from '@/components/ui/TabBar';
+import { Dropdown } from '@/components/ui/Dropdown';
 
 // Get browser global (works in WXT environment)
 declare const browser: typeof chrome;
@@ -68,25 +66,59 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   onToggleChecklistExpand,
   onToggleChecklistItem,
 }) => {
-  const [activeTab, setActiveTab] = useState('tailoredResume');
-  const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
-  const [isSynthesisModalOpen, setIsSynthesisModalOpen] = useState(false);
-  const [documentContents, setDocumentContents] = useState<
-    Record<string, string>
-  >({});
-  const [lastSavedContent, setLastSavedContent] = useState<
-    Record<string, string>
-  >({});
-  const [saveStatus, setSaveStatus] = useState<string>('No changes yet');
-  const [wordCount, setWordCount] = useState<number>(0);
-
-  const textareaRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
+  // Toggle states
+  const [exportDropdownOpen, toggleExportDropdown, setExportDropdownOpen] =
+    useToggleState(false);
+  const [isSynthesisModalOpen, _toggleSynthesisModal, setIsSynthesisModalOpen] =
+    useToggleState(false);
+  const [wordCount, setWordCount] = React.useState<number>(0);
 
   // Parse job content on-read (MarkdownDB pattern)
   const parsedJob = useMemo(
     () => parseJobTemplate(job.content || ''),
     [job.content]
   );
+
+  // Get document keys first (needed for hooks)
+  const getDocumentKeys = (): string[] => {
+    if (!job.documents) {
+      return ['tailoredResume', 'coverLetter'];
+    }
+
+    return Object.keys(job.documents).sort((a, b) => {
+      const orderA = job.documents![a]?.order ?? 999;
+      const orderB = job.documents![b]?.order ?? 999;
+      return orderA - orderB;
+    });
+  };
+
+  const documentKeys = getDocumentKeys();
+
+  // Tab state management
+  const { activeTab, switchTab, getTabRef } = useTabState({
+    initialTab: documentKeys[0] || 'tailoredResume',
+  });
+
+  // Auto-save hook
+  const {
+    documentContents,
+    saveStatus,
+    updateContent,
+    markAsSaved,
+    initializeContents,
+    setSaveStatus,
+  } = useAutoSave(documentKeys, {
+    interval: 5000,
+    onSave: (key, content) => {
+      const defaultTitle = defaultDocuments[key]?.defaultTitle() || 'Untitled';
+      onSaveDocument(index, key, {
+        title: defaultTitle,
+        text: content,
+      });
+      markAsSaved(key, content, `Last saved ${formatSaveTime(new Date())}`);
+    },
+    getTimestamp: () => `Last saved ${formatSaveTime(new Date())}`,
+  });
 
   // Default document configuration
   const defaultDocuments: Record<string, DefaultDocConfig> = {
@@ -132,19 +164,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     };
   };
 
-  // Get sorted document keys
-  const getDocumentKeys = (): string[] => {
-    if (!job.documents) {
-      return ['tailoredResume', 'coverLetter'];
-    }
-
-    return Object.keys(job.documents).sort((a, b) => {
-      const orderA = job.documents![a]?.order ?? 999;
-      const orderB = job.documents![b]?.order ?? 999;
-      return orderA - orderB;
-    });
-  };
-
   // Initialize documents if needed
   useEffect(() => {
     if (!job.documents) {
@@ -168,18 +187,14 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
   // Initialize document contents from job
   useEffect(() => {
-    const keys = getDocumentKeys();
     const contents: Record<string, string> = {};
-    const saved: Record<string, string> = {};
 
-    keys.forEach((key) => {
+    documentKeys.forEach((key) => {
       const doc = getDocument(key);
       contents[key] = doc.text;
-      saved[key] = doc.text;
     });
 
-    setDocumentContents(contents);
-    setLastSavedContent(saved);
+    initializeContents(contents);
   }, [job.documents]);
 
   // Update word count when active tab changes or content changes
@@ -188,9 +203,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     const count = countWords(text);
     setWordCount(count);
   }, [activeTab, documentContents]);
-
-  // Auto-save interval (every 5 seconds)
-  useInterval(performAutoSave, 5000, [documentContents, lastSavedContent]);
 
   // Count words
   const countWords = (text: string): number => {
@@ -213,76 +225,34 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     setSaveStatus(getInitialSaveStatus(doc));
   }, [activeTab]);
 
-  // Perform auto-save
-  const performAutoSave = () => {
-    const keys = getDocumentKeys();
-    let hasChanges = false;
-
-    keys.forEach((key) => {
-      const currentText = documentContents[key] || '';
-      const lastSaved = lastSavedContent[key] || '';
-
-      if (currentText !== lastSaved) {
-        saveDocumentImmediately(key, currentText);
-        hasChanges = true;
-      }
-    });
-  };
-
-  // Save document immediately
-  const saveDocumentImmediately = (documentKey: string, text: string) => {
-    const defaultTitle =
-      defaultDocuments[documentKey]?.defaultTitle() || 'Untitled';
-    const now = new Date().toISOString();
-
-    onSaveDocument(index, documentKey, {
-      title: defaultTitle,
-      text: text,
-    });
-
-    setLastSavedContent((prev) => ({
-      ...prev,
-      [documentKey]: text,
-    }));
-
-    if (documentKey === activeTab) {
-      setSaveStatus(`Last saved ${formatSaveTime(new Date())}`);
-    }
-  };
-
   // Handle textarea change
   const handleTextareaChange = useCallback(
     (documentKey: string, value: string) => {
-      setDocumentContents((prev) => ({
-        ...prev,
-        [documentKey]: value,
-      }));
+      updateContent(documentKey, value);
     },
-    []
+    [updateContent]
   );
 
   // Handle textarea blur (immediate save)
   const handleTextareaBlur = useCallback(
     (documentKey: string) => {
       const currentText = documentContents[documentKey] || '';
-      const lastSaved = lastSavedContent[documentKey] || '';
+      const defaultTitle =
+        defaultDocuments[documentKey]?.defaultTitle() || 'Untitled';
 
-      if (currentText !== lastSaved) {
-        saveDocumentImmediately(documentKey, currentText);
-      }
+      onSaveDocument(index, documentKey, {
+        title: defaultTitle,
+        text: currentText,
+      });
+
+      markAsSaved(
+        documentKey,
+        currentText,
+        `Last saved ${formatSaveTime(new Date())}`
+      );
     },
-    [documentContents, lastSavedContent]
+    [documentContents, index, onSaveDocument, markAsSaved]
   );
-
-  // Handle tab switch
-  const handleTabSwitch = useCallback((newTabKey: string) => {
-    setActiveTab(newTabKey);
-    // Focus the textarea after tab switch
-    setTimeout(() => {
-      const textarea = textareaRefs.current[newTabKey];
-      if (textarea) textarea.focus();
-    }, 0);
-  }, []);
 
   // Handle export
   const handleExport = useCallback(
@@ -294,8 +264,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
       } else if (exportType === 'pdf') {
         exportPDF(doc);
       }
-
-      setExportDropdownOpen(false);
     },
     [activeTab]
   );
@@ -402,25 +370,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     }
   };
 
-  // Handle close export dropdown on outside click
-  useEffect(() => {
-    if (!exportDropdownOpen) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('.export-dropdown')) {
-        setExportDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener('click', handleClickOutside);
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, [exportDropdownOpen]);
-
-  const documentKeys = getDocumentKeys();
-
   return (
     <>
       <div className="job-card">
@@ -451,23 +400,14 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           <div className="drafting-editor-container">
             {/* Topbar with tabs and actions */}
             <div className="editor-topbar">
-              <div className="tab-container">
-                {documentKeys.map((key) => {
-                  const config = defaultDocuments[key];
-                  const label = config ? config.label : key;
-                  const isActive = key === activeTab;
-
-                  return (
-                    <button
-                      key={key}
-                      className={`tab-btn ${isActive ? 'active' : ''}`}
-                      onClick={() => handleTabSwitch(key)}
-                    >
-                      {escapeHtml(label)}
-                    </button>
-                  );
-                })}
-              </div>
+              <TabBar
+                tabs={documentKeys.map((key) => ({
+                  key,
+                  label: defaultDocuments[key]?.label || key,
+                }))}
+                activeTab={activeTab}
+                onTabChange={switchTab}
+              />
               <div className="editor-actions">
                 <button
                   className="btn-synthesize"
@@ -476,35 +416,26 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
                 >
                   ✨ Synthesize with LLM
                 </button>
-                <div className="dropdown-container export-dropdown">
-                  <button
-                    className="btn-dropdown"
-                    id="exportDropdownBtn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setExportDropdownOpen(!exportDropdownOpen);
-                    }}
-                  >
-                    📥 Export ▼
-                  </button>
-                  <div
-                    className={`dropdown-menu ${exportDropdownOpen ? '' : 'hidden'}`}
-                    id="exportDropdownMenu"
-                  >
-                    <button
-                      className="dropdown-item"
-                      onClick={() => handleExport('md')}
-                    >
-                      📄 Export as Markdown (.md)
-                    </button>
-                    <button
-                      className="dropdown-item"
-                      onClick={() => handleExport('pdf')}
-                    >
-                      📑 Export as PDF (.pdf)
-                    </button>
-                  </div>
-                </div>
+                <Dropdown
+                  isOpen={exportDropdownOpen}
+                  onToggle={toggleExportDropdown}
+                  onClose={() => setExportDropdownOpen(false)}
+                  buttonLabel="Export"
+                  buttonIcon="📥"
+                  items={[
+                    {
+                      label: 'Export as Markdown (.md)',
+                      icon: '📄',
+                      onClick: () => handleExport('md'),
+                    },
+                    {
+                      label: 'Export as PDF (.pdf)',
+                      icon: '📑',
+                      onClick: () => handleExport('pdf'),
+                    },
+                  ]}
+                  className="export-dropdown"
+                />
               </div>
             </div>
 
@@ -541,7 +472,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
                     {/* Document editor */}
                     <textarea
-                      ref={(el) => (textareaRefs.current[key] = el)}
+                      ref={getTabRef(key)}
                       className="document-editor"
                       data-field={`${key}-text`}
                       placeholder={escapeHtml(placeholder)}
@@ -609,16 +540,28 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           }}
           onDocumentUpdate={(docKey, delta) => {
             // Update document content
-            setDocumentContents((prev) => ({
-              ...prev,
-              [docKey]: (prev[docKey] || '') + delta,
-            }));
+            const currentContent = documentContents[docKey] || '';
+            updateContent(docKey, currentContent + delta);
           }}
           onGenerate={(jobIdx, docKey, result) => {
             // Save generated content
             const generatedContent =
               result.content || documentContents[docKey] || '';
-            saveDocumentImmediately(docKey, generatedContent);
+            updateContent(docKey, generatedContent);
+
+            // Trigger immediate save
+            const defaultTitle =
+              defaultDocuments[docKey]?.defaultTitle() || 'Untitled';
+            onSaveDocument(index, docKey, {
+              title: defaultTitle,
+              text: generatedContent,
+            });
+            markAsSaved(
+              docKey,
+              generatedContent,
+              `Last saved ${formatSaveTime(new Date())}`
+            );
+
             showToast('Document generated successfully!', 'success');
           }}
           onError={(jobIdx, docKey, error) => {

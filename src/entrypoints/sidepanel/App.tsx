@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { browser } from 'wxt/browser';
 import { ResearchingView } from '../job-details/views/researching-view';
 import { DraftingView } from '../job-details/views/drafting-view';
@@ -10,6 +10,12 @@ import {
 } from '../job-details/hooks';
 import { JobViewRouter } from '../../components/features/JobViewRouter';
 import { ParsedJobProvider } from '../../components/features/ParsedJobProvider';
+import {
+  llmSettingsStorage,
+  jobsStorage,
+  jobInFocusStorage,
+  type LLMSettings,
+} from '../../utils/storage';
 import type { Job } from '../job-details/hooks';
 import type {
   ExtractionEvent,
@@ -40,6 +46,7 @@ export const App: React.FC = () => {
   const extractionEvents = useExtractionEvents();
 
   const [isLoading, setIsLoading] = useState(true);
+  const isInitialLoadRef = useRef(true);
   const [error, setError] = useState<string | null>(null);
   const [currentJob, setCurrentJob] = useState<Job | null>(null);
 
@@ -53,6 +60,9 @@ export const App: React.FC = () => {
     null
   );
 
+  // Extraction button state
+  const [extracting, setExtracting] = useState(false);
+
   /**
    * Load the job in focus from storage
    */
@@ -60,7 +70,10 @@ export const App: React.FC = () => {
     console.info('[Sidepanel] Loading job in focus...');
 
     try {
-      setIsLoading(true);
+      // Only show loading screen on initial load, not on subsequent reloads
+      if (isInitialLoadRef.current) {
+        setIsLoading(true);
+      }
       setError(null);
 
       // Load job in focus ID and all jobs
@@ -85,6 +98,8 @@ export const App: React.FC = () => {
       const job = allJobs.find((j) => j.id === jobInFocusId);
       if (!job) {
         console.warn('[Sidepanel] Job in focus not found:', jobInFocusId);
+        // Clear stale jobInFocus from storage to prevent repeated lookups
+        await storage.clearJobInFocus();
         setCurrentJob(null);
         setIsLoading(false);
         return;
@@ -101,6 +116,7 @@ export const App: React.FC = () => {
       setError('Failed to load job. Please refresh the panel.');
     } finally {
       setIsLoading(false);
+      isInitialLoadRef.current = false;
     }
   }, [storage, jobState]); // storage is stable (from useJobStorage), jobState setters are stable
 
@@ -181,6 +197,158 @@ export const App: React.FC = () => {
     };
 
     input.click();
+  }, [storage]);
+
+  /**
+   * Handle extract job button click
+   */
+  const handleExtractJob = useCallback(async () => {
+    setExtracting(true);
+    setError(null);
+
+    try {
+      // Load LLM settings
+      const llmSettings: LLMSettings =
+        (await llmSettingsStorage.getValue()) || {
+          endpoint: 'http://localhost:1234/v1/chat/completions',
+          modelsEndpoint: 'http://localhost:1234/v1/models',
+          model: '',
+          maxTokens: 2000,
+          temperature: 0.3,
+        };
+
+      if (!llmSettings.endpoint || llmSettings.endpoint.trim() === '') {
+        setError(
+          '⚠️ LLM endpoint not configured. Please configure settings in the popup first.'
+        );
+        setExtracting(false);
+        return;
+      }
+
+      // Get current active tab
+      const [tab] = await browser.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+
+      if (!tab || !tab.id) {
+        setError('No active tab found');
+        setExtracting(false);
+        return;
+      }
+
+      if (
+        tab.url?.startsWith('chrome://') ||
+        tab.url?.startsWith('chrome-extension://')
+      ) {
+        setError(
+          'Cannot extract data from Chrome internal pages. Please navigate to a job posting.'
+        );
+        setExtracting(false);
+        return;
+      }
+
+      console.info('[Sidepanel] Starting extraction for tab:', tab.url);
+
+      // Get job URL from content script
+      const preCheckResponse = await browser.tabs
+        .sendMessage(tab.id, {
+          action: 'getJobUrl',
+        })
+        .catch(async (err) => {
+          console.warn(
+            '[Sidepanel] Content script not responding, injecting:',
+            err
+          );
+          // Inject content script if not loaded
+          await browser.scripting.executeScript({
+            target: { tabId: tab.id! },
+            files: ['content-scripts/content.js'],
+          });
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          return browser.tabs.sendMessage(tab.id!, { action: 'getJobUrl' });
+        });
+
+      // Determine job ID (check if job already exists)
+      let jobId: string;
+      if (preCheckResponse && preCheckResponse.url) {
+        const jobs = (await jobsStorage.getValue()) || {};
+        const normalizeUrl = (url: string) => {
+          try {
+            const urlObj = new URL(url);
+            return urlObj.origin + urlObj.pathname.replace(/\/$/, '');
+          } catch {
+            return url;
+          }
+        };
+
+        const existingJobId = Object.keys(jobs).find((id) => {
+          const job = jobs[id];
+          return (
+            job.url &&
+            normalizeUrl(job.url) === normalizeUrl(preCheckResponse.url)
+          );
+        });
+
+        if (existingJobId) {
+          console.info(
+            '[Sidepanel] Re-extracting existing job:',
+            existingJobId
+          );
+          jobId = existingJobId;
+        } else {
+          jobId =
+            'job_' +
+            Date.now() +
+            '_' +
+            Math.random().toString(36).substring(2, 9);
+          console.info('[Sidepanel] Creating new job extraction:', jobId);
+        }
+      } else {
+        jobId =
+          'job_' +
+          Date.now() +
+          '_' +
+          Math.random().toString(36).substring(2, 9);
+        console.info('[Sidepanel] Creating new job extraction:', jobId);
+      }
+
+      // Set job in focus IMMEDIATELY so extraction events are tied to this job
+      await jobInFocusStorage.setValue(jobId);
+      console.info('[Sidepanel] Set jobInFocus:', jobId);
+
+      // Request extraction from content script
+      const response = await browser.tabs.sendMessage(tab.id, {
+        action: 'streamExtractJobData',
+        llmSettings: llmSettings,
+        jobId: jobId,
+      });
+
+      if (response && response.success) {
+        console.info('[Sidepanel] Extraction started successfully');
+
+        // Send message to background to start streaming
+        await browser.runtime.sendMessage({
+          action: 'streamExtractJob',
+          jobId: response.jobId,
+          url: response.url,
+          source: response.source,
+          rawText: response.rawText,
+          llmSettings: llmSettings,
+        });
+      } else {
+        throw new Error('Failed to start streaming extraction');
+      }
+    } catch (error) {
+      console.error('[Sidepanel] Error extracting job data:', error);
+      setError(
+        'Error: ' +
+          (error as Error).message +
+          '. Make sure LM Studio is running and configured correctly.'
+      );
+      setExtracting(false);
+    }
+    // Note: Don't reset extracting here - let extraction events handle it
   }, []);
 
   /**
@@ -192,16 +360,38 @@ export const App: React.FC = () => {
   }, [loadJobInFocus]);
 
   /**
-   * Register storage change listener
+   * Register storage change listener with extraction check
    */
   useEffect(() => {
-    storage.onStorageChange(handlers.handleStorageChange);
+    const handleStorageChangeWithExtractionCheck = (
+      changes: Record<string, unknown>
+    ) => {
+      // If extraction is in progress, ignore jobInFocus changes
+      // The extraction completion handler will reload the job
+      if (extractingJob && changes.jobInFocus) {
+        console.info(
+          '[Sidepanel] Ignoring jobInFocus change during extraction'
+        );
+        // Still process other changes (like jobs updates)
+        const filteredChanges = { ...changes };
+        delete filteredChanges.jobInFocus;
+        if (Object.keys(filteredChanges).length > 0) {
+          handlers.handleStorageChange(filteredChanges);
+        }
+        return;
+      }
+
+      // Normal storage change handling
+      handlers.handleStorageChange(changes);
+    };
+
+    storage.onStorageChange(handleStorageChangeWithExtractionCheck);
 
     return () => {
-      storage.offStorageChange(handlers.handleStorageChange);
+      storage.offStorageChange(handleStorageChangeWithExtractionCheck);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handlers.handleStorageChange]); // Only watch handleStorageChange - storage methods are stable
+  }, [handlers.handleStorageChange, extractingJob]); // Watch extractingJob to update the filter
 
   /**
    * Register extraction event listener
@@ -297,6 +487,7 @@ export const App: React.FC = () => {
 
               // Clear ephemeral extraction state
               setExtractingJob(null);
+              setExtracting(false);
 
               // Reload to display the completed job
               await loadJobInFocus();
@@ -318,6 +509,7 @@ export const App: React.FC = () => {
 
           // Clear ephemeral state and show error
           setExtractingJob(null);
+          setExtracting(false);
           setError(`Extraction failed: ${event.error}`);
           break;
 
@@ -329,6 +521,7 @@ export const App: React.FC = () => {
 
           // Clear ephemeral state
           setExtractingJob(null);
+          setExtracting(false);
           break;
 
         default:
@@ -491,14 +684,28 @@ export const App: React.FC = () => {
               <p>Works on LinkedIn, Indeed, Glassdoor, and more!</p>
             </div>
 
-            <button
-              id="restoreBackupBtn"
-              className="btn-restore-backup"
-              onClick={handleRestoreBackup}
-              title="Will import a JSON backup and overwrite all current data"
+            <div
+              style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}
             >
-              Restore Backup
-            </button>
+              <button
+                id="extractJobBtn"
+                className="btn btn-primary"
+                onClick={handleExtractJob}
+                disabled={extracting}
+                title="Extract job data from the current tab"
+              >
+                {extracting ? 'Extracting...' : 'Extract Job Data'}
+              </button>
+
+              <button
+                id="restoreBackupBtn"
+                className="btn-restore-backup"
+                onClick={handleRestoreBackup}
+                title="Will import a JSON backup and overwrite all current data"
+              >
+                Restore Backup
+              </button>
+            </div>
           </div>
         </div>
       </div>

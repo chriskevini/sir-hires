@@ -2,11 +2,56 @@
 // Validates parsed MarkdownDB Profile Template against schema rules
 // Philosophy: Validate structure, celebrate creativity
 
+import type {
+  ValidationMessage,
+  BaseValidationResult,
+} from './validation-types';
+
+/**
+ * Profile validation result interface
+ */
+export interface ProfileValidationResult extends BaseValidationResult {}
+
+/**
+ * Profile section schema
+ */
+interface SectionSchema {
+  required?: string[];
+  optional?: string[];
+  isList?: boolean;
+  enums?: Record<string, string[]>;
+}
+
+/**
+ * Profile schema definition
+ */
+interface ProfileSchema {
+  topLevelRequired: string[];
+  topLevelOptional: string[];
+  standardSections: Record<string, SectionSchema>;
+}
+
+/**
+ * Parsed profile data structure
+ */
+interface ParsedProfile {
+  type: string | null;
+  topLevelFields: Record<string, string>;
+  sections: Record<
+    string,
+    {
+      list?: string[];
+      entries?: Record<string, { fields: Record<string, string> }>;
+    }
+  >;
+  raw: string;
+}
+
 /**
  * Validation schema for standard Profile Template fields
  * Note: This is NOT exhaustive - custom fields are ENCOURAGED
  */
-const PROFILE_SCHEMA = {
+const PROFILE_SCHEMA: ProfileSchema = {
   // Top-level required fields
   topLevelRequired: ['NAME'],
 
@@ -41,19 +86,13 @@ const PROFILE_SCHEMA = {
 
 /**
  * Validate a parsed profile template
- * @param {Object} parsedProfile - Result from parseProfileTemplate()
- * @returns {Object} Validation result with structure:
- *   {
- *     valid: boolean,           // Overall validity (no critical errors)
- *     errors: [],              // Critical issues that should be fixed
- *     warnings: [],            // Non-critical issues
- *     info: [],                // Informational messages
- *     customFields: [],        // Custom top-level fields detected
- *     customSections: []       // Custom sections detected
- *   }
+ * @param parsedProfile - Result from parseProfileTemplate()
+ * @returns Validation result with errors, warnings, and info
  */
-function validateProfileTemplate(parsedProfile) {
-  const result = {
+function validateProfileTemplate(
+  parsedProfile: ParsedProfile
+): ProfileValidationResult {
+  const result: ProfileValidationResult = {
     valid: true,
     errors: [],
     warnings: [],
@@ -112,7 +151,10 @@ function validateProfileTemplate(parsedProfile) {
 /**
  * Validate top-level fields
  */
-function validateTopLevelFields(parsedProfile, result) {
+function validateTopLevelFields(
+  parsedProfile: ParsedProfile,
+  result: ProfileValidationResult
+): void {
   const fields = parsedProfile.topLevelFields || {};
   const fieldNames = Object.keys(fields);
 
@@ -143,7 +185,10 @@ function validateTopLevelFields(parsedProfile, result) {
 /**
  * Validate sections
  */
-function validateSections(parsedProfile, result) {
+function validateSections(
+  parsedProfile: ParsedProfile,
+  result: ProfileValidationResult
+): void {
   const sections = parsedProfile.sections || {};
   const sectionNames = Object.keys(sections);
 
@@ -171,7 +216,14 @@ function validateSections(parsedProfile, result) {
 /**
  * Validate a list-type section (e.g., INTERESTS)
  */
-function validateListSection(sectionName, section, result) {
+function validateListSection(
+  sectionName: string,
+  section: {
+    list?: string[];
+    entries?: Record<string, { fields: Record<string, string> }>;
+  },
+  result: ProfileValidationResult
+): void {
   if (!section.list || section.list.length === 0) {
     result.warnings.push({
       type: 'empty_section',
@@ -184,7 +236,15 @@ function validateListSection(sectionName, section, result) {
 /**
  * Validate an entry-based section (e.g., EDUCATION, EXPERIENCE)
  */
-function validateEntrySection(sectionName, section, schema, result) {
+function validateEntrySection(
+  sectionName: string,
+  section: {
+    list?: string[];
+    entries?: Record<string, { fields: Record<string, string> }>;
+  },
+  schema: SectionSchema,
+  result: ProfileValidationResult
+): void {
   const entries = section.entries || {};
   const entryIds = Object.keys(entries);
 
@@ -202,24 +262,26 @@ function validateEntrySection(sectionName, section, schema, result) {
     const fields = entry.fields || {};
 
     // Check required fields
-    schema.required.forEach((requiredField) => {
-      if (!fields[requiredField] || fields[requiredField].trim() === '') {
-        result.errors.push({
-          type: 'missing_required_field',
-          section: sectionName,
-          entry: entryId,
-          field: requiredField,
-          message: `Required field "${requiredField}" is missing in ${sectionName}.${entryId}`,
-        });
-        result.valid = false;
-      }
-    });
+    if (schema.required) {
+      schema.required.forEach((requiredField) => {
+        if (!fields[requiredField] || fields[requiredField].trim() === '') {
+          result.errors.push({
+            type: 'missing_required_field',
+            section: sectionName,
+            entry: entryId,
+            field: requiredField,
+            message: `Required field "${requiredField}" is missing in ${sectionName}.${entryId}`,
+          });
+          result.valid = false;
+        }
+      });
+    }
 
     // Validate enum fields
     if (schema.enums) {
       Object.keys(schema.enums).forEach((enumField) => {
         const value = fields[enumField];
-        const allowedValues = schema.enums[enumField];
+        const allowedValues = schema.enums![enumField];
 
         if (value && !allowedValues.includes(value)) {
           result.errors.push({
@@ -259,11 +321,13 @@ function validateEntrySection(sectionName, section, schema, result) {
 
 /**
  * Get a human-readable summary of validation results
- * @param {Object} validationResult - Result from validateProfileTemplate()
- * @returns {string} Summary text
+ * @param validationResult - Result from validateProfileTemplate()
+ * @returns Summary text
  */
-function getValidationSummary(validationResult) {
-  const parts = [];
+function getProfileValidationSummary(
+  validationResult: ProfileValidationResult
+): string {
+  const parts: string[] = [];
 
   if (validationResult.valid) {
     parts.push('✅ Profile is valid!');
@@ -302,6 +366,6 @@ const validateProfile = validateProfileTemplate;
 export {
   validateProfileTemplate,
   validateProfile,
-  getValidationSummary,
+  getProfileValidationSummary,
   PROFILE_SCHEMA,
 };

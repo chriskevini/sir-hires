@@ -2,11 +2,38 @@
 // Validates parsed MarkdownDB Job Template against schema rules
 // Philosophy: Validate structure, celebrate creativity
 
+import type { JobTemplateData } from './job-parser';
+import type {
+  ValidationMessage,
+  BaseValidationResult,
+} from './validation-types';
+
+/**
+ * Job validation result interface
+ */
+export interface JobValidationResult extends BaseValidationResult {}
+
+/**
+ * Job schema definition
+ */
+interface JobSchema {
+  topLevelRequired: string[];
+  topLevelOptional: string[];
+  standardSections: Record<
+    string,
+    {
+      isList: boolean;
+      required?: boolean;
+    }
+  >;
+  enums: Record<string, string[]>;
+}
+
 /**
  * Validation schema for standard Job Template fields
  * Note: This is NOT exhaustive - custom fields are ENCOURAGED
  */
-const JOB_SCHEMA = {
+const JOB_SCHEMA: JobSchema = {
   // Top-level required fields
   topLevelRequired: ['TITLE', 'COMPANY'],
 
@@ -55,19 +82,11 @@ const JOB_SCHEMA = {
 
 /**
  * Validate a parsed job template
- * @param {Object} parsedJob - Result from parseJobTemplate()
- * @returns {Object} Validation result with structure:
- *   {
- *     valid: boolean,           // Overall validity (no critical errors)
- *     errors: [],              // Critical issues that should be fixed
- *     warnings: [],            // Non-critical issues
- *     info: [],                // Informational messages
- *     customFields: [],        // Custom top-level fields detected
- *     customSections: []       // Custom sections detected
- *   }
+ * @param parsedJob - Result from parseJobTemplate()
+ * @returns Validation result with errors, warnings, and info
  */
-function validateJobTemplate(parsedJob) {
-  const result = {
+function validateJobTemplate(parsedJob: JobTemplateData): JobValidationResult {
+  const result: JobValidationResult = {
     valid: true,
     errors: [],
     warnings: [],
@@ -126,7 +145,10 @@ function validateJobTemplate(parsedJob) {
 /**
  * Validate top-level fields
  */
-function validateTopLevelFields(parsedJob, result) {
+function validateTopLevelFields(
+  parsedJob: JobTemplateData,
+  result: JobValidationResult
+): void {
   const fields = parsedJob.topLevelFields || {};
   const fieldNames = Object.keys(fields);
 
@@ -174,7 +196,10 @@ function validateTopLevelFields(parsedJob, result) {
 /**
  * Validate sections
  */
-function validateSections(parsedJob, result) {
+function validateSections(
+  parsedJob: JobTemplateData,
+  result: JobValidationResult
+): void {
   const sections = parsedJob.sections || {};
   const sectionNames = Object.keys(sections);
 
@@ -222,11 +247,14 @@ function validateSections(parsedJob, result) {
 /**
  * Validate a list-type section
  */
-function validateListSection(sectionName, section, result, isRequired) {
+function validateListSection(
+  sectionName: string,
+  section: { list: string[]; fields?: Record<string, string> },
+  result: JobValidationResult,
+  isRequired?: boolean
+): void {
   if (!section.list || section.list.length === 0) {
-    if (isRequired) {
-      // Already handled in validateSections as a warning
-    } else {
+    if (!isRequired) {
       result.warnings.push({
         type: 'empty_section',
         section: sectionName,
@@ -238,11 +266,13 @@ function validateListSection(sectionName, section, result, isRequired) {
 
 /**
  * Get a human-readable summary of validation results
- * @param {Object} validationResult - Result from validateJobTemplate()
- * @returns {string} Summary text
+ * @param validationResult - Result from validateJobTemplate()
+ * @returns Summary text
  */
-function getValidationSummary(validationResult) {
-  const parts = [];
+function getJobValidationSummary(
+  validationResult: JobValidationResult
+): string {
+  const parts: string[] = [];
 
   if (validationResult.valid) {
     parts.push('✅ Job is valid!');
@@ -278,4 +308,9 @@ function getValidationSummary(validationResult) {
 const validateJob = validateJobTemplate;
 
 // Export functions for use in other modules (ES6 modules)
-export { validateJobTemplate, validateJob, getValidationSummary, JOB_SCHEMA };
+export {
+  validateJobTemplate,
+  validateJob,
+  getJobValidationSummary,
+  JOB_SCHEMA,
+};

@@ -8,7 +8,7 @@ export {
 } from '../../utils/job-parser';
 export {
   validateJobTemplate,
-  getValidationSummary,
+  getJobValidationSummary,
 } from '../../utils/job-validator';
 
 // Status progression order for state-based navigation (v0.2.0)

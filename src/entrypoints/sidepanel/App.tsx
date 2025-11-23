@@ -13,6 +13,7 @@ import type { Job } from '../job-details/hooks';
 import { useJobExtraction, useBackupRestore } from './hooks';
 import { EmptyState } from './components/EmptyState';
 import { ExtractingState } from './components/ExtractingState';
+import { ErrorState } from './components/ErrorState';
 
 /**
  * Sidepanel App - Shows the "job in focus" for quick editing
@@ -170,12 +171,10 @@ export const App: React.FC = () => {
   // Error state
   if (extraction.error) {
     return (
-      <div className="container">
-        <div className="app-error">
-          <p style={{ color: 'red' }}>{extraction.error}</p>
-          <button onClick={() => window.location.reload()}>Retry</button>
-        </div>
-      </div>
+      <ErrorState
+        error={extraction.error}
+        onRetry={() => window.location.reload()}
+      />
     );
   }
 

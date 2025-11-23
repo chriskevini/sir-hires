@@ -314,9 +314,9 @@ export const App: React.FC = () => {
         console.info('[Sidepanel] Creating new job extraction:', jobId);
       }
 
-      // Set job in focus IMMEDIATELY so extraction events are tied to this job
-      await jobInFocusStorage.setValue(jobId);
-      console.info('[Sidepanel] Set jobInFocus:', jobId);
+      // Note: We DON'T set jobInFocus here because the job doesn't exist yet
+      // It will be set after extraction completes and the job is saved
+      // This prevents race conditions where loadJobInFocus() clears a non-existent job
 
       // Request extraction from content script
       const response = await browser.tabs.sendMessage(tab.id, {
@@ -361,38 +361,16 @@ export const App: React.FC = () => {
   }, [loadJobInFocus]);
 
   /**
-   * Register storage change listener with extraction check
+   * Register storage change listener
    */
   useEffect(() => {
-    const handleStorageChangeWithExtractionCheck = (
-      changes: Record<string, unknown>
-    ) => {
-      // If extraction is in progress, ignore jobInFocus changes
-      // The extraction completion handler will reload the job
-      if (extractingJob && changes.jobInFocus) {
-        console.info(
-          '[Sidepanel] Ignoring jobInFocus change during extraction'
-        );
-        // Still process other changes (like jobs updates)
-        const filteredChanges = { ...changes };
-        delete filteredChanges.jobInFocus;
-        if (Object.keys(filteredChanges).length > 0) {
-          handlers.handleStorageChange(filteredChanges);
-        }
-        return;
-      }
-
-      // Normal storage change handling
-      handlers.handleStorageChange(changes);
-    };
-
-    storage.onStorageChange(handleStorageChangeWithExtractionCheck);
+    storage.onStorageChange(handlers.handleStorageChange);
 
     return () => {
-      storage.offStorageChange(handleStorageChangeWithExtractionCheck);
+      storage.offStorageChange(handlers.handleStorageChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handlers.handleStorageChange, extractingJob]); // Watch extractingJob to update the filter
+  }, [handlers.handleStorageChange]);
 
   /**
    * Register extraction event listener
@@ -485,6 +463,13 @@ export const App: React.FC = () => {
               await storage.saveAllJobs(updatedJobs);
 
               console.info('[Sidepanel] Saved completed job to storage');
+
+              // NOW set jobInFocus - the job exists in storage
+              await jobInFocusStorage.setValue(completeEvent.jobId);
+              console.info(
+                '[Sidepanel] Set jobInFocus after extraction:',
+                completeEvent.jobId
+              );
 
               // Clear ephemeral extraction state
               setExtractingJob(null);

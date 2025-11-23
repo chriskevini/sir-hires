@@ -19,5 +19,8 @@ export default defineConfig({
       'contextMenus',
     ],
     host_permissions: ['http://localhost:*/*', 'http://127.0.0.1:*/*'],
+    action: {
+      default_title: 'Sir Hires - Open Sidepanel',
+    },
   },
 });

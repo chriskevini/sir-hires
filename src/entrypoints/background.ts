@@ -208,10 +208,10 @@ ${oldContent
       await jobsStorage.setValue({});
     }
 
-    // Disable side panel on action click (we want popup to open instead)
+    // Enable side panel on action click (left-click opens sidepanel)
     try {
       await browser.sidePanel.setPanelBehavior({
-        openPanelOnActionClick: false,
+        openPanelOnActionClick: true,
       });
     } catch (error) {
       console.error('Error setting side panel behavior:', error);

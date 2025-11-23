@@ -118,11 +118,21 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
       company: parsed
         ? getCompanyName(parsed) || 'Not provided'
         : 'Not provided',
-      aboutJob: (job as any).aboutJob || 'Not provided',
-      aboutCompany: (job as any).aboutCompany || 'Not provided',
-      responsibilities: (job as any).responsibilities || 'Not provided',
-      requirements: (job as any).requirements || 'Not provided',
-      narrativeStrategy: (job as any).narrativeStrategy || 'Not provided',
+      aboutJob:
+        ((job as unknown as Record<string, unknown>).aboutJob as string) ||
+        'Not provided',
+      aboutCompany:
+        ((job as unknown as Record<string, unknown>).aboutCompany as string) ||
+        'Not provided',
+      responsibilities:
+        ((job as unknown as Record<string, unknown>)
+          .responsibilities as string) || 'Not provided',
+      requirements:
+        ((job as unknown as Record<string, unknown>).requirements as string) ||
+        'Not provided',
+      narrativeStrategy:
+        ((job as unknown as Record<string, unknown>)
+          .narrativeStrategy as string) || 'Not provided',
       currentDraft: job.documents?.[documentKey || '']?.text || '',
     };
   };
@@ -333,27 +343,27 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
     {
       key: 'aboutJob',
       label: 'About Job',
-      value: (job as any)?.aboutJob,
+      value: (job as unknown as Record<string, unknown>)?.aboutJob,
     },
     {
       key: 'aboutCompany',
       label: 'About Company',
-      value: (job as any)?.aboutCompany,
+      value: (job as unknown as Record<string, unknown>)?.aboutCompany,
     },
     {
       key: 'responsibilities',
       label: 'Responsibilities',
-      value: (job as any)?.responsibilities,
+      value: (job as unknown as Record<string, unknown>)?.responsibilities,
     },
     {
       key: 'requirements',
       label: 'Requirements',
-      value: (job as any)?.requirements,
+      value: (job as unknown as Record<string, unknown>)?.requirements,
     },
     {
       key: 'narrativeStrategy',
       label: 'Narrative Strategy',
-      value: (job as any)?.narrativeStrategy,
+      value: (job as unknown as Record<string, unknown>)?.narrativeStrategy,
     },
     {
       key: 'currentDraft',
@@ -363,7 +373,10 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   ];
 
   const missingFields = dataFields.filter(
-    (f) => !f.value || f.value.trim() === ''
+    (f) =>
+      !f.value ||
+      (typeof f.value === 'string' && f.value.trim() === '') ||
+      typeof f.value !== 'string'
   );
 
   return (
@@ -373,7 +386,10 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
           <label>Input Data Status:</label>
           <ul className="data-checklist">
             {dataFields.map((field) => {
-              const isFilled = field.value && field.value.trim().length > 0;
+              const isFilled =
+                field.value &&
+                typeof field.value === 'string' &&
+                field.value.trim().length > 0;
               const bulletClass = isFilled
                 ? 'data-bullet-filled'
                 : 'data-bullet-empty';

@@ -166,6 +166,7 @@ export function ParsedJobProvider({ jobs, children }: ParsedJobProviderProps) {
  * const parsed = useParsedJob(job.id);
  * const title = parsed?.topLevelFields['TITLE'] || 'Untitled';
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useParsedJob(jobId: string | null): JobTemplateData | null {
   const context = useContext(ParsedJobContext);
 
@@ -195,6 +196,7 @@ export function useParsedJob(jobId: string | null): JobTemplateData | null {
  *   return compareFunction(parsedA, parsedB);
  * });
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useGetParsedJob(): (jobId: string) => JobTemplateData | null {
   const context = useContext(ParsedJobContext);
 

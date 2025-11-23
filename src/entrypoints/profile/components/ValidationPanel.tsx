@@ -221,6 +221,7 @@ export function ValidationPanel({
  * Utility hook to compute editor className based on validation state.
  * Returns 'has-errors', 'has-warnings', 'is-valid', or empty string.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useValidationEditorClass(
   validation: ValidationResult,
   content: string

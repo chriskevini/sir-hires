@@ -140,9 +140,10 @@ export function useProfileValidation({
           generateFix(error)
         );
         setValidationFixes(fixes);
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const err = error as Error;
         setValidation({
-          errors: [{ message: `Parse error: ${error.message}` }],
+          errors: [{ message: `Parse error: ${err.message}` }],
           warnings: [],
           info: [],
           customFields: [],

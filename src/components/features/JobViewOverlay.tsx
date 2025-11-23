@@ -16,10 +16,12 @@ import './JobViewOverlay.css';
  * @param props - Overlay configuration
  * @returns Overlay container with Checklist and NavigationButtons
  */
+import { ChecklistItem } from '@/entrypoints/job-details/hooks/useJobState';
+
 interface JobViewOverlayProps {
   job: {
     id: string;
-    checklist?: Record<string, any>;
+    checklist?: Record<string, ChecklistItem[]>;
     applicationStatus: string;
   };
   jobIndex: number;

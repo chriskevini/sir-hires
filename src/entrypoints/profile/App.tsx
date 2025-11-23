@@ -392,7 +392,7 @@ BULLETS:
   };
 
   const goBack = () => {
-    window.location.href = (browser.runtime as any).getURL('job-details.html');
+    window.location.href = browser.runtime.getURL('/job-details.html');
   };
 
   // Compute editor className based on validation state

@@ -7,6 +7,136 @@ import {
   extractionTriggerStorage,
 } from '../utils/storage';
 
+// Message type definitions
+interface BaseMessage {
+  action: string;
+}
+
+interface GetJobsMessage extends BaseMessage {
+  action: 'getJobs';
+}
+
+interface ChecklistItem {
+  id: string;
+  text: string;
+  checked: boolean;
+  order: number;
+}
+
+interface JobDocument {
+  title: string;
+  text: string;
+  lastEdited: string | null;
+  order: number;
+}
+
+interface SaveJobMessage extends BaseMessage {
+  action: 'saveJob';
+  job: {
+    id: string;
+    content?: string;
+    url: string;
+    applicationStatus: string;
+    checklist?: Record<string, ChecklistItem[]>;
+    documents?: Record<string, JobDocument>;
+    updatedAt: string;
+    createdAt: string;
+  };
+}
+
+interface CallLLMMessage extends BaseMessage {
+  action: 'callLLM';
+  endpoint: string;
+  requestBody: unknown;
+}
+
+interface LLMSettings {
+  provider: string;
+  model: string;
+  apiEndpoint: string;
+  endpoint: string;
+  modelsEndpoint?: string;
+  maxTokens?: number;
+  temperature?: number;
+}
+
+interface StreamExtractJobMessage extends BaseMessage {
+  action: 'streamExtractJob';
+  jobId: string;
+  url: string;
+  source: string;
+  rawText: string;
+  llmSettings?: LLMSettings;
+}
+
+interface CancelExtractionMessage extends BaseMessage {
+  action: 'cancelExtraction';
+  jobId: string;
+}
+
+interface SetJobInFocusMessage extends BaseMessage {
+  action: 'setJobInFocus';
+  jobId: string | null;
+}
+
+interface DeleteJobMessage extends BaseMessage {
+  action: 'deleteJob';
+  jobId: string;
+}
+
+type RuntimeMessage =
+  | GetJobsMessage
+  | SaveJobMessage
+  | CallLLMMessage
+  | StreamExtractJobMessage
+  | CancelExtractionMessage
+  | SetJobInFocusMessage
+  | DeleteJobMessage;
+
+// Internal notification message types (sent from background to components)
+interface ExtractionStartedMessage extends BaseMessage {
+  action: 'extractionStarted';
+  jobId: string;
+  url: string;
+  source: string;
+  rawText: string;
+}
+
+interface ExtractionChunkMessage extends BaseMessage {
+  action: 'extractionChunk';
+  jobId: string;
+  chunk: string;
+}
+
+interface ExtractionCompleteMessage extends BaseMessage {
+  action: 'extractionComplete';
+  jobId: string;
+  fullContent: string;
+}
+
+interface ExtractionCancelledMessage extends BaseMessage {
+  action: 'extractionCancelled';
+  jobId: string;
+}
+
+interface ExtractionErrorMessage extends BaseMessage {
+  action: 'extractionError';
+  jobId: string;
+  error: string;
+}
+
+type NotificationMessage =
+  | ExtractionStartedMessage
+  | ExtractionChunkMessage
+  | ExtractionCompleteMessage
+  | ExtractionCancelledMessage
+  | ExtractionErrorMessage;
+
+interface ActiveExtraction {
+  llmClient: LLMClient;
+  streamId: string;
+}
+
 export default defineBackground(() => {
   // Global keepalive to prevent service worker termination
   // Chrome terminates inactive service workers after ~30 seconds
@@ -15,8 +145,7 @@ export default defineBackground(() => {
 
   // Track active extractions for cancellation
   // Map: jobId → { llmClient, streamId }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const activeExtractions = new Map<string, any>();
+  const activeExtractions = new Map<string, ActiveExtraction>();
 
   function startGlobalKeepAlive() {
     if (globalKeepAliveInterval) {
@@ -98,7 +227,7 @@ export default defineBackground(() => {
     }
 
     // Save migrated data
-    const dataToSave: Record<string, any> = {
+    const dataToSave: Record<string, unknown> = {
       jobs: migratedJobs,
       schemaMigrated: true,
     };
@@ -273,7 +402,7 @@ BULLETS:
             // The sidepanel's extractionTriggerStorage.watch() will detect the change
             // and automatically start the extraction flow
           })
-          .catch((error: any) => {
+          .catch((error: unknown) => {
             console.error(
               '[Background] Error handling extraction context menu:',
               error
@@ -288,7 +417,7 @@ BULLETS:
           .then(() => {
             console.info('[Background] Popup opened successfully');
           })
-          .catch((error: any) => {
+          .catch((error: unknown) => {
             console.error('[Background] Error opening popup:', error);
           });
       } else if (info.menuItemId === 'view-all-jobs') {
@@ -310,7 +439,7 @@ BULLETS:
   );
 
   // Helper function to call LLM API
-  async function callLLMAPI(endpoint: string, requestBody: any) {
+  async function callLLMAPI(endpoint: string, requestBody: unknown) {
     console.info('[Background] Calling LLM API:', endpoint);
     console.info(
       '[Background] Request body:',
@@ -347,13 +476,14 @@ BULLETS:
         JSON.stringify(data).length
       );
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[Background] Error calling LLM API:', error);
+      const err = error as Error;
 
       // Provide more specific error messages
-      if (error.name === 'AbortError') {
+      if (err.name === 'AbortError') {
         throw new Error('LLM request timed out after 60 seconds');
-      } else if (error.message.includes('Failed to fetch')) {
+      } else if (err.message.includes('Failed to fetch')) {
         throw new Error(
           'Cannot connect to LM Studio. Make sure it is running on ' + endpoint
         );
@@ -372,7 +502,7 @@ BULLETS:
 
   // Helper function to send messages with retry logic (for sidepanel timing issues)
   async function sendMessageWithRetry(
-    message: any,
+    message: NotificationMessage,
     maxRetries: number = 5,
     delayMs: number = 200
   ): Promise<void> {
@@ -383,8 +513,9 @@ BULLETS:
           `[Background] Message sent successfully: ${message.action}`
         );
         return; // Success!
-      } catch (err: any) {
-        if (err.message?.includes('Receiving end does not exist')) {
+      } catch (err: unknown) {
+        const error = err as Error;
+        if (error.message?.includes('Receiving end does not exist')) {
           if (attempt < maxRetries) {
             console.info(
               `[Background] Sidepanel not ready, retrying (${attempt}/${maxRetries})...`
@@ -409,11 +540,9 @@ BULLETS:
   // Handle messages from other parts of the extension
   browser.runtime.onMessage.addListener(
     (
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      request: any,
+      request: RuntimeMessage,
       _sender: Browser.runtime.MessageSender,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      sendResponse: (response?: any) => void
+      sendResponse: (response?: unknown) => void
     ) => {
       // Note: WXT handles async message handlers automatically
 
@@ -444,9 +573,10 @@ BULLETS:
               request.requestBody
             );
             sendResponse({ success: true, data: data });
-          } catch (error: any) {
+          } catch (error: unknown) {
             console.error('[Background] LLM call failed:', error);
-            sendResponse({ success: false, error: error.message });
+            const err = error as Error;
+            sendResponse({ success: false, error: err.message });
           }
         })();
         return true;
@@ -454,11 +584,27 @@ BULLETS:
 
       if (request.action === 'streamExtractJob') {
         // Handle streaming job extraction with LLM
-        const { jobId, url, source, rawText, llmSettings } = request;
+        const {
+          jobId,
+          url,
+          source,
+          rawText,
+          llmSettings: userLlmSettings,
+        } = request;
         console.info(
           '[Background] Received streaming extraction request for job:',
           jobId
         );
+
+        // Use user settings or fallback to config defaults
+        const llmSettings: LLMSettings = userLlmSettings || {
+          provider: 'lm-studio',
+          model: llmConfig.extraction.defaultModel,
+          apiEndpoint: llmConfig.extraction.endpoint,
+          endpoint: llmConfig.extraction.endpoint,
+          maxTokens: 2000,
+          temperature: 0.3,
+        };
 
         // Start global keepalive BEFORE responding to ensure worker stays alive
         startGlobalKeepAlive();
@@ -540,7 +686,7 @@ BULLETS:
                     jobId: jobId,
                     chunk: delta,
                   })
-                  .catch((err: any) => {
+                  .catch((err: unknown) => {
                     console.error(
                       '[Background] Failed to send chunk to sidepanel:',
                       err
@@ -558,7 +704,7 @@ BULLETS:
               await sendMessageWithRetry({
                 action: 'extractionCancelled',
                 jobId: jobId,
-              }).catch((err: any) => {
+              }).catch((err: unknown) => {
                 console.error(
                   '[Background] Failed to send cancellation to sidepanel:',
                   err
@@ -572,7 +718,7 @@ BULLETS:
               action: 'extractionComplete',
               jobId: jobId,
               fullContent: result.documentContent,
-            }).catch((err: any) => {
+            }).catch((err: unknown) => {
               console.error(
                 '[Background] Failed to send completion to sidepanel:',
                 err
@@ -583,15 +729,16 @@ BULLETS:
               '[Background] Streaming extraction completed for job:',
               jobId
             );
-          } catch (error: any) {
+          } catch (error: unknown) {
             console.error('[Background] Streaming extraction failed:', error);
 
             // Send error to sidepanel
+            const err = error as Error;
             await sendMessageWithRetry({
               action: 'extractionError',
               jobId: jobId,
-              error: error.message,
-            }).catch((err: any) => {
+              error: err.message,
+            }).catch((err: unknown) => {
               console.error(
                 '[Background] Failed to send error to sidepanel:',
                 err
@@ -648,9 +795,10 @@ BULLETS:
             const { jobInFocusStorage } = await import('../utils/storage');
             await jobInFocusStorage.setValue(jobId);
             sendResponse({ success: true });
-          } catch (error: any) {
+          } catch (error: unknown) {
             console.error('[Background] Failed to set jobInFocus:', error);
-            sendResponse({ success: false, error: error.message });
+            const err = error as Error;
+            sendResponse({ success: false, error: err.message });
           }
         })();
 
@@ -680,9 +828,10 @@ BULLETS:
 
             console.info('[Background] Job deleted successfully:', jobId);
             sendResponse({ success: true });
-          } catch (error: any) {
+          } catch (error: unknown) {
             console.error('[Background] Failed to delete job:', error);
-            sendResponse({ success: false, error: error.message });
+            const err = error as Error;
+            sendResponse({ success: false, error: err.message });
           }
         })();
 

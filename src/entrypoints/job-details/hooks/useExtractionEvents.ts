@@ -132,14 +132,23 @@ export function useExtractionEvents() {
    */
   useEffect(() => {
     const listener = (
-      message: any,
-      _sender: any,
-      _sendResponse: (response?: any) => void
+      message: unknown,
+      _sender: unknown,
+      _sendResponse: (response?: unknown) => void
     ) => {
+      // Type guard for extraction messages
+      const isExtractionMessage = (msg: unknown): msg is { action: string } => {
+        return (
+          typeof msg === 'object' &&
+          msg !== null &&
+          'action' in msg &&
+          typeof (msg as { action: unknown }).action === 'string'
+        );
+      };
+
       // Only handle extraction-related messages
       if (
-        message.action &&
-        typeof message.action === 'string' &&
+        isExtractionMessage(message) &&
         message.action.startsWith('extraction')
       ) {
         const extractionEvent = message as ExtractionEvent;

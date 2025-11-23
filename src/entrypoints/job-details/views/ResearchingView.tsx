@@ -7,6 +7,7 @@ import {
   useEditorState,
   useJobValidation,
   useSimpleAutoSave,
+  ChecklistItem,
 } from '../hooks';
 import { ValidationPanel } from '@/components/ui/ValidationPanel';
 import { EditorHeader } from '@/components/ui/EditorHeader';
@@ -22,7 +23,7 @@ interface Job {
   content?: string;
   isExtracting?: boolean;
   extractionError?: string;
-  checklist?: any;
+  checklist?: Record<string, ChecklistItem[]>;
   applicationStatus: string;
 }
 

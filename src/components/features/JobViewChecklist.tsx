@@ -1,8 +1,9 @@
 import React from 'react';
 import { Checklist } from '@/entrypoints/job-details/components/checklist';
+import { ChecklistItem } from '@/entrypoints/job-details/hooks/useJobState';
 
 interface JobViewChecklistProps {
-  checklist: any;
+  checklist: Record<string, ChecklistItem[]> | undefined;
   applicationStatus: string;
   jobIndex: number;
   isExpanded?: boolean;
@@ -22,6 +23,11 @@ export const JobViewChecklist: React.FC<JobViewChecklistProps> = ({
   onToggleExpand,
   onToggleItem,
 }) => {
+  // Return null if no checklist data
+  if (!checklist) {
+    return null;
+  }
+
   return (
     <Checklist
       checklist={checklist}

@@ -109,8 +109,9 @@ export const exportPDF = (
     printWindow.onload = () => {
       printWindow.print();
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('PDF export failed:', error);
-    onToast?.(`Failed to export PDF: ${error.message}`, 'error');
+    const err = error as Error;
+    onToast?.(`Failed to export PDF: ${err.message}`, 'error');
   }
 };

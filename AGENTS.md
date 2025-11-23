@@ -52,6 +52,16 @@ my-extension/
   - Must contain a `main.tsx` (to mount the React app).
 - **No Shared Code:** **NEVER** put shared components, utils, or styles inside `entrypoints/`. WXT treats _every_ file in this directory as a separate entrypoint. Move shared code to `src/components/` or `src/hooks/`.
 
+### Component & Hook Reuse
+
+This project has **14 reusable UI/feature components** and **22 custom hooks** to accelerate development and maintain consistency. Before creating new components or state management logic, consult these references:
+
+- **[docs/QUICK_REFERENCE.md](./docs/QUICK_REFERENCE.md)** - Quick lookup tables and decision trees
+- **[docs/COMPONENTS_REFERENCE.md](./docs/COMPONENTS_REFERENCE.md)** - Detailed component documentation (Modal, ValidationPanel, CollapsiblePanel, etc.)
+- **[docs/HOOKS_REFERENCE.md](./docs/HOOKS_REFERENCE.md)** - Detailed hooks documentation (useToggleState, useJobValidation, useParsedJob, etc.)
+
+**Key Rule:** Always search existing components/hooks before building new ones. Reusing existing patterns prevents code duplication and ensures consistent UX.
+
 ## 3. Best Practices & Conventions
 
 ### React & Coding Style

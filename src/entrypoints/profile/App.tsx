@@ -76,7 +76,7 @@ BULLETS:
 - Reading
 // ex: # CERTIFICATIONS:`;
 
-export default function ProfileApp() {
+export default function App() {
   // State
   const [content, setContent] = useState('');
   const [savedContent, setSavedContent] = useState('');

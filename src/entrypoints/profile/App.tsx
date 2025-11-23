@@ -103,6 +103,7 @@ export default function App() {
       if (lastSavedIntervalRef.current)
         clearInterval(lastSavedIntervalRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadProfile = async () => {

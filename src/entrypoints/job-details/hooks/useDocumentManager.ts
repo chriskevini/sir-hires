@@ -3,7 +3,7 @@
  * Extracts document-related logic from DraftingView
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { defaultDocuments } from '@/utils/document-config';
 import { formatSaveTime } from '@/utils/date-utils';
 import { documentTemplates } from '../config';
@@ -15,12 +15,12 @@ interface Document {
   order: number;
 }
 
-interface Job {
+interface JobWithDocuments {
   documents?: Record<string, Document>;
 }
 
 interface UseDocumentManagerProps {
-  job: Job;
+  job: JobWithDocuments;
   jobIndex: number;
   parsedJob: {
     jobTitle?: string;
@@ -111,10 +111,12 @@ export const useDocumentManager = ({
 
   /**
    * Initialize documents with templates if they don't exist
-   * Runs once on mount
+   * Uses ref to track initialization to avoid re-running
    */
+  const hasInitializedRef = useRef(false);
+
   useEffect(() => {
-    if (!job.documents) {
+    if (!hasInitializedRef.current && !job.documents) {
       const newDocuments = {
         tailoredResume: {
           title: defaultDocuments.tailoredResume.defaultTitle(
@@ -136,8 +138,15 @@ export const useDocumentManager = ({
         },
       };
       onInitializeDocuments(jobIndex, newDocuments);
+      hasInitializedRef.current = true;
     }
-  }, []); // Empty deps - only run on mount
+  }, [
+    job.documents,
+    jobIndex,
+    onInitializeDocuments,
+    parsedJob.company,
+    parsedJob.jobTitle,
+  ]);
 
   return {
     documentKeys: getDocumentKeys(),

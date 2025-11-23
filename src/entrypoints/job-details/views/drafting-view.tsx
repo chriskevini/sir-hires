@@ -122,7 +122,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     });
 
     initializeContents(contents);
-  }, [job.documents]);
+  }, [job.documents, documentKeys, getDocument, initializeContents]);
 
   // Update word count when active tab changes or content changes
   useEffect(() => {
@@ -135,7 +135,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   useEffect(() => {
     const doc = getDocument(activeTab);
     setSaveStatus(getInitialSaveStatus(doc));
-  }, [activeTab]);
+  }, [activeTab, getDocument, getInitialSaveStatus, setSaveStatus]);
 
   // Handle textarea change
   const handleTextareaChange = useCallback(

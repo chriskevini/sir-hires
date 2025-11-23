@@ -203,7 +203,7 @@ export class JobService {
    * @param {string} newStatus - Target status
    * @returns {boolean} True if transition is valid
    */
-  validateStatusTransition(oldStatus, newStatus) {
+  validateStatusTransition(oldStatus, _newStatus) {
     // Currently no restrictions, but could add business rules here
     // For example: prevent moving forward from terminal states
     if (this.isTerminalState(oldStatus)) {

@@ -128,7 +128,7 @@ export class LLMClient {
       reader: null,
     });
 
-    console.log('[LLMClient] Registered stream for cancellation:', streamId);
+    console.info('[LLMClient] Registered stream for cancellation:', streamId);
 
     try {
       // Call LM Studio API with streaming enabled
@@ -212,7 +212,7 @@ export class LLMClient {
       let documentContent = '';
       let finishReason = null;
 
-      console.log('[LLMClient] Starting stream processing...');
+      console.info('[LLMClient] Starting stream processing...');
 
       try {
         while (true) {
@@ -241,7 +241,7 @@ export class LLMClient {
               if (state === null) {
                 // Check if first delta contains thinking tag
                 if (/<(?:think|thinking|reasoning)>/i.test(delta)) {
-                  console.log('[LLMClient] Detected thinking mode');
+                  console.info('[LLMClient] Detected thinking mode');
                   state = 'IN_THINKING';
                   buffer = delta;
 
@@ -263,7 +263,7 @@ export class LLMClient {
                   }
                 } else {
                   // Standard model without thinking tags
-                  console.log(
+                  console.info(
                     '[LLMClient] Detected standard mode (no thinking tags)'
                   );
                   state = 'IN_DOCUMENT';
@@ -281,7 +281,7 @@ export class LLMClient {
 
                 // Check for end of thinking block
                 if (/<\/(?:think|thinking|reasoning)>/i.test(buffer)) {
-                  console.log(
+                  console.info(
                     '[LLMClient] Thinking block complete, switching to document mode'
                   );
                   state = 'IN_DOCUMENT';
@@ -337,7 +337,7 @@ export class LLMClient {
         throw error;
       }
 
-      console.log('[LLMClient] Stream complete, final state:', state);
+      console.info('[LLMClient] Stream complete, final state:', state);
 
       return {
         thinkingContent: thinkingContent.trim(),
@@ -348,7 +348,7 @@ export class LLMClient {
     } catch (error) {
       // Handle abortion/cancellation
       if (error.name === 'AbortError') {
-        console.log('[LLMClient] Stream cancelled:', streamId);
+        console.info('[LLMClient] Stream cancelled:', streamId);
         return {
           thinkingContent: '',
           documentContent: '',
@@ -360,7 +360,7 @@ export class LLMClient {
     } finally {
       // Clean up stream registration
       this.activeStreams.delete(streamId);
-      console.log('[LLMClient] Cleaned up stream:', streamId);
+      console.info('[LLMClient] Cleaned up stream:', streamId);
     }
   }
 
@@ -371,11 +371,11 @@ export class LLMClient {
   cancelStream(streamId) {
     const streamInfo = this.activeStreams.get(streamId);
     if (!streamInfo) {
-      console.log('[LLMClient] No active stream to cancel:', streamId);
+      console.info('[LLMClient] No active stream to cancel:', streamId);
       return;
     }
 
-    console.log('[LLMClient] Cancelling stream:', streamId);
+    console.info('[LLMClient] Cancelling stream:', streamId);
 
     // Abort the fetch request
     streamInfo.abortController.abort();
@@ -390,6 +390,6 @@ export class LLMClient {
     // Remove from active streams
     this.activeStreams.delete(streamId);
 
-    console.log('[LLMClient] Stream cancelled successfully:', streamId);
+    console.info('[LLMClient] Stream cancelled successfully:', streamId);
   }
 }

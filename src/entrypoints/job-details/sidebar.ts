@@ -84,7 +84,7 @@ export class Sidebar extends BaseView {
    * @param {HTMLElement} container - The sidebar container element
    * @param {Array} jobs - Array of job objects (filtered)
    */
-  attachListeners(container, jobs) {
+  attachListeners(container, _jobs) {
     const cards = container.querySelectorAll('.job-card-compact');
 
     cards.forEach((card, index) => {

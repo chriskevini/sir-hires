@@ -59,7 +59,7 @@ export class NavigationService {
         return view.render(job, index);
       },
       // Attach listeners callback
-      (job, index) => {
+      (_, _index) => {
         this.mainView.reattachListeners(document.getElementById('detailPanel'));
         this.navigation.updateNavigationButtons(newStatus, jobIndex);
       }

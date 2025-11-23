@@ -76,7 +76,7 @@ export class BaseView {
         month: 'short',
         day: 'numeric',
       });
-    } catch (_error) {
+    } catch {
       return dateString;
     }
   }
@@ -103,7 +103,7 @@ export class BaseView {
       if (diffDays < -1) return `${Math.abs(diffDays)} days ago`;
 
       return this.formatAbsoluteDate(dateString);
-    } catch (_error) {
+    } catch {
       return dateString;
     }
   }

@@ -16,7 +16,7 @@ import { useAutoSave } from '../hooks/useAutoSave';
 import { useTabState } from '../hooks/useTabState';
 import { useToggleState } from '../hooks/useToggleState';
 import { useDocumentManager } from '../hooks/useDocumentManager';
-import type { Job, JobDocument } from '../hooks';
+import type { Job } from '../hooks';
 import './drafting-view.css';
 
 interface Document {
@@ -49,7 +49,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   job,
   index,
   isChecklistExpanded = false,
-  onDeleteJob,
+  onDeleteJob: _onDeleteJob,
   onSaveField,
   onSaveDocument,
   onInitializeDocuments,

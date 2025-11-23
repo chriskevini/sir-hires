@@ -1,4 +1,5 @@
 // Shared utility functions for sir-hires Chrome extension
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 // ===========================
 // HTML & Display Utilities

@@ -423,7 +423,7 @@ export class StorageService {
       await browser.storage.local.clear();
 
       // Exclude dataVersion from restore to allow migration to detect and update it
-      const { dataVersion, ...restoreData } = data;
+      const { dataVersion: _dataVersion, ...restoreData } = data;
 
       await browser.storage.local.set(restoreData);
     } catch (error) {

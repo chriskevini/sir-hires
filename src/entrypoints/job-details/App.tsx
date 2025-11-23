@@ -9,7 +9,13 @@ import {
 } from '../../components/features/ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '../../utils/job-parser';
 import { initDevModeValidation } from '../../utils/dev-validators';
+import {
+  getAllStorageData,
+  restoreStorageFromBackup,
+  clearAllStorage,
+} from '../../utils/storage';
 import { defaults } from './config';
+import { browser } from 'wxt/browser';
 
 /**
  * Inner component that uses ParsedJobProvider context
@@ -188,6 +194,126 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
     [jobState, storage]
   );
 
+  /**
+   * Open profile.html in a new tab
+   */
+  const handleProfileClick = useCallback(() => {
+    browser.tabs.create({ url: '/profile.html' });
+  }, []);
+
+  /**
+   * Create backup and download as JSON file
+   */
+  const handleCreateBackup = useCallback(async () => {
+    try {
+      const data = await getAllStorageData();
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `sir-hires-backup-${timestamp}.json`;
+
+      // Wrap with metadata for validation
+      const backup = {
+        version: '1.0',
+        exportDate: new Date().toISOString(),
+        data: data,
+      };
+
+      const json = JSON.stringify(backup, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+
+      // Trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      console.info(`Backup created: ${filename}`);
+    } catch (err) {
+      console.error('Error creating backup:', err);
+      alert('Failed to create backup. See console for details.');
+    }
+  }, []);
+
+  /**
+   * Restore backup from uploaded JSON file
+   */
+  const handleRestoreBackup = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const backup = JSON.parse(text);
+
+        // Support both new format (with metadata) and legacy format (raw data)
+        const data = backup.version && backup.data ? backup.data : backup;
+
+        console.info('Backup format detected:', {
+          hasVersion: !!backup.version,
+          hasData: !!backup.data,
+          keys: Object.keys(backup).slice(0, 10),
+        });
+
+        // eslint-disable-next-line no-undef
+        const confirmed = confirm(
+          'This will overwrite all current data. Are you sure you want to restore this backup?'
+        );
+        if (!confirmed) return;
+
+        await restoreStorageFromBackup(data);
+        console.info('Backup restored successfully');
+        alert('Backup restored! The page will now reload.');
+        window.location.reload();
+      } catch (err) {
+        console.error('Error restoring backup:', err);
+        console.error('Error details:', {
+          message: err instanceof Error ? err.message : String(err),
+          fileName: file.name,
+        });
+        alert(
+          'Failed to restore backup. Check the console for details. Make sure the file is a valid JSON backup.'
+        );
+      }
+    };
+
+    input.click();
+  }, []);
+
+  /**
+   * Delete all storage data (with double confirmation)
+   */
+  const handleDeleteAll = useCallback(async () => {
+    // eslint-disable-next-line no-undef
+    const firstConfirm = confirm(
+      'WARNING: This will permanently delete ALL jobs and data. This cannot be undone. Are you sure?'
+    );
+    if (!firstConfirm) return;
+
+    // eslint-disable-next-line no-undef
+    const secondConfirm = confirm(
+      'FINAL WARNING: This is your last chance to cancel. Delete everything?'
+    );
+    if (!secondConfirm) return;
+
+    try {
+      await clearAllStorage();
+      console.info('All storage cleared');
+      alert('All data has been deleted. The page will now reload.');
+      window.location.reload();
+    } catch (err) {
+      console.error('Error clearing storage:', err);
+      alert('Failed to clear storage. See console for details.');
+    }
+  }, []);
+
   // Initialize shared job handlers
   const handlers = useJobHandlers(
     jobState,
@@ -335,49 +461,67 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
 
   return (
     <div className="container">
-      {/* Header with filters */}
+      {/* Header with title and action buttons */}
       <header>
-        <div className="filter-controls">
-          <input
-            type="text"
-            id="searchInput"
-            placeholder="Search jobs..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          {/* Source filter removed - source no longer stored */}
-          <select
-            id="statusFilter"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">All Statuses</option>
-            <option value="Researching">Researching</option>
-            <option value="Drafting">Drafting</option>
-            <option value="Awaiting Review">Awaiting Review</option>
-            <option value="Interviewing">Interviewing</option>
-            <option value="Deciding">Deciding</option>
-            <option value="Accepted">Accepted</option>
-            <option value="Rejected">Rejected</option>
-            <option value="Withdrawn">Withdrawn</option>
-          </select>
-          <select
-            id="sortFilter"
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-          >
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-            <option value="company">Company (A-Z)</option>
-            <option value="title">Title (A-Z)</option>
-          </select>
+        <div className="header-title">
+          <h1>Saved Jobs</h1>
+          <span className="job-count">
+            {jobState.filteredJobs.length} of {jobState.allJobs.length} jobs
+          </span>
+        </div>
+        <div className="header-actions">
+          <button onClick={handleProfileClick}>Profile</button>
+          <button onClick={handleCreateBackup}>Create Backup</button>
+          <button onClick={handleRestoreBackup}>Restore Backup</button>
+          <button onClick={handleDeleteAll} className="danger">
+            Delete All
+          </button>
         </div>
       </header>
 
       {/* Main content area */}
       <div className="main-content">
-        {/* Sidebar with job list */}
+        {/* Sidebar with filters and job list */}
         <div className="sidebar">
+          <div className="sidebar-header">
+            <div className="filters">
+              <input
+                type="text"
+                id="searchInput"
+                className="filter-input"
+                placeholder="Search jobs..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <select
+                id="statusFilter"
+                className="filter-input"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="">All Statuses</option>
+                <option value="Researching">Researching</option>
+                <option value="Drafting">Drafting</option>
+                <option value="Awaiting Review">Awaiting Review</option>
+                <option value="Interviewing">Interviewing</option>
+                <option value="Deciding">Deciding</option>
+                <option value="Accepted">Accepted</option>
+                <option value="Rejected">Rejected</option>
+                <option value="Withdrawn">Withdrawn</option>
+              </select>
+              <select
+                id="sortFilter"
+                className="filter-input"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+              >
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="company">Company (A-Z)</option>
+                <option value="title">Title (A-Z)</option>
+              </select>
+            </div>
+          </div>
           <div className="jobs-list-sidebar" id="jobsList">
             {jobState.filteredJobs.map((job, filteredIndex) => {
               const globalIndex = jobState.allJobs.findIndex(

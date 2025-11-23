@@ -30,18 +30,22 @@ export function useBackupRestore(storage: BackupStorage) {
         const text = await file.text();
         const backup = JSON.parse(text);
 
-        // Validate backup structure (support both old nested and new flat format)
-        const isOldFormat = backup.data !== undefined;
-        const backupData = isOldFormat ? backup.data : backup;
+        // Validate backup structure (support both new format with metadata and legacy format)
+        const isNewFormat = backup.version && backup.data !== undefined;
+        const backupData = isNewFormat ? backup.data : backup;
 
-        if (!backup.version) {
+        // Basic validation - check if backup has jobs field
+        if (!backupData || typeof backupData !== 'object') {
           alert('Invalid backup file format.');
           return;
         }
 
         // Confirm overwrite
         const jobCount = Object.keys(backupData.jobs || {}).length;
-        const confirmMsg = `This will overwrite all your current data with the backup from ${new Date(backup.exportDate).toLocaleString()}.\n\nBackup contains ${jobCount} job(s).\n\nThis cannot be undone. Continue?`;
+        const backupDate = backup.exportDate
+          ? new Date(backup.exportDate).toLocaleString()
+          : 'unknown date';
+        const confirmMsg = `This will overwrite all your current data with the backup from ${backupDate}.\n\nBackup contains ${jobCount} job(s).\n\nThis cannot be undone. Continue?`;
 
         // eslint-disable-next-line no-undef
         if (!confirm(confirmMsg)) {

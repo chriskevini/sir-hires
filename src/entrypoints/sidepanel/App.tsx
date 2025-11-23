@@ -14,6 +14,7 @@ import { useJobExtraction, useBackupRestore } from './hooks';
 import { EmptyState } from './components/EmptyState';
 import { ExtractingState } from './components/ExtractingState';
 import { ErrorState } from './components/ErrorState';
+import { DuplicateJobModal } from './components/DuplicateJobModal';
 
 /**
  * Sidepanel App - Shows the "job in focus" for quick editing
@@ -85,10 +86,11 @@ export const App: React.FC = () => {
       setIsLoading(false);
       isInitialLoadRef.current = false;
     }
-  }, [storage, jobState]); // storage is stable (from useJobStorage), jobState setters are stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storage]); // jobState setters are stable but cause false re-renders if included
 
   // Use extraction hook
-  const extraction = useJobExtraction(storage, loadJobInFocus);
+  const extraction = useJobExtraction(storage, loadJobInFocus, currentJob);
 
   // Use backup/restore hook
   const backup = useBackupRestore(storage);
@@ -116,7 +118,8 @@ export const App: React.FC = () => {
   useEffect(() => {
     console.info('[Sidepanel] Initializing...');
     loadJobInFocus();
-  }, [loadJobInFocus]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount - storage changes handled by listener
 
   /**
    * Register storage change listener
@@ -200,6 +203,18 @@ export const App: React.FC = () => {
 
       <footer id="footer" className="footer">
         <button
+          id="extractJobBtn"
+          className="btn btn-secondary"
+          onClick={() => {
+            console.info('[App.tsx] Extract button clicked!');
+            extraction.handleExtractJob();
+          }}
+          disabled={extraction.extracting}
+          title="Extract job data from the current tab"
+        >
+          {extraction.extracting ? 'Extracting...' : 'Extract Job Data'}
+        </button>
+        <button
           id="viewAllJobsBtn"
           className="btn btn-primary"
           onClick={handleOpenJobDetails}
@@ -207,6 +222,17 @@ export const App: React.FC = () => {
           Manage
         </button>
       </footer>
+
+      {/* Duplicate Job Modal */}
+      {extraction.pendingExtraction && (
+        <DuplicateJobModal
+          isOpen={extraction.showDuplicateModal}
+          jobUrl={extraction.pendingExtraction.url}
+          onRefresh={extraction.handleRefreshJob}
+          onExtractNew={extraction.handleExtractNew}
+          onCancel={extraction.handleCancelDuplicate}
+        />
+      )}
     </div>
   );
 };

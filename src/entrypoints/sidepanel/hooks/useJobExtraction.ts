@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { browser } from 'wxt/browser';
 import {
   llmSettingsStorage,
-  jobsStorage,
   extractionTriggerStorage,
   type LLMSettings,
 } from '../../../utils/storage';
@@ -14,6 +13,7 @@ import type {
   ExtractionChunkMessage,
   ExtractionCompleteMessage,
 } from '../../job-details/hooks';
+import { normalizeUrl } from '../../../utils/shared-utils';
 
 /**
  * Ephemeral extraction state (not persisted to storage)
@@ -39,7 +39,8 @@ export interface JobStorage {
  */
 export function useJobExtraction(
   storage: JobStorage,
-  loadJobInFocus: () => Promise<void>
+  loadJobInFocus: () => Promise<void>,
+  currentJob: Job | null
 ) {
   const extractionEvents = useExtractionEvents();
 
@@ -49,10 +50,24 @@ export function useJobExtraction(
   );
   const [error, setError] = useState<string | null>(null);
 
+  // Modal state for duplicate job handling
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [pendingExtraction, setPendingExtraction] = useState<{
+    jobId: string;
+    url: string;
+    source: string;
+    rawText: string;
+    llmSettings: LLMSettings;
+    isRefresh: boolean;
+  } | null>(null);
+
   /**
    * Handle extract job button click
    */
   const handleExtractJob = useCallback(async () => {
+    console.info(
+      '[useJobExtraction] ===== BUTTON CLICKED - handleExtractJob called ====='
+    );
     setExtracting(true);
     setError(null);
 
@@ -119,52 +134,56 @@ export function useJobExtraction(
           return browser.tabs.sendMessage(tab.id!, { action: 'getJobUrl' });
         });
 
-      // Determine job ID (check if job already exists)
+      // Duplicate detection: Check if current job has same URL (Option A)
+      // Use latest currentJob value without making it a dependency
       let jobId: string;
-      if (preCheckResponse && preCheckResponse.url) {
-        const jobs = (await jobsStorage.getValue()) || {};
-        const normalizeUrl = (url: string) => {
-          try {
-            const urlObj = new URL(url);
-            return urlObj.origin + urlObj.pathname.replace(/\/$/, '');
-          } catch {
-            return url;
-          }
-        };
 
-        const existingJobId = Object.keys(jobs).find((id) => {
-          const job = jobs[id];
-          return (
-            job.url &&
-            normalizeUrl(job.url) === normalizeUrl(preCheckResponse.url)
-          );
-        });
+      console.info(
+        '[useJobExtraction] DEBUG - preCheckResponse:',
+        preCheckResponse
+      );
+      console.info('[useJobExtraction] DEBUG - currentJob:', currentJob);
 
-        if (existingJobId) {
+      if (preCheckResponse && preCheckResponse.url && currentJob) {
+        const newUrlNormalized = normalizeUrl(preCheckResponse.url);
+        const currentUrlNormalized = normalizeUrl(currentJob.url);
+
+        console.info(
+          '[useJobExtraction] DEBUG - newUrlNormalized:',
+          newUrlNormalized
+        );
+        console.info(
+          '[useJobExtraction] DEBUG - currentUrlNormalized:',
+          currentUrlNormalized
+        );
+
+        if (newUrlNormalized === currentUrlNormalized) {
+          // Same URL as current job - show modal for user choice
           console.info(
-            '[useJobExtraction] Re-extracting existing job:',
-            existingJobId
+            '[useJobExtraction] Duplicate detected - same URL as current job'
           );
-          jobId = existingJobId;
-        } else {
-          jobId =
-            'job_' +
-            Date.now() +
-            '_' +
-            Math.random().toString(36).substring(2, 9);
-          console.info(
-            '[useJobExtraction] Creating new job extraction:',
-            jobId
-          );
+
+          // Store pending extraction data for modal handlers
+          setPendingExtraction({
+            jobId: currentJob.id, // Use existing job ID for refresh
+            url: preCheckResponse.url,
+            source: preCheckResponse.source || 'Unknown',
+            rawText: preCheckResponse.rawText || '',
+            llmSettings: llmSettings,
+            isRefresh: false, // Will be set by modal handler
+          });
+
+          // Show modal and return early
+          setShowDuplicateModal(true);
+          setExtracting(false);
+          return;
         }
-      } else {
-        jobId =
-          'job_' +
-          Date.now() +
-          '_' +
-          Math.random().toString(36).substring(2, 9);
-        console.info('[useJobExtraction] Creating new job extraction:', jobId);
       }
+
+      // Different URL or no current job - create new job
+      jobId =
+        'job_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+      console.info('[useJobExtraction] Creating new job extraction:', jobId);
 
       // Note: We DON'T set jobInFocus here because the job doesn't exist yet
       // It will be set after extraction completes and the job is saved
@@ -202,6 +221,73 @@ export function useJobExtraction(
       setExtracting(false);
     }
     // Note: Don't reset extracting here - let extraction events handle it
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - access currentJob from closure, won't cause re-renders
+
+  /**
+   * Handle "Refresh Job Data" choice from modal
+   * Updates only the content field, preserving checklist/documents/status
+   */
+  const handleRefreshJob = useCallback(async () => {
+    if (!pendingExtraction) return;
+
+    console.info('[useJobExtraction] User chose: Refresh Job Data');
+    setShowDuplicateModal(false);
+    setExtracting(true);
+
+    // Mark as refresh mode
+    const refreshData = { ...pendingExtraction, isRefresh: true };
+    setPendingExtraction(refreshData);
+
+    // Send message to background to start streaming with refresh flag
+    await browser.runtime.sendMessage({
+      action: 'streamExtractJob',
+      jobId: refreshData.jobId,
+      url: refreshData.url,
+      source: refreshData.source,
+      rawText: refreshData.rawText,
+      llmSettings: refreshData.llmSettings,
+      isRefresh: true, // Flag to indicate refresh mode
+    });
+  }, [pendingExtraction]);
+
+  /**
+   * Handle "Extract as New Job" choice from modal
+   * Creates a new job with a new ID
+   */
+  const handleExtractNew = useCallback(async () => {
+    if (!pendingExtraction) return;
+
+    console.info('[useJobExtraction] User chose: Extract as New Job');
+    setShowDuplicateModal(false);
+    setExtracting(true);
+
+    // Generate new job ID
+    const newJobId =
+      'job_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+
+    // Send message to background to start streaming with new ID
+    await browser.runtime.sendMessage({
+      action: 'streamExtractJob',
+      jobId: newJobId,
+      url: pendingExtraction.url,
+      source: pendingExtraction.source,
+      rawText: pendingExtraction.rawText,
+      llmSettings: pendingExtraction.llmSettings,
+      isRefresh: false,
+    });
+
+    setPendingExtraction(null);
+  }, [pendingExtraction]);
+
+  /**
+   * Handle "Cancel" choice from modal
+   */
+  const handleCancelDuplicate = useCallback(() => {
+    console.info('[useJobExtraction] User chose: Cancel');
+    setShowDuplicateModal(false);
+    setPendingExtraction(null);
+    setExtracting(false);
   }, []);
 
   /**
@@ -271,78 +357,130 @@ export function useJobExtraction(
           // Save to storage now that extraction is complete
           (async () => {
             try {
-              // Access extractingJob from current state via updater function
-              setExtractingJob((currentExtractingJob) => {
-                if (
-                  !currentExtractingJob ||
-                  currentExtractingJob.id !== completeEvent.jobId
-                ) {
+              // Check if this is a refresh operation
+              const isRefreshMode =
+                pendingExtraction && pendingExtraction.isRefresh;
+
+              if (isRefreshMode) {
+                // REFRESH MODE: Surgical update - only update content field
+                console.info(
+                  '[useJobExtraction] Refresh mode - performing surgical update'
+                );
+
+                const currentJobs = await storage.getAllJobs();
+                const existingIndex = currentJobs.findIndex(
+                  (j) => j.id === completeEvent.jobId
+                );
+
+                if (existingIndex >= 0) {
+                  // Preserve all existing fields, only update content + timestamp
+                  currentJobs[existingIndex] = {
+                    ...currentJobs[existingIndex], // Preserve checklist, documents, status, etc.
+                    content: completeEvent.fullContent, // Only update content
+                    updatedAt: new Date().toISOString(), // Update timestamp
+                  };
+                  await storage.saveAllJobs(currentJobs);
+
+                  console.info(
+                    '[useJobExtraction] Surgical update complete - preserved checklist/documents/status'
+                  );
+                } else {
                   console.error(
-                    '[useJobExtraction] No extracting job found for completion:',
+                    '[useJobExtraction] Refresh mode: Job not found in storage:',
                     completeEvent.jobId
                   );
-                  return currentExtractingJob;
+                  setError('Failed to refresh job - job not found');
                 }
 
-                // Perform async operations outside of setState
-                (async () => {
-                  try {
-                    // Create a complete job object
-                    const now = new Date().toISOString();
-                    const newJob: Job = {
-                      id: completeEvent.jobId,
-                      url: currentExtractingJob.url,
-                      applicationStatus: 'Researching',
-                      content: completeEvent.fullContent,
-                      checklist: storage.initializeAllChecklists(),
-                      documents: undefined, // Will be initialized when switching to Drafting
-                      createdAt: now,
-                      updatedAt: now,
-                    };
+                // Clear ephemeral state
+                setExtractingJob(null);
+                setExtracting(false);
+                setPendingExtraction(null);
 
-                    // Get current jobs and add the new one
-                    const currentJobs = await storage.getAllJobs();
-                    const updatedJobs = [...currentJobs, newJob];
-                    await storage.saveAllJobs(updatedJobs);
+                // Reload to display the updated job
+                await loadJobInFocus();
+              } else {
+                // NEW JOB MODE: Create new job with full initialization
+                console.info(
+                  '[useJobExtraction] New job mode - creating full job object'
+                );
 
-                    console.info(
-                      '[useJobExtraction] Saved completed job to storage'
-                    );
-
-                    // NOW set jobInFocus via background (Rule 3: Cross-component state)
-                    // Use message instead of direct storage for cross-tab consistency
-                    await browser.runtime.sendMessage({
-                      action: 'setJobInFocus',
-                      jobId: completeEvent.jobId,
-                    });
-                    console.info(
-                      '[useJobExtraction] Set jobInFocus after extraction:',
+                // Access extractingJob from current state via updater function
+                setExtractingJob((currentExtractingJob) => {
+                  if (
+                    !currentExtractingJob ||
+                    currentExtractingJob.id !== completeEvent.jobId
+                  ) {
+                    console.error(
+                      '[useJobExtraction] No extracting job found for completion:',
                       completeEvent.jobId
                     );
-
-                    // Clear ephemeral extraction state
-                    setExtractingJob(null);
-                    setExtracting(false);
-
-                    // Reload to display the completed job
-                    await loadJobInFocus();
-                  } catch (err) {
-                    console.error(
-                      '[useJobExtraction] Error saving completed job:',
-                      err
-                    );
-                    setError('Failed to save extracted job');
-                    setExtractingJob(null);
+                    return currentExtractingJob;
                   }
-                })();
 
-                return currentExtractingJob;
-              });
+                  // Perform async operations outside of setState
+                  (async () => {
+                    try {
+                      // Create a complete job object
+                      const now = new Date().toISOString();
+                      const newJob: Job = {
+                        id: completeEvent.jobId,
+                        url: currentExtractingJob.url,
+                        applicationStatus: 'Researching',
+                        content: completeEvent.fullContent,
+                        checklist: storage.initializeAllChecklists(),
+                        documents: undefined, // Will be initialized when switching to Drafting
+                        createdAt: now,
+                        updatedAt: now,
+                      };
+
+                      // Get current jobs and add the new one
+                      const currentJobs = await storage.getAllJobs();
+                      const updatedJobs = [...currentJobs, newJob];
+                      await storage.saveAllJobs(updatedJobs);
+
+                      console.info(
+                        '[useJobExtraction] Saved completed job to storage'
+                      );
+
+                      // NOW set jobInFocus via background (Rule 3: Cross-component state)
+                      // Use message instead of direct storage for cross-tab consistency
+                      await browser.runtime.sendMessage({
+                        action: 'setJobInFocus',
+                        jobId: completeEvent.jobId,
+                      });
+                      console.info(
+                        '[useJobExtraction] Set jobInFocus after extraction:',
+                        completeEvent.jobId
+                      );
+
+                      // Clear ephemeral extraction state
+                      setExtractingJob(null);
+                      setExtracting(false);
+                      setPendingExtraction(null);
+
+                      // Reload to display the completed job
+                      await loadJobInFocus();
+                    } catch (err) {
+                      console.error(
+                        '[useJobExtraction] Error saving completed job:',
+                        err
+                      );
+                      setError('Failed to save extracted job');
+                      setExtractingJob(null);
+                      setPendingExtraction(null);
+                    }
+                  })();
+
+                  return currentExtractingJob;
+                });
+              }
             } catch (err) {
               console.error(
                 '[useJobExtraction] Error in completion handler:',
                 err
               );
+              setPendingExtraction(null);
             }
           })();
           break;
@@ -382,7 +520,7 @@ export function useJobExtraction(
     return () => {
       extractionEvents.offExtractionEvent(handleExtraction);
     };
-  }, [extractionEvents, loadJobInFocus, storage]);
+  }, [extractionEvents, loadJobInFocus, storage, pendingExtraction]);
 
   /**
    * Watch for extraction trigger from context menu (via storage)
@@ -453,5 +591,10 @@ export function useJobExtraction(
     extractingJob,
     error,
     handleExtractJob,
+    showDuplicateModal,
+    pendingExtraction,
+    handleRefreshJob,
+    handleExtractNew,
+    handleCancelDuplicate,
   };
 }

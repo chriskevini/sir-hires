@@ -314,12 +314,14 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
   // Empty state
   if (jobState.allJobs.length === 0) {
     return (
-      <div id="emptyState" className="empty-state">
-        <h2>No Jobs Yet</h2>
-        <p>
-          Use the browser extension to save jobs from LinkedIn, Indeed, or other
-          job sites.
-        </p>
+      <div className="container">
+        <div id="emptyState" className="empty-state">
+          <h2>No Jobs Yet</h2>
+          <p>
+            Use the browser extension to save jobs from LinkedIn, Indeed, or
+            other job sites.
+          </p>
+        </div>
       </div>
     );
   }
@@ -332,9 +334,9 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
   });
 
   return (
-    <div className="app">
+    <div className="container">
       {/* Header with filters */}
-      <div className="app-header">
+      <header>
         <div className="filter-controls">
           <input
             type="text"
@@ -370,13 +372,13 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
             <option value="title">Title (A-Z)</option>
           </select>
         </div>
-      </div>
+      </header>
 
       {/* Main content area */}
       <div className="main-content">
         {/* Sidebar with job list */}
         <div className="sidebar">
-          <div className="jobs-list" id="jobsList">
+          <div className="jobs-list-sidebar" id="jobsList">
             {jobState.filteredJobs.map((job, filteredIndex) => {
               const globalIndex = jobState.allJobs.findIndex(
                 (j) => j.id === job.id
@@ -405,8 +407,10 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
         </div>
 
         {/* Detail panel */}
-        <div className="detail-panel" id="detailPanel">
-          {renderJobView()}
+        <div className="detail-panel-wrapper">
+          <div className="detail-panel" id="detailPanel">
+            {renderJobView()}
+          </div>
         </div>
       </div>
     </div>

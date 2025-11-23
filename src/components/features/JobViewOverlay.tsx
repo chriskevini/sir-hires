@@ -5,6 +5,7 @@ import {
   getNavigationButtons,
   progressConfig,
 } from '../../entrypoints/job-details/config';
+import './JobViewOverlay.css';
 
 /**
  * JobViewOverlay - Shared overlay for Checklist + NavigationButtons

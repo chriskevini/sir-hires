@@ -61,6 +61,41 @@ my-extension/
 - **Styling:** Import CSS/SCSS modules or Tailwind classes directly in `.tsx` files.
 - **Browser API:** Always use the `browser` global (e.g., `browser.runtime.sendMessage`). **Do not use `chrome.*`.**
 
+### Component CSS Architecture
+
+**Rule:** Shared components must import their own CSS.
+
+- **Page-level CSS** (e.g., `entrypoints/popup/styles.css`):
+  - Layout, typography, global variables
+  - Page-specific classes (not used by shared components)
+  - Imported in `main.tsx` or `App.tsx`
+
+- **Component-level CSS** (e.g., `components/MyButton.css` or `views/my-view.css`):
+  - Component-specific classes
+  - Imported directly in component file: `import './MyButton.css'`
+  - Ensures component works across all entrypoints
+
+**Anti-pattern:**
+❌ Shared component relies on page-level CSS → Missing styles when reused
+
+**Correct pattern:**
+✅ Shared component imports own CSS → Works everywhere
+
+**Example:**
+
+```typescript
+// src/entrypoints/job-details/views/researching-view.tsx
+import './researching-view.css'; // ✅ Component imports its own styles
+
+export function ResearchingView({ job }: Props) {
+  return <div className="researching-editor">...</div>;
+}
+```
+
+**Why:** When components are shared across multiple entrypoints (e.g., sidepanel and job-details), they must bring their styles with them. Page-level CSS only affects that specific entrypoint.
+
+**Reference:** `docs/refactors/component-css-architecture.md`
+
 ### State Management
 
 - **Persistence:** Use **`@wxt-dev/storage`** for persisting data.

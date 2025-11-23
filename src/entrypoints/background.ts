@@ -613,6 +613,58 @@ ${oldContent
       return true;
     }
 
+    if (request.action === 'setJobInFocus') {
+      // Handle setting jobInFocus (Rule 3: Cross-component state)
+      // Background coordinates jobInFocus to ensure consistency across sidepanel and job-details
+      const { jobId } = request;
+      console.info('[Background] Setting jobInFocus to:', jobId);
+
+      (async () => {
+        try {
+          const { jobInFocusStorage } = await import('../utils/storage');
+          await jobInFocusStorage.setValue(jobId);
+          sendResponse({ success: true });
+        } catch (error: any) {
+          console.error('[Background] Failed to set jobInFocus:', error);
+          sendResponse({ success: false, error: error.message });
+        }
+      })();
+
+      return true;
+    }
+
+    if (request.action === 'deleteJob') {
+      // Handle job deletion (Rule 3: Cross-component state)
+      // Background coordinates deletion to ensure cross-tab sync
+      const { jobId } = request;
+      console.info('[Background] Deleting job:', jobId);
+
+      (async () => {
+        try {
+          const { jobInFocusStorage } = await import('../utils/storage');
+
+          // Delete job from storage
+          const jobs = await jobsStorage.getValue();
+          delete jobs[jobId];
+          await jobsStorage.setValue(jobs);
+
+          // Clear jobInFocus if the deleted job was focused
+          const currentFocus = await jobInFocusStorage.getValue();
+          if (currentFocus === jobId) {
+            await jobInFocusStorage.setValue(null);
+          }
+
+          console.info('[Background] Job deleted successfully:', jobId);
+          sendResponse({ success: true });
+        } catch (error: any) {
+          console.error('[Background] Failed to delete job:', error);
+          sendResponse({ success: false, error: error.message });
+        }
+      })();
+
+      return true;
+    }
+
     return false;
   });
 

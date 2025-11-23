@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { browser } from 'wxt/browser';
 import type { useJobState } from './useJobState';
 import type { useJobStorage } from './useJobStorage';
 
@@ -93,11 +94,24 @@ export function useJobHandlers(
         return;
       }
 
-      await storage.deleteJob(job.id);
-      await loadJobs();
-      console.info(`[useJobHandlers] Deleted job at index ${index}`);
+      // Use background message for cross-tab consistency (Rule 3: Cross-component state)
+      try {
+        const response = await browser.runtime.sendMessage({
+          action: 'deleteJob',
+          jobId: job.id,
+        });
+
+        if (response && response.success) {
+          console.info(`[useJobHandlers] Deleted job at index ${index}`);
+          await loadJobs();
+        } else {
+          console.error('[useJobHandlers] Failed to delete job:', response);
+        }
+      } catch (error) {
+        console.error('[useJobHandlers] Error deleting job:', error);
+      }
     },
-    [jobState.allJobs, storage, loadJobs]
+    [jobState.allJobs, loadJobs]
   );
 
   /**

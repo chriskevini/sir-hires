@@ -464,8 +464,12 @@ export const App: React.FC = () => {
 
               console.info('[Sidepanel] Saved completed job to storage');
 
-              // NOW set jobInFocus - the job exists in storage
-              await jobInFocusStorage.setValue(completeEvent.jobId);
+              // NOW set jobInFocus via background (Rule 3: Cross-component state)
+              // Use message instead of direct storage for cross-tab consistency
+              await browser.runtime.sendMessage({
+                action: 'setJobInFocus',
+                jobId: completeEvent.jobId,
+              });
               console.info(
                 '[Sidepanel] Set jobInFocus after extraction:',
                 completeEvent.jobId

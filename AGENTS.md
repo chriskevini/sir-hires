@@ -120,6 +120,179 @@ function JobView({ job }: { job: Job }) {
 
 **References:** `docs/refactors/markdown-db.md`, `src/utils/job-parser.ts`, `src/utils/profile-parser.ts`
 
+### Event-Driven Architecture (Hybrid Approach)
+
+This project uses a **hybrid event-driven architecture** to prevent race conditions while avoiding over-engineering. Follow these three rules when implementing state changes:
+
+#### Rule 1: Multi-Step Async Operations → Background Coordinates
+
+**When:** Operations with multiple async steps that must happen in sequence
+
+**Examples:**
+
+- Job extraction (create job → stream content → save → set focus)
+- Bulk operations (import/export multiple jobs)
+- Complex workflows with dependencies
+
+**Pattern:**
+
+```typescript
+// Component sends message to background
+const result = await browser.runtime.sendMessage({
+  action: 'startExtraction',
+  url: jobUrl,
+  jobId: newJobId,
+});
+
+// Background coordinates the workflow
+// background.ts
+if (request.action === 'startExtraction') {
+  // Step 1: Initialize
+  await sendMessage({ action: 'extractionStarted', jobId });
+
+  // Step 2: Process (with progress updates)
+  for (const chunk of streamChunks()) {
+    await sendMessage({ action: 'extractionChunk', chunk });
+  }
+
+  // Step 3: Complete
+  await sendMessage({ action: 'extractionComplete', jobId, content });
+
+  sendResponse({ success: true });
+  return true;
+}
+```
+
+**Why:** Background service worker provides centralized coordination, preventing race conditions when multiple async operations need ordering guarantees.
+
+#### Rule 2: Simple Mutations → Direct Storage
+
+**When:** Single-field updates or simple CRUD operations without cross-component dependencies
+
+**Examples:**
+
+- Edit job title or description
+- Toggle checklist item
+- Update document content
+- Save LLM settings
+
+**Pattern:**
+
+```typescript
+// Direct storage write + local state update
+const updatedJob = { ...job, content: newContent };
+await storage.saveJob(updatedJob);
+setCurrentJob(updatedJob); // Update local React state
+```
+
+**Why:** Direct storage is simpler and more performant for isolated updates. No message passing overhead needed.
+
+#### Rule 3: Cross-Component State → Background Manages
+
+**When:** State changes that affect multiple components, tabs, or entrypoints
+
+**Examples:**
+
+- `jobInFocus` changes (affects sidepanel + job-details + all tabs)
+- Job deletion (must update all open tabs)
+- Navigation state (sidebar → job-details page)
+
+**Pattern:**
+
+```typescript
+// Component sends message to background
+await browser.runtime.sendMessage({
+  action: 'setJobInFocus',
+  jobId: targetJobId,
+});
+
+// Background updates storage (triggers storage.onChanged in all tabs)
+// background.ts
+if (request.action === 'setJobInFocus') {
+  await jobInFocusStorage.setValue(request.jobId);
+  sendResponse({ success: true });
+  return true;
+}
+
+// All components listen to storage changes
+storage.onStorageChange((changes) => {
+  if (changes.jobInFocus) {
+    loadJobInFocus(changes.jobInFocus.newValue);
+  }
+});
+```
+
+**Why:** Background acts as single source of truth, ensuring all tabs/components stay in sync via native storage change events.
+
+#### Decision Flowchart
+
+```
+Is this a multi-step async operation (extraction, bulk ops)?
+├─ YES → Rule 1: Background coordinates
+└─ NO → Is this state shared across components/tabs?
+    ├─ YES → Rule 3: Background manages
+    └─ NO → Rule 2: Direct storage write
+```
+
+#### Anti-Patterns to Avoid
+
+**❌ Setting cross-component state before dependent data exists:**
+
+```typescript
+// BAD: Race condition
+await jobInFocusStorage.setValue(jobId); // Job doesn't exist yet!
+await extractAndSaveJob(jobId); // Extraction might fail
+// loadJobInFocus() runs, finds no job, clears jobInFocus
+```
+
+**✅ Use background coordination:**
+
+```typescript
+// GOOD: Background coordinates lifecycle
+await browser.runtime.sendMessage({
+  action: 'startExtraction',
+  jobId,
+});
+// Background handles: extract → save → setJobInFocus (in order)
+```
+
+**❌ Direct storage writes for cross-component state:**
+
+```typescript
+// BAD: Other tabs don't know about deletion
+await storage.deleteJob(jobId);
+if (jobInFocus === jobId) {
+  await jobInFocusStorage.setValue(null); // Only updates this tab!
+}
+```
+
+**✅ Use background message:**
+
+```typescript
+// GOOD: Background notifies all tabs
+await browser.runtime.sendMessage({
+  action: 'deleteJob',
+  jobId,
+});
+// Background deletes job + clears jobInFocus → all tabs receive storage change event
+```
+
+#### Background Message Handlers Reference
+
+**Implemented:**
+
+- `streamExtractJob` - Multi-step extraction with streaming (Rule 1)
+- `cancelExtraction` - Cancel ongoing extraction (Rule 1)
+- `setJobInFocus` - Update focused job across all tabs (Rule 3)
+- `deleteJob` - Delete job and update all tabs (Rule 3)
+
+**Direct storage (no message needed):**
+
+- `saveJob` - Update single job (Rule 2)
+- `updateJobField` - Edit single field (Rule 2)
+- `toggleChecklistItem` - Toggle checklist (Rule 2)
+- `saveDocuments` - Save document content (Rule 2)
+
 ### Modal Components & Portals
 
 - **React Portals:** Use `ReactDOM.createPortal(element, document.body)` to render modals, tooltips, and dropdowns outside the parent DOM hierarchy while maintaining React component tree relationships.

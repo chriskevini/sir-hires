@@ -114,7 +114,7 @@ if [ $VIOLATIONS_FOUND -gt 0 ]; then
   echo "   3. Parse on-read using parseJobTemplate() in components"
   echo "   4. Only update 'content' field in storage operations"
   echo ""
-  echo "📖 See: docs/refactors/markdown-db.md"
+  echo "📖 See: docs/MARKDOWN_DB_REFERENCE.md"
   echo ""
   exit 1
 else

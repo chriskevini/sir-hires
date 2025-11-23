@@ -212,5 +212,4 @@ export {
   extractEducation,
   extractExperience,
   extractInterests,
-  getTopLevelField,
 };

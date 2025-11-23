@@ -306,7 +306,6 @@ export {
   extractRequiredSkills,
   extractPreferredSkills,
   extractAboutCompany,
-  getTopLevelField,
   getAllTopLevelFields,
   getAllSections,
   mapMarkdownFieldsToJob,

@@ -32,13 +32,3 @@ export const defaultDocuments: Record<string, DefaultDocConfig> = {
       'Write your cover letter here using Markdown formatting...\n\nExample:\nDear Hiring Manager,\n\nI am writing to express my interest...',
   },
 };
-
-/**
- * Counts words in a text string
- * @param text - The text to count words in
- * @returns Number of words
- */
-export const countWords = (text: string): number => {
-  if (!text || !text.trim()) return 0;
-  return text.trim().split(/\s+/).length;
-};

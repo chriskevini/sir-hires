@@ -162,14 +162,10 @@ export const Checklist: React.FC<ChecklistProps> = ({
     );
   };
 
-  if (isExpanded) {
-    return (
-      <div className="checklist-wrapper">
-        {renderExpandedDropdown()}
-        {renderExpander()}
-      </div>
-    );
-  }
-
-  return renderExpander();
+  return (
+    <div className="checklist-wrapper">
+      {isExpanded && renderExpandedDropdown()}
+      {renderExpander()}
+    </div>
+  );
 };

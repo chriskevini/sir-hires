@@ -54,7 +54,7 @@ my-extension/
 
 ### Component & Hook Reuse
 
-This project has **14 reusable UI/feature components** and **22 custom hooks** to accelerate development and maintain consistency. Before creating new components or state management logic, consult these references:
+This project has **extensive reusable UI/feature components and custom hooks** to accelerate development and maintain consistency. Before creating new components or state management logic, consult these references:
 
 - **[docs/QUICK_REFERENCE.md](./docs/QUICK_REFERENCE.md)** - Quick lookup tables and decision trees
 - **[docs/COMPONENTS_REFERENCE.md](./docs/COMPONENTS_REFERENCE.md)** - Detailed component documentation (Modal, ValidationPanel, CollapsiblePanel, etc.)
@@ -338,20 +338,6 @@ await browser.runtime.sendMessage({
 - `toggleChecklistItem` - Toggle checklist (Rule 2)
 - `saveDocuments` - Save document content (Rule 2)
 
-### Modal Components & Portals
-
-- **React Portals:** Use `ReactDOM.createPortal(element, document.body)` to render modals, tooltips, and dropdowns outside the parent DOM hierarchy while maintaining React component tree relationships.
-- **Why Portals:** They allow components to escape parent CSS constraints (overflow, z-index, position) and always render on top without z-index conflicts.
-- **Generic Wrapper Pattern:** Create a reusable `Modal` component in `src/components/ui/Modal.tsx` that handles overlay, close functionality, and portal rendering.
-- **Content Separation:** Extract modal content into separate components (e.g., `SynthesisForm.tsx`) for maximum flexibility - these can be used as modals OR inline in other views.
-- **When to Use This Pattern:**
-  - Building 3+ modals with similar structure (create generic wrapper)
-  - Component needs to be displayed as modal AND inline in different contexts
-  - Need to avoid z-index/overflow issues with parent containers
-- **File Placement:**
-  - Generic modal wrapper: `src/components/ui/Modal.tsx`
-  - Modal content components: `src/components/features/` or `src/entrypoints/<page>/components/`
-
 ### Content Script UIs (React)
 
 To inject a React App into a webpage using Shadow DOM (isolated styles):
@@ -518,17 +504,26 @@ Use `wxt submit` for automated publishing.
 
 When generating code for this project, strictly adhere to these rules:
 
-1.  **React Structure:**
+1.  **Component & Hook Reuse (CRITICAL):**
+    - **BEFORE creating any new component or hook**, you MUST consult the reference guides:
+      - `docs/QUICK_REFERENCE.md` - Quick lookup tables and decision trees
+      - `docs/COMPONENTS_REFERENCE.md` - Reusable UI/feature components
+      - `docs/HOOKS_REFERENCE.md` - Custom hooks for state management
+    - **Search existing components/hooks first** - This project has extensive reusable patterns.
+    - **Reuse existing code** whenever possible to maintain consistency and avoid duplication.
+    - Only create new components/hooks if no suitable existing one exists.
+
+2.  **React Structure:**
     - UI Entrypoints must use the folder pattern: `entrypoints/<name>/index.html` + `main.tsx`.
     - Mounting logic goes in `main.tsx`. Component logic goes in `App.tsx`.
     - Reusable UI goes in `src/components/`.
 
-2.  **File Placement:**
+3.  **File Placement:**
     - **Background:** `src/entrypoints/background.ts`
     - **Content Script:** `src/entrypoints/<name>.content.ts` (or `.tsx` if it has UI).
     - **Utils:** `src/utils/`.
 
-3.  **Code Patterns:**
+4.  **Code Patterns:**
     - **WRAP** background script logic in `defineBackground`.
     - **WRAP** content script logic in `defineContentScript`.
     - **ALWAYS** use `export default` for entrypoint definitions.
@@ -536,7 +531,7 @@ When generating code for this project, strictly adhere to these rules:
     - **USE** React Functional Components.
     - **USE** ES modules (`export`/`import`) instead of CommonJS (`module.exports`/`require`).
 
-4.  **Code Quality:**
+5.  **Code Quality:**
     - Follow the Prettier formatting rules (2 spaces, single quotes, semicolons, 80 char width).
     - Avoid `any` types where possible - use proper TypeScript types.
     - Prefix unused variables with `_` if they're intentionally unused.
@@ -544,7 +539,7 @@ When generating code for this project, strictly adhere to these rules:
     - **Pre-commit hooks handle linting/formatting automatically** - no manual action needed.
     - If you need to fix issues in bulk: `npm run lint:fix && npm run format`.
 
-5.  **Debugging:**
+6.  **Debugging:**
     - If "RollupError" occurs, check if shared React components were accidentally placed inside `entrypoints/`. Move them to `components/`.
     - Ensure `cssInjectionMode: 'ui'` is set if using `createShadowRootUi`.
     - If you see "is not exported by" errors, verify the file uses ES module exports, not CommonJS.

@@ -30,6 +30,7 @@ export interface JobViewRouterProps {
   >;
   DraftingView: React.ComponentType<
     ViewComponentProps & {
+      onSaveField: (index: number, fieldName: string, value: string) => void;
       onSaveDocument: (
         index: number,
         documentKey: string,
@@ -106,6 +107,7 @@ export function JobViewRouter({
           index={index}
           isChecklistExpanded={isChecklistExpanded}
           onDeleteJob={onDeleteJob}
+          onSaveField={onSaveField}
           onSaveDocument={onSaveDocument}
           onInitializeDocuments={onInitializeDocuments}
           onToggleChecklistExpand={onToggleChecklistExpand}

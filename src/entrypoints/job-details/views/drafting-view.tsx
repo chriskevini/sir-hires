@@ -5,6 +5,7 @@ import { SynthesisForm } from '../components/SynthesisForm';
 import { EditorToolbar } from '@/components/ui/EditorToolbar';
 import { EditorContentPanel } from '@/components/ui/EditorContentPanel';
 import { EditorFooter } from '@/components/ui/EditorFooter';
+import { StatusSelector } from '@/components/ui/StatusSelector';
 import { useParsedJob } from '@/components/features/ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '@/utils/job-parser';
 import { escapeHtml } from '@/utils/shared-utils';
@@ -30,6 +31,7 @@ interface DraftingViewProps {
   index: number;
   isChecklistExpanded?: boolean;
   onDeleteJob: (_index: number) => void;
+  onSaveField: (index: number, fieldName: string, value: string) => void;
   onSaveDocument: (
     _index: number,
     _documentKey: string,
@@ -48,6 +50,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   index,
   isChecklistExpanded = false,
   onDeleteJob,
+  onSaveField,
   onSaveDocument,
   onInitializeDocuments,
   onToggleChecklistExpand,
@@ -265,6 +268,16 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
             {/* Footer with status and word count */}
             <EditorFooter saveStatus={saveStatus} wordCount={wordCount} />
           </div>
+        </div>
+
+        {/* Status & Actions */}
+        <div className="job-actions">
+          <StatusSelector
+            currentStatus={job.applicationStatus || 'Drafting'}
+            onStatusChange={(newStatus) =>
+              onSaveField(index, 'applicationStatus', newStatus)
+            }
+          />
         </div>
       </div>
 

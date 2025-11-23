@@ -11,7 +11,6 @@ import {
 } from '../hooks';
 import { ValidationPanel } from '@/components/ui/ValidationPanel';
 import { EditorHeader } from '@/components/ui/EditorHeader';
-import { JobTemplatePanel } from '../components/JobTemplatePanel';
 import { ExtractionLoadingView } from '../components/ExtractionLoadingView';
 import { ExtractionErrorView } from '../components/ExtractionErrorView';
 import { MigrationPromptView } from '../components/MigrationPromptView';
@@ -35,6 +34,7 @@ interface ResearchingViewProps {
   onSaveField: (index: number, fieldName: string, value: string) => void;
   onToggleChecklistExpand: (index: number, isExpanded: boolean) => void;
   onToggleChecklistItem: (index: number, itemId: string) => void;
+  hideOverlay?: boolean;
 }
 
 export const ResearchingView: React.FC<ResearchingViewProps> = ({
@@ -45,9 +45,8 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   onSaveField,
   onToggleChecklistExpand,
   onToggleChecklistItem,
+  hideOverlay = false,
 }) => {
-  const [isTemplateVisible, toggleTemplateVisible, setTemplateVisible] =
-    useToggleState(false);
   const [isValidationCollapsed, toggleValidationCollapsed] =
     useToggleState(true);
 
@@ -148,34 +147,20 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
     <>
       <div className="researching-editor">
         <div className="editor-layout">
-          {/* Template Panel */}
-          <JobTemplatePanel
-            isVisible={isTemplateVisible}
-            onClose={() => setTemplateVisible(false)}
-          />
-
           {/* Editor Panel */}
           <div className="editor-panel">
             <EditorHeader
               title={escapeHtml(parsedJob.jobTitle || 'Untitled Position')}
               subtitle={`at ${escapeHtml(parsedJob.company || 'Unknown Company')}`}
               actions={
-                <>
-                  <button
-                    className="btn-template-toggle"
-                    onClick={toggleTemplateVisible}
-                  >
-                    {isTemplateVisible ? 'Hide' : 'Show'} Template
-                  </button>
-                  <a
-                    href={escapeHtml(job.url)}
-                    className="btn-link"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    View Original ↗
-                  </a>
-                </>
+                <a
+                  href={escapeHtml(job.url)}
+                  className="btn-link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  View Original ↗
+                </a>
               }
             />
             <textarea
@@ -211,6 +196,7 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
         onSaveField={onSaveField}
         onToggleChecklistExpand={onToggleChecklistExpand}
         onToggleChecklistItem={onToggleChecklistItem}
+        hidden={hideOverlay}
       />
     </>
   );

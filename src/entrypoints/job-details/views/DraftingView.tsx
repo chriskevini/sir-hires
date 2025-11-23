@@ -43,6 +43,7 @@ interface DraftingViewProps {
   ) => void;
   onToggleChecklistExpand: (index: number, isExpanded: boolean) => void;
   onToggleChecklistItem: (index: number, itemId: string) => void;
+  hideOverlay?: boolean;
 }
 
 export const DraftingView: React.FC<DraftingViewProps> = ({
@@ -55,6 +56,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   onInitializeDocuments,
   onToggleChecklistExpand,
   onToggleChecklistItem,
+  hideOverlay = false,
 }) => {
   // Toggle states
   const [exportDropdownOpen, toggleExportDropdown, setExportDropdownOpen] =
@@ -275,6 +277,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
         onSaveField={onSaveField}
         onToggleChecklistExpand={onToggleChecklistExpand}
         onToggleChecklistItem={onToggleChecklistItem}
+        hidden={hideOverlay}
       />
 
       {/* Synthesis Modal */}

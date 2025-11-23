@@ -15,6 +15,7 @@ interface ViewComponentProps {
   onDeleteJob: (index: number) => void;
   onToggleChecklistExpand: (index: number, isExpanded: boolean) => void;
   onToggleChecklistItem: (index: number, itemId: string) => void;
+  hideOverlay?: boolean;
 }
 
 /**
@@ -51,6 +52,7 @@ export interface JobViewRouterProps {
   onToggleChecklistExpand: (index: number, isExpanded: boolean) => void;
   onToggleChecklistItem: (index: number, itemId: string) => void;
   emptyStateMessage?: string;
+  hideOverlay?: boolean;
 }
 
 /**
@@ -75,6 +77,7 @@ export function JobViewRouter({
   onToggleChecklistExpand,
   onToggleChecklistItem,
   emptyStateMessage = 'No job selected',
+  hideOverlay = false,
 }: JobViewRouterProps) {
   // Parse job at top level (hooks must be called unconditionally)
   const parsed = useParsedJob(job?.id || null);
@@ -98,6 +101,7 @@ export function JobViewRouter({
           onSaveField={onSaveField}
           onToggleChecklistExpand={onToggleChecklistExpand}
           onToggleChecklistItem={onToggleChecklistItem}
+          hideOverlay={hideOverlay}
         />
       );
 
@@ -113,6 +117,7 @@ export function JobViewRouter({
           onInitializeDocuments={onInitializeDocuments}
           onToggleChecklistExpand={onToggleChecklistExpand}
           onToggleChecklistItem={onToggleChecklistItem}
+          hideOverlay={hideOverlay}
         />
       );
 
@@ -179,6 +184,7 @@ export function JobViewRouter({
             onSaveField={onSaveField}
             onToggleChecklistExpand={onToggleChecklistExpand}
             onToggleChecklistItem={onToggleChecklistItem}
+            hidden={hideOverlay}
           />
         </>
       );

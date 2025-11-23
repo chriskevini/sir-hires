@@ -29,6 +29,7 @@ interface JobViewOverlayProps {
   onSaveField: (index: number, fieldName: string, value: string) => void;
   onToggleChecklistExpand: (index: number, isExpanded: boolean) => void;
   onToggleChecklistItem: (index: number, itemId: string) => void;
+  hidden?: boolean;
 }
 
 export const JobViewOverlay: React.FC<JobViewOverlayProps> = ({
@@ -38,6 +39,7 @@ export const JobViewOverlay: React.FC<JobViewOverlayProps> = ({
   onSaveField,
   onToggleChecklistExpand,
   onToggleChecklistItem,
+  hidden = false,
 }) => {
   // Navigation handler for status progression
   const handleNavigate = (
@@ -50,6 +52,11 @@ export const JobViewOverlay: React.FC<JobViewOverlayProps> = ({
   // Get navigation buttons for current status
   const currentStatus = job.applicationStatus || 'Researching';
   const navButtons = getNavigationButtons(currentStatus);
+
+  // Don't render if hidden (e.g., in sidepanel context)
+  if (hidden) {
+    return null;
+  }
 
   return (
     <div className="overlay-container">

@@ -1,4 +1,10 @@
-import React, { useEffect, useCallback, useState, useRef } from 'react';
+import React, {
+  useEffect,
+  useCallback,
+  useState,
+  useRef,
+  useMemo,
+} from 'react';
 import { browser } from 'wxt/browser';
 import { ResearchingView } from '../job-details/views/researching-view';
 import { DraftingView } from '../job-details/views/drafting-view';
@@ -12,9 +18,10 @@ import { ParsedJobProvider } from '../../components/features/ParsedJobProvider';
 import type { Job } from '../job-details/hooks';
 import { useJobExtraction, useBackupRestore } from './hooks';
 import { EmptyState } from './components/EmptyState';
-import { ExtractingState } from './components/ExtractingState';
+import { ExtractionLoadingView } from '../job-details/components/ExtractionLoadingView';
 import { ErrorState } from './components/ErrorState';
 import { DuplicateJobModal } from './components/DuplicateJobModal';
+import { parseJobTemplate } from '../../utils/job-parser';
 
 /**
  * Sidepanel App - Shows the "job in focus" for quick editing
@@ -134,28 +141,46 @@ export const App: React.FC = () => {
   }, [handlers.handleStorageChange]);
 
   /**
-   * Render the appropriate view
+   * Render the job view (without ParsedJobProvider wrapper)
+   * Provider is now at the top level to avoid conditional hook rendering
    */
   const renderJobView = () => {
     return (
-      <ParsedJobProvider jobs={jobState.allJobs}>
-        <JobViewRouter
-          job={currentJob}
-          index={jobState.selectedJobIndex}
-          isChecklistExpanded={jobState.checklistExpanded}
-          ResearchingView={ResearchingView}
-          DraftingView={DraftingView}
-          onDeleteJob={handlers.handleDeleteJob}
-          onSaveField={handlers.handleSaveField}
-          onSaveDocument={handlers.handleSaveDocument}
-          onInitializeDocuments={handlers.handleInitializeDocuments}
-          onToggleChecklistExpand={handlers.handleChecklistToggleExpand}
-          onToggleChecklistItem={handlers.handleChecklistToggleItem}
-          emptyStateMessage="No job selected"
-        />
-      </ParsedJobProvider>
+      <JobViewRouter
+        job={currentJob}
+        index={jobState.selectedJobIndex}
+        isChecklistExpanded={jobState.checklistExpanded}
+        ResearchingView={ResearchingView}
+        DraftingView={DraftingView}
+        onDeleteJob={handlers.handleDeleteJob}
+        onSaveField={handlers.handleSaveField}
+        onSaveDocument={handlers.handleSaveDocument}
+        onInitializeDocuments={handlers.handleInitializeDocuments}
+        onToggleChecklistExpand={handlers.handleChecklistToggleExpand}
+        onToggleChecklistItem={handlers.handleChecklistToggleItem}
+        emptyStateMessage="No job selected"
+      />
     );
   };
+
+  // Parse ephemeral extraction content (must be at top level for hooks)
+  const ephemeralContent = extraction.extractingJob
+    ? extraction.extractingJob.chunks.join('')
+    : '';
+  const parsedEphemeral = useMemo(
+    () => parseJobTemplate(ephemeralContent),
+    [ephemeralContent]
+  );
+
+  // Handler to cancel extraction
+  const handleCancelExtraction = useCallback(async () => {
+    if (!extraction.extractingJob) return;
+
+    await browser.runtime.sendMessage({
+      action: 'cancelExtraction',
+      jobId: extraction.extractingJob.id,
+    });
+  }, [extraction.extractingJob]);
 
   // Render main content based on state
   let mainContent;
@@ -170,7 +195,18 @@ export const App: React.FC = () => {
   }
   // Extracting state (ephemeral - not yet saved to storage)
   else if (extraction.extractingJob) {
-    mainContent = <ExtractingState extractingJob={extraction.extractingJob} />;
+    mainContent = (
+      <ExtractionLoadingView
+        content={ephemeralContent}
+        jobTitle={parsedEphemeral.topLevelFields['TITLE'] || 'Extracting...'}
+        company={
+          parsedEphemeral.topLevelFields['COMPANY'] ||
+          extraction.extractingJob.source
+        }
+        index={0}
+        onDelete={handleCancelExtraction}
+      />
+    );
   }
   // Error state
   else if (extraction.error) {
@@ -194,13 +230,8 @@ export const App: React.FC = () => {
   // Main job view
   else {
     mainContent = (
-      <div className="container">
-        <div id="jobDetails" className="job-details">
-          <div id="jobContent" className="job-content">
-            {renderJobView()}
-          </div>
-        </div>
-
+      <>
+        {renderJobView()}
         <footer id="footer" className="footer">
           <button
             id="extractJobBtn"
@@ -219,25 +250,28 @@ export const App: React.FC = () => {
             Manage
           </button>
         </footer>
-      </div>
+      </>
     );
   }
 
   // Render main content + modal (modal should always be available)
+  // Wrap entire app in ParsedJobProvider to avoid conditional hook rendering
   return (
-    <>
-      {mainContent}
+    <ParsedJobProvider jobs={jobState.allJobs}>
+      <div className="container">
+        {mainContent}
 
-      {/* Duplicate Job Modal - Render outside main content so it works in all states */}
-      {extraction.pendingExtraction && (
-        <DuplicateJobModal
-          isOpen={extraction.showDuplicateModal}
-          jobUrl={extraction.pendingExtraction.url}
-          onRefresh={extraction.handleRefreshJob}
-          onExtractNew={extraction.handleExtractNew}
-          onCancel={extraction.handleCancelDuplicate}
-        />
-      )}
-    </>
+        {/* Duplicate Job Modal - Render outside main content so it works in all states */}
+        {extraction.pendingExtraction && (
+          <DuplicateJobModal
+            isOpen={extraction.showDuplicateModal}
+            jobUrl={extraction.pendingExtraction.url}
+            onRefresh={extraction.handleRefreshJob}
+            onExtractNew={extraction.handleExtractNew}
+            onCancel={extraction.handleCancelDuplicate}
+          />
+        )}
+      </div>
+    </ParsedJobProvider>
   );
 };

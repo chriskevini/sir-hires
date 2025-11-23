@@ -178,38 +178,6 @@ body {
   color: #666;
 }
 
-/* Job Details */
-.job-details {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.job-content {
-  flex: 1;
-  overflow-y: auto;
-  padding-right: 8px;
-}
-
-.job-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.job-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-
-.job-content::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
-}
-
-.job-content::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-
 /* Job Header */
 .job-header {
   margin-bottom: 16px;

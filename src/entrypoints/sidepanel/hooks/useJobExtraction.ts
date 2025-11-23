@@ -233,7 +233,7 @@ export function useJobExtraction(
       setExtracting(false);
     }
     // Note: Don't reset extracting here - let extraction events handle it
-  }, []); // Empty deps - access currentJob from ref, won't cause re-renders
+  }, []); // Empty deps - uses refs and state setters only
 
   /**
    * Handle "Refresh Job Data" choice from modal

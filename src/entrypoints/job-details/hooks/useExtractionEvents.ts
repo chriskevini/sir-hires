@@ -1,4 +1,5 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useMemo } from 'react';
+import { browser } from 'wxt/browser';
 
 /**
  * Extraction event types
@@ -132,7 +133,7 @@ export function useExtractionEvents() {
   useEffect(() => {
     const listener = (
       message: any,
-      _sender: browser.Runtime.MessageSender,
+      _sender: any,
       _sendResponse: (response?: any) => void
     ) => {
       // Only handle extraction-related messages
@@ -161,8 +162,11 @@ export function useExtractionEvents() {
     };
   }, []);
 
-  return {
-    onExtractionEvent,
-    offExtractionEvent,
-  };
+  return useMemo(
+    () => ({
+      onExtractionEvent,
+      offExtractionEvent,
+    }),
+    [onExtractionEvent, offExtractionEvent]
+  );
 }

@@ -1,6 +1,8 @@
 // Configuration and constants for job details viewer
 // Schema version: 0.2.0
 
+import { formatExamplesForPrompt } from '../../utils/job-templates';
+
 // Re-export parser and validator utilities for use across the application
 export {
   parseJobTemplate,
@@ -233,86 +235,7 @@ You must map values to these exact categories. Do not invent new categories.
 
 ### FEW-SHOT EXAMPLES
 
-**Input:**
-"Hiring a Junior Web Dev at TechStart! $60k-$80k. You must know React and HTML. Work from home available. Apply by Dec 1st."
-
-**Output:**
-<JOB>
-TITLE: Junior Web Developer
-COMPANY: TechStart
-ADDRESS: N/A
-REMOTE_TYPE: REMOTE
-SALARY_RANGE_MIN: 60,000
-SALARY_RANGE_MAX: 80,000
-EMPLOYMENT_TYPE: FULL-TIME
-EXPERIENCE_LEVEL: ENTRY
-POSTED_DATE: N/A
-CLOSING_DATE: 2025-12-01
-
-# DESCRIPTION:
-- Develop web applications using React and HTML.
-
-# REQUIRED_SKILLS:
-- React
-- HTML
-
-# PREFERRED_SKILLS:
-
-# ABOUT_COMPANY:
-
-**Input:**
-"Principal Architect needed. 10+ years exp required. Contract role for 6 months. New York City. Pay is 150/hr."
-
-**Output:**
-<JOB>
-TITLE: Principal Architect
-COMPANY: UNKNOWN
-ADDRESS: New York City, NY
-REMOTE_TYPE: ONSITE
-SALARY_RANGE_MIN: N/A
-SALARY_RANGE_MAX: N/A
-EMPLOYMENT_TYPE: CONTRACT
-EXPERIENCE_LEVEL: LEAD
-POSTED_DATE: N/A
-CLOSING_DATE: N/A
-
-# DESCRIPTION:
-- Lead architectural design for complex systems.
-
-# REQUIRED_SKILLS:
-- 10+ years experience
-- System Architecture
-
-# PREFERRED_SKILLS:
-
-# ABOUT_COMPANY:
-
-**Input:**
-"Acme Corp is looking for a Marketing Manager. Hybrid (2 days in SF office). Salary: 120,000. Great benefits."
-
-**Output:**
-<JOB>
-TITLE: Marketing Manager
-COMPANY: Acme Corp
-ADDRESS: San Francisco, CA
-REMOTE_TYPE: HYBRID
-SALARY_RANGE_MIN: 120,000
-SALARY_RANGE_MAX: 120,000
-EMPLOYMENT_TYPE: FULL-TIME
-EXPERIENCE_LEVEL: MID
-POSTED_DATE: N/A
-CLOSING_DATE: N/A
-
-# DESCRIPTION:
-- Manage marketing campaigns and strategy.
-
-# REQUIRED_SKILLS:
-- Marketing Strategy
-
-# PREFERRED_SKILLS:
-
-# ABOUT_COMPANY:
-- Offers great benefits.
+${formatExamplesForPrompt()}
 
 ### CURRENT TASK
 Analyze the job listing provided below and output the <JOB> data sheet:

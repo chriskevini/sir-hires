@@ -46,7 +46,13 @@ The primary consumers of our data are **humans** and **LLMs** (Large Language Mo
 
 **Purpose:** Store job posting data in a human/LLM-friendly format.
 
-**File:** `src/utils/job-parser.ts` (parser), `src/utils/job-templates.ts` (generator)
+**Authoritative Source:** `src/utils/job-templates.ts` (SINGLE SOURCE OF TRUTH for schema and examples)
+
+**Related Files:**
+
+- `src/utils/job-parser.ts` (parser)
+- `src/config.ts` (LLM prompts - imports examples from job-templates.ts)
+- `src/entrypoints/job-details/config.ts` (LLM prompts - imports examples from job-templates.ts)
 
 ### Full Template Example
 

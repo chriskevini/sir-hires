@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { browser } from 'wxt/browser';
 import {
   llmSettingsStorage,
@@ -43,6 +43,14 @@ export function useJobExtraction(
   currentJob: Job | null
 ) {
   const extractionEvents = useExtractionEvents();
+
+  // Use ref to access latest currentJob without adding to dependencies
+  const currentJobRef = useRef<Job | null>(currentJob);
+
+  // Keep ref updated with latest currentJob value
+  useEffect(() => {
+    currentJobRef.current = currentJob;
+  }, [currentJob]);
 
   const [extracting, setExtracting] = useState(false);
   const [extractingJob, setExtractingJob] = useState<ExtractingJob | null>(
@@ -135,18 +143,22 @@ export function useJobExtraction(
         });
 
       // Duplicate detection: Check if current job has same URL (Option A)
-      // Use latest currentJob value without making it a dependency
+      // Use ref to access latest currentJob value without causing re-renders
       let jobId: string;
+      const latestCurrentJob = currentJobRef.current;
 
       console.info(
         '[useJobExtraction] DEBUG - preCheckResponse:',
         preCheckResponse
       );
-      console.info('[useJobExtraction] DEBUG - currentJob:', currentJob);
+      console.info(
+        '[useJobExtraction] DEBUG - latestCurrentJob:',
+        latestCurrentJob
+      );
 
-      if (preCheckResponse && preCheckResponse.url && currentJob) {
+      if (preCheckResponse && preCheckResponse.url && latestCurrentJob) {
         const newUrlNormalized = normalizeUrl(preCheckResponse.url);
-        const currentUrlNormalized = normalizeUrl(currentJob.url);
+        const currentUrlNormalized = normalizeUrl(latestCurrentJob.url);
 
         console.info(
           '[useJobExtraction] DEBUG - newUrlNormalized:',
@@ -164,16 +176,16 @@ export function useJobExtraction(
           );
 
           // Store pending extraction data for modal handlers
-          setPendingExtraction({
-            jobId: currentJob.id, // Use existing job ID for refresh
+          const pendingData = {
+            jobId: latestCurrentJob.id, // Use existing job ID for refresh
             url: preCheckResponse.url,
             source: preCheckResponse.source || 'Unknown',
             rawText: preCheckResponse.rawText || '',
             llmSettings: llmSettings,
             isRefresh: false, // Will be set by modal handler
-          });
+          };
 
-          // Show modal and return early
+          setPendingExtraction(pendingData);
           setShowDuplicateModal(true);
           setExtracting(false);
           return;
@@ -221,8 +233,7 @@ export function useJobExtraction(
       setExtracting(false);
     }
     // Note: Don't reset extracting here - let extraction events handle it
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty deps - access currentJob from closure, won't cause re-renders
+  }, []); // Empty deps - access currentJob from ref, won't cause re-renders
 
   /**
    * Handle "Refresh Job Data" choice from modal

@@ -1,4 +1,5 @@
 import React from 'react';
+import './EditorFooter.css';
 
 interface EditorFooterProps {
   saveStatus: string;

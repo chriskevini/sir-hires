@@ -157,33 +157,33 @@ export const App: React.FC = () => {
     );
   };
 
+  // Render main content based on state
+  let mainContent;
+
   // Loading state
   if (isLoading) {
-    return (
+    mainContent = (
       <div className="container">
         <div className="loading">Loading job details...</div>
       </div>
     );
   }
-
   // Extracting state (ephemeral - not yet saved to storage)
-  if (extraction.extractingJob) {
-    return <ExtractingState extractingJob={extraction.extractingJob} />;
+  else if (extraction.extractingJob) {
+    mainContent = <ExtractingState extractingJob={extraction.extractingJob} />;
   }
-
   // Error state
-  if (extraction.error) {
-    return (
+  else if (extraction.error) {
+    mainContent = (
       <ErrorState
         error={extraction.error}
         onRetry={() => window.location.reload()}
       />
     );
   }
-
   // Empty state
-  if (!currentJob) {
-    return (
+  else if (!currentJob) {
+    mainContent = (
       <EmptyState
         extracting={extraction.extracting}
         onExtractJob={extraction.handleExtractJob}
@@ -191,39 +191,44 @@ export const App: React.FC = () => {
       />
     );
   }
-
   // Main job view
-  return (
-    <div className="container">
-      <div id="jobDetails" className="job-details">
-        <div id="jobContent" className="job-content">
-          {renderJobView()}
+  else {
+    mainContent = (
+      <div className="container">
+        <div id="jobDetails" className="job-details">
+          <div id="jobContent" className="job-content">
+            {renderJobView()}
+          </div>
         </div>
+
+        <footer id="footer" className="footer">
+          <button
+            id="extractJobBtn"
+            className="btn btn-secondary"
+            onClick={extraction.handleExtractJob}
+            disabled={extraction.extracting}
+            title="Extract job data from the current tab"
+          >
+            {extraction.extracting ? 'Extracting...' : 'Extract Job Data'}
+          </button>
+          <button
+            id="viewAllJobsBtn"
+            className="btn btn-primary"
+            onClick={handleOpenJobDetails}
+          >
+            Manage
+          </button>
+        </footer>
       </div>
+    );
+  }
 
-      <footer id="footer" className="footer">
-        <button
-          id="extractJobBtn"
-          className="btn btn-secondary"
-          onClick={() => {
-            console.info('[App.tsx] Extract button clicked!');
-            extraction.handleExtractJob();
-          }}
-          disabled={extraction.extracting}
-          title="Extract job data from the current tab"
-        >
-          {extraction.extracting ? 'Extracting...' : 'Extract Job Data'}
-        </button>
-        <button
-          id="viewAllJobsBtn"
-          className="btn btn-primary"
-          onClick={handleOpenJobDetails}
-        >
-          Manage
-        </button>
-      </footer>
+  // Render main content + modal (modal should always be available)
+  return (
+    <>
+      {mainContent}
 
-      {/* Duplicate Job Modal */}
+      {/* Duplicate Job Modal - Render outside main content so it works in all states */}
       {extraction.pendingExtraction && (
         <DuplicateJobModal
           isOpen={extraction.showDuplicateModal}
@@ -233,6 +238,6 @@ export const App: React.FC = () => {
           onCancel={extraction.handleCancelDuplicate}
         />
       )}
-    </div>
+    </>
   );
 };

@@ -3,6 +3,7 @@ import {
   statusOrder,
   statusColors,
 } from '../../entrypoints/job-details/config';
+import './StatusSelector.css';
 
 interface StatusSelectorProps {
   currentStatus: string;

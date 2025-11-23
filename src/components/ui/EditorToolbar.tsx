@@ -1,6 +1,7 @@
 import React from 'react';
 import { TabBar } from './TabBar';
 import { Dropdown } from './Dropdown';
+import './EditorToolbar.css';
 
 interface EditorToolbarProps {
   documentKeys: string[];

@@ -1,4 +1,5 @@
 import React from 'react';
+import './TabBar.css';
 
 interface Tab {
   key: string;

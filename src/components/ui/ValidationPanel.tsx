@@ -1,5 +1,6 @@
 import React from 'react';
 import { CollapsiblePanel } from './CollapsiblePanel';
+import './ValidationPanel.css';
 
 interface ValidationMessage {
   type: 'error' | 'warning' | 'info';

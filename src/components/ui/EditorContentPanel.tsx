@@ -1,5 +1,6 @@
 import React from 'react';
 import { escapeHtml } from '@/utils/shared-utils';
+import './EditorContentPanel.css';
 
 interface EditorContentPanelProps {
   documentKey: string;

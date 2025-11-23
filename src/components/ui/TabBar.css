@@ -1,0 +1,41 @@
+/* ===================================================================
+   TabBar Component Styles
+   Browser-style tabs for document navigation
+   =================================================================== */
+
+.tab-container {
+  display: flex;
+  gap: 2px;
+  align-items: flex-end;
+  padding-left: 8px;
+}
+
+/* Individual tab button - browser style with trapezoidal shape */
+.tab-btn {
+  position: relative;
+  padding: 10px 20px;
+  background-color: #e8e8e8;
+  border: 1px solid #d0d0d0;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #5f6368;
+  transition: all 0.15s;
+  min-width: 120px;
+  margin-bottom: -1px; /* Overlap the topbar border */
+}
+
+.tab-btn:hover:not(.active) {
+  background-color: #f1f3f4;
+  color: #202124;
+}
+
+.tab-btn.active {
+  background-color: white;
+  color: #202124;
+  border-color: #d0d0d0;
+  z-index: 1;
+  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
+}

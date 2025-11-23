@@ -1,0 +1,45 @@
+/* ===================================================================
+   JobHeader Component Styles
+   Displays job title, company, and link to original posting
+   =================================================================== */
+
+.job-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.job-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.company {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background-color: #e8f0fe;
+  color: #1a73e8;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.badge-link {
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.badge-link:hover {
+  background-color: #d2e3fc;
+  box-shadow: 0 1px 3px rgba(26, 115, 232, 0.3);
+}

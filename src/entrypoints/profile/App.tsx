@@ -1,56 +1,34 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './styles.css';
 import { browser } from 'wxt/browser';
-
-// Import parser and validator utilities
-import { parseProfile } from '@/utils/profile-parser';
-import { validateProfile, PROFILE_SCHEMA } from '@/utils/profile-validator';
 
 // Import WXT storage
 import { userProfileStorage } from '@/utils/storage';
 
-// Types
-interface ValidationFix {
-  type: string;
-  text?: string;
-  buttonLabel?: string;
-  description?: string;
-  section?: string;
-  entry?: string;
-  field?: string;
-  currentValue?: string;
-  allowedValues?: string[];
-}
+// Import utilities
+import { formatSaveTime } from '@/utils/date-utils';
+import { exportMarkdown as exportMarkdownUtil } from '@/utils/export-utils';
+import {
+  setCursorAndScroll,
+  insertTextAtPosition,
+  findNextEntryId,
+  findNextSectionPosition,
+  findEntryEndPosition,
+  findSmartInsertPosition,
+  applyFix as applyFixUtil,
+  FIELD_ORDER,
+} from '@/utils/profile-utils';
 
-interface ValidationError {
-  message: string;
-  type?: string;
-  section?: string;
-  entry?: string;
-  field?: string;
-  value?: string;
-  allowedValues?: string[];
-}
-
-interface ValidationResult {
-  errors: ValidationError[];
-  warnings: { message: string }[];
-  info: { message: string }[];
-  customFields: string[];
-  customSections: string[];
-}
+// Import hooks
+import {
+  useProfileValidation,
+  type ValidationFix,
+  type ValidationError,
+  type ValidationResult,
+} from './hooks/useProfileValidation';
 
 // Constants
-const DEFAULT_LINE_HEIGHT = 16;
-const SCROLL_OFFSET_LINES = 2;
 const AUTO_SAVE_INTERVAL = 3000; // 3 seconds
-const VALIDATION_DEBOUNCE = 500; // 500ms
-
-const FIELD_ORDER = {
-  TOP_LEVEL: ['NAME', 'ADDRESS', 'EMAIL', 'PHONE', 'WEBSITE', 'GITHUB'],
-  EDUCATION: ['DEGREE', 'SCHOOL', 'LOCATION', 'START', 'END', 'GPA'],
-  EXPERIENCE: ['TYPE', 'TITLE', 'AT', 'START', 'END', 'BULLETS'],
-};
 
 const TEMPLATE_TEXT = `<PROFILE>
 NAME: Place Holder // required
@@ -107,22 +85,14 @@ export default function ProfileApp() {
   const [isTemplatePanelVisible, setIsTemplatePanelVisible] = useState(true);
   const [isValidationPanelCollapsed, setIsValidationPanelCollapsed] =
     useState(true);
-  const [validation, setValidation] = useState<ValidationResult>({
-    errors: [],
-    warnings: [],
-    info: [],
-    customFields: [],
-    customSections: [],
-  });
-  const [validationFixes, setValidationFixes] = useState<
-    (ValidationFix | null)[]
-  >([]);
 
   // Refs
   const editorRef = useRef<HTMLTextAreaElement>(null);
-  const validationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Validation hook
+  const { validation, validationFixes } = useProfileValidation({ content });
 
   // Load profile from storage on mount
   useEffect(() => {
@@ -134,14 +104,8 @@ export default function ProfileApp() {
       if (autoSaveTimerRef.current) clearInterval(autoSaveTimerRef.current);
       if (lastSavedIntervalRef.current)
         clearInterval(lastSavedIntervalRef.current);
-      if (validationTimerRef.current) clearTimeout(validationTimerRef.current);
     };
   }, []);
-
-  // Run validation when content changes (debounced)
-  useEffect(() => {
-    scheduleValidation();
-  }, [content]);
 
   const loadProfile = async () => {
     try {
@@ -204,40 +168,6 @@ export default function ProfileApp() {
     }, 60000); // Update every minute
   };
 
-  const formatLastSavedTime = (isoTimestamp: string): string => {
-    const now = new Date();
-    const saved = new Date(isoTimestamp);
-
-    // Check if it's today
-    const isToday = now.toDateString() === saved.toDateString();
-
-    if (isToday) {
-      // Format as HH:MM
-      const hours = saved.getHours().toString().padStart(2, '0');
-      const minutes = saved.getMinutes().toString().padStart(2, '0');
-      return `${hours}:${minutes}`;
-    } else {
-      // Format as relative date
-      const diffMs = now.getTime() - saved.getTime();
-      const diffMins = Math.floor(diffMs / 60000);
-      const diffHours = Math.floor(diffMins / 60);
-      const diffDays = Math.floor(diffHours / 24);
-
-      if (diffMins < 60) {
-        return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-      } else if (diffHours < 24) {
-        return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-      } else if (diffDays === 1) {
-        return 'yesterday';
-      } else if (diffDays < 7) {
-        return `${diffDays} days ago`;
-      } else {
-        const weeks = Math.floor(diffDays / 7);
-        return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
-      }
-    }
-  };
-
   const showStatusMessage = (message: string, type: 'success' | 'error') => {
     setStatusMessage(message);
 
@@ -248,319 +178,20 @@ export default function ProfileApp() {
     }
   };
 
-  const scheduleValidation = useCallback(() => {
-    if (validationTimerRef.current) {
-      clearTimeout(validationTimerRef.current);
-    }
-
-    validationTimerRef.current = setTimeout(() => {
-      runValidation(content);
-    }, VALIDATION_DEBOUNCE);
-  }, [content]);
-
-  const runValidation = (content: string) => {
-    if (!content || content.trim().length === 0) {
-      setValidation({
-        errors: [],
-        warnings: [],
-        info: [],
-        customFields: [],
-        customSections: [],
-      });
-      setValidationFixes([]);
-      return;
-    }
-
-    try {
-      const parsed = parseProfile(content);
-      const validationResult = validateProfile(parsed);
-
-      setValidation(validationResult);
-
-      // Generate fixes for errors
-      const fixes = validationResult.errors.map((error: ValidationError) =>
-        generateFix(error)
-      );
-      setValidationFixes(fixes);
-    } catch (error: any) {
-      setValidation({
-        errors: [{ message: `Parse error: ${error.message}` }],
-        warnings: [],
-        info: [],
-        customFields: [],
-        customSections: [],
-      });
-      setValidationFixes([]);
-    }
-  };
-
-  const generateFix = (error: ValidationError): ValidationFix | null => {
-    if (!error || !error.type) {
-      return null;
-    }
-
-    switch (error.type) {
-      case 'missing_type':
-        return {
-          type: 'insert_at_start',
-          text: '<PROFILE>\n',
-          buttonLabel: 'Add <PROFILE>',
-          description: 'Insert <PROFILE> at the start',
-        };
-
-      case 'missing_required_field':
-        if (error.section && error.entry) {
-          return {
-            type: 'insert_field_in_entry',
-            section: error.section,
-            entry: error.entry,
-            field: error.field!,
-            text: `${error.field}: `,
-            buttonLabel: `Add ${error.field}`,
-            description: `Insert ${error.field} field in ${error.section}.${error.entry}`,
-          };
-        } else {
-          return {
-            type: 'insert_top_level_field',
-            field: error.field!,
-            text: `${error.field}: `,
-            buttonLabel: `Add ${error.field}`,
-            description: `Insert ${error.field} field after <PROFILE>`,
-          };
-        }
-
-      case 'invalid_enum_value':
-        return {
-          type: 'replace_enum_value_multi',
-          section: error.section,
-          entry: error.entry,
-          field: error.field,
-          currentValue: error.value,
-          allowedValues: error.allowedValues,
-          description: 'Replace with correct value',
-        };
-
-      default:
-        return null;
-    }
-  };
-
   const applyFix = (fix: ValidationFix, enumValue?: string) => {
     if (!editorRef.current) return;
 
     const currentContent = editorRef.current.value;
-    let newContent = currentContent;
-    let cursorPosition = 0;
+    const result = applyFixUtil(fix, currentContent, enumValue);
 
-    if (fix.type === 'replace_enum_value_multi' && enumValue) {
-      // Apply enum fix
-      const enumRegex = new RegExp(
-        `(##\\s+${fix.entry}[\\s\\S]*?${fix.field}:\\s*)${fix.currentValue}`,
-        'm'
+    if (result) {
+      setCursorAndScroll(
+        editorRef.current,
+        result.newContent,
+        result.cursorPosition
       );
-      const enumMatch = currentContent.match(enumRegex);
-
-      if (enumMatch) {
-        const replaceStart = enumMatch.index! + enumMatch[1].length;
-        const replaceEnd = replaceStart + fix.currentValue!.length;
-        newContent =
-          currentContent.slice(0, replaceStart) +
-          enumValue +
-          currentContent.slice(replaceEnd);
-        cursorPosition = replaceStart + enumValue.length;
-      }
-    } else if (fix.type === 'insert_at_start') {
-      newContent = fix.text! + currentContent;
-      cursorPosition = fix.text!.length;
-    } else if (fix.type === 'insert_top_level_field') {
-      const profileMatch = currentContent.match(/^<PROFILE>\s*\n/m);
-      if (profileMatch) {
-        const topLevelStart = profileMatch.index! + profileMatch[0].length;
-        const topLevelEnd = findNextSectionPosition(
-          currentContent,
-          topLevelStart
-        );
-        const insertPos = findSmartInsertPosition(
-          currentContent,
-          topLevelStart,
-          topLevelEnd,
-          fix.field!,
-          FIELD_ORDER.TOP_LEVEL
-        );
-        const result = insertTextAtPosition(
-          currentContent,
-          insertPos,
-          fix.text!
-        );
-        newContent = result.newContent;
-        cursorPosition = result.cursorPosition;
-      } else {
-        newContent = '<PROFILE>\n' + fix.text! + '\n' + currentContent;
-        cursorPosition = '<PROFILE>\n'.length + fix.text!.length;
-      }
-    } else if (fix.type === 'insert_field_in_entry') {
-      const entryRegex = new RegExp(`^##\\s+${fix.entry}\\s*$`, 'm');
-      const entryMatch = currentContent.match(entryRegex);
-
-      if (entryMatch) {
-        const entryStart = entryMatch.index! + entryMatch[0].length;
-        const entryEnd = findEntryEndPosition(currentContent, entryStart);
-
-        let fieldOrder: string[] = [];
-        if (fix.section === 'EDUCATION') {
-          fieldOrder = FIELD_ORDER.EDUCATION;
-        } else if (fix.section === 'EXPERIENCE') {
-          fieldOrder = FIELD_ORDER.EXPERIENCE;
-        }
-
-        const insertPos = findSmartInsertPosition(
-          currentContent,
-          entryStart,
-          entryEnd,
-          fix.field!,
-          fieldOrder
-        );
-        const result = insertTextAtPosition(
-          currentContent,
-          insertPos,
-          fix.text!
-        );
-        newContent = result.newContent;
-        cursorPosition = result.cursorPosition;
-      }
+      setContent(result.newContent);
     }
-
-    setCursorAndScroll(editorRef.current, newContent, cursorPosition);
-    setContent(newContent);
-  };
-
-  // Helper functions (converted from vanilla JS)
-  const setCursorAndScroll = (
-    editor: HTMLTextAreaElement,
-    newContent: string,
-    cursorPosition: number
-  ) => {
-    editor.value = newContent;
-    editor.focus();
-    editor.setSelectionRange(cursorPosition, cursorPosition);
-
-    const textBeforeCursor = newContent.slice(0, cursorPosition);
-    const linesBefore = textBeforeCursor.split('\n').length;
-    const lineHeight =
-      parseInt(window.getComputedStyle(editor).lineHeight) ||
-      DEFAULT_LINE_HEIGHT;
-    const scrollPosition = Math.max(
-      0,
-      (linesBefore - SCROLL_OFFSET_LINES) * lineHeight
-    );
-
-    editor.scrollTop = scrollPosition;
-  };
-
-  const insertTextAtPosition = (
-    content: string,
-    insertPos: number,
-    text: string
-  ) => {
-    const newContent =
-      content.slice(0, insertPos) + text + '\n' + content.slice(insertPos);
-    const cursorPosition = insertPos + text.length;
-    return { newContent, cursorPosition };
-  };
-
-  const findNextEntryId = (content: string, prefix: string): number => {
-    const regex = new RegExp(`##\\s+${prefix}(\\d+)`, 'g');
-    const matches = content.matchAll(regex);
-    let maxId = 0;
-
-    for (const match of matches) {
-      const id = parseInt(match[1], 10);
-      if (id > maxId) {
-        maxId = id;
-      }
-    }
-
-    return maxId + 1;
-  };
-
-  const findNextSectionPosition = (
-    content: string,
-    startPos: number
-  ): number => {
-    const restContent = content.slice(startPos);
-    const nextSectionMatch = restContent.match(/^#\s+\w+/m);
-
-    if (nextSectionMatch) {
-      return startPos + nextSectionMatch.index!;
-    }
-    return content.length;
-  };
-
-  const findEntryEndPosition = (
-    content: string,
-    entryStartPos: number
-  ): number => {
-    const restContent = content.slice(entryStartPos);
-    const nextEntryMatch = restContent.match(/^##\s+\w+/m);
-    const nextSectionMatch = restContent.match(/^#\s+\w+/m);
-
-    if (
-      nextEntryMatch &&
-      (!nextSectionMatch || nextEntryMatch.index! < nextSectionMatch.index!)
-    ) {
-      return entryStartPos + nextEntryMatch.index!;
-    } else if (nextSectionMatch) {
-      return entryStartPos + nextSectionMatch.index!;
-    }
-    return content.length;
-  };
-
-  const findSmartInsertPosition = (
-    content: string,
-    startPos: number,
-    endPos: number,
-    fieldName: string,
-    fieldOrder: string[]
-  ): number => {
-    const sectionContent = content.slice(startPos, endPos);
-    const fieldIndex = fieldOrder.indexOf(fieldName);
-
-    if (fieldIndex === -1) {
-      return endPos;
-    }
-
-    const fieldRegex = /^([A-Z_]+):/gm;
-    const existingFields: {
-      name: string;
-      orderIndex: number;
-      position: number;
-    }[] = [];
-    let match;
-
-    while ((match = fieldRegex.exec(sectionContent)) !== null) {
-      const existingFieldName = match[1];
-      const existingFieldIndex = fieldOrder.indexOf(existingFieldName);
-
-      if (existingFieldIndex !== -1) {
-        existingFields.push({
-          name: existingFieldName,
-          orderIndex: existingFieldIndex,
-          position: startPos + match.index,
-        });
-      }
-    }
-
-    for (const existing of existingFields) {
-      if (existing.orderIndex > fieldIndex) {
-        let lineStart = existing.position;
-        while (lineStart > startPos && content[lineStart - 1] !== '\n') {
-          lineStart--;
-        }
-        return lineStart;
-      }
-    }
-
-    return endPos;
   };
 
   const formatProfile = () => {
@@ -611,24 +242,10 @@ export default function ProfileApp() {
     }
   };
 
-  const exportMarkdown = async () => {
-    if (!content.trim()) {
-      showStatusMessage('Nothing to export', 'error');
-      return;
-    }
-
-    const blob = new Blob([content], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `profile-${timestamp}.md`;
-
-    await browser.downloads.download({
-      url: url,
-      filename: filename,
-      saveAs: true,
-    });
-
-    showStatusMessage('Exported as ' + filename, 'success');
+  const exportMarkdown = () => {
+    exportMarkdownUtil({ title: 'profile', text: content }, (message, type) =>
+      showStatusMessage(message, type === 'info' ? 'success' : type)
+    );
   };
 
   const exportText = async () => {
@@ -776,7 +393,7 @@ BULLETS:
   };
 
   const goBack = () => {
-    window.location.href = browser.runtime.getURL('job-details.html');
+    window.location.href = (browser.runtime as any).getURL('job-details.html');
   };
 
   // Compute validation UI state
@@ -836,7 +453,7 @@ BULLETS:
           >
             {statusMessage ||
               (lastSavedTime
-                ? `Last saved: ${formatLastSavedTime(lastSavedTime)}`
+                ? `Last saved: ${formatSaveTime(new Date(lastSavedTime))}`
                 : '')}
           </span>
         </div>

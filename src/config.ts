@@ -1,7 +1,7 @@
 // Configuration and constants for job details viewer
 // Schema version: 0.2.0
 
-import { formatExamplesForPrompt } from './utils/job-templates';
+import { JOB_EXTRACTION_PROMPT } from './utils/job-templates';
 
 // Status progression order for state-based navigation (v0.2.0)
 export const statusOrder = [
@@ -186,48 +186,7 @@ Your sole goal is to synthesize one single, polished document by strictly follow
 3. Select and Prepare Content: Scan the [MASTER RESUME] to select content that aligns with the job/goal. **Confirm how the selected content will be treated** (verbatim, synthesized, or high-level reference) based on the document's specific rules.
 4. Synthesize Document: Generate the final document. **STRICTLY apply the simple rules and the required structure** defined in the [CURRENT DRAFT] block.
 `,
-      jobExtractor: `
-### ROLE
-You are an expert Data Extraction Engine. Your sole purpose is to parse unstructured job descriptions into a strict, structured data format.
-
-### OBJECTIVE
-Extract relevant data points from the user-provided text and map them to the specific schema defined below. Do not include conversational text, markdown formatting, or explanations. Output ONLY the raw data block.
-
-### DATA RULES & TRANSFORMATIONS
-1.  **Missing Data:**
-    * If a *Required* field is missing, output "UNKNOWN".
-    * If an *Optional* field is missing, output "N/A".
-2.  **Dates:** Convert all dates to YYYY-MM-DD format. If the year is implied, use the current year (2025).
-3.  **Salary:** Extract raw numbers. Format with commas (e.g., 100,000). Do not include currency symbols ($).
-4.  **Lists:** Format lists (Description, Skills) with hyphens "- ". Capture a maximum of 5 key points per section.
-5.  **White Space:** There must be an empty line above the names of lists.
-
-### ENUMERATION MAPPING (STRICT)
-You must map values to these exact categories. Do not invent new categories.
-
-* **REMOTE_TYPE:**
-    * "Onsite", "In-office" -> ONSITE
-    * "Remote", "WFH", "Work from home", "Anywhere" -> REMOTE
-    * "Hybrid", "Flexible location" -> HYBRID
-    * If unstated -> ONSITE
-* **EMPLOYMENT_TYPE:**
-    * [FULL-TIME | PART-TIME | CONTRACT | INTERNSHIP | COOP]
-    * Default to FULL-TIME if not specified but implied.
-* **EXPERIENCE_LEVEL:**
-    * Infer based on title or years of experience.
-    * 0-2 years -> ENTRY
-    * 3-5 years -> MID
-    * 5-8 years -> SENIOR
-    * 8+ years, "Principal", "Staff" -> LEAD
-
-### FEW-SHOT EXAMPLES
-
-${formatExamplesForPrompt()}
-
-### CURRENT TASK
-Analyze the job listing provided below and output the <JOB> data sheet:
-
-`,
+      jobExtractor: JOB_EXTRACTION_PROMPT,
     },
   },
 };

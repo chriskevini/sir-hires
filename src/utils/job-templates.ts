@@ -13,7 +13,8 @@ ADDRESS: San Francisco, CA
 REMOTE_TYPE: HYBRID // [ONSITE|REMOTE|HYBRID]
 SALARY_RANGE_MIN: 100,000
 SALARY_RANGE_MAX: 150,000
-EMPLOYMENT_TYPE: FULL-TIME // [FULL-TIME|PART-TIME|CONTRACT|INTERNSHIP|COOP]
+PAY_PERIOD: ANNUAL // [HOURLY|ANNUAL|MONTHLY|WEEKLY|BIWEEKLY|SEMIMONTHLY]
+EMPLOYMENT_TYPE: FULL-TIME // [FULL-TIME|PART-TIME|CONTRACT|INTERNSHIP]
 EXPERIENCE_LEVEL: SENIOR // [ENTRY|MID|SENIOR|LEAD]
 POSTED_DATE: 2025-11-15
 CLOSING_DATE: 2025-12-31
@@ -60,6 +61,7 @@ ADDRESS: N/A
 REMOTE_TYPE: REMOTE
 SALARY_RANGE_MIN: 60,000
 SALARY_RANGE_MAX: 80,000
+PAY_PERIOD: ANNUAL
 EMPLOYMENT_TYPE: FULL-TIME
 EXPERIENCE_LEVEL: ENTRY
 POSTED_DATE: N/A
@@ -114,6 +116,7 @@ ADDRESS: San Francisco, CA
 REMOTE_TYPE: HYBRID
 SALARY_RANGE_MIN: 120,000
 SALARY_RANGE_MAX: 120,000
+PAY_PERIOD: ANNUAL
 EMPLOYMENT_TYPE: FULL-TIME
 EXPERIENCE_LEVEL: MID
 POSTED_DATE: N/A
@@ -150,3 +153,50 @@ ${example.output}`
     )
     .join('\n');
 }
+
+/**
+ * Centralized LLM extraction prompt
+ * SINGLE SOURCE OF TRUTH for job extraction rules
+ * Used by both background script and job-details entrypoint
+ */
+export const JOB_EXTRACTION_PROMPT = `
+### ROLE
+You are an expert Data Extraction Engine. Your sole purpose is to parse unstructured job descriptions into a human-readable, structured data block.
+
+### OBJECTIVE
+Extract relevant data from the text and map it to the schema below. Output ONLY the data block. Do not include conversational text.
+
+### DATA RULES
+1.  **Missing Data (Fields):**
+    * For key-value fields (Top section), if data is missing, output "UNKNOWN".
+2.  **Missing Data (Lists):**
+    * If a list section (e.g., Preferred Skills, About Company) has no data, **omit the entire section**. Do not output the Header or "UNKNOWN".
+3.  **Dates:** Convert all dates to YYYY-MM-DD. If year is implied, use 2025.
+4.  **Salary Handling:**
+    * Extract raw numbers only (no currency symbols).
+    * If the salary is Hourly, set PAY_PERIOD to "HOURLY".
+    * If the salary is Annual, set PAY_PERIOD to "ANNUAL".
+5.  **Location:** Expand city abbreviations to full names (e.g., "NYC" -> "New York, NY").
+6.  **Lists:** Format descriptions and skills as bullet points.
+
+### ENUMERATION MAPPING (STRICT)
+Map values to these exact categories:
+* **REMOTE_TYPE:** [ONSITE | REMOTE | HYBRID]. Default: ONSITE.
+* **EMPLOYMENT_TYPE:** [FULL-TIME | PART-TIME | CONTRACT | INTERNSHIP].
+    * Default: FULL-TIME.
+    * "Intern", "Summer Analyst", "Co-op", "Cooperative Education", "Student Position" -> INTERNSHIP
+    * "Freelance", "C2C" -> CONTRACT
+* **EXPERIENCE_LEVEL:** [ENTRY | MID | SENIOR | LEAD].
+    * 0-2 years -> ENTRY
+    * 3-5 years -> MID
+    * 5-8 years -> SENIOR
+    * 8+ years -> LEAD
+
+### FEW-SHOT EXAMPLES
+
+${formatExamplesForPrompt()}
+
+### CURRENT TASK
+Analyze the job listing provided below and output the <JOB> data sheet:
+
+`;

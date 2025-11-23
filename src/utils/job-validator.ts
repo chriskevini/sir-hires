@@ -11,11 +11,12 @@ import type { BaseValidationResult } from './validation-types';
 export interface JobValidationResult extends BaseValidationResult {}
 
 /**
- * Job schema definition
+ * Job schema definition (SIMPLIFIED)
+ * Philosophy: Only validate REQUIRED fields. Accept everything else.
+ * This prevents validator from becoming a maintenance bottleneck.
  */
 interface JobSchema {
   topLevelRequired: string[];
-  topLevelOptional: string[];
   standardSections: Record<
     string,
     {
@@ -23,28 +24,16 @@ interface JobSchema {
       required?: boolean;
     }
   >;
-  enums: Record<string, string[]>;
 }
 
 /**
- * Validation schema for standard Job Template fields
- * Note: This is NOT exhaustive - custom fields are ENCOURAGED
+ * Validation schema for Job Template
+ * Only validates REQUIRED fields - optional fields are never validated
+ * This ensures schema can evolve without breaking validation
  */
 const JOB_SCHEMA: JobSchema = {
-  // Top-level required fields
+  // Top-level required fields (ONLY THESE ARE VALIDATED)
   topLevelRequired: ['TITLE', 'COMPANY'],
-
-  // Top-level optional standard fields
-  topLevelOptional: [
-    'ADDRESS',
-    'REMOTE_TYPE',
-    'SALARY_RANGE_MIN',
-    'SALARY_RANGE_MAX',
-    'EMPLOYMENT_TYPE',
-    'EXPERIENCE_LEVEL',
-    'POSTED_DATE',
-    'CLOSING_DATE',
-  ],
 
   // Standard sections (all are list-based)
   standardSections: {
@@ -61,19 +50,6 @@ const JOB_SCHEMA: JobSchema = {
     ABOUT_COMPANY: {
       isList: true,
     },
-  },
-
-  // Enum field validation
-  enums: {
-    REMOTE_TYPE: ['ONSITE', 'REMOTE', 'HYBRID'],
-    EMPLOYMENT_TYPE: [
-      'FULL-TIME',
-      'PART-TIME',
-      'CONTRACT',
-      'INTERNSHIP',
-      'COOP',
-    ],
-    EXPERIENCE_LEVEL: ['ENTRY', 'MID', 'SENIOR', 'LEAD'],
   },
 };
 
@@ -140,7 +116,9 @@ function validateJobTemplate(parsedJob: JobTemplateData): JobValidationResult {
 }
 
 /**
- * Validate top-level fields
+ * Validate top-level fields (SIMPLIFIED)
+ * Only validates REQUIRED fields exist and are non-empty
+ * All optional fields are accepted without validation
  */
 function validateTopLevelFields(
   parsedJob: JobTemplateData,
@@ -149,7 +127,7 @@ function validateTopLevelFields(
   const fields = parsedJob.topLevelFields || {};
   const fieldNames = Object.keys(fields);
 
-  // Check required fields
+  // Check required fields only
   JOB_SCHEMA.topLevelRequired.forEach((requiredField) => {
     if (!fields[requiredField] || fields[requiredField].trim() === '') {
       result.errors.push({
@@ -161,30 +139,23 @@ function validateTopLevelFields(
     }
   });
 
-  // Validate enum fields
-  Object.keys(JOB_SCHEMA.enums).forEach((enumField) => {
-    const value = fields[enumField];
-    const allowedValues = JOB_SCHEMA.enums[enumField];
-
-    if (value && !allowedValues.includes(value)) {
-      result.errors.push({
-        type: 'invalid_enum_value',
-        field: enumField,
-        value: value,
-        allowedValues: allowedValues,
-        message: `Invalid value "${value}" for ${enumField}. Allowed values: ${allowedValues.join(', ')}`,
-      });
-      result.valid = false;
-    }
-  });
-
-  // Identify custom fields
-  const standardFields = [
-    ...JOB_SCHEMA.topLevelRequired,
-    ...JOB_SCHEMA.topLevelOptional,
+  // Identify custom fields (anything not in standard list)
+  // Note: We don't validate optional fields, but we still track custom ones
+  const knownStandardFields = [
+    'TITLE',
+    'COMPANY',
+    'ADDRESS',
+    'REMOTE_TYPE',
+    'SALARY_RANGE_MIN',
+    'SALARY_RANGE_MAX',
+    'PAY_PERIOD',
+    'EMPLOYMENT_TYPE',
+    'EXPERIENCE_LEVEL',
+    'POSTED_DATE',
+    'CLOSING_DATE',
   ];
   fieldNames.forEach((fieldName) => {
-    if (!standardFields.includes(fieldName)) {
+    if (!knownStandardFields.includes(fieldName)) {
       result.customFields.push(fieldName);
     }
   });

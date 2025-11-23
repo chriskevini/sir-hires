@@ -234,6 +234,14 @@ export const App: React.FC = () => {
         {renderJobView()}
         <footer id="footer" className="footer">
           <button
+            id="deleteJobBtn"
+            className="btn btn-delete"
+            onClick={() => handlers.handleDeleteJob(jobState.selectedJobIndex)}
+            title="Delete this job"
+          >
+            Delete Job
+          </button>
+          <button
             id="extractJobBtn"
             className="btn btn-secondary"
             onClick={extraction.handleExtractJob}

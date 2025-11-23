@@ -14,6 +14,7 @@ import { JobTemplatePanel } from '../components/JobTemplatePanel';
 import { ExtractionLoadingView } from '../components/ExtractionLoadingView';
 import { ExtractionErrorView } from '../components/ExtractionErrorView';
 import { MigrationPromptView } from '../components/MigrationPromptView';
+import './researching-view.css';
 
 interface Job {
   id: string;

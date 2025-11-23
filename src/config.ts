@@ -39,8 +39,11 @@ export const progressConfig = {
 };
 
 // Navigation button configuration for each status (v0.2.0)
-export function getNavigationButtons(status) {
-  const buttons = { left: null, right: [] };
+export function getNavigationButtons(status: string) {
+  const buttons: {
+    left: { label: string; target: string } | null;
+    right: { label: string; target: string }[];
+  } = { left: null, right: [] };
 
   switch (status) {
     case 'Researching':

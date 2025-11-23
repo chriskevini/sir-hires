@@ -16,7 +16,7 @@ export function useDebounce(
   delay: number,
   deps: DependencyList
 ): void {
-  const timeoutRef = useRef<number | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Clear previous timeout

@@ -74,7 +74,10 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
     setAvailableModels(models);
 
     // Set default model if available
-    if (models.length > 0 && !models.find((m) => m.id === selectedModel)) {
+    if (
+      models.length > 0 &&
+      !models.find((m: { id: string }) => m.id === selectedModel)
+    ) {
       setSelectedModel(models[0].id);
     }
   };
@@ -95,8 +98,19 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   // Get parsed job from provider (cached)
   const parsed = useParsedJob(job?.id || '');
 
-  const buildContext = async () => {
-    if (!job) return {};
+  const buildContext = async (): Promise<Record<string, string>> => {
+    if (!job)
+      return {
+        masterResume: 'Not provided',
+        jobTitle: 'Not provided',
+        company: 'Not provided',
+        aboutJob: 'Not provided',
+        aboutCompany: 'Not provided',
+        responsibilities: 'Not provided',
+        requirements: 'Not provided',
+        narrativeStrategy: 'Not provided',
+        currentDraft: '',
+      };
 
     return {
       masterResume: userProfile || 'Not provided',
@@ -175,10 +189,10 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
       maxTokens,
       temperature: llmConfig.synthesis.temperature,
       onThinkingUpdate: onThinkingUpdate
-        ? (delta) => onThinkingUpdate(documentKey!, delta)
+        ? (delta: string) => onThinkingUpdate(documentKey!, delta)
         : undefined,
       onDocumentUpdate: onDocumentUpdate
-        ? (delta) => onDocumentUpdate(documentKey!, delta)
+        ? (delta: string) => onDocumentUpdate(documentKey!, delta)
         : undefined,
     });
 

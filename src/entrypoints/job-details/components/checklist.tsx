@@ -75,8 +75,8 @@ export const Checklist: React.FC<ChecklistProps> = ({
       ? statusOrder[currentIndex + 1]
       : null;
   const nextColor =
-    nextStatus && progressConfig[nextStatus]
-      ? progressConfig[nextStatus].color
+    nextStatus && progressConfig[nextStatus as keyof typeof progressConfig]
+      ? progressConfig[nextStatus as keyof typeof progressConfig].color
       : '#666';
 
   // Get items for current status

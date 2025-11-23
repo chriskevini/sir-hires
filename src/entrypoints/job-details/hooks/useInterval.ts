@@ -16,7 +16,7 @@ export function useInterval(
   delay: number,
   deps: DependencyList
 ): void {
-  const intervalRef = useRef<number | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const callbackRef = useRef(callback);
 
   // Update callback ref when callback changes

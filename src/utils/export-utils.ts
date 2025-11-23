@@ -4,9 +4,7 @@
 
 import { markdownToHtml } from './markdown-utils';
 import { escapeHtml } from './shared-utils';
-
-// Get browser global (works in WXT environment)
-declare const browser: typeof chrome;
+import { browser } from 'wxt/browser';
 
 export interface ExportDocument {
   title: string;

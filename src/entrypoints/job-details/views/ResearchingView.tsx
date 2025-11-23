@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { Checklist } from '../components/checklist';
 import { useParsedJob } from '@/components/features/ParsedJobProvider';
+import { JobViewOverlay } from '@/components/features/JobViewOverlay';
 import { escapeHtml } from '@/utils/shared-utils';
 import {
   useToggleState,
@@ -216,15 +216,14 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
         </div>
       </div>
 
-      {/* Checklist in sidebar */}
-      <Checklist
-        checklist={job.checklist}
-        status={job.applicationStatus || 'researching'}
+      {/* Overlay container for Checklist and Navigation */}
+      <JobViewOverlay
+        job={job}
         jobIndex={index}
-        isExpanded={isChecklistExpanded}
-        animate={false}
-        onToggleExpand={onToggleChecklistExpand}
-        onToggleItem={onToggleChecklistItem}
+        isChecklistExpanded={isChecklistExpanded}
+        onSaveField={onSaveField}
+        onToggleChecklistExpand={onToggleChecklistExpand}
+        onToggleChecklistItem={onToggleChecklistItem}
       />
     </>
   );

@@ -1,0 +1,87 @@
+/* NavigationButtons Component Styles */
+
+.nav-buttons-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 24px;
+  margin-bottom: 20px;
+  z-index: 10;
+}
+
+.nav-button-container {
+  flex-shrink: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-button-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--nav-color, #1a73e8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+  white-space: normal;
+  text-align: center;
+  max-width: 100px;
+  word-wrap: break-word;
+}
+
+.nav-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  border: 2px solid var(--nav-color, #1a73e8);
+  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 0;
+}
+
+.nav-button:hover {
+  background-color: var(--nav-color, #1a73e8);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.nav-button:hover .nav-arrow {
+  border-color: white;
+}
+
+.nav-arrow {
+  width: 0;
+  height: 0;
+  border: solid var(--nav-color, #1a73e8);
+  border-width: 0 3px 3px 0;
+  display: inline-block;
+  padding: 10px;
+  transition: border-color 0.2s;
+}
+
+.nav-arrow.left {
+  transform: rotate(135deg);
+}
+
+.nav-arrow.right {
+  transform: rotate(-45deg);
+}
+
+/* Multiple right buttons stacked vertically */
+.nav-button-container.right.multiple {
+  gap: 16px;
+}

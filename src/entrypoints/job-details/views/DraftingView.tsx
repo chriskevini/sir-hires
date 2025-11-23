@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useCallback } from 'react';
-import { Checklist } from '../components/checklist';
 import { Modal } from '../../../components/ui/Modal';
 import { SynthesisForm } from '../components/SynthesisForm';
 import { EditorToolbar } from '@/components/ui/EditorToolbar';
 import { EditorContentPanel } from '@/components/ui/EditorContentPanel';
 import { EditorFooter } from '@/components/ui/EditorFooter';
 import { StatusSelector } from '@/components/ui/StatusSelector';
+import { JobViewOverlay } from '@/components/features/JobViewOverlay';
 import { useParsedJob } from '@/components/features/ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '@/utils/job-parser';
 import { escapeHtml } from '@/utils/shared-utils';
@@ -277,15 +277,14 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
         </div>
       </div>
 
-      {/* Checklist in sidebar */}
-      <Checklist
-        checklist={job.checklist || {}}
-        status={job.applicationStatus || 'drafting'}
+      {/* Overlay container for Checklist and Navigation */}
+      <JobViewOverlay
+        job={job}
         jobIndex={index}
-        isExpanded={isChecklistExpanded}
-        animate={false}
-        onToggleExpand={onToggleChecklistExpand}
-        onToggleItem={onToggleChecklistItem}
+        isChecklistExpanded={isChecklistExpanded}
+        onSaveField={onSaveField}
+        onToggleChecklistExpand={onToggleChecklistExpand}
+        onToggleChecklistItem={onToggleChecklistItem}
       />
 
       {/* Synthesis Modal */}

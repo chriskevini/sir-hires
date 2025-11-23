@@ -3,6 +3,7 @@ import { useParsedJob } from './ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '../../utils/job-parser';
 import type { Job } from '../../entrypoints/job-details/hooks/useJobState';
 import { defaults } from '../../entrypoints/job-details/config';
+import { JobViewOverlay } from './JobViewOverlay';
 
 /**
  * Common props for view components
@@ -122,51 +123,64 @@ export function JobViewRouter({
       const company = parsed ? getCompanyName(parsed) || 'Unknown' : 'Unknown';
 
       return (
-        <div className="job-card">
-          <div className="detail-panel-content">
-            <div className="job-header">
-              <div>
-                <div className="job-title">{jobTitle}</div>
-                <div className="company">{company}</div>
+        <>
+          <div className="job-card">
+            <div className="detail-panel-content">
+              <div className="job-header">
+                <div>
+                  <div className="job-title">{jobTitle}</div>
+                  <div className="company">{company}</div>
+                </div>
               </div>
-            </div>
 
-            <div
-              style={{
-                textAlign: 'center',
-                padding: '60px 20px',
-                color: '#666',
-              }}
-            >
-              <div style={{ fontSize: '48px', marginBottom: '20px' }}>🚧</div>
               <div
                 style={{
-                  fontSize: '18px',
-                  fontWeight: 500,
-                  marginBottom: '10px',
+                  textAlign: 'center',
+                  padding: '60px 20px',
+                  color: '#666',
                 }}
               >
-                {status} Panel - Work in Progress
+                <div style={{ fontSize: '48px', marginBottom: '20px' }}>🚧</div>
+                <div
+                  style={{
+                    fontSize: '18px',
+                    fontWeight: 500,
+                    marginBottom: '10px',
+                  }}
+                >
+                  {status} Panel - Work in Progress
+                </div>
+                <div style={{ fontSize: '14px' }}>
+                  This panel is coming soon!
+                </div>
               </div>
-              <div style={{ fontSize: '14px' }}>This panel is coming soon!</div>
-            </div>
 
-            <div className="job-actions">
-              <button
-                className="btn btn-link"
-                onClick={() => window.open(job.url, '_blank')}
-              >
-                View Job Posting
-              </button>
-              <button
-                className="btn btn-delete"
-                onClick={() => onDeleteJob(index)}
-              >
-                Delete
-              </button>
+              <div className="job-actions">
+                <button
+                  className="btn btn-link"
+                  onClick={() => window.open(job.url, '_blank')}
+                >
+                  View Job Posting
+                </button>
+                <button
+                  className="btn btn-delete"
+                  onClick={() => onDeleteJob(index)}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+
+          <JobViewOverlay
+            job={job}
+            jobIndex={index}
+            isChecklistExpanded={isChecklistExpanded}
+            onSaveField={onSaveField}
+            onToggleChecklistExpand={onToggleChecklistExpand}
+            onToggleChecklistItem={onToggleChecklistItem}
+          />
+        </>
       );
     }
   }

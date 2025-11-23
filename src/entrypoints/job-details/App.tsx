@@ -12,12 +12,15 @@ import { initDevModeValidation } from '../../utils/dev-validators';
 import { defaults } from './config';
 
 /**
- * Inner App component that consumes ParsedJobProvider
- * Contains all the app logic and UI
+ * Inner component that uses ParsedJobProvider context
+ * Must be rendered inside ParsedJobProvider
  */
-const AppContent: React.FC = () => {
-  // Initialize hooks
-  const jobState = useJobState();
+interface AppContentProps {
+  jobState: ReturnType<typeof useJobState>;
+}
+
+const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
+  // Initialize hooks (no duplicate jobState!)
   const storage = useJobStorage();
   const getParsedJob = useGetParsedJob();
 
@@ -57,6 +60,11 @@ const AppContent: React.FC = () => {
         storage.getChecklistExpanded(),
       ]);
 
+      console.info(`[loadJobs] Loaded ${jobs.length} jobs from storage`, {
+        jobIds: jobs.map((j) => j.id),
+        jobInFocusId,
+      });
+
       // Update state
       jobState.setAllJobs(jobs);
       jobState.setJobInFocus(jobInFocusId);
@@ -78,6 +86,7 @@ const AppContent: React.FC = () => {
    */
   const filterJobs = useCallback(() => {
     const allJobs = jobState.allJobs;
+    console.info(`[filterJobs] Starting filter with ${allJobs.length} jobs`);
 
     // Filter jobs using provider's cached parsing
     let filtered = allJobs.filter((job) => {
@@ -137,6 +146,11 @@ const AppContent: React.FC = () => {
       });
     }
 
+    console.info(`[filterJobs] Filtered to ${filtered.length} jobs`, {
+      searchTerm,
+      statusFilter,
+      sortOrder,
+    });
     jobState.setFilteredJobs(filtered);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, statusFilter, sortOrder, getParsedJob]); // Don't include jobState - it's used, not watched
@@ -311,6 +325,12 @@ const AppContent: React.FC = () => {
   }
 
   // Main app UI
+  console.info('[Render] Main app UI', {
+    allJobs: jobState.allJobs.length,
+    filteredJobs: jobState.filteredJobs.length,
+    selectedIndex: jobState.selectedJobIndex,
+  });
+
   return (
     <div className="app">
       {/* Header with filters */}
@@ -394,15 +414,21 @@ const AppContent: React.FC = () => {
 };
 
 /**
- * Main App component for Job Details viewer
- * Wraps AppContent with ParsedJobProvider for caching
+ * Main App component - wraps AppContent with ParsedJobProvider
+ * Provides parsed job caching to all child components
+ *
+ * Why two components?
+ * - ParsedJobProvider is a React Context that must wrap components that use useGetParsedJob()
+ * - App creates jobState and passes allJobs to ParsedJobProvider
+ * - AppContent receives jobState as prop and uses useGetParsedJob() hook
+ * - This ensures single source of truth for jobState (no duplicate instances)
  */
 export const App: React.FC = () => {
   const jobState = useJobState();
 
   return (
     <ParsedJobProvider jobs={jobState.allJobs}>
-      <AppContent />
+      <AppContent jobState={jobState} />
     </ParsedJobProvider>
   );
 };

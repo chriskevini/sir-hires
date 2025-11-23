@@ -10,7 +10,6 @@ import {
 } from '../hooks';
 import { ValidationPanel } from '@/components/ui/ValidationPanel';
 import { EditorHeader } from '@/components/ui/EditorHeader';
-import { StatusSelector } from '@/components/ui/StatusSelector';
 import { JobTemplatePanel } from '../components/JobTemplatePanel';
 import { ExtractionLoadingView } from '../components/ExtractionLoadingView';
 import { ExtractionErrorView } from '../components/ExtractionErrorView';
@@ -202,14 +201,8 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
           }))}
         />
 
-        {/* Status & Actions */}
+        {/* Actions */}
         <div className="job-actions">
-          <StatusSelector
-            currentStatus={job.applicationStatus || 'Researching'}
-            onStatusChange={(newStatus) =>
-              onSaveField(index, 'applicationStatus', newStatus)
-            }
-          />
           <button className="btn btn-delete" onClick={handleDelete}>
             Delete Job
           </button>

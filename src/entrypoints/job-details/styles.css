@@ -312,36 +312,6 @@ h1 {
   color: #383d41;
 }
 
-.status-selector {
-  margin-top: 12px;
-  padding: 12px;
-  background-color: #f9f9f9;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.status-selector label {
-  font-weight: 600;
-  color: #333;
-  font-size: 14px;
-}
-
-.status-selector select {
-  flex: 1;
-  padding: 6px 10px;
-  border: 1px solid #dadce0;
-  border-radius: 4px;
-  font-size: 14px;
-  background-color: white;
-}
-
-.status-selector select:focus {
-  outline: none;
-  border-color: #1a73e8;
-}
-
 .section {
   margin-top: 12px;
   padding: 12px;
@@ -385,39 +355,6 @@ h1 {
 
 .btn-delete:hover {
   background-color: #d33426;
-}
-
-/* Status Selector Styling */
-.status-selector {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-right: auto; /* Push delete button to the right */
-}
-
-.status-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #333;
-}
-
-.status-select {
-  padding: 6px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: border-color 0.2s;
-}
-
-.status-select:hover {
-  border-color: #999;
-}
-
-.status-select:focus {
-  outline: none;
-  border-color: #4285f4;
 }
 
 .empty-state {

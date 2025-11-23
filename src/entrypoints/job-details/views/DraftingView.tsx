@@ -4,7 +4,6 @@ import { SynthesisForm } from '../components/SynthesisForm';
 import { EditorToolbar } from '@/components/ui/EditorToolbar';
 import { EditorContentPanel } from '@/components/ui/EditorContentPanel';
 import { EditorFooter } from '@/components/ui/EditorFooter';
-import { StatusSelector } from '@/components/ui/StatusSelector';
 import { JobViewOverlay } from '@/components/features/JobViewOverlay';
 import { useParsedJob } from '@/components/features/ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '@/utils/job-parser';
@@ -264,16 +263,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
           {/* Footer with status and word count */}
           <EditorFooter saveStatus={saveStatus} wordCount={wordCount} />
-        </div>
-
-        {/* Status & Actions */}
-        <div className="job-actions">
-          <StatusSelector
-            currentStatus={job.applicationStatus || 'Drafting'}
-            onStatusChange={(newStatus) =>
-              onSaveField(index, 'applicationStatus', newStatus)
-            }
-          />
         </div>
       </div>
 

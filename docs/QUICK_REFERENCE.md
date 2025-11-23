@@ -155,6 +155,7 @@ For complete usage examples, props, and implementation details:
 
 - **📘 Components:** See `docs/COMPONENTS_REFERENCE.md`
 - **📗 Hooks:** See `docs/HOOKS_REFERENCE.md`
+- **📕 MarkdownDB:** See `docs/MARKDOWN_DB_REFERENCE.md`
 - **📙 Architecture:** See `AGENTS.md`
 
 ---

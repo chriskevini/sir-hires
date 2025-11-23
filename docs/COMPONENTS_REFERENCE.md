@@ -822,5 +822,6 @@ export function ResearchingView({ job }: Props) {
 
 - **📘 Quick Reference:** `docs/QUICK_REFERENCE.md`
 - **📗 Hooks Reference:** `docs/HOOKS_REFERENCE.md`
+- **📕 MarkdownDB Reference:** `docs/MARKDOWN_DB_REFERENCE.md`
 - **📙 Architecture Guide:** `AGENTS.md`
 - **📚 Component CSS:** `docs/refactors/component-css-architecture.md`

@@ -59,6 +59,7 @@ This project has **extensive reusable UI/feature components and custom hooks** t
 - **[docs/QUICK_REFERENCE.md](./docs/QUICK_REFERENCE.md)** - Quick lookup tables and decision trees
 - **[docs/COMPONENTS_REFERENCE.md](./docs/COMPONENTS_REFERENCE.md)** - Detailed component documentation (Modal, ValidationPanel, CollapsiblePanel, etc.)
 - **[docs/HOOKS_REFERENCE.md](./docs/HOOKS_REFERENCE.md)** - Detailed hooks documentation (useToggleState, useJobValidation, useParsedJob, etc.)
+- **[docs/MARKDOWN_DB_REFERENCE.md](./docs/MARKDOWN_DB_REFERENCE.md)** - MarkdownDB template syntax, storage patterns, and parsing strategies
 
 **Key Rule:** Always search existing components/hooks before building new ones. Reusing existing patterns prevents code duplication and ensures consistent UX.
 
@@ -127,43 +128,35 @@ export function ResearchingView({ job }: Props) {
 
 ### MarkdownDB Storage Pattern
 
-Store structured data as raw MarkdownDB templates in a `content` field. Parse on-read in components.
+This project uses **MarkdownDB** templates for structured data storage. Store raw templates in a `content` field, parse on-read in components.
+
+**Key Rules:**
+
+- ✅ Store only raw MarkdownDB in `content` field (single source of truth)
+- ✅ Parse in components with `useMemo` or `ParsedJobProvider`
+- ❌ Never store parsed fields like `jobTitle`, `company` alongside `content`
+- ❌ Never parse without memoization (causes infinite re-renders)
+
+**Example:**
 
 ```typescript
-// ✅ CORRECT - Store only content, no parsed fields
+// ✅ CORRECT - Store raw MarkdownDB, parse on-read
 interface Job {
   id: string;
-  content?: string;  // Raw MarkdownDB template (source of truth)
+  content?: string; // Raw MarkdownDB template
   url: string;
   applicationStatus: string;
-  // ... metadata only
 }
 
-// ❌ WRONG - Do not add parsed fields like jobTitle, company
-interface Job {
-  jobTitle: string;   // ❌ Parse from content instead
-  company: string;    // ❌ Parse from content instead
-}
-
-// ❌ WRONG - Do not store parsed fields
-await storage.update({ jobTitle: 'Engineer', company: 'Acme' });
-
-// ✅ CORRECT - Store only raw MarkdownDB
-await storage.update({ content: '<JOB>\nTITLE: Engineer\nCOMPANY: Acme...' });
-
-// ✅ CORRECT - Parse in components with useMemo
-function JobView({ job }: { job: Job }) {
-  const parsed = useMemo(
-    () => parseJobTemplate(job.content || ''),
-    [job.content]
-  );
-  return <h1>{parsed.jobTitle}</h1>;
-}
+const parsed = useMemo(
+  () => parseJobTemplate(job.content || ''),
+  [job.content]
+);
 ```
 
-**Why:** Single source of truth, no sync issues, LLM-streamable, human-editable.
+**Why:** LLM-streamable, human-editable, no sync issues, single source of truth.
 
-**References:** `docs/refactors/markdown-db.md`, `src/utils/job-parser.ts`, `src/utils/profile-parser.ts`
+**Reference:** See **[docs/MARKDOWN_DB_REFERENCE.md](./docs/MARKDOWN_DB_REFERENCE.md)** for complete syntax, templates, and patterns.
 
 ### Event-Driven Architecture (Hybrid Approach)
 
@@ -509,6 +502,7 @@ When generating code for this project, strictly adhere to these rules:
       - `docs/QUICK_REFERENCE.md` - Quick lookup tables and decision trees
       - `docs/COMPONENTS_REFERENCE.md` - Reusable UI/feature components
       - `docs/HOOKS_REFERENCE.md` - Custom hooks for state management
+      - `docs/MARKDOWN_DB_REFERENCE.md` - MarkdownDB templates and patterns
     - **Search existing components/hooks first** - This project has extensive reusable patterns.
     - **Reuse existing code** whenever possible to maintain consistency and avoid duplication.
     - Only create new components/hooks if no suitable existing one exists.

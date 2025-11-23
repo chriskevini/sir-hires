@@ -426,7 +426,7 @@ import { ParsedJobProvider } from '@/components/features/ParsedJobProvider';
 
 **Anti-Pattern:** Parsing job templates on every render (see [Anti-Pattern 2](#-anti-pattern-2-not-using-parsedjobprovider))
 
-**Related:** See `docs/refactors/markdown-db.md` for MarkdownDB storage pattern details.
+**Related:** See **[MARKDOWN_DB_REFERENCE.md](./MARKDOWN_DB_REFERENCE.md)** for complete MarkdownDB syntax, templates, and patterns.
 
 ---
 
@@ -864,8 +864,8 @@ function MyEditor({ content }) {
 
 - **[QUICK_REFERENCE.md](./QUICK_REFERENCE.md)** - Quick lookup tables and decision trees
 - **[COMPONENTS_REFERENCE.md](./COMPONENTS_REFERENCE.md)** - Detailed component documentation
+- **[MARKDOWN_DB_REFERENCE.md](./MARKDOWN_DB_REFERENCE.md)** - MarkdownDB templates and patterns
 - **[AGENTS.md](../AGENTS.md)** - Complete WXT + React development guide
-- **[docs/refactors/markdown-db.md](./refactors/markdown-db.md)** - MarkdownDB storage pattern
 - **[docs/refactors/component-css-architecture.md](./refactors/component-css-architecture.md)** - Component CSS patterns
 
 ---

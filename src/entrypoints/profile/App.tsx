@@ -10,22 +10,22 @@ import { formatSaveTime } from '@/utils/date-utils';
 import { exportMarkdown as exportMarkdownUtil } from '@/utils/export-utils';
 import {
   setCursorAndScroll,
-  insertTextAtPosition,
   findNextEntryId,
   findNextSectionPosition,
-  findEntryEndPosition,
-  findSmartInsertPosition,
   applyFix as applyFixUtil,
-  FIELD_ORDER,
 } from '@/utils/profile-utils';
 
 // Import hooks
 import {
   useProfileValidation,
   type ValidationFix,
-  type ValidationError,
-  type ValidationResult,
 } from './hooks/useProfileValidation';
+
+// Import components
+import {
+  ValidationPanel,
+  useValidationEditorClass,
+} from './components/ValidationPanel';
 
 // Constants
 const AUTO_SAVE_INTERVAL = 3000; // 3 seconds
@@ -83,8 +83,6 @@ export default function ProfileApp() {
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [isTemplatePanelVisible, setIsTemplatePanelVisible] = useState(true);
-  const [isValidationPanelCollapsed, setIsValidationPanelCollapsed] =
-    useState(true);
 
   // Refs
   const editorRef = useRef<HTMLTextAreaElement>(null);
@@ -396,45 +394,8 @@ BULLETS:
     window.location.href = (browser.runtime as any).getURL('job-details.html');
   };
 
-  // Compute validation UI state
-  const hasErrors = validation.errors.length > 0;
-  const hasWarnings = validation.warnings.length > 0;
-  const hasInfo = validation.info.length > 0;
-  const hasCustomFields = validation.customFields.length > 0;
-  const hasCustomSections = validation.customSections.length > 0;
-  const customCount =
-    validation.customFields.length + validation.customSections.length;
-
-  let editorClassName = '';
-  if (hasErrors) {
-    editorClassName = 'has-errors';
-  } else if (hasWarnings) {
-    editorClassName = 'has-warnings';
-  } else if (content.trim().length > 0) {
-    editorClassName = 'is-valid';
-  }
-
-  let statusIcon = '○';
-  let statusIconColor = '#666';
-  let statusText = 'No Content';
-  let statusTextColor = '#666';
-
-  if (hasErrors) {
-    statusIcon = '✗';
-    statusIconColor = '#d93025';
-    statusText = 'Validation Errors';
-    statusTextColor = '#d93025';
-  } else if (hasWarnings) {
-    statusIcon = '⚠';
-    statusIconColor = '#ea8600';
-    statusText = 'Validation Warnings';
-    statusTextColor = '#ea8600';
-  } else if (content.trim().length > 0) {
-    statusIcon = '✓';
-    statusIconColor = '#0f9d58';
-    statusText = 'Valid Profile';
-    statusTextColor = '#0f9d58';
-  }
+  // Compute editor className based on validation state
+  const editorClassName = useValidationEditorClass(validation, content);
 
   return (
     <div className="container">
@@ -500,154 +461,14 @@ BULLETS:
       </div>
 
       {/* Validation Panel */}
-      <div
-        className={`validation-panel ${isValidationPanelCollapsed ? 'collapsed' : ''}`}
-      >
-        <div
-          className="validation-header"
-          onClick={() =>
-            setIsValidationPanelCollapsed(!isValidationPanelCollapsed)
-          }
-        >
-          <div className="validation-header-left">
-            <div className="validation-status">
-              <span className="status-icon" style={{ color: statusIconColor }}>
-                {statusIcon}
-              </span>
-              <span style={{ color: statusTextColor }}>{statusText}</span>
-            </div>
-            <div className="validation-counts">
-              {hasErrors && (
-                <span className="count-errors" style={{ display: 'block' }}>
-                  {validation.errors.length} error
-                  {validation.errors.length > 1 ? 's' : ''}
-                </span>
-              )}
-              {hasWarnings && (
-                <span className="count-warnings" style={{ display: 'block' }}>
-                  {validation.warnings.length} warning
-                  {validation.warnings.length > 1 ? 's' : ''}
-                </span>
-              )}
-              {(hasInfo || customCount > 0) && (
-                <span className="count-info" style={{ display: 'block' }}>
-                  {customCount} custom
-                </span>
-              )}
-            </div>
-          </div>
-          <span className="validation-toggle">
-            {isValidationPanelCollapsed ? '▼' : '▲'}
-          </span>
-        </div>
-        <div className="quick-actions">
-          <span className="quick-actions-label">Quick Actions:</span>
-          <button
-            onClick={insertEducationTemplate}
-            className="quick-action-btn"
-            title="Insert a new education entry"
-          >
-            + Education
-          </button>
-          <button
-            onClick={insertExperienceTemplate}
-            className="quick-action-btn"
-            title="Insert a new experience entry"
-          >
-            + Experience
-          </button>
-        </div>
-        <div className="validation-content">
-          {validation.errors.length === 0 &&
-          validation.warnings.length === 0 &&
-          validation.info.length === 0 &&
-          !hasCustomFields &&
-          !hasCustomSections ? (
-            <div className="validation-empty">No validation messages</div>
-          ) : (
-            <>
-              {validation.errors.map((error, index) => {
-                const fix = validationFixes[index];
-
-                if (fix && fix.type === 'replace_enum_value_multi') {
-                  const messageWithoutValues = error.message.replace(
-                    /\. Allowed values:.*$/,
-                    ''
-                  );
-                  return (
-                    <div
-                      key={`error-${index}`}
-                      className="validation-message validation-error"
-                    >
-                      {messageWithoutValues}. Allowed values:
-                      {fix.allowedValues?.map((value) => (
-                        <button
-                          key={value}
-                          className="fix-button"
-                          onClick={() => applyFix(fix, value)}
-                          title={`Replace with ${value}`}
-                        >
-                          {value}
-                        </button>
-                      ))}
-                    </div>
-                  );
-                }
-
-                return (
-                  <div
-                    key={`error-${index}`}
-                    className="validation-message validation-error"
-                  >
-                    {error.message}
-                    {fix && (
-                      <button
-                        className="fix-button"
-                        onClick={() => applyFix(fix)}
-                        title={fix.description}
-                      >
-                        {fix.buttonLabel}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-
-              {validation.warnings.map((warning, index) => (
-                <div
-                  key={`warning-${index}`}
-                  className="validation-message validation-warning"
-                >
-                  {warning.message}
-                </div>
-              ))}
-
-              {validation.info.map((info, index) => (
-                <div
-                  key={`info-${index}`}
-                  className="validation-message validation-info"
-                >
-                  {info.message}
-                </div>
-              ))}
-
-              {hasCustomFields && (
-                <div className="validation-message validation-info">
-                  ✨ Custom fields detected:{' '}
-                  {validation.customFields.join(', ')}
-                </div>
-              )}
-
-              {hasCustomSections && (
-                <div className="validation-message validation-info">
-                  ✨ Custom sections detected:{' '}
-                  {validation.customSections.join(', ')}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+      <ValidationPanel
+        validation={validation}
+        validationFixes={validationFixes}
+        onApplyFix={applyFix}
+        onInsertEducation={insertEducationTemplate}
+        onInsertExperience={insertExperienceTemplate}
+        showQuickActions={true}
+      />
 
       <footer>
         <button

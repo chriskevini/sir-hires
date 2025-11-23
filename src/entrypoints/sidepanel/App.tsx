@@ -6,8 +6,8 @@ import React, {
   useMemo,
 } from 'react';
 import { browser } from 'wxt/browser';
-import { ResearchingView } from '../job-details/views/researching-view';
-import { DraftingView } from '../job-details/views/drafting-view';
+import { ResearchingView } from '../job-details/views/ResearchingView';
+import { DraftingView } from '../job-details/views/DraftingView';
 import {
   useJobState,
   useJobStorage,

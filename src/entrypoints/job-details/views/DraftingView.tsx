@@ -17,7 +17,7 @@ import { useTabState } from '../hooks/useTabState';
 import { useToggleState } from '../hooks/useToggleState';
 import { useDocumentManager } from '../hooks/useDocumentManager';
 import type { Job } from '../hooks';
-import './drafting-view.css';
+import './DraftingView.css';
 
 interface Document {
   title: string;

@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback, useState } from 'react';
-import { ResearchingView } from './views/researching-view';
-import { DraftingView } from './views/drafting-view';
+import { ResearchingView } from './views/ResearchingView';
+import { DraftingView } from './views/DraftingView';
 import { useJobState, useJobStorage, useJobHandlers } from './hooks';
 import { JobViewRouter } from '../../components/features/JobViewRouter';
 import {

@@ -2,7 +2,7 @@ import React from 'react';
 import { EditorHeader } from '@/components/ui/EditorHeader';
 import { escapeHtml } from '@/utils/shared-utils';
 import { getCompleteLines } from '@/utils/text-utils';
-import '../views/researching-view.css';
+import '../views/ResearchingView.css';
 
 interface ExtractionLoadingViewProps {
   content: string;

@@ -12,6 +12,7 @@ import { ParsedJobProvider } from '../../components/features/ParsedJobProvider';
 import type { Job } from '../job-details/hooks';
 import { useJobExtraction, useBackupRestore } from './hooks';
 import { EmptyState } from './components/EmptyState';
+import { ExtractingState } from './components/ExtractingState';
 
 /**
  * Sidepanel App - Shows the "job in focus" for quick editing
@@ -163,65 +164,7 @@ export const App: React.FC = () => {
 
   // Extracting state (ephemeral - not yet saved to storage)
   if (extraction.extractingJob) {
-    const chunkCount = extraction.extractingJob.chunks.length;
-    const previewText =
-      extraction.extractingJob.chunks.length > 0
-        ? extraction.extractingJob.chunks.join('').substring(0, 200) + '...'
-        : 'Waiting for data...';
-
-    return (
-      <div className="container">
-        <div className="job-card">
-          <div className="detail-panel-content">
-            <div className="job-header">
-              <div>
-                <div className="job-title">Extracting Job Data...</div>
-                <div className="company">{extraction.extractingJob.url}</div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                padding: '20px',
-                textAlign: 'center',
-              }}
-            >
-              <div style={{ fontSize: '48px', marginBottom: '20px' }}>⚡</div>
-              <div
-                style={{
-                  fontSize: '16px',
-                  fontWeight: 500,
-                  marginBottom: '10px',
-                }}
-              >
-                Streaming extraction in progress...
-              </div>
-              <div style={{ fontSize: '14px', color: '#666' }}>
-                Received {chunkCount} chunk{chunkCount !== 1 ? 's' : ''}
-              </div>
-
-              {previewText && (
-                <div
-                  style={{
-                    marginTop: '20px',
-                    padding: '15px',
-                    background: '#f5f5f5',
-                    borderRadius: '4px',
-                    textAlign: 'left',
-                    fontSize: '12px',
-                    fontFamily: 'monospace',
-                    maxHeight: '200px',
-                    overflow: 'auto',
-                  }}
-                >
-                  {previewText}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <ExtractingState extractingJob={extraction.extractingJob} />;
   }
 
   // Error state

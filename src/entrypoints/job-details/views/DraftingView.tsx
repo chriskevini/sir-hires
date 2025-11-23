@@ -196,78 +196,74 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
   return (
     <>
-      <div className="job-card">
-        <div className="detail-panel-content">
-          {/* Job Header */}
-          <div className="job-header">
-            <div>
-              <div className="job-title">
-                {escapeHtml(parsedJob.jobTitle || '')}
-              </div>
-              <div className="company">
-                {escapeHtml(parsedJob.company || '')}
-              </div>
+      <div className="drafting-view">
+        {/* Job Header */}
+        <div className="job-header">
+          <div>
+            <div className="job-title">
+              {escapeHtml(parsedJob.jobTitle || '')}
             </div>
-            <div>
-              <a
-                href={escapeHtml(job.url)}
-                className="badge badge-link"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                View Job Posting
-              </a>
-            </div>
+            <div className="company">{escapeHtml(parsedJob.company || '')}</div>
+          </div>
+          <div>
+            <a
+              href={escapeHtml(job.url)}
+              className="badge badge-link"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View Job Posting
+            </a>
+          </div>
+        </div>
+
+        {/* Drafting Editor */}
+        <div className="drafting-editor-container">
+          {/* Topbar with tabs and actions */}
+          <EditorToolbar
+            documentKeys={documentKeys}
+            documentLabels={Object.fromEntries(
+              documentKeys.map((key) => [
+                key,
+                defaultDocuments[key]?.label || key,
+              ])
+            )}
+            activeTab={activeTab}
+            exportDropdownOpen={exportDropdownOpen}
+            onTabChange={switchTab}
+            onToggleExportDropdown={toggleExportDropdown}
+            onCloseExportDropdown={() => setExportDropdownOpen(false)}
+            onExport={handleExport}
+            onSynthesizeClick={() => setIsSynthesisModalOpen(true)}
+          />
+
+          {/* Editor wrapper */}
+          <div className="editor-wrapper">
+            {documentKeys.map((key) => {
+              const config = defaultDocuments[key];
+              const isActive = key === activeTab;
+              const placeholder = config
+                ? config.placeholder
+                : 'Write your document here...';
+
+              return (
+                <EditorContentPanel
+                  key={key}
+                  documentKey={key}
+                  isActive={isActive}
+                  value={documentContents[key] || ''}
+                  placeholder={placeholder}
+                  textareaRef={getTabRef(key)}
+                  onChange={(value) => handleTextareaChange(key, value)}
+                  onBlur={() => handleTextareaBlur(key)}
+                  index={index}
+                />
+              );
+            })}
           </div>
 
-          {/* Drafting Editor */}
-          <div className="drafting-editor-container">
-            {/* Topbar with tabs and actions */}
-            <EditorToolbar
-              documentKeys={documentKeys}
-              documentLabels={Object.fromEntries(
-                documentKeys.map((key) => [
-                  key,
-                  defaultDocuments[key]?.label || key,
-                ])
-              )}
-              activeTab={activeTab}
-              exportDropdownOpen={exportDropdownOpen}
-              onTabChange={switchTab}
-              onToggleExportDropdown={toggleExportDropdown}
-              onCloseExportDropdown={() => setExportDropdownOpen(false)}
-              onExport={handleExport}
-              onSynthesizeClick={() => setIsSynthesisModalOpen(true)}
-            />
-
-            {/* Editor wrapper */}
-            <div className="editor-wrapper">
-              {documentKeys.map((key) => {
-                const config = defaultDocuments[key];
-                const isActive = key === activeTab;
-                const placeholder = config
-                  ? config.placeholder
-                  : 'Write your document here...';
-
-                return (
-                  <EditorContentPanel
-                    key={key}
-                    documentKey={key}
-                    isActive={isActive}
-                    value={documentContents[key] || ''}
-                    placeholder={placeholder}
-                    textareaRef={getTabRef(key)}
-                    onChange={(value) => handleTextareaChange(key, value)}
-                    onBlur={() => handleTextareaBlur(key)}
-                    index={index}
-                  />
-                );
-              })}
-            </div>
-
-            {/* Footer with status and word count */}
-            <EditorFooter saveStatus={saveStatus} wordCount={wordCount} />
-          </div>
+          {/* Footer with status and word count */}
+          <EditorFooter saveStatus={saveStatus} wordCount={wordCount} />
         </div>
 
         {/* Status & Actions */}

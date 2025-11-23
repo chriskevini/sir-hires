@@ -3,12 +3,12 @@
    Shared between job-details and sidepanel entrypoints
    =================================================================== */
 
-/* Main container for researching editor */
+/* Main container for researching editor - simplified flat structure */
 .researching-editor {
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: hidden;
+  gap: 0;
 }
 
 /* Editor layout - horizontal split (template + editor) */

@@ -27,11 +27,11 @@
 }
 
 .status-select:hover {
-  border-color: #1a73e8;
+  border-color: #999;
 }
 
 .status-select:focus {
   outline: none;
-  border-color: #1a73e8;
-  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
+  border-color: #666;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
 }

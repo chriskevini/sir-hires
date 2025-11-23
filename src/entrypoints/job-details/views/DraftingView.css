@@ -2,6 +2,14 @@
 /* This stylesheet contains all styles specific to the DraftingView component */
 /* These styles are imported by drafting-view.tsx and bundled by WXT */
 
+/* Main container for drafting view - simplified flat structure */
+.drafting-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 16px;
+}
+
 .drafting-editor-container {
   margin-top: 24px;
   border: 1px solid #e0e0e0;

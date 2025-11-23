@@ -146,7 +146,7 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
 
   return (
     <>
-      <div className="job-card researching-editor">
+      <div className="researching-editor">
         <div className="editor-layout">
           {/* Template Panel */}
           <JobTemplatePanel

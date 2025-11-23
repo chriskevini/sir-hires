@@ -7,6 +7,7 @@ export class Sidebar extends BaseView {
   constructor() {
     super();
     this.onJobSelect = null; // Callback when job is selected
+    this.onJobDelete = null; // Callback when job is deleted
   }
 
   /**
@@ -45,7 +46,10 @@ export class Sidebar extends BaseView {
       <div class="job-card-compact ${isActive ? 'active' : ''} ${isFocused ? 'focused' : ''}" data-index="${index}">
         <div class="job-card-header-compact">
           <div class="job-title-compact">${this.escapeHtml(job.jobTitle)}</div>
-          ${isFocused ? '<span class="focus-indicator" title="Currently in focus">📌</span>' : ''}
+          <div class="job-card-actions">
+            ${isFocused ? '<span class="focus-indicator" title="Currently in focus">📌</span>' : ''}
+            ${isActive ? '<button class="btn-delete-card" data-index="${index}" title="Delete this job">✕</button>' : ''}
+          </div>
         </div>
         <div class="company-compact">${this.escapeHtml(job.company)}</div>
         <div class="meta-compact">
@@ -95,6 +99,19 @@ export class Sidebar extends BaseView {
       };
       this.trackListener(card, 'click', clickHandler);
     });
+
+    // Attach delete button listeners
+    const deleteButtons = container.querySelectorAll('.btn-delete-card');
+    deleteButtons.forEach((button) => {
+      const deleteHandler = (e) => {
+        e.stopPropagation(); // Prevent card selection
+        const index = parseInt(button.getAttribute('data-index'), 10);
+        if (this.onJobDelete && !isNaN(index)) {
+          this.onJobDelete(index);
+        }
+      };
+      this.trackListener(button, 'click', deleteHandler);
+    });
   }
 
   /**
@@ -103,6 +120,14 @@ export class Sidebar extends BaseView {
    */
   setOnJobSelect(callback) {
     this.onJobSelect = callback;
+  }
+
+  /**
+   * Set callback for when a job is deleted
+   * @param {Function} callback - Function to call with (index) when job is deleted
+   */
+  setOnJobDelete(callback) {
+    this.onJobDelete = callback;
   }
 
   /**

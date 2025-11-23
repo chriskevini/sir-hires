@@ -200,13 +200,6 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
             message: escapeHtml(m.message),
           }))}
         />
-
-        {/* Actions */}
-        <div className="job-actions">
-          <button className="btn btn-delete" onClick={handleDelete}>
-            Delete Job
-          </button>
-        </div>
       </div>
 
       {/* Overlay container for Checklist and Navigation */}

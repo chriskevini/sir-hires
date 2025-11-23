@@ -543,6 +543,18 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
                     <div className="company">
                       {parsed ? getCompanyName(parsed) || 'Unknown' : 'Unknown'}
                     </div>
+                    {isSelected && (
+                      <button
+                        className="btn-delete-card"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlers.handleDeleteJob(globalIndex);
+                        }}
+                        title="Delete this job"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
                 </div>
               );

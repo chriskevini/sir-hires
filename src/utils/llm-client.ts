@@ -2,18 +2,49 @@
 // Handles API calls, SSE streaming, and thinking/document separation
 // Reusable across all extension contexts (popup, sidepanel, job-details)
 
+interface LLMClientConfig {
+  endpoint?: string;
+  modelsEndpoint?: string;
+  detectionWindow?: number;
+}
+
+interface StreamInfo {
+  abortController: AbortController;
+  reader: ReadableStreamDefaultReader<Uint8Array> | null;
+}
+
+interface StreamCompletionOptions {
+  streamId?: string;
+  model: string;
+  systemPrompt: string;
+  userPrompt: string;
+  maxTokens?: number;
+  temperature?: number;
+  onThinkingUpdate?: ((delta: string) => void) | null;
+  onDocumentUpdate?: ((delta: string) => void) | null;
+}
+
+interface StreamCompletionResult {
+  thinkingContent: string;
+  documentContent: string;
+  finishReason: string | null;
+  cancelled: boolean;
+}
+
 /**
  * LLM Client for streaming completions from LM Studio
  * Supports two-stream architecture: thinking tags + document content
  */
 export class LLMClient {
+  private endpoint: string;
+  private modelsEndpoint: string;
+  private detectionWindow: number;
+  private activeStreams: Map<string, StreamInfo>;
+
   /**
-   * @param {Object} config - Configuration options
-   * @param {string} config.endpoint - LLM API endpoint (default: http://localhost:1234/v1/chat/completions)
-   * @param {string} config.modelsEndpoint - Models list endpoint (default: http://localhost:1234/v1/models)
-   * @param {number} config.detectionWindow - Characters to scan for thinking tags (default: 50)
+   * @param config - Configuration options
    */
-  constructor(config = {}) {
+  constructor(config: LLMClientConfig = {}) {
     this.endpoint =
       config.endpoint || 'http://localhost:1234/v1/chat/completions';
     this.modelsEndpoint =
@@ -73,10 +104,10 @@ export class LLMClient {
   /**
    * Parse thinking content by removing tags
    * Supports <think>, <thinking>, and <reasoning> tags
-   * @param {string} rawThinking - Raw thinking content with tags
-   * @returns {string} Cleaned thinking content
+   * @param rawThinking - Raw thinking content with tags
+   * @returns Cleaned thinking content
    */
-  parseThinking(rawThinking) {
+  parseThinking(rawThinking: string): string {
     // Remove <think>, </think>, <thinking>, </thinking>, <reasoning>, </reasoning> tags
     // Support all three variants
     // Don't trim() to preserve whitespace in streaming
@@ -88,18 +119,12 @@ export class LLMClient {
    * Uses three-state machine to route content:
    *   DETECTING → IN_THINKING_BLOCK → IN_DOCUMENT
    *
-   * @param {Object} options - Completion options
-   * @param {string} options.streamId - Unique ID for this stream (for cancellation)
-   * @param {string} options.model - Model ID to use
-   * @param {string} options.systemPrompt - System prompt defining AI behavior
-   * @param {string} options.userPrompt - User prompt with context data
-   * @param {number} options.maxTokens - Maximum tokens to generate (default: 2000)
-   * @param {number} options.temperature - Sampling temperature (default: 0.7)
-   * @param {Function} options.onThinkingUpdate - Callback for thinking stream updates (delta)
-   * @param {Function} options.onDocumentUpdate - Callback for document stream updates (delta)
-   * @returns {Promise<Object>} { thinkingContent, documentContent, finishReason, cancelled }
+   * @param options - Completion options
+   * @returns Promise resolving to { thinkingContent, documentContent, finishReason, cancelled }
    */
-  async streamCompletion(options) {
+  async streamCompletion(
+    options: StreamCompletionOptions
+  ): Promise<StreamCompletionResult> {
     const {
       streamId = crypto.randomUUID(),
       model,
@@ -184,7 +209,10 @@ export class LLMClient {
           );
         } catch (parseError) {
           // If parseError is our custom error, re-throw it
-          if (parseError.message.includes('is not loaded')) {
+          if (
+            parseError instanceof Error &&
+            parseError.message.includes('is not loaded')
+          ) {
             throw parseError;
           }
           // If not JSON, use raw error text
@@ -195,6 +223,9 @@ export class LLMClient {
       }
 
       // Process SSE stream
+      if (!response.body) {
+        throw new Error('Response body is null');
+      }
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
 
@@ -347,7 +378,7 @@ export class LLMClient {
       };
     } catch (error) {
       // Handle abortion/cancellation
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         console.info('[LLMClient] Stream cancelled:', streamId);
         return {
           thinkingContent: '',
@@ -366,9 +397,9 @@ export class LLMClient {
 
   /**
    * Cancel an active stream
-   * @param {string} streamId - The stream ID to cancel
+   * @param streamId - The stream ID to cancel
    */
-  cancelStream(streamId) {
+  cancelStream(streamId: string): void {
     const streamInfo = this.activeStreams.get(streamId);
     if (!streamInfo) {
       console.info('[LLMClient] No active stream to cancel:', streamId);

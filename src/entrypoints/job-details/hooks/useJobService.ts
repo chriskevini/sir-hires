@@ -5,6 +5,11 @@ import {
   parseJobTemplate,
   getJobTitle,
   getCompanyName,
+  getLocation,
+  extractDescription,
+  extractAboutCompany,
+  extractRequiredSkills,
+  extractPreferredSkills,
 } from '../../../utils/job-parser';
 
 export interface JobServiceConfig {
@@ -57,15 +62,22 @@ export function useJobService() {
         const parsed = parseJobTemplate(job.content || '');
         const jobTitle = getJobTitle(parsed);
         const company = getCompanyName(parsed);
+        const location = getLocation(parsed);
+        const description = extractDescription(parsed).join(' ');
+        const aboutCompany = extractAboutCompany(parsed).join(' ');
+        const requiredSkills = extractRequiredSkills(parsed).join(' ');
+        const preferredSkills = extractPreferredSkills(parsed).join(' ');
+
+        // Search in parsed MarkdownDB fields
         return (
           jobTitle?.toLowerCase().includes(searchLower) ||
           company?.toLowerCase().includes(searchLower) ||
-          job.location?.toLowerCase().includes(searchLower) ||
-          job.rawDescription?.toLowerCase().includes(searchLower) ||
-          job.aboutJob?.toLowerCase().includes(searchLower) ||
-          job.aboutCompany?.toLowerCase().includes(searchLower) ||
-          job.responsibilities?.toLowerCase().includes(searchLower) ||
-          job.requirements?.toLowerCase().includes(searchLower)
+          location?.toLowerCase().includes(searchLower) ||
+          description.toLowerCase().includes(searchLower) ||
+          aboutCompany.toLowerCase().includes(searchLower) ||
+          requiredSkills.toLowerCase().includes(searchLower) ||
+          preferredSkills.toLowerCase().includes(searchLower) ||
+          job.url?.toLowerCase().includes(searchLower)
         );
       });
     }
@@ -94,35 +106,51 @@ export function useJobService() {
     switch (sortBy) {
       case 'newest':
         sorted.sort((a, b) => {
-          const dateA = a.updatedAt || a.postedDate || '';
-          const dateB = b.updatedAt || b.postedDate || '';
+          const parsedA = parseJobTemplate(a.content || '');
+          const parsedB = parseJobTemplate(b.content || '');
+          const dateA =
+            a.updatedAt || parsedA.topLevelFields['POSTED_DATE'] || '';
+          const dateB =
+            b.updatedAt || parsedB.topLevelFields['POSTED_DATE'] || '';
           return dateB.localeCompare(dateA);
         });
         break;
 
       case 'oldest':
         sorted.sort((a, b) => {
-          const dateA = a.updatedAt || a.postedDate || '';
-          const dateB = b.updatedAt || b.postedDate || '';
+          const parsedA = parseJobTemplate(a.content || '');
+          const parsedB = parseJobTemplate(b.content || '');
+          const dateA =
+            a.updatedAt || parsedA.topLevelFields['POSTED_DATE'] || '';
+          const dateB =
+            b.updatedAt || parsedB.topLevelFields['POSTED_DATE'] || '';
           return dateA.localeCompare(dateB);
         });
         break;
 
       case 'deadline-soon':
         sorted.sort((a, b) => {
-          if (!a.deadline && !b.deadline) return 0;
-          if (!a.deadline) return 1;
-          if (!b.deadline) return -1;
-          return a.deadline.localeCompare(b.deadline);
+          const parsedA = parseJobTemplate(a.content || '');
+          const parsedB = parseJobTemplate(b.content || '');
+          const deadlineA = parsedA.topLevelFields['CLOSING_DATE'];
+          const deadlineB = parsedB.topLevelFields['CLOSING_DATE'];
+          if (!deadlineA && !deadlineB) return 0;
+          if (!deadlineA) return 1;
+          if (!deadlineB) return -1;
+          return deadlineA.localeCompare(deadlineB);
         });
         break;
 
       case 'deadline-latest':
         sorted.sort((a, b) => {
-          if (!a.deadline && !b.deadline) return 0;
-          if (!a.deadline) return 1;
-          if (!b.deadline) return -1;
-          return b.deadline.localeCompare(a.deadline);
+          const parsedA = parseJobTemplate(a.content || '');
+          const parsedB = parseJobTemplate(b.content || '');
+          const deadlineA = parsedA.topLevelFields['CLOSING_DATE'];
+          const deadlineB = parsedB.topLevelFields['CLOSING_DATE'];
+          if (!deadlineA && !deadlineB) return 0;
+          if (!deadlineA) return 1;
+          if (!deadlineB) return -1;
+          return deadlineB.localeCompare(deadlineA);
         });
         break;
 
@@ -130,8 +158,8 @@ export function useJobService() {
         sorted.sort((a, b) => {
           const parsedA = parseJobTemplate(a.content || '');
           const parsedB = parseJobTemplate(b.content || '');
-          const companyA = (parsedA.company || '').toLowerCase();
-          const companyB = (parsedB.company || '').toLowerCase();
+          const companyA = (getCompanyName(parsedA) || '').toLowerCase();
+          const companyB = (getCompanyName(parsedB) || '').toLowerCase();
           return companyA.localeCompare(companyB);
         });
         break;
@@ -140,8 +168,8 @@ export function useJobService() {
         sorted.sort((a, b) => {
           const parsedA = parseJobTemplate(a.content || '');
           const parsedB = parseJobTemplate(b.content || '');
-          const companyA = (parsedA.company || '').toLowerCase();
-          const companyB = (parsedB.company || '').toLowerCase();
+          const companyA = (getCompanyName(parsedA) || '').toLowerCase();
+          const companyB = (getCompanyName(parsedB) || '').toLowerCase();
           return companyB.localeCompare(companyA);
         });
         break;
@@ -150,8 +178,8 @@ export function useJobService() {
         sorted.sort((a, b) => {
           const parsedA = parseJobTemplate(a.content || '');
           const parsedB = parseJobTemplate(b.content || '');
-          const titleA = (parsedA.jobTitle || '').toLowerCase();
-          const titleB = (parsedB.jobTitle || '').toLowerCase();
+          const titleA = (getJobTitle(parsedA) || '').toLowerCase();
+          const titleB = (getJobTitle(parsedB) || '').toLowerCase();
           return titleA.localeCompare(titleB);
         });
         break;
@@ -160,8 +188,8 @@ export function useJobService() {
         sorted.sort((a, b) => {
           const parsedA = parseJobTemplate(a.content || '');
           const parsedB = parseJobTemplate(b.content || '');
-          const titleA = (parsedA.jobTitle || '').toLowerCase();
-          const titleB = (parsedB.jobTitle || '').toLowerCase();
+          const titleA = (getJobTitle(parsedA) || '').toLowerCase();
+          const titleB = (getJobTitle(parsedB) || '').toLowerCase();
           return titleB.localeCompare(titleA);
         });
         break;
@@ -169,8 +197,12 @@ export function useJobService() {
       default:
         // Default to newest first
         sorted.sort((a, b) => {
-          const dateA = a.updatedAt || a.postedDate || '';
-          const dateB = b.updatedAt || b.postedDate || '';
+          const parsedA = parseJobTemplate(a.content || '');
+          const parsedB = parseJobTemplate(b.content || '');
+          const dateA =
+            a.updatedAt || parsedA.topLevelFields['POSTED_DATE'] || '';
+          const dateB =
+            b.updatedAt || parsedB.topLevelFields['POSTED_DATE'] || '';
           return dateB.localeCompare(dateA);
         });
     }
@@ -182,27 +214,11 @@ export function useJobService() {
 
   /**
    * Update a job's status and maintain status history
+   * Note: Status history is not part of current Job interface
+   * This function updates the application status only
    */
   const updateJobStatus = useCallback((job: Job, newStatus: string): Job => {
-    const oldStatus = job.applicationStatus || 'Researching';
-
-    // Initialize status history if needed
-    if (!job.statusHistory) {
-      job.statusHistory = [
-        {
-          status: oldStatus,
-          date: job.updatedAt || new Date().toISOString(),
-        },
-      ];
-    }
-
-    // Add new status to history
-    job.statusHistory.push({
-      status: newStatus,
-      date: new Date().toISOString(),
-    });
-
-    // Update job
+    // Update job with new status
     return {
       ...job,
       applicationStatus: newStatus,

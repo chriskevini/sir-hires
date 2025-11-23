@@ -75,25 +75,8 @@ export function useNavigation(params: NavigationHookParams) {
    * Update job status and status history
    */
   const updateJobStatus = useCallback((job: Job, newStatus: string): Job => {
-    const oldStatus = job.applicationStatus || defaults.status;
-
-    // Initialize status history if it doesn't exist
-    if (!job.statusHistory) {
-      job.statusHistory = [
-        {
-          status: oldStatus,
-          date: job.updatedAt || new Date().toISOString(),
-        },
-      ];
-    }
-
-    // Add new status to history
-    job.statusHistory.push({
-      status: newStatus,
-      date: new Date().toISOString(),
-    });
-
-    // Return updated job
+    // Return updated job with new status
+    // Note: Status history is not part of current Job interface
     return {
       ...job,
       applicationStatus: newStatus,

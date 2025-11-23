@@ -2,10 +2,7 @@
 // Validates parsed MarkdownDB Profile Template against schema rules
 // Philosophy: Validate structure, celebrate creativity
 
-import type {
-  ValidationMessage,
-  BaseValidationResult,
-} from './validation-types';
+import type { BaseValidationResult } from './validation-types';
 
 /**
  * Profile validation result interface

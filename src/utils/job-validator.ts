@@ -3,10 +3,7 @@
 // Philosophy: Validate structure, celebrate creativity
 
 import type { JobTemplateData } from './job-parser';
-import type {
-  ValidationMessage,
-  BaseValidationResult,
-} from './validation-types';
+import type { BaseValidationResult } from './validation-types';
 
 /**
  * Job validation result interface

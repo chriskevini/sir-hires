@@ -20,14 +20,28 @@ interface SectionSchema {
 }
 
 /**
+ * Entry ID pattern with expected format description
+ */
+interface EntryIdPattern {
+  pattern: RegExp;
+  expectedFormat: string;
+}
+
+/**
  * Profile schema definition
  */
 interface ProfileSchema {
   topLevelRequired: string[];
   topLevelOptional: string[];
   standardSections: Record<string, SectionSchema>;
-  entryIdPatterns: Record<string, RegExp>;
+  entryIdPatterns: Record<string, EntryIdPattern>;
 }
+
+/**
+ * Similarity threshold for detecting section name typos
+ * Value between 0 and 1, where 1.0 = exact match
+ */
+const TYPO_SIMILARITY_THRESHOLD = 0.8;
 
 /**
  * Parsed profile data structure
@@ -84,8 +98,14 @@ const PROFILE_SCHEMA: ProfileSchema = {
   // Expected entry ID patterns for standard sections
   // Custom sections are exempt from these patterns
   entryIdPatterns: {
-    EDUCATION: /^EDU_\d+$/,
-    EXPERIENCE: /^EXP_\d+$/,
+    EDUCATION: {
+      pattern: /^EDU_\d+$/,
+      expectedFormat: 'EDU_1, EDU_2, etc.',
+    },
+    EXPERIENCE: {
+      pattern: /^EXP_\d+$/,
+      expectedFormat: 'EXP_1, EXP_2, etc.',
+    },
   },
 };
 
@@ -297,9 +317,9 @@ function isSimilarSectionName(name: string, standard: string): boolean {
     }
   }
 
-  // If 80% or more characters match, likely a typo
+  // If similarity threshold or more characters match, likely a typo
   const similarity = matches / Math.max(name.length, standard.length);
-  return similarity >= 0.8 && similarity < 1.0;
+  return similarity >= TYPO_SIMILARITY_THRESHOLD && similarity < 1.0;
 }
 
 /**
@@ -310,27 +330,19 @@ function validateEntryId(
   entryId: string,
   result: ProfileValidationResult
 ): void {
-  const expectedPattern = PROFILE_SCHEMA.entryIdPatterns[sectionName];
+  const entryIdConfig = PROFILE_SCHEMA.entryIdPatterns[sectionName];
 
-  if (!expectedPattern) {
+  if (!entryIdConfig) {
     // No expected pattern for this section (e.g., custom sections)
     return;
   }
 
-  if (!expectedPattern.test(entryId)) {
-    // Get expected format description
-    let expectedFormat = '';
-    if (sectionName === 'EDUCATION') {
-      expectedFormat = 'EDU_1, EDU_2, etc.';
-    } else if (sectionName === 'EXPERIENCE') {
-      expectedFormat = 'EXP_1, EXP_2, etc.';
-    }
-
+  if (!entryIdConfig.pattern.test(entryId)) {
     result.warnings.push({
       type: 'invalid_entry_id',
       section: sectionName,
       entry: entryId,
-      message: `Entry ID "${entryId}" in ${sectionName} doesn't follow the expected naming convention (${expectedFormat}). This may confuse LLMs processing your profile.`,
+      message: `Entry ID "${entryId}" in ${sectionName} doesn't follow the expected naming convention (${entryIdConfig.expectedFormat}). This may confuse LLMs processing your profile.`,
     });
   }
 }

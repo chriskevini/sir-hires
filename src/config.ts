@@ -181,9 +181,7 @@ export const llmConfig: LLMConfig = {
   modelsEndpoint: 'http://localhost:1234/v1/models',
   model: 'qwen/qwen3-4b-2507', // Default model
   timeoutMs: 60000,
-  get timeoutSeconds() {
-    return this.timeoutMs / 1000;
-  },
+  timeoutSeconds: 60, // timeoutMs / 1000
 
   // Data extraction LLM (for job data extraction from web pages)
   extraction: {

@@ -7,7 +7,7 @@ export default defineConfig({
   outDir: '.output',
   manifest: {
     name: 'Sir Hires',
-    version: '0.2.0',
+    version: '0.3.0',
     description:
       'Privacy-first job search assistant. Extract and manage job postings locally - no servers, no tracking.',
     permissions: [

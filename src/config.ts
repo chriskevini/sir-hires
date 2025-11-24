@@ -1,9 +1,9 @@
 // Configuration and constants for job details viewer
-// Schema version: 0.2.0
+// Schema version: 0.3.0
 
 import { JOB_EXTRACTION_PROMPT } from './utils/job-templates';
 
-// Status progression order for state-based navigation (v0.2.0)
+// Status progression order for state-based navigation (v0.3.0)
 export const statusOrder = [
   'Researching',
   'Drafting',
@@ -15,7 +15,7 @@ export const statusOrder = [
   'Withdrawn',
 ];
 
-// Status badge color configuration (v0.2.0)
+// Status badge color configuration (v0.3.0)
 // Used for both badge styling and progress bar colors
 export const statusColors = {
   Researching: { bg: '#f5f5f5', text: '#666' }, // Gray to match progress bar
@@ -28,7 +28,7 @@ export const statusColors = {
   Withdrawn: { bg: '#e2e3e5', text: '#383d41' },
 };
 
-// Progress bar visual configuration for each status (v0.2.0)
+// Progress bar visual configuration for each status (v0.3.0)
 export const progressConfig = {
   Researching: { fill: 0, color: '#757575', textColor: '#666' },
   Drafting: { fill: 15, color: '#4caf50', textColor: '#fff' },
@@ -40,7 +40,7 @@ export const progressConfig = {
   Withdrawn: { fill: 100, color: '#757575', textColor: '#fff' },
 };
 
-// Navigation button configuration for each status (v0.2.0)
+// Navigation button configuration for each status (v0.3.0)
 export function getNavigationButtons(status: string) {
   const buttons: {
     left: { label: string; target: string } | null;
@@ -134,7 +134,7 @@ export const animationConfig = {
   easing: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
 };
 
-// Default values (v0.2.0)
+// Default values (v0.3.0)
 export const defaults = {
   status: 'Researching',
   filters: {

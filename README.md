@@ -2,7 +2,7 @@
 
 > **Job search is painful. Make it delightful.**
 
-A Chrome extension / webapp with job data extraction, application lifecycle tracking, and many LLM powers.
+A cross-browser web extension with job data extraction, application lifecycle tracking, and LLM-powered document generation.
 
 ## Philosophy
 
@@ -12,151 +12,216 @@ A Chrome extension / webapp with job data extraction, application lifecycle trac
 - 📤 **Export freedom**: Your data in JSON anytime
 - 🚫 **No tracking**: We don't collect, store, or transmit your data
 
-## Version 0.2.0 - What's New
+## Version 0.3.0 - WXT Framework Migration
 
-**Major refactor to modular architecture with improved application lifecycle tracking:**
+**Complete architectural modernization with WXT framework:**
 
-- **New Status Names**: Updated to reflect real-world job search workflow
-  - `Researching` - Exploring job posting and company
-  - `Drafting` - Writing cover letter and tailoring resume
-  - `Awaiting Review` - Application submitted, waiting for response
-  - `Interviewing` - Active interview process
-  - `Deciding` - Evaluating offer or making final decision
-  - `Accepted` / `Rejected` / `Withdrawn` - Terminal states
+- **WXT Framework**: Modern build system for cross-browser extensions
+  - Manifest V3 by default
+  - File-system routing for entrypoints
+  - React + TypeScript + Hot Module Replacement
+  - Built-in type safety with auto-generated types
 
-- **Automatic Data Migration**: Existing data automatically upgraded from v0.1.0 to v0.2.0
-  - Old status names seamlessly converted to new names
-  - No manual intervention required
+- **Modern Architecture**:
+  - React functional components with hooks
+  - Type-safe storage with `@wxt-dev/storage`
+  - MarkdownDB templates for structured data
+  - Event-driven state management (hybrid approach)
+  - Component-based CSS architecture
 
-- **Modular Architecture**: Refactored from monolithic (1,421 lines) to organized ES6 modules
-  - State management, storage, rendering, and business logic separated
-  - State-based view system for easier feature development
-  - Consistent naming conventions (camelCase for JS, kebab-case for HTML/CSS)
+- **Development Experience**:
+  - ESLint + Prettier with pre-commit hooks
+  - Automated code quality enforcement
+  - CI/CD validation with GitHub Actions
+  - Fast development with `wxt` dev server
 
-- **Enhanced Sidepanel**: Automatically shows the most relevant information for every stage of the application process.
-
-- **Drafting View**: Dedicated markdown editor for creating tailored resumes and cover letters
-  - Tabbed editor for Resume/CV and Cover Letter documents
-  - Auto-save with visual indicators (saves every 5 seconds + on blur)
-  - Real-time word count tracking
+- **Application Features** (from v0.2.0):
+  - Application lifecycle tracking with intuitive status names
+  - Sidepanel with context-aware views
+  - Markdown editor for resumes and cover letters
   - LLM-powered document synthesis via LM Studio
-    - XML-based streaming protocol with thinking model support
-    - User-controlled thinking panel (collapsible, shows AI reasoning)
-    - Configurable max tokens (100-32000 range)
-    - Dynamic model selection
-  - Export to Markdown (.md) and PDF formats
-  - Template-based generation with default document templates
-  - Data availability checklist (9 input fields) ensures quality synthesis
+  - Export to Markdown and PDF formats
+  - Backup and restore functionality
 
 ## Quick Start
 
-0. Set up LM Studio:
-   - Download from [lmstudio.ai](https://lmstudio.ai/)
-   - Install and launch LM Studio
-   - Click the 🔍 icon
-   - Install qwen/qwen3-4b-2507 and nuextract-2.0-4b-i1@q4_k_m
-   - Click the "Shell" icon 
-   - Start the server
+### 0. Set up LM Studio
 
-1. **Install the extension:**
-   - Clone this repository
-   - Open Chrome and go to `chrome://extensions/`
-   - Enable "Developer mode"
-   - Click "Load unpacked" and select the `chrome-extension` folder
+- Download from [lmstudio.ai](https://lmstudio.ai/)
+- Install and launch LM Studio
+- Click the 🔍 icon
+- Install `qwen2.5-3b-instruct` (or any compatible model)
+- Click the "Server" tab
+- Start the server (default: http://localhost:1234)
 
-2. **Use it:**
-   - Navigate to any job posting
-   - Click the extension icon
-   - Click "Extract Job Data"
-   - Review data
-   - Click "Manage" to open the web app
+### 1. Install the extension
 
-## Documentation
+**Chrome/Edge:**
 
-See [chrome-extension/README.md](chrome-extension/README.md) for detailed documentation, including:
-- Installation instructions
-- How to set up LLM-enhanced extraction with LM Studio
-- Supported job boards
-- Troubleshooting guide
-- Development guide
+```bash
+npm install
+npm run build
+```
+
+- Open `chrome://extensions/` (or `edge://extensions/`)
+- Enable "Developer mode"
+- Click "Load unpacked"
+- Select `.output/chrome-mv3` directory
+
+**Firefox:**
+
+```bash
+npm install
+npm run build:firefox
+```
+
+- Open `about:debugging#/runtime/this-firefox`
+- Click "Load Temporary Add-on"
+- Select any file in `.output/firefox-mv3` directory
+
+### 2. Use it
+
+- Navigate to any job posting (LinkedIn, Indeed, etc.)
+- Click the extension icon in toolbar
+- Click "Extract Job Data" to capture job details
+- View and manage jobs in the sidepanel
+- Track application progress with lifecycle statuses
+
+## Development
+
+### Available Scripts
+
+```bash
+npm run dev              # Start dev server (Chrome, with HMR)
+npm run dev:firefox      # Start dev server (Firefox)
+npm run build            # Production build (Chrome)
+npm run build:firefox    # Production build (Firefox)
+npm run zip              # Create distribution zip (Chrome)
+npm run zip:firefox      # Create distribution zip (Firefox)
+
+npm run lint             # Check for linting errors
+npm run lint:fix         # Auto-fix linting errors
+npm run format           # Format all code with Prettier
+npm run validate         # Run lint + format checks
+```
+
+### Pre-commit Hooks
+
+This project uses **Husky + lint-staged** for automated code quality:
+
+- Auto-runs on every commit (checks only staged files)
+- Runs ESLint + Prettier automatically
+- Blocks commits with linting errors
+- Auto-formats code before committing
+
+**Bypass (emergency only):** `git commit --no-verify`
+
+### Project Structure
+
+```
+sir-hires/
+├── .github/
+│   └── workflows/
+│       └── lint.yml           # CI/CD validation
+├── .husky/                    # Git hooks (pre-commit)
+├── docs/                      # Documentation
+│   ├── QUICK_REFERENCE.md     # Component/hook lookup
+│   ├── COMPONENTS_REFERENCE.md
+│   ├── HOOKS_REFERENCE.md
+│   ├── MARKDOWN_DB_REFERENCE.md
+│   └── refactors/             # Migration history
+├── public/
+│   └── icons/                 # Extension icons
+├── src/
+│   ├── components/            # Shared React components
+│   │   ├── ui/                # Generic UI components
+│   │   └── features/          # Feature-specific components
+│   ├── entrypoints/           # Extension entrypoints (WXT routing)
+│   │   ├── background.ts      # Background service worker
+│   │   ├── content.ts         # Content script
+│   │   ├── popup/             # Extension popup
+│   │   ├── sidepanel/         # Sidepanel (job viewer)
+│   │   ├── job-details/       # Job details page
+│   │   └── profile/           # Profile editor page
+│   ├── hooks/                 # Custom React hooks
+│   ├── utils/                 # Shared utilities
+│   └── config.ts              # Global configuration
+├── wxt.config.ts              # WXT configuration
+├── package.json
+├── tsconfig.json
+├── eslint.config.js
+├── .prettierrc
+├── AGENTS.md                  # Development guide
+└── README.md                  # This file
+```
+
+### Architecture Guidelines
+
+See **[AGENTS.md](./AGENTS.md)** for comprehensive development guidelines, including:
+
+- WXT framework patterns and best practices
+- Component and hook reuse (consult docs before creating new ones!)
+- Event-driven architecture (hybrid approach)
+- MarkdownDB storage patterns
+- Code quality standards (ESLint + Prettier)
+- Testing and CI/CD workflows
 
 ## Data Flow
 
 ```
 Job Boards (LinkedIn, Indeed, etc.)
     ↓ [User browses and clicks extension]
-Chrome Extension (data extraction)
+Browser Extension (data extraction)
     ↓
-Browser Local Storage (chrome.storage.local)
+Browser Local Storage (chrome.storage.local / browser.storage.local)
     ↓
-Webapp (browsing, search, filtering)
+Sidepanel/Job Details Page (browsing, editing, tracking)
     ↓
-Local LLM via LM Studio (enhanced extraction & insights)
+Local LLM via LM Studio (document synthesis & insights)
 ```
 
 **No servers. No databases. No data leaves your device.**
 
-## Project Structure
-
-```
-sir-hires/
-├── chrome-extension/      # Main Chrome extension
-│   ├── manifest.json      # Extension configuration
-│   ├── content.js         # Job data extraction logic
-│   ├── popup.html/js      # Extension popup UI
-│   ├── sidepanel.html/js  # Side panel interface (job in focus)
-│   ├── job-details.html   # Job viewer interface
-│   ├── job-details/       # Modular viewer components (v0.2.0)
-│   │   ├── app.js         # Main application controller
-│   │   ├── state-manager.js    # State management
-│   │   ├── storage.js     # Storage operations
-│   │   ├── job-service.js # Business logic
-│   │   ├── navigation.js  # Progress bar & navigation
-│   │   ├── sidebar.js     # Job list sidebar
-│   │   ├── main-view.js   # View coordinator
-│   │   └── views/         # State-specific views
-│   └── background.js      # Background service worker
-├── README.md              # This file
-└── AGENTS.md              # Development guidelines
-```
-
 ## Roadmap
 
+**Completed:**
+
 - ✅ Universal job extraction from any job board
-- ✅ Local storage with chrome.storage.local
+- ✅ Local storage with browser.storage API
 - ✅ Job viewer with sidebar + detail panel layout
 - ✅ Search and filtering (by source, status)
 - ✅ Sorting (by date, deadline, company, title)
-- ✅ Export to JSON
-- ✅ Backup and restore (full data export/import)
+- ✅ Export to JSON (backup and restore)
 - ✅ LLM-enhanced extraction via LM Studio
-- ✅ Application lifecycle tracking
-- ✅ Status history tracking
+- ✅ Application lifecycle tracking with status history
 - ✅ Date tracking (posted date and application deadline)
 - ✅ Notes for each job posting
-- ✅ Fully automatic backup migration 
-- ✅ Modular architecture
+- ✅ Modular architecture with React + TypeScript
 - ✅ Drafting view with markdown editor
 - ✅ LLM-powered document synthesis (cover letters, tailored resumes)
 - ✅ Document export (Markdown, PDF)
+- ✅ WXT framework migration (v0.3.0)
+
+**Planned:**
 
 - UX improvements:
   - Speed up LLM data extraction
-  - Show better loading screen during data extraction
-  - togglable job selector
-  - Interactive merging of data when restoring backup
-  - LLM-Free Workflow (manual data extraction and document drafting)
+  - Better loading screens during extraction
+  - Toggleable job selector
+  - Interactive merge when restoring backups
+  - LLM-free workflow (manual data entry)
 
 - LLM-powered features:
-  - Job-resume fit analysis (Gap analysis and content prioritization)
+  - Job-resume fit analysis
   - Skills gap identification
   - Company research and insights
-  - Interview prep questions and answers
+  - Interview prep questions
   - Job comparison tool
 
 ## Contributing
 
 This is an early-stage project. If you'd like to contribute:
+
 1. Open an issue to discuss your idea
 2. Fork the repository
 3. Make your changes

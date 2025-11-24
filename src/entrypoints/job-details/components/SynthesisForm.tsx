@@ -53,7 +53,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   const [llmClient] = useState(
     () =>
       new LLMClient({
-        endpoint: llmConfig.baseUrl,
+        endpoint: llmConfig.endpoint,
         modelsEndpoint: llmConfig.modelsEndpoint,
       })
   );
@@ -231,7 +231,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
       const context = await buildContext();
 
       // Build system prompt (from config) and user prompt (JIT)
-      const systemPrompt = llmConfig.synthesis.prompts.universal;
+      const systemPrompt = llmConfig.synthesis.prompt;
       const userPrompt = buildUserPrompt(context);
 
       // Capture these values before closing modal

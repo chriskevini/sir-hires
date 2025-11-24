@@ -472,8 +472,8 @@ export default defineBackground(() => {
         const llmSettings: LLMSettings = userLlmSettings || {
           provider: 'lm-studio',
           model: llmConfig.extraction.model || llmConfig.model,
-          apiEndpoint: llmConfig.baseUrl,
-          endpoint: llmConfig.baseUrl,
+          apiEndpoint: llmConfig.endpoint,
+          endpoint: llmConfig.endpoint,
           maxTokens: 2000,
           temperature: 0.3,
         };
@@ -511,8 +511,7 @@ export default defineBackground(() => {
             });
 
             // Prepare prompts from config
-            const systemPrompt =
-              llmConfig.synthesis.prompts.jobExtractor.trim();
+            const systemPrompt = llmConfig.extraction.prompt.trim();
             const userPrompt = rawText;
 
             // Use configured model or fallback to default extraction model

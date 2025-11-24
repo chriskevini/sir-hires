@@ -158,12 +158,12 @@ export interface TaskConfig {
   model?: string; // Override global model
   temperature: number;
   maxTokens: number;
-  prompt?: string; // Optional prompt for the task
+  prompt: string; // Required prompt for the task
 }
 
 export interface LLMConfig {
   // Global Client Settings (shared across all tasks)
-  baseUrl: string; // http://localhost:1234/v1/chat/completions
+  endpoint: string; // http://localhost:1234/v1/chat/completions
   modelsEndpoint: string; // http://localhost:1234/v1/models
   model: string; // Default model for all tasks
   timeoutMs: number; // 60000
@@ -171,18 +171,13 @@ export interface LLMConfig {
 
   // Task-Specific Parameters (override global model if needed)
   extraction: TaskConfig;
-  synthesis: TaskConfig & {
-    prompts: {
-      universal: string;
-      jobExtractor: string;
-    };
-  };
+  synthesis: TaskConfig;
 }
 
 // LLM configuration for different tasks
 export const llmConfig: LLMConfig = {
   // Global Client Settings
-  baseUrl: 'http://localhost:1234/v1/chat/completions',
+  endpoint: 'http://localhost:1234/v1/chat/completions',
   modelsEndpoint: 'http://localhost:1234/v1/models',
   model: 'Llama-3.1-8B-Instruct', // Default model
   timeoutMs: 60000,
@@ -195,17 +190,16 @@ export const llmConfig: LLMConfig = {
     model: 'qwen/qwen3-4b-2507', // Override for extraction
     temperature: 0.3,
     maxTokens: 2000,
+    prompt: JOB_EXTRACTION_PROMPT,
   },
 
   // Document synthesis LLM (for resume/cover letter generation)
   synthesis: {
     temperature: 0.7,
     maxTokens: 2000,
-
     // Universal prompt for document generation
     // LLM determines document type from user instructions in {currentDraft}
-    prompts: {
-      universal: `
+    prompt: `
 You are an expert career counselor specialized in generating highly targeted, impactful job application documents (resumes, cover letters, and professional emails).
 
 Your sole goal is to synthesize one single, polished document by strictly following the instructions, format, and structure found within the [CURRENT DRAFT] input, including the **Document-Specific Generation Rules** explicitly defined within that block.
@@ -223,8 +217,6 @@ Your sole goal is to synthesize one single, polished document by strictly follow
 3. Select and Prepare Content: Scan the [MASTER RESUME] to select content that aligns with the job/goal. **Confirm how the selected content will be treated** (verbatim, synthesized, or high-level reference) based on the document's specific rules.
 4. Synthesize Document: Generate the final document. **STRICTLY apply the simple rules and the required structure** defined in the [CURRENT DRAFT] block.
 `,
-      jobExtractor: JOB_EXTRACTION_PROMPT,
-    },
   },
 };
 

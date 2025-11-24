@@ -11,8 +11,8 @@
  * Architecture:
  * - Uses hybrid event-driven pattern (see AGENTS.md)
  * - Rule 1: Coordinates multi-step async operations (extraction workflow)
- * - Rule 3: Manages cross-component state (jobInFocus, deletion)
- * - Rule 2: Simple mutations handled directly by components
+ * - Rule 2: Manages cross-component state (jobInFocus, deletion)
+ * - Rule 3: Simple mutations handled directly by components
  */
 
 import type { Browser } from 'wxt/browser';

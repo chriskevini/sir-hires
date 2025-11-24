@@ -145,6 +145,38 @@ export const defaults = {
   },
 };
 
+// ===== Performance & Timeout Configuration =====
+// These values can be adjusted based on your system performance and LLM speed
+
+/**
+ * LLM API request timeout in milliseconds (60 seconds)
+ * Adjust if your LLM takes longer to respond
+ */
+export const LLM_API_TIMEOUT_MS = 60000;
+
+/**
+ * Service worker keepalive interval in milliseconds (20 seconds)
+ * Keeps extension alive during long-running LLM extractions
+ * Chrome terminates inactive service workers after ~30 seconds
+ */
+export const SERVICE_WORKER_KEEPALIVE_INTERVAL_MS = 20000;
+
+/**
+ * UI update interval in milliseconds (1 minute)
+ * How often the UI refreshes time-based displays
+ */
+export const UI_UPDATE_INTERVAL_MS = 60000;
+
+/**
+ * Maximum number of retries for sending messages to sidepanel
+ */
+export const MESSAGE_RETRY_MAX_ATTEMPTS = 5;
+
+/**
+ * Delay between message retry attempts in milliseconds
+ */
+export const MESSAGE_RETRY_DELAY_MS = 200;
+
 // LLM configuration for different tasks
 export const llmConfig = {
   // Data extraction LLM (for job data extraction from web pages)

@@ -4,8 +4,10 @@ import type { Browser } from 'wxt/browser';
 
 /**
  * Extracted job data interface
+ * Extensible for MarkdownDB - supports custom fields beyond these common ones
  */
 interface ExtractedJobData {
+  // Common fields (for documentation and type hints)
   jobTitle?: string;
   company?: string;
   location?: string;
@@ -19,6 +21,8 @@ interface ExtractedJobData {
   requirements?: string;
   responsibilities?: string;
   aboutCompany?: string;
+  // Allow any additional string fields for extensibility
+  [key: string]: string | undefined;
 }
 
 /**

@@ -3,7 +3,7 @@
  *
  * Central coordination point for the extension. Handles:
  * - Extension lifecycle (installation, context menus)
- * - Service worker keepalive (prevents Chrome MV3 termination)
+ * - Service worker keepalive during LLM extraction (prevents Chrome MV3 termination)
  * - LLM API calls and streaming job extraction
  * - Cross-component state management (jobInFocus, job deletion)
  * - Message routing between content scripts, popup, and sidepanel
@@ -11,8 +11,8 @@
  * Architecture:
  * - Uses hybrid event-driven pattern (see AGENTS.md)
  * - Rule 1: Coordinates multi-step async operations (extraction workflow)
- * - Rule 3: Manages cross-component state (jobInFocus, deletion)
  * - Rule 2: Simple mutations handled directly by components
+ * - Rule 3: Manages cross-component state (jobInFocus, deletion)
  */
 
 import type { Browser } from 'wxt/browser';

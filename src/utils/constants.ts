@@ -1,42 +1,28 @@
 /**
  * Application-wide constants
- * Centralized location for magic numbers and configuration values
+ *
+ * NOTE: User-configurable constants have been moved to src/config.ts
+ * This file now re-exports them for backward compatibility.
+ * Prefer importing from config.ts for new code.
  */
 
-// ===== Timeout Constants =====
+// ===== Re-exports from config.ts (User-Configurable) =====
 
-/**
- * LLM API request timeout in milliseconds (60 seconds)
- */
-export const LLM_API_TIMEOUT_MS = 60000;
+export {
+  LLM_API_TIMEOUT_MS,
+  SERVICE_WORKER_KEEPALIVE_INTERVAL_MS,
+  UI_UPDATE_INTERVAL_MS,
+  MESSAGE_RETRY_MAX_ATTEMPTS,
+  MESSAGE_RETRY_DELAY_MS,
+} from '../config';
+
+// ===== Derived Constants =====
 
 /**
  * LLM API request timeout in seconds (for user-facing messages)
+ * Automatically derived from LLM_API_TIMEOUT_MS
  */
-export const LLM_API_TIMEOUT_SECONDS = LLM_API_TIMEOUT_MS / 1000;
-
-/**
- * Service worker keepalive interval in milliseconds (20 seconds)
- * Chrome terminates inactive service workers after ~30 seconds
- */
-export const SERVICE_WORKER_KEEPALIVE_INTERVAL_MS = 20000;
-
-/**
- * UI update interval in milliseconds (1 minute)
- */
-export const UI_UPDATE_INTERVAL_MS = 60000;
-
-// ===== Retry Configuration =====
-
-/**
- * Maximum number of retries for sending messages to sidepanel
- */
-export const MESSAGE_RETRY_MAX_ATTEMPTS = 5;
-
-/**
- * Delay between message retry attempts in milliseconds
- */
-export const MESSAGE_RETRY_DELAY_MS = 200;
+export const LLM_API_TIMEOUT_SECONDS = 60; // LLM_API_TIMEOUT_MS / 1000
 
 // ===== LLM Configuration Defaults =====
 

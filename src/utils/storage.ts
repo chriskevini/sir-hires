@@ -138,17 +138,6 @@ export const dataVersionStorage = storage.defineItem<DataVersion>(
 );
 
 /**
- * Schema migration flag - Tracks if snake_case to camelCase migration completed
- */
-export const schemaMigratedStorage = storage.defineItem<boolean>(
-  'local:schemaMigrated',
-  {
-    defaultValue: false,
-    version: 1,
-  }
-);
-
-/**
  * Extraction trigger - Signal to sidepanel to start extraction (timestamp)
  * Set by context menu, cleared by sidepanel after handling
  */
@@ -156,17 +145,6 @@ export const extractionTriggerStorage = storage.defineItem<number | null>(
   'local:extractionTrigger',
   {
     defaultValue: null,
-    version: 1,
-  }
-);
-
-/**
- * Profile migration flag - Tracks if masterResume to userProfile migration completed
- */
-export const profileMigratedStorage = storage.defineItem<boolean>(
-  'local:profileMigrated',
-  {
-    defaultValue: false,
     version: 1,
   }
 );
@@ -195,8 +173,6 @@ export async function getAllStorageData(): Promise<Record<string, unknown>> {
     viewerFilters,
     checklistExpanded,
     dataVersion,
-    schemaMigrated,
-    profileMigrated,
   ] = await Promise.all([
     jobsStorage.getValue(),
     jobInFocusStorage.getValue(),
@@ -205,8 +181,6 @@ export async function getAllStorageData(): Promise<Record<string, unknown>> {
     viewerFiltersStorage.getValue(),
     checklistExpandedStorage.getValue(),
     dataVersionStorage.getValue(),
-    schemaMigratedStorage.getValue(),
-    profileMigratedStorage.getValue(),
   ]);
 
   return {
@@ -217,8 +191,6 @@ export async function getAllStorageData(): Promise<Record<string, unknown>> {
     viewerFilters,
     checklistExpanded,
     dataVersion,
-    schemaMigrated,
-    profileMigrated,
   };
 }
 
@@ -237,8 +209,6 @@ export async function restoreStorageFromBackup(
     viewerFilters,
     checklistExpanded,
     dataVersion,
-    schemaMigrated,
-    profileMigrated,
   } = data;
 
   await Promise.all([
@@ -263,12 +233,6 @@ export async function restoreStorageFromBackup(
     dataVersion !== undefined
       ? dataVersionStorage.setValue(dataVersion as DataVersion)
       : Promise.resolve(),
-    schemaMigrated !== undefined
-      ? schemaMigratedStorage.setValue(schemaMigrated as boolean)
-      : Promise.resolve(),
-    profileMigrated !== undefined
-      ? profileMigratedStorage.setValue(profileMigrated as boolean)
-      : Promise.resolve(),
   ]);
 }
 
@@ -284,8 +248,6 @@ export async function clearAllStorage(): Promise<void> {
     viewerFiltersStorage.removeValue(),
     checklistExpandedStorage.removeValue(),
     dataVersionStorage.removeValue(),
-    schemaMigratedStorage.removeValue(),
-    profileMigratedStorage.removeValue(),
     keepaliveStorage.removeValue(),
   ]);
 }

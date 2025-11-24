@@ -1,3 +1,20 @@
+/**
+ * Background Service Worker
+ *
+ * Central coordination point for the extension. Handles:
+ * - Extension lifecycle (installation, context menus)
+ * - Service worker keepalive (prevents Chrome MV3 termination)
+ * - LLM API calls and streaming job extraction
+ * - Cross-component state management (jobInFocus, job deletion)
+ * - Message routing between content scripts, popup, and sidepanel
+ *
+ * Architecture:
+ * - Uses hybrid event-driven pattern (see AGENTS.md)
+ * - Rule 1: Coordinates multi-step async operations (extraction workflow)
+ * - Rule 3: Manages cross-component state (jobInFocus, deletion)
+ * - Rule 2: Simple mutations handled directly by components
+ */
+
 import type { Browser } from 'wxt/browser';
 import { LLMClient } from '../utils/llm-client';
 import { llmConfig } from '../config';
@@ -13,7 +30,8 @@ import {
   MESSAGE_RETRY_DELAY_MS,
 } from '../utils/constants';
 
-// Message type definitions
+// ===== Message Type Definitions =====
+// These types define the contract between components and the background script
 interface BaseMessage {
   action: string;
 }
@@ -290,7 +308,14 @@ export default defineBackground(() => {
     }
   );
 
-  // Helper function to call LLM API
+  /**
+   * Call LLM API with timeout and error handling
+   *
+   * @param endpoint - LLM API endpoint URL
+   * @param requestBody - Request payload for the LLM
+   * @returns Promise resolving to LLM response data
+   * @throws Error with user-friendly message on failure
+   */
   async function callLLMAPI(endpoint: string, requestBody: unknown) {
     console.info('[Background] Calling LLM API:', endpoint);
     console.info(
@@ -357,7 +382,18 @@ export default defineBackground(() => {
   // 2. Clicking the extension icon (if setPanelBehavior is enabled)
   // 3. Chrome's built-in side panel menu
 
-  // Helper function to send messages with retry logic (for sidepanel timing issues)
+  /**
+   * Send messages with retry logic to handle sidepanel timing issues
+   *
+   * The sidepanel may not be fully loaded when background tries to send messages,
+   * especially immediately after opening. This function retries on
+   * "Receiving end does not exist" errors.
+   *
+   * @param message - Notification message to send
+   * @param maxRetries - Maximum retry attempts (default: 5)
+   * @param delayMs - Delay between retries in milliseconds (default: 200)
+   * @throws Error if all retries fail or non-retryable error occurs
+   */
   async function sendMessageWithRetry(
     message: NotificationMessage,
     maxRetries: number = MESSAGE_RETRY_MAX_ATTEMPTS,

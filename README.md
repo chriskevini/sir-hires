@@ -220,16 +220,40 @@ Local LLM via LM Studio (document synthesis & insights)
 
 ## Contributing
 
-This is an early-stage project. If you'd like to contribute:
+We welcome contributions from the community! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
 
-1. Open an issue to discuss your idea
-2. Fork the repository
-3. Make your changes
-4. Submit a pull request
+### Quick Start for Contributors
+
+1. **Read the [Contributing Guide](CONTRIBUTING.md)** - Comprehensive guidelines for development setup, code style, and PR process
+2. **Review the [Code of Conduct](CODE_OF_CONDUCT.md)** - Community standards and expectations
+3. **Check [open issues](https://github.com/chriskevini/sir-hires/issues)** - Look for `good first issue` or `help wanted` labels
+4. **Join discussions** - Ask questions or share ideas in [GitHub Discussions](https://github.com/chriskevini/sir-hires/discussions)
+
+### Ways to Contribute
+
+- 🐛 **Report bugs** using our [bug report template](.github/ISSUE_TEMPLATE/bug_report.yml)
+- ✨ **Suggest features** using our [feature request template](.github/ISSUE_TEMPLATE/feature_request.yml)
+- 📝 **Improve documentation** - Fix typos, clarify instructions, add examples
+- 🔧 **Submit code** - Fix bugs, implement features, refactor code
+- 🧪 **Test** - Try the extension on different browsers and job boards
+- 💬 **Help others** - Answer questions in issues and discussions
+
+### Development Setup
+
+```bash
+git clone https://github.com/YOUR-USERNAME/sir-hires.git
+cd sir-hires
+npm install
+npm run dev  # Start development server
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed setup instructions and development guidelines.
 
 ## License
 
-MIT License - This is a personal productivity tool. Use responsibly and in accordance with job board terms of service.
+MIT License - See [LICENSE](LICENSE) file for details.
+
+This is a personal productivity tool. Use responsibly and in accordance with job board terms of service.
 
 ## Privacy & Legal
 

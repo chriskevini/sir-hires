@@ -11,6 +11,11 @@
 export const LLM_API_TIMEOUT_MS = 60000;
 
 /**
+ * LLM API request timeout in seconds (for user-facing messages)
+ */
+export const LLM_API_TIMEOUT_SECONDS = LLM_API_TIMEOUT_MS / 1000;
+
+/**
  * Service worker keepalive interval in milliseconds (20 seconds)
  * Chrome terminates inactive service workers after ~30 seconds
  */

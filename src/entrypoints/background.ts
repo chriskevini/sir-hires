@@ -25,6 +25,7 @@ import {
 } from '../utils/storage';
 import {
   LLM_API_TIMEOUT_MS,
+  LLM_API_TIMEOUT_SECONDS,
   SERVICE_WORKER_KEEPALIVE_INTERVAL_MS,
   MESSAGE_RETRY_MAX_ATTEMPTS,
   MESSAGE_RETRY_DELAY_MS,
@@ -363,7 +364,7 @@ export default defineBackground(() => {
       // Provide more specific error messages
       if (err.name === 'AbortError') {
         throw new Error(
-          `LLM request timed out after ${LLM_API_TIMEOUT_MS / 1000} seconds`
+          `LLM request timed out after ${LLM_API_TIMEOUT_SECONDS} seconds`
         );
       } else if (err.message.includes('Failed to fetch')) {
         throw new Error(

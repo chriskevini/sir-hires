@@ -542,7 +542,14 @@ When generating code for this project, strictly adhere to these rules:
     - **Pre-commit hooks handle linting/formatting automatically** - no manual action needed.
     - If you need to fix issues in bulk: `npm run lint:fix && npm run format`.
 
-6.  **Debugging:**
+6.  **GitHub Templates:**
+    - **Pull Requests:** ALWAYS read and follow `.github/PULL_REQUEST_TEMPLATE.md`. Use `gh pr create` and structure the body to match all required sections.
+    - **Issues:** ALWAYS read and follow the appropriate YAML template:
+      - `.github/ISSUE_TEMPLATE/bug_report.yml` - For bugs
+      - `.github/ISSUE_TEMPLATE/feature_request.yml` - For features
+    - Use `gh issue create` and structure the body to match the YAML template fields.
+
+7.  **Debugging:**
     - If "RollupError" occurs, check if shared React components were accidentally placed inside `entrypoints/`. Move them to `components/`.
     - Ensure `cssInjectionMode: 'ui'` is set if using `createShadowRootUi`.
     - If you see "is not exported by" errors, verify the file uses ES module exports, not CommonJS.

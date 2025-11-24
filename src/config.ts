@@ -167,7 +167,6 @@ export interface LLMConfig {
   modelsEndpoint: string; // http://localhost:1234/v1/models
   model: string; // Default model for all tasks
   timeoutMs: number; // 60000
-  timeoutSeconds: number; // Calculated from timeoutMs
 
   // Task-Specific Parameters (override global model if needed)
   extraction: TaskConfig;
@@ -181,7 +180,6 @@ export const llmConfig: LLMConfig = {
   modelsEndpoint: 'http://localhost:1234/v1/models',
   model: 'qwen/qwen3-4b-2507', // Default model
   timeoutMs: 60000,
-  timeoutSeconds: 60, // timeoutMs / 1000
 
   // Data extraction LLM (for job data extraction from web pages)
   extraction: {

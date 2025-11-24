@@ -353,7 +353,7 @@ export default defineBackground(() => {
       // Provide more specific error messages
       if (err.name === 'AbortError') {
         throw new Error(
-          `LLM request timed out after ${llmConfig.timeoutSeconds} seconds`
+          `LLM request timed out after ${llmConfig.timeoutMs / 1000} seconds`
         );
       } else if (err.message.includes('Failed to fetch')) {
         throw new Error(

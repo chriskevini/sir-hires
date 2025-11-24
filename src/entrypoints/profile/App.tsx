@@ -21,6 +21,7 @@ import {
   useProfileValidation,
   type ValidationFix,
 } from './hooks/useProfileValidation';
+import { useProfileExtraction } from './hooks/useProfileExtraction';
 
 // Import components
 import {
@@ -84,14 +85,57 @@ export default function App() {
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [isTemplatePanelVisible, setIsTemplatePanelVisible] = useState(true);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractionError, setExtractionError] = useState<string | null>(null);
 
   // Refs
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isExtractingRef = useRef(false); // Race condition guard
 
   // Validation hook
   const { validation, validationFixes } = useProfileValidation({ content });
+
+  // Profile extraction hook
+  useProfileExtraction({
+    onExtractionStarted: () => {
+      console.info('[Profile] Extraction started');
+      setIsExtracting(true);
+      setExtractionError(null);
+      setStatusMessage('Extracting profile...');
+    },
+    onChunkReceived: (chunk: string) => {
+      console.info('[Profile] Chunk received:', chunk.substring(0, 50));
+      // Append chunk to content in real-time
+      setContent((prev) => prev + chunk);
+    },
+    onExtractionComplete: (fullContent: string) => {
+      console.info(
+        '[Profile] Extraction complete, length:',
+        fullContent.length
+      );
+      setContent(fullContent);
+      setIsExtracting(false);
+      isExtractingRef.current = false;
+      setStatusMessage('Profile extracted successfully!');
+      setTimeout(() => setStatusMessage(''), 3000);
+    },
+    onExtractionError: (error: string) => {
+      console.error('[Profile] Extraction error:', error);
+      setIsExtracting(false);
+      isExtractingRef.current = false;
+      setExtractionError(error);
+      setStatusMessage('');
+    },
+    onExtractionCancelled: () => {
+      console.info('[Profile] Extraction cancelled');
+      setIsExtracting(false);
+      isExtractingRef.current = false;
+      setStatusMessage('Extraction cancelled');
+      setTimeout(() => setStatusMessage(''), 3000);
+    },
+  });
 
   // Load profile from storage on mount
   useEffect(() => {
@@ -191,6 +235,115 @@ export default function App() {
         result.cursorPosition
       );
       setContent(result.newContent);
+    }
+  };
+
+  // Profile extraction handlers
+  const handleExtractProfile = async () => {
+    // Race condition guard: prevent concurrent extractions
+    if (isExtractingRef.current) {
+      console.warn('[Profile] Extraction already in progress, ignoring');
+      return;
+    }
+
+    isExtractingRef.current = true;
+
+    try {
+      // Get current tab URL and page content
+      const [tab] = await browser.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+
+      if (!tab || !tab.url) {
+        throw new Error('Could not get current tab URL');
+      }
+
+      // Check if we're on a valid page (not chrome:// or extension://)
+      if (
+        tab.url.startsWith('chrome://') ||
+        tab.url.startsWith('chrome-extension://') ||
+        tab.url.startsWith('about:')
+      ) {
+        throw new Error(
+          'Cannot extract profile from browser internal pages. Please navigate to a LinkedIn profile or resume page.'
+        );
+      }
+
+      // Inject content script if needed (for getting page text)
+      try {
+        await browser.scripting.executeScript({
+          target: { tabId: tab.id! },
+          func: () => {
+            // Just a test to see if content script is already injected
+            return true;
+          },
+        });
+      } catch {
+        // Content script not injected, inject it
+        await browser.scripting.executeScript({
+          target: { tabId: tab.id! },
+          files: ['/content-scripts/content.js'],
+        });
+      }
+
+      // Get page text
+      const [result] = await browser.scripting.executeScript({
+        target: { tabId: tab.id! },
+        func: () => {
+          return document.body.innerText || '';
+        },
+      });
+
+      const pageText = result.result as string;
+
+      if (!pageText || pageText.trim().length === 0) {
+        throw new Error('No text content found on this page');
+      }
+
+      // Get LLM settings from storage
+      const { llmSettingsStorage } = await import('@/utils/storage');
+      const llmSettings = await llmSettingsStorage.getValue();
+
+      console.info(
+        '[Profile] Starting extraction with text length:',
+        pageText.length
+      );
+
+      // Send extraction request to background
+      const response = await browser.runtime.sendMessage({
+        action: 'streamExtractProfile',
+        url: tab.url,
+        rawText: pageText,
+        llmSettings: llmSettings,
+      });
+
+      if (!response.success) {
+        throw new Error(response.error || 'Extraction failed');
+      }
+
+      console.info('[Profile] Extraction request sent successfully');
+    } catch (error) {
+      console.error('[Profile] Failed to start extraction:', error);
+      const err = error as Error;
+      setExtractionError(err.message);
+      setStatusMessage('');
+      isExtractingRef.current = false;
+    }
+  };
+
+  const handleCancelExtraction = async () => {
+    console.info('[Profile] Cancelling extraction');
+    try {
+      const response = await browser.runtime.sendMessage({
+        action: 'cancelProfileExtraction',
+      });
+
+      if (!response.success) {
+        console.warn('[Profile] Cancel response:', response.message);
+      }
+    } catch (error) {
+      console.error('[Profile] Failed to cancel extraction:', error);
     }
   };
 
@@ -472,7 +625,35 @@ BULLETS:
         showQuickActions={true}
       />
 
+      {/* Extraction Error Display */}
+      {extractionError && (
+        <div
+          className="extraction-error"
+          style={{
+            padding: '12px',
+            margin: '10px 20px',
+            backgroundColor: '#fee',
+            border: '1px solid #fcc',
+            borderRadius: '4px',
+            color: '#c00',
+          }}
+        >
+          <strong>❌ Extraction Error:</strong> {extractionError}
+        </div>
+      )}
+
       <footer>
+        <button
+          onClick={isExtracting ? handleCancelExtraction : handleExtractProfile}
+          className={isExtracting ? 'btn-cancel' : 'btn-extract'}
+          title={
+            isExtracting
+              ? 'Cancel extraction'
+              : 'Extract profile from current tab'
+          }
+        >
+          {isExtracting ? '❌ Cancel Extraction' : '🔍 Extract Profile'}
+        </button>
         <button
           onClick={() => setIsTemplatePanelVisible(!isTemplatePanelVisible)}
           className="template-guide-show"

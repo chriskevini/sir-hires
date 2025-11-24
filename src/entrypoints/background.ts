@@ -105,6 +105,17 @@ interface DeleteJobMessage extends BaseMessage {
   jobId: string;
 }
 
+interface StreamExtractProfileMessage extends BaseMessage {
+  action: 'streamExtractProfile';
+  url: string;
+  rawText: string;
+  llmSettings?: LLMSettings;
+}
+
+interface CancelProfileExtractionMessage extends BaseMessage {
+  action: 'cancelProfileExtraction';
+}
+
 type RuntimeMessage =
   | GetJobsMessage
   | SaveJobMessage
@@ -112,7 +123,9 @@ type RuntimeMessage =
   | StreamExtractJobMessage
   | CancelExtractionMessage
   | SetJobInFocusMessage
-  | DeleteJobMessage;
+  | DeleteJobMessage
+  | StreamExtractProfileMessage
+  | CancelProfileExtractionMessage;
 
 // Internal notification message types (sent from background to components)
 interface ExtractionStartedMessage extends BaseMessage {
@@ -701,6 +714,192 @@ export default defineBackground(() => {
             sendResponse({ success: false, error: err.message });
           }
         })();
+
+        return true;
+      }
+
+      if (request.action === 'streamExtractProfile') {
+        // Handle streaming profile extraction with LLM
+        const { rawText, llmSettings: userLlmSettings } = request;
+        console.info('[Background] Received profile extraction request');
+
+        // Use user settings or fallback to config defaults
+        const llmSettings: LLMSettings = userLlmSettings || {
+          provider: 'lm-studio',
+          model: llmConfig.extraction.model || llmConfig.model,
+          apiEndpoint: llmConfig.endpoint,
+          endpoint: llmConfig.endpoint,
+          maxTokens: 2000,
+          temperature: 0.3,
+        };
+
+        // Start global keepalive BEFORE responding
+        startGlobalKeepAlive();
+
+        // Immediately acknowledge receipt
+        sendResponse({ success: true, message: 'Profile extraction started' });
+
+        // Start streaming in background (don't await)
+        (async () => {
+          const streamId = 'profile-extraction'; // Fixed ID for profile extraction
+
+          try {
+            console.info('[Background] Starting LLM streaming for profile');
+
+            // Initialize LLM client
+            const llmClient = new LLMClient({
+              endpoint: llmSettings.endpoint,
+              modelsEndpoint: llmSettings.modelsEndpoint,
+            });
+
+            // Store in activeExtractions for cancellation
+            activeExtractions.set(streamId, { llmClient, streamId });
+
+            // Send initial notification
+            await browser.runtime
+              .sendMessage({
+                action: 'profileExtractionStarted',
+              })
+              .catch((err: unknown) => {
+                console.error(
+                  '[Background] Failed to send profile extraction started:',
+                  err
+                );
+              });
+
+            // Import profile extraction prompt
+            const { PROFILE_EXTRACTION_PROMPT } = await import(
+              '../utils/profile-templates'
+            );
+
+            // Prepare prompts
+            const systemPrompt = PROFILE_EXTRACTION_PROMPT.trim();
+            const userPrompt = rawText;
+
+            // Use configured model or fallback to default extraction model
+            const modelToUse =
+              llmSettings.model && llmSettings.model.trim() !== ''
+                ? llmSettings.model
+                : llmConfig.extraction.model || llmConfig.model;
+
+            console.info(
+              '[Background] Using model for profile extraction:',
+              modelToUse,
+              llmSettings.model ? '(configured)' : '(default fallback)'
+            );
+
+            // Stream completion with callbacks
+            const result = await llmClient.streamCompletion({
+              streamId: streamId,
+              model: modelToUse,
+              systemPrompt: systemPrompt,
+              userPrompt: userPrompt,
+              maxTokens: llmSettings.maxTokens || 2000,
+              temperature: llmSettings.temperature || 0.3,
+              onThinkingUpdate: (delta: string) => {
+                console.info(
+                  '[Background] Thinking:',
+                  delta.substring(0, 50) + '...'
+                );
+              },
+              onDocumentUpdate: (delta: string) => {
+                console.info(
+                  '[Background] Sending chunk to profile page:',
+                  delta.substring(0, 50) + '...'
+                );
+                browser.runtime
+                  .sendMessage({
+                    action: 'profileExtractionChunk',
+                    chunk: delta,
+                  })
+                  .catch((err: unknown) => {
+                    console.error(
+                      '[Background] Failed to send chunk to profile page:',
+                      err
+                    );
+                  });
+              },
+            });
+
+            // Check if stream was cancelled
+            if (result.cancelled) {
+              console.info('[Background] Profile extraction cancelled');
+              await browser.runtime
+                .sendMessage({
+                  action: 'profileExtractionCancelled',
+                })
+                .catch((err: unknown) => {
+                  console.error(
+                    '[Background] Failed to send cancellation to profile page:',
+                    err
+                  );
+                });
+              return;
+            }
+
+            // Send completion message
+            await browser.runtime
+              .sendMessage({
+                action: 'profileExtractionComplete',
+                fullContent: result.documentContent,
+              })
+              .catch((err: unknown) => {
+                console.error(
+                  '[Background] Failed to send completion to profile page:',
+                  err
+                );
+              });
+
+            console.info('[Background] Profile extraction completed');
+          } catch (error: unknown) {
+            console.error('[Background] Profile extraction failed:', error);
+
+            // Send error to profile page
+            const err = error as Error;
+            await browser.runtime
+              .sendMessage({
+                action: 'profileExtractionError',
+                error: err.message,
+              })
+              .catch((err: unknown) => {
+                console.error(
+                  '[Background] Failed to send error to profile page:',
+                  err
+                );
+              });
+          } finally {
+            // Clean up activeExtractions
+            activeExtractions.delete(streamId);
+
+            // Stop global keepalive when done
+            stopGlobalKeepAlive();
+          }
+        })();
+
+        return true;
+      }
+
+      if (request.action === 'cancelProfileExtraction') {
+        // Handle cancellation of ongoing profile extraction
+        console.info('[Background] Received profile extraction cancellation');
+
+        const streamId = 'profile-extraction';
+        const extraction = activeExtractions.get(streamId);
+        if (extraction) {
+          const { llmClient } = extraction;
+          console.info('[Background] Cancelling profile extraction stream');
+          llmClient.cancelStream(streamId);
+          sendResponse({
+            success: true,
+            message: 'Profile extraction cancelled',
+          });
+        } else {
+          console.info('[Background] No active profile extraction found');
+          sendResponse({
+            success: false,
+            message: 'No active profile extraction found',
+          });
+        }
 
         return true;
       }

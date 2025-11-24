@@ -17,19 +17,19 @@
 
 import type { Browser } from 'wxt/browser';
 import { LLMClient } from '../utils/llm-client';
-import { llmConfig } from '../config';
 import {
-  jobsStorage,
-  keepaliveStorage,
-  extractionTriggerStorage,
-} from '../utils/storage';
-import {
+  llmConfig,
   LLM_API_TIMEOUT_MS,
   LLM_API_TIMEOUT_SECONDS,
   SERVICE_WORKER_KEEPALIVE_INTERVAL_MS,
   MESSAGE_RETRY_MAX_ATTEMPTS,
   MESSAGE_RETRY_DELAY_MS,
-} from '../utils/constants';
+} from '../config';
+import {
+  jobsStorage,
+  keepaliveStorage,
+  extractionTriggerStorage,
+} from '../utils/storage';
 
 // ===== Message Type Definitions =====
 // These types define the contract between components and the background script

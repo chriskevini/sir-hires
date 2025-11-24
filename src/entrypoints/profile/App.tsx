@@ -14,7 +14,7 @@ import {
   findNextSectionPosition,
   applyFix as applyFixUtil,
 } from '@/utils/profile-utils';
-import { UI_UPDATE_INTERVAL_MS } from '@/utils/constants';
+import { UI_UPDATE_INTERVAL_MS } from '@/config';
 
 // Import hooks
 import {

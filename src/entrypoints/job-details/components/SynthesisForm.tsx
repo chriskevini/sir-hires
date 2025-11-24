@@ -44,7 +44,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
 }) => {
   const [availableModels, setAvailableModels] = useState<Model[]>([]);
   const [selectedModel, setSelectedModel] = useState(
-    llmConfig.synthesis.defaultModel
+    llmConfig.synthesis.model || llmConfig.model
   );
   const [maxTokens, setMaxTokens] = useState(2000);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -53,8 +53,8 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   const [llmClient] = useState(
     () =>
       new LLMClient({
-        endpoint: llmConfig.synthesis.endpoint,
-        modelsEndpoint: llmConfig.synthesis.modelsEndpoint,
+        endpoint: llmConfig.baseUrl,
+        modelsEndpoint: llmConfig.modelsEndpoint,
       })
   );
 
@@ -323,8 +323,11 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
           </option>
         ))
       : [
-          <option key="default" value={llmConfig.synthesis.defaultModel}>
-            {llmConfig.synthesis.defaultModel} (not loaded)
+          <option
+            key="default"
+            value={llmConfig.synthesis.model || llmConfig.model}
+          >
+            {llmConfig.synthesis.model || llmConfig.model} (not loaded)
           </option>,
         ];
 

@@ -153,28 +153,25 @@ export const UI_UPDATE_INTERVAL_MS = 60000; // UI refresh interval (1 minute)
 export const MESSAGE_RETRY_MAX_ATTEMPTS = 5; // Max retries for sidepanel messages
 export const MESSAGE_RETRY_DELAY_MS = 200; // Delay between retry attempts
 
-// LLM Configuration Interface
+// LLM Configuration Interfaces
+export interface TaskConfig {
+  model?: string; // Override global model
+  temperature: number;
+  maxTokens: number;
+  prompt?: string; // Optional prompt for the task
+}
+
 export interface LLMConfig {
-  apiTimeoutMs: number;
-  apiTimeoutSeconds: number;
-  defaultEndpoint: string;
-  defaultModelsEndpoint: string;
-  defaultMaxTokens: number;
-  defaultTemperature: number;
-  extraction: {
-    defaultModel: string;
-    alternativeModels: string[];
-    endpoint: string;
-    description: string;
-  };
-  synthesis: {
-    defaultModel: string;
-    alternativeModels: string[];
-    endpoint: string;
-    modelsEndpoint: string;
-    description: string;
-    maxTokens: number;
-    temperature: number;
+  // Global Client Settings (shared across all tasks)
+  baseUrl: string; // http://localhost:1234/v1/chat/completions
+  modelsEndpoint: string; // http://localhost:1234/v1/models
+  model: string; // Default model for all tasks
+  timeoutMs: number; // 60000
+  timeoutSeconds: number; // Calculated from timeoutMs
+
+  // Task-Specific Parameters (override global model if needed)
+  extraction: TaskConfig;
+  synthesis: TaskConfig & {
     prompts: {
       universal: string;
       jobExtractor: string;
@@ -184,29 +181,26 @@ export interface LLMConfig {
 
 // LLM configuration for different tasks
 export const llmConfig: LLMConfig = {
-  apiTimeoutMs: 60000, // LLM API timeout (60 seconds)
-  apiTimeoutSeconds: 60, // Derived: for user-facing messages
-  defaultEndpoint: 'http://localhost:1234/v1/chat/completions',
-  defaultModelsEndpoint: 'http://localhost:1234/v1/models',
-  defaultMaxTokens: 2000,
-  defaultTemperature: 0.3,
+  // Global Client Settings
+  baseUrl: 'http://localhost:1234/v1/chat/completions',
+  modelsEndpoint: 'http://localhost:1234/v1/models',
+  model: 'Llama-3.1-8B-Instruct', // Default model
+  timeoutMs: 60000,
+  get timeoutSeconds() {
+    return this.timeoutMs / 1000;
+  },
+
   // Data extraction LLM (for job data extraction from web pages)
   extraction: {
-    defaultModel: 'qwen/qwen3-4b-2507',
-    alternativeModels: [],
-    endpoint: 'http://localhost:1234/v1/chat/completions',
-    description: 'Optimized for structured data extraction from job postings',
+    model: 'qwen/qwen3-4b-2507', // Override for extraction
+    temperature: 0.3,
+    maxTokens: 2000,
   },
 
   // Document synthesis LLM (for resume/cover letter generation)
   synthesis: {
-    defaultModel: 'Llama-3.1-8B-Instruct',
-    alternativeModels: ['Mistral-7B-Instruct', 'Qwen-2.5-7B-Instruct'],
-    endpoint: 'http://localhost:1234/v1/chat/completions',
-    modelsEndpoint: 'http://localhost:1234/v1/models',
-    description: 'Optimized for creative writing and document generation',
-    maxTokens: 2000,
     temperature: 0.7,
+    maxTokens: 2000,
 
     // Universal prompt for document generation
     // LLM determines document type from user instructions in {currentDraft}

@@ -318,7 +318,7 @@ export default defineBackground(() => {
       const controller = new AbortController();
       const timeoutId = setTimeout(
         () => controller.abort(),
-        llmConfig.apiTimeoutMs
+        llmConfig.timeoutMs
       );
 
       const response = await fetch(endpoint, {
@@ -353,7 +353,7 @@ export default defineBackground(() => {
       // Provide more specific error messages
       if (err.name === 'AbortError') {
         throw new Error(
-          `LLM request timed out after ${llmConfig.apiTimeoutSeconds} seconds`
+          `LLM request timed out after ${llmConfig.timeoutSeconds} seconds`
         );
       } else if (err.message.includes('Failed to fetch')) {
         throw new Error(
@@ -471,9 +471,9 @@ export default defineBackground(() => {
         // Use user settings or fallback to config defaults
         const llmSettings: LLMSettings = userLlmSettings || {
           provider: 'lm-studio',
-          model: llmConfig.extraction.defaultModel,
-          apiEndpoint: llmConfig.extraction.endpoint,
-          endpoint: llmConfig.extraction.endpoint,
+          model: llmConfig.extraction.model || llmConfig.model,
+          apiEndpoint: llmConfig.baseUrl,
+          endpoint: llmConfig.baseUrl,
           maxTokens: 2000,
           temperature: 0.3,
         };
@@ -519,7 +519,7 @@ export default defineBackground(() => {
             const modelToUse =
               llmSettings.model && llmSettings.model.trim() !== ''
                 ? llmSettings.model
-                : llmConfig.extraction.defaultModel;
+                : llmConfig.extraction.model || llmConfig.model;
 
             console.info(
               '[Background] Using model for extraction:',

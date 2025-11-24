@@ -3,7 +3,7 @@
 /* Overlay container - stacks UI elements at bottom */
 .overlay-container {
   position: absolute;
-  bottom: 0;
+  bottom: 30px;
   left: 0;
   right: 0;
   display: flex;

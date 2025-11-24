@@ -158,7 +158,7 @@ export interface TaskConfig {
   model?: string; // Override global model
   temperature: number;
   maxTokens: number;
-  prompt: string; // Required prompt for the task
+  prompt: string; // System prompt for the task
 }
 
 export interface LLMConfig {
@@ -179,7 +179,7 @@ export const llmConfig: LLMConfig = {
   // Global Client Settings
   endpoint: 'http://localhost:1234/v1/chat/completions',
   modelsEndpoint: 'http://localhost:1234/v1/models',
-  model: 'Llama-3.1-8B-Instruct', // Default model
+  model: 'qwen/qwen3-4b-2507', // Default model
   timeoutMs: 60000,
   get timeoutSeconds() {
     return this.timeoutMs / 1000;
@@ -187,7 +187,6 @@ export const llmConfig: LLMConfig = {
 
   // Data extraction LLM (for job data extraction from web pages)
   extraction: {
-    model: 'qwen/qwen3-4b-2507', // Override for extraction
     temperature: 0.3,
     maxTokens: 2000,
     prompt: JOB_EXTRACTION_PROMPT,

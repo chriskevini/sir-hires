@@ -2,36 +2,54 @@
 // Parses MarkdownDB Job Template format into structured data
 
 /**
- * Parse a Job Template string into structured data
- * @param {string} content - The raw job template content
- * @returns {Object} Parsed job data with structure:
- *   {
- *     type: string,           // Should be "JOB"
- *     topLevelFields: {},     // Top-level KEY: value pairs
- *     sections: {},           // Sections (# SECTION_NAME)
- *     raw: string             // Original content
- *   }
+ * Type definition for parsed job template data
  */
-function parseJobTemplate(content) {
+export interface JobTemplateData {
+  type: string | null;
+  topLevelFields: Record<string, string>;
+  sections: Record<string, { list: string[]; fields?: Record<string, string> }>;
+  raw: string;
+}
+
+/**
+ * Type definition for mapped job fields (legacy schema compatibility)
+ */
+export interface MappedJobFields {
+  jobTitle?: string;
+  company?: string;
+  location?: string;
+  jobType?: string;
+  remoteType?: string;
+  postedDate?: string;
+  deadline?: string;
+  experienceLevel?: string;
+  salary?: string;
+}
+
+/**
+ * Parse a Job Template string into structured data
+ * @param content - The raw job template content
+ * @returns Parsed job data
+ */
+function parseJobTemplate(content: string): JobTemplateData {
   if (!content || typeof content !== 'string') {
     return {
       type: null,
       topLevelFields: {},
       sections: {},
-      raw: content || ''
+      raw: content || '',
     };
   }
 
   const lines = content.split('\n');
-  const result = {
+  const result: JobTemplateData = {
     type: null,
     topLevelFields: {},
     sections: {},
-    raw: content
+    raw: content,
   };
 
-  let currentSection = null;
-  let currentList = null;
+  let currentSection: string | null = null;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -48,26 +66,28 @@ function parseJobTemplate(content) {
     }
 
     // Check for <JOB> type declaration
-    if (trimmedLine.match(/^<(\w+)>$/)) {
-      result.type = trimmedLine.match(/^<(\w+)>$/)[1];
+    const typeMatch = trimmedLine.match(/^<(\w+)>$/);
+    if (typeMatch) {
+      result.type = typeMatch[1];
       continue;
     }
 
     // Check for section header (# SECTION_NAME)
-    if (trimmedLine.match(/^#\s+([A-Z_]+):?(\s|\/\/|$)/)) {
-      const sectionName = trimmedLine.match(/^#\s+([A-Z_]+):?(\s|\/\/|$)/)[1];
+    const sectionMatch = trimmedLine.match(/^#\s+([A-Z_]+):?(\s|\/\/|$)/);
+    if (sectionMatch) {
+      const sectionName = sectionMatch[1];
       currentSection = sectionName;
-      currentList = null;
       result.sections[currentSection] = {
-        list: []
+        list: [],
       };
       continue;
     }
 
     // Check for list item (- item)
-    if (trimmedLine.match(/^-\s+(.+)$/)) {
-      const itemValue = trimmedLine.match(/^-\s+(.+)$/)[1];
-      
+    const listMatch = trimmedLine.match(/^-\s+(.+)$/);
+    if (listMatch) {
+      const itemValue = listMatch[1];
+
       if (currentSection) {
         // List item within a section
         result.sections[currentSection].list.push(itemValue);
@@ -76,10 +96,10 @@ function parseJobTemplate(content) {
     }
 
     // Check for key-value pair (KEY: value)
-    if (trimmedLine.match(/^([A-Z_]+):\s*(.*)$/)) {
-      const match = trimmedLine.match(/^([A-Z_]+):\s*(.*)$/);
-      const key = match[1];
-      let value = match[2].trim();
+    const kvMatch = trimmedLine.match(/^([A-Z_]+):\s*(.*)$/);
+    if (kvMatch) {
+      const key = kvMatch[1];
+      let value = kvMatch[2].trim();
 
       // Remove inline comments (// comment)
       if (value.includes('//')) {
@@ -88,8 +108,10 @@ function parseJobTemplate(content) {
 
       if (currentSection) {
         // Field within a section (not standard for Job template, but support it)
-        result.sections[currentSection].fields = result.sections[currentSection].fields || {};
-        result.sections[currentSection].fields[key] = value;
+        if (!result.sections[currentSection].fields) {
+          result.sections[currentSection].fields = {};
+        }
+        result.sections[currentSection].fields![key] = value;
       } else {
         // Top-level field
         result.topLevelFields[key] = value;
@@ -103,10 +125,10 @@ function parseJobTemplate(content) {
 
 /**
  * Extract description from parsed job
- * @param {Object} parsedJob - Result from parseJobTemplate()
- * @returns {Array} Array of description strings
+ * @param parsedJob - Result from parseJobTemplate()
+ * @returns Array of description strings
  */
-function extractDescription(parsedJob) {
+function extractDescription(parsedJob: JobTemplateData): string[] {
   if (!parsedJob.sections.DESCRIPTION) {
     return [];
   }
@@ -116,10 +138,10 @@ function extractDescription(parsedJob) {
 
 /**
  * Extract required skills from parsed job
- * @param {Object} parsedJob - Result from parseJobTemplate()
- * @returns {Array} Array of required skill strings
+ * @param parsedJob - Result from parseJobTemplate()
+ * @returns Array of required skill strings
  */
-function extractRequiredSkills(parsedJob) {
+function extractRequiredSkills(parsedJob: JobTemplateData): string[] {
   if (!parsedJob.sections.REQUIRED_SKILLS) {
     return [];
   }
@@ -129,10 +151,10 @@ function extractRequiredSkills(parsedJob) {
 
 /**
  * Extract preferred skills from parsed job
- * @param {Object} parsedJob - Result from parseJobTemplate()
- * @returns {Array} Array of preferred skill strings
+ * @param parsedJob - Result from parseJobTemplate()
+ * @returns Array of preferred skill strings
  */
-function extractPreferredSkills(parsedJob) {
+function extractPreferredSkills(parsedJob: JobTemplateData): string[] {
   if (!parsedJob.sections.PREFERRED_SKILLS) {
     return [];
   }
@@ -142,10 +164,10 @@ function extractPreferredSkills(parsedJob) {
 
 /**
  * Extract company info from parsed job
- * @param {Object} parsedJob - Result from parseJobTemplate()
- * @returns {Array} Array of company info strings
+ * @param parsedJob - Result from parseJobTemplate()
+ * @returns Array of company info strings
  */
-function extractAboutCompany(parsedJob) {
+function extractAboutCompany(parsedJob: JobTemplateData): string[] {
   if (!parsedJob.sections.ABOUT_COMPANY) {
     return [];
   }
@@ -155,29 +177,36 @@ function extractAboutCompany(parsedJob) {
 
 /**
  * Get a specific top-level field value
- * @param {Object} parsedJob - Result from parseJobTemplate()
- * @param {string} fieldName - Name of the field (e.g., 'TITLE', 'COMPANY')
- * @returns {string|null} Field value or null if not found
+ * @param parsedJob - Result from parseJobTemplate()
+ * @param fieldName - Name of the field (e.g., 'TITLE', 'COMPANY')
+ * @returns Field value or null if not found
  */
-function getTopLevelField(parsedJob, fieldName) {
+function getTopLevelField(
+  parsedJob: JobTemplateData,
+  fieldName: string
+): string | null {
   return parsedJob.topLevelFields[fieldName] || null;
 }
 
 /**
  * Get all top-level fields as a flat object
- * @param {Object} parsedJob - Result from parseJobTemplate()
- * @returns {Object} All top-level fields
+ * @param parsedJob - Result from parseJobTemplate()
+ * @returns All top-level fields
  */
-function getAllTopLevelFields(parsedJob) {
+function getAllTopLevelFields(
+  parsedJob: JobTemplateData
+): Record<string, string> {
   return parsedJob.topLevelFields || {};
 }
 
 /**
  * Get all sections as an object
- * @param {Object} parsedJob - Result from parseJobTemplate()
- * @returns {Object} All sections
+ * @param parsedJob - Result from parseJobTemplate()
+ * @returns All sections
  */
-function getAllSections(parsedJob) {
+function getAllSections(
+  parsedJob: JobTemplateData
+): Record<string, { list: string[]; fields?: Record<string, string> }> {
   return parsedJob.sections || {};
 }
 
@@ -185,13 +214,15 @@ function getAllSections(parsedJob) {
  * Map parsed MarkdownDB template fields to legacy job object fields
  * This function converts field names from the MarkdownDB Job Template format
  * to the legacy storage schema field names for backward compatibility.
- * 
- * @param {Object} fields - Parsed topLevelFields from parseJobTemplate()
- * @returns {Object} Job fields compatible with storage schema
+ *
+ * @param fields - Parsed topLevelFields from parseJobTemplate()
+ * @returns Job fields compatible with storage schema
  */
-function mapMarkdownFieldsToJob(fields) {
-  const mapped = {};
-  
+function mapMarkdownFieldsToJob(
+  fields: Record<string, string>
+): MappedJobFields {
+  const mapped: MappedJobFields = {};
+
   // Map field names from MarkdownDB template to job storage schema
   if (fields.TITLE) mapped.jobTitle = fields.TITLE;
   if (fields.COMPANY) mapped.company = fields.COMPANY;
@@ -201,15 +232,67 @@ function mapMarkdownFieldsToJob(fields) {
   if (fields.POSTED_DATE) mapped.postedDate = fields.POSTED_DATE;
   if (fields.CLOSING_DATE) mapped.deadline = fields.CLOSING_DATE;
   if (fields.EXPERIENCE_LEVEL) mapped.experienceLevel = fields.EXPERIENCE_LEVEL;
-  
+
   // Handle salary range - combine min/max into single string
   if (fields.SALARY_RANGE_MIN || fields.SALARY_RANGE_MAX) {
     const min = fields.SALARY_RANGE_MIN || '';
     const max = fields.SALARY_RANGE_MAX || '';
-    mapped.salary = min && max ? `${min} - ${max}` : (min || max);
+    mapped.salary = min && max ? `${min} - ${max}` : min || max;
   }
-  
+
   return mapped;
+}
+
+/**
+ * Convenience getter: Extract job title from parsed template
+ * ✅ CORRECT PATTERN - Use this instead of accessing parsed.topLevelFields['TITLE'] directly
+ *
+ * @param parsedJob - Result from parseJobTemplate()
+ * @returns Job title or null if not found
+ *
+ * @example
+ * const parsed = parseJobTemplate(job.content);
+ * const title = getJobTitle(parsed); // ✅ CORRECT
+ * // NOT: const title = parsed.topLevelFields['TITLE']; // ❌ WRONG
+ */
+function getJobTitle(parsedJob: JobTemplateData): string | null {
+  return getTopLevelField(parsedJob, 'TITLE');
+}
+
+/**
+ * Convenience getter: Extract company name from parsed template
+ * ✅ CORRECT PATTERN - Use this instead of accessing parsed.topLevelFields['COMPANY'] directly
+ *
+ * @param parsedJob - Result from parseJobTemplate()
+ * @returns Company name or null if not found
+ *
+ * @example
+ * const parsed = parseJobTemplate(job.content);
+ * const company = getCompanyName(parsed); // ✅ CORRECT
+ * // NOT: const company = parsed.topLevelFields['COMPANY']; // ❌ WRONG
+ */
+function getCompanyName(parsedJob: JobTemplateData): string | null {
+  return getTopLevelField(parsedJob, 'COMPANY');
+}
+
+/**
+ * Convenience getter: Extract location from parsed template
+ *
+ * @param parsedJob - Result from parseJobTemplate()
+ * @returns Location or null if not found
+ */
+function getLocation(parsedJob: JobTemplateData): string | null {
+  return getTopLevelField(parsedJob, 'ADDRESS');
+}
+
+/**
+ * Convenience getter: Extract job type from parsed template
+ *
+ * @param parsedJob - Result from parseJobTemplate()
+ * @returns Job type or null if not found
+ */
+function getJobType(parsedJob: JobTemplateData): string | null {
+  return getTopLevelField(parsedJob, 'EMPLOYMENT_TYPE');
 }
 
 // Short aliases for convenience
@@ -223,8 +306,11 @@ export {
   extractRequiredSkills,
   extractPreferredSkills,
   extractAboutCompany,
-  getTopLevelField,
   getAllTopLevelFields,
   getAllSections,
-  mapMarkdownFieldsToJob
+  mapMarkdownFieldsToJob,
+  getJobTitle,
+  getCompanyName,
+  getLocation,
+  getJobType,
 };

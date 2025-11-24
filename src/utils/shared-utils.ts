@@ -1,4 +1,5 @@
 // Shared utility functions for sir-hires Chrome extension
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 // ===========================
 // HTML & Display Utilities
@@ -6,10 +7,10 @@
 
 /**
  * Escape HTML to prevent XSS attacks
- * @param {string} text - The text to escape
- * @returns {string} - HTML-safe text
+ * @param text - The text to escape
+ * @returns HTML-safe text
  */
-function escapeHtml(text) {
+export function escapeHtml(text: string): string {
   if (!text) return '';
   const div = document.createElement('div');
   div.textContent = text;
@@ -25,15 +26,27 @@ function escapeHtml(text) {
  * @param {string} dateString - Date in YYYY-MM-DD format
  * @returns {string} - Formatted date string
  */
-function formatAbsoluteDate(dateString) {
+function formatAbsoluteDate(dateString: string): string {
   if (!dateString) return '';
 
   // If it's YYYY-MM-DD format, parse manually without timezone conversion
   const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (match) {
     const [, year, month, day] = match;
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return `${monthNames[parseInt(month) - 1]} ${parseInt(day)}, ${year}`;
   }
 
@@ -46,7 +59,7 @@ function formatAbsoluteDate(dateString) {
  * @param {string} dateString - Date in YYYY-MM-DD format
  * @returns {string} - Relative date string
  */
-function formatRelativeDate(dateString) {
+function formatRelativeDate(dateString: string): string {
   if (!dateString) return '';
 
   // Parse YYYY-MM-DD manually to avoid timezone issues
@@ -60,7 +73,7 @@ function formatRelativeDate(dateString) {
   jobDate.setHours(0, 0, 0, 0);
 
   // Calculate difference in days
-  const diffTime = jobDate - today;
+  const diffTime = jobDate.getTime() - today.getTime();
   const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
   // Format based on difference
@@ -93,7 +106,7 @@ function formatRelativeDate(dateString) {
  * @param {string} dateString - Date string (YYYY-MM-DD or ISO timestamp)
  * @returns {string} - Localized date string
  */
-function formatDate(dateString) {
+function formatDate(dateString: string): string {
   if (!dateString) return '';
   try {
     // If it's YYYY-MM-DD format, parse as local date to avoid timezone shift
@@ -115,7 +128,7 @@ function formatDate(dateString) {
  * @param {string} dateString - ISO timestamp or YYYY-MM-DD
  * @returns {string} - YYYY-MM-DD format
  */
-function isoToDateInput(dateString) {
+function isoToDateInput(dateString: string): string {
   if (!dateString) return '';
 
   // If it's already YYYY-MM-DD format, return as-is
@@ -136,7 +149,7 @@ function isoToDateInput(dateString) {
  * @param {string} dateString - Date in YYYY-MM-DD format
  * @returns {string} - YYYY-MM-DD format (validated)
  */
-function dateInputToISO(dateString) {
+function dateInputToISO(dateString: string): string {
   if (!dateString) return '';
 
   // Validate YYYY-MM-DD format
@@ -156,11 +169,11 @@ function dateInputToISO(dateString) {
  * @param {string} remoteType - Remote type (Remote, Hybrid, On-site)
  * @returns {string} - Emoji icon
  */
-function getRemoteIcon(remoteType) {
-  const icons = {
-    'Remote': '🏠',
-    'Hybrid': '🔄',
-    'On-site': '🏢'
+function getRemoteIcon(remoteType: string): string {
+  const icons: Record<string, string> = {
+    Remote: '🏠',
+    Hybrid: '🔄',
+    'On-site': '🏢',
   };
   return icons[remoteType] || '📍';
 }
@@ -169,22 +182,46 @@ function getRemoteIcon(remoteType) {
  * Generate unique job ID
  * @returns {string} - Unique job ID
  */
-function generateJobId() {
+function generateJobId(): string {
   return 'job_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
 /**
- * Normalize URL for comparison (removes query params and trailing slash)
+ * Normalize URL for comparison
+ * Removes tracking params, www prefix, query strings, hashes, trailing slashes
+ * Case-insensitive comparison
  * @param {string} url - URL to normalize
  * @returns {string} - Normalized URL
  */
-function normalizeUrl(url) {
+function normalizeUrl(url: string): string {
   if (!url) return '';
   try {
     const urlObj = new URL(url);
-    // Keep protocol, host, and pathname, ignore search params and hash
-    return urlObj.origin + urlObj.pathname.replace(/\/$/, '');
+
+    // Remove 'www.' prefix from hostname
+    let hostname = urlObj.hostname.toLowerCase();
+    if (hostname.startsWith('www.')) {
+      hostname = hostname.substring(4);
+    }
+
+    // Get pathname and remove trailing slash
+    let pathname = urlObj.pathname.toLowerCase().replace(/\/$/, '');
+
+    // For LinkedIn job URLs, remove tracking parameters from pathname
+    // Example: /jobs/view/1234567890/?trackingId=xyz → /jobs/view/1234567890
+    if (hostname.includes('linkedin.com') && pathname.includes('/jobs/')) {
+      // Extract job ID pattern: /jobs/view/[digits]
+      const jobIdMatch = pathname.match(/\/jobs\/view\/(\d+)/);
+      if (jobIdMatch) {
+        pathname = `/jobs/view/${jobIdMatch[1]}`;
+      }
+    }
+
+    // Combine protocol + normalized hostname + normalized pathname
+    // Ignore all query params and hash
+    return `${urlObj.protocol}//${hostname}${pathname}`;
   } catch {
+    // Fallback for invalid URLs
     return url.trim().toLowerCase();
   }
 }
@@ -198,7 +235,7 @@ function normalizeUrl(url) {
  * @param {string} message - Message to display
  * @param {string} type - Type of toast (success, error, warning, info)
  */
-function showToast(message, type = 'info') {
+function showToast(message: string, type = 'info'): void {
   const toast = document.getElementById('toast');
   if (!toast) {
     console.warn('Toast element not found in DOM');
@@ -219,7 +256,7 @@ function showToast(message, type = 'info') {
  * Show success toast
  * @param {string} message - Success message
  */
-function showSuccess(message) {
+function showSuccess(message: string): void {
   showToast(message, 'success');
 }
 
@@ -227,7 +264,7 @@ function showSuccess(message) {
  * Show error toast
  * @param {string} message - Error message
  */
-function showError(message) {
+function showError(message: string): void {
   showToast(message, 'error');
 }
 
@@ -235,7 +272,7 @@ function showError(message) {
  * Show warning toast
  * @param {string} message - Warning message
  */
-function showWarning(message) {
+function showWarning(message: string): void {
   showToast(message, 'warning');
 }
 
@@ -243,7 +280,7 @@ function showWarning(message) {
  * Show info toast
  * @param {string} message - Info message
  */
-function showInfo(message) {
+function showInfo(message: string): void {
   showToast(message, 'info');
 }
 
@@ -256,7 +293,7 @@ function showInfo(message) {
  * @param {string} message - Message to display
  * @param {string} type - Type of status (success, error, warning, info)
  */
-function showStatus(message, type = 'info') {
+function showStatus(message: string, type = 'info'): void {
   const statusDiv = document.getElementById('status');
   if (!statusDiv) {
     console.warn('Status element not found in DOM');
@@ -276,9 +313,12 @@ function showStatus(message, type = 'info') {
 /**
  * Hide status message
  */
-function hideStatus() {
+function hideStatus(): void {
   const statusDiv = document.getElementById('status');
   if (statusDiv) {
     statusDiv.classList.add('hidden');
   }
 }
+
+// Export normalizeUrl for use in other modules
+export { normalizeUrl };

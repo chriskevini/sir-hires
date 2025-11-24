@@ -1,6 +1,23 @@
 // Profile Template Parser
 // Parses MarkdownDB Profile Template format into structured data
 
+interface ProfileSection {
+  entries: Record<
+    string,
+    { fields: Record<string, string>; lists: Record<string, string[]> }
+  >;
+  list: string[];
+  lists?: Record<string, string[]>;
+  fields?: Record<string, string>;
+}
+
+interface ParsedProfile {
+  type: string | null;
+  topLevelFields: Record<string, string>;
+  sections: Record<string, ProfileSection>;
+  raw: string;
+}
+
 /**
  * Parse a Profile Template string into structured data
  * @param {string} content - The raw profile template content
@@ -12,22 +29,22 @@
  *     raw: string             // Original content
  *   }
  */
-function parseProfileTemplate(content) {
+function parseProfileTemplate(content: string): ParsedProfile {
   if (!content || typeof content !== 'string') {
     return {
       type: null,
       topLevelFields: {},
       sections: {},
-      raw: content || ''
+      raw: content || '',
     };
   }
 
   const lines = content.split('\n');
-  const result = {
+  const result: ParsedProfile = {
     type: null,
     topLevelFields: {},
     sections: {},
-    raw: content
+    raw: content,
   };
 
   let currentSection = null;
@@ -44,64 +61,73 @@ function parseProfileTemplate(content) {
     }
 
     // Check for <PROFILE> type declaration
-    if (trimmedLine.match(/^<(\w+)>$/)) {
-      result.type = trimmedLine.match(/^<(\w+)>$/)[1];
+    const typeMatch = trimmedLine.match(/^<(\w+)>$/);
+    if (typeMatch) {
+      result.type = typeMatch[1];
       continue;
     }
 
     // Check for section header (# SECTION_NAME)
-    if (trimmedLine.match(/^#\s+([A-Z_]+):?(\s|\/\/|$)/)) {
-      const sectionName = trimmedLine.match(/^#\s+([A-Z_]+):?(\s|\/\/|$)/)[1];
+    const sectionMatch = trimmedLine.match(/^#\s+([A-Z_]+):?(\s|\/\/|$)/);
+    if (sectionMatch) {
+      const sectionName = sectionMatch[1];
       currentSection = sectionName;
       currentEntry = null;
       currentList = null;
       result.sections[currentSection] = {
         entries: {},
-        list: [] // For sections that are just lists (e.g., # INTERESTS:)
+        list: [], // For sections that are just lists (e.g., # INTERESTS:)
       };
       continue;
     }
 
     // Check for entry header (## ENTRY_ID)
-    if (trimmedLine.match(/^##\s+(\w+)$/)) {
-      const entryId = trimmedLine.match(/^##\s+(\w+)$/)[1];
+    const entryMatch = trimmedLine.match(/^##\s+(\w+)$/);
+    if (entryMatch) {
+      const entryId = entryMatch[1];
       if (currentSection) {
         currentEntry = entryId;
         currentList = null;
         result.sections[currentSection].entries[currentEntry] = {
           fields: {},
-          lists: {}
+          lists: {},
         };
       }
       continue;
     }
 
     // Check for list declaration (KEY:)
-    if (trimmedLine.match(/^([A-Z_]+):$/)) {
-      const listName = trimmedLine.match(/^([A-Z_]+):$/)[1];
+    const listDeclMatch = trimmedLine.match(/^([A-Z_]+):$/);
+    if (listDeclMatch) {
+      const listName = listDeclMatch[1];
       currentList = listName;
-      
+
       if (currentEntry && currentSection) {
         // List within an entry
-        result.sections[currentSection].entries[currentEntry].lists[listName] = [];
+        result.sections[currentSection].entries[currentEntry].lists[listName] =
+          [];
       } else if (currentSection) {
         // List within a section (no entry)
-        result.sections[currentSection].lists = result.sections[currentSection].lists || {};
-        result.sections[currentSection].lists[listName] = [];
+        result.sections[currentSection].lists =
+          result.sections[currentSection].lists || {};
+        result.sections[currentSection].lists![listName] = [];
       }
       continue;
     }
 
     // Check for list item (- item)
-    if (trimmedLine.match(/^-\s+(.+)$/)) {
-      const itemValue = trimmedLine.match(/^-\s+(.+)$/)[1];
-      
+    const listItemMatch = trimmedLine.match(/^-\s+(.+)$/);
+    if (listItemMatch) {
+      const itemValue = listItemMatch[1];
+
       if (currentList && currentEntry && currentSection) {
         // List item within an entry
-        result.sections[currentSection].entries[currentEntry].lists[currentList].push(itemValue);
+        result.sections[currentSection].entries[currentEntry].lists[
+          currentList
+        ].push(itemValue);
       } else if (currentList && currentSection) {
         // List item within a section
-        result.sections[currentSection].lists[currentList].push(itemValue);
+        result.sections[currentSection].lists?.[currentList]?.push(itemValue);
       } else if (currentSection && !currentEntry) {
         // Direct list under section (e.g., # INTERESTS: - item)
         result.sections[currentSection].list.push(itemValue);
@@ -110,10 +136,10 @@ function parseProfileTemplate(content) {
     }
 
     // Check for key-value pair (KEY: value)
-    if (trimmedLine.match(/^([A-Z_]+):\s*(.*)$/)) {
-      const match = trimmedLine.match(/^([A-Z_]+):\s*(.*)$/);
-      const key = match[1];
-      let value = match[2].trim();
+    const kvMatch = trimmedLine.match(/^([A-Z_]+):\s*(.*)$/);
+    if (kvMatch) {
+      const key = kvMatch[1];
+      let value = kvMatch[2].trim();
 
       // Remove inline comments (// comment)
       if (value.includes('//')) {
@@ -122,11 +148,13 @@ function parseProfileTemplate(content) {
 
       if (currentEntry && currentSection) {
         // Field within an entry
-        result.sections[currentSection].entries[currentEntry].fields[key] = value;
+        result.sections[currentSection].entries[currentEntry].fields[key] =
+          value;
       } else if (currentSection) {
         // Field within a section (but not an entry)
-        result.sections[currentSection].fields = result.sections[currentSection].fields || {};
-        result.sections[currentSection].fields[key] = value;
+        result.sections[currentSection].fields =
+          result.sections[currentSection].fields || {};
+        result.sections[currentSection].fields![key] = value;
       } else {
         // Top-level field
         result.topLevelFields[key] = value;
@@ -143,15 +171,17 @@ function parseProfileTemplate(content) {
  * @param {Object} parsedProfile - Result from parseProfileTemplate()
  * @returns {Array} Array of education entries
  */
-function extractEducation(parsedProfile) {
+function extractEducation(
+  parsedProfile: ParsedProfile
+): Array<{ id: string; [key: string]: string | string[] }> {
   if (!parsedProfile.sections.EDUCATION) {
     return [];
   }
 
   const entries = parsedProfile.sections.EDUCATION.entries;
-  return Object.keys(entries).map(entryId => ({
+  return Object.keys(entries).map((entryId) => ({
     id: entryId,
-    ...entries[entryId].fields
+    ...entries[entryId].fields,
   }));
 }
 
@@ -160,16 +190,18 @@ function extractEducation(parsedProfile) {
  * @param {Object} parsedProfile - Result from parseProfileTemplate()
  * @returns {Array} Array of experience entries with type, fields, and bullets
  */
-function extractExperience(parsedProfile) {
+function extractExperience(
+  parsedProfile: ParsedProfile
+): Array<{ id: string; bullets: string[]; [key: string]: string | string[] }> {
   if (!parsedProfile.sections.EXPERIENCE) {
     return [];
   }
 
   const entries = parsedProfile.sections.EXPERIENCE.entries;
-  return Object.keys(entries).map(entryId => ({
+  return Object.keys(entries).map((entryId) => ({
     id: entryId,
     ...entries[entryId].fields,
-    bullets: entries[entryId].lists.BULLETS || []
+    bullets: entries[entryId].lists.BULLETS || [],
   }));
 }
 
@@ -178,7 +210,7 @@ function extractExperience(parsedProfile) {
  * @param {Object} parsedProfile - Result from parseProfileTemplate()
  * @returns {Array} Array of interest strings
  */
-function extractInterests(parsedProfile) {
+function extractInterests(parsedProfile: ParsedProfile): string[] {
   if (!parsedProfile.sections.INTERESTS) {
     return [];
   }
@@ -192,21 +224,22 @@ function extractInterests(parsedProfile) {
  * @param {string} fieldName - Name of the field (e.g., 'NAME', 'EMAIL')
  * @returns {string|null} Field value or null if not found
  */
-function getTopLevelField(parsedProfile, fieldName) {
+function getTopLevelField(
+  parsedProfile: ParsedProfile,
+  fieldName: string
+): string | null {
   return parsedProfile.topLevelFields[fieldName] || null;
 }
 
 // Short aliases for convenience
 const parseProfile = parseProfileTemplate;
 
-// Export functions for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    parseProfileTemplate,
-    parseProfile,
-    extractEducation,
-    extractExperience,
-    extractInterests,
-    getTopLevelField
-  };
-}
+// ES Module exports
+export {
+  parseProfileTemplate,
+  parseProfile,
+  extractEducation,
+  extractExperience,
+  extractInterests,
+  getTopLevelField,
+};

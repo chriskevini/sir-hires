@@ -2,64 +2,107 @@
 // Validates parsed MarkdownDB Profile Template against schema rules
 // Philosophy: Validate structure, celebrate creativity
 
+import type { BaseValidationResult } from './validation-types';
+
+/**
+ * Profile validation result interface
+ */
+export interface ProfileValidationResult extends BaseValidationResult {}
+
+/**
+ * Profile section schema
+ */
+interface SectionSchema {
+  required?: string[];
+  optional?: string[];
+  isList?: boolean;
+  enums?: Record<string, string[]>;
+}
+
+/**
+ * Profile schema definition
+ */
+interface ProfileSchema {
+  topLevelRequired: string[];
+  topLevelOptional: string[];
+  standardSections: Record<string, SectionSchema>;
+}
+
+/**
+ * Parsed profile data structure
+ */
+interface ParsedProfile {
+  type: string | null;
+  topLevelFields: Record<string, string>;
+  sections: Record<
+    string,
+    {
+      list?: string[];
+      entries?: Record<string, { fields: Record<string, string> }>;
+    }
+  >;
+  raw: string;
+}
+
 /**
  * Validation schema for standard Profile Template fields
  * Note: This is NOT exhaustive - custom fields are ENCOURAGED
  */
-const PROFILE_SCHEMA = {
+const PROFILE_SCHEMA: ProfileSchema = {
   // Top-level required fields
   topLevelRequired: ['NAME'],
-  
+
   // Top-level optional standard fields
-  topLevelOptional: ['ADDRESS', 'EMAIL', 'PHONE', 'WEBSITE', 'GITHUB', 'LINKEDIN'],
-  
+  topLevelOptional: [
+    'ADDRESS',
+    'EMAIL',
+    'PHONE',
+    'WEBSITE',
+    'GITHUB',
+    'LINKEDIN',
+  ],
+
   // Standard sections
   standardSections: {
     EDUCATION: {
       required: ['DEGREE', 'SCHOOL'],
-      optional: ['LOCATION', 'START', 'END', 'GPA']
+      optional: ['LOCATION', 'START', 'END', 'GPA'],
     },
     EXPERIENCE: {
       required: ['TYPE', 'TITLE'],
       optional: ['AT', 'START', 'END', 'BULLETS'],
       enums: {
-        TYPE: ['PROFESSIONAL', 'PROJECT', 'VOLUNTEER']
-      }
+        TYPE: ['PROFESSIONAL', 'PROJECT', 'VOLUNTEER'],
+      },
     },
     INTERESTS: {
-      isList: true // Section is just a list, no entries
-    }
-  }
+      isList: true, // Section is just a list, no entries
+    },
+  },
 };
 
 /**
  * Validate a parsed profile template
- * @param {Object} parsedProfile - Result from parseProfileTemplate()
- * @returns {Object} Validation result with structure:
- *   {
- *     valid: boolean,           // Overall validity (no critical errors)
- *     errors: [],              // Critical issues that should be fixed
- *     warnings: [],            // Non-critical issues
- *     info: [],                // Informational messages
- *     customFields: [],        // Custom top-level fields detected
- *     customSections: []       // Custom sections detected
- *   }
+ * @param parsedProfile - Result from parseProfileTemplate()
+ * @returns Validation result with errors, warnings, and info
  */
-function validateProfileTemplate(parsedProfile) {
-  const result = {
+function validateProfileTemplate(
+  parsedProfile: ParsedProfile
+): ProfileValidationResult {
+  const result: ProfileValidationResult = {
     valid: true,
     errors: [],
     warnings: [],
     info: [],
     customFields: [],
-    customSections: []
+    customSections: [],
   };
 
   if (!parsedProfile) {
     result.valid = false;
     result.errors.push({
       type: 'invalid_input',
-      message: 'No parsed profile provided'
+      message: 'No parsed profile provided',
     });
     return result;
   }
@@ -68,13 +111,13 @@ function validateProfileTemplate(parsedProfile) {
   if (!parsedProfile.type) {
     result.errors.push({
       type: 'missing_type',
-      message: 'Missing <PROFILE> type declaration at the start'
+      message: 'Missing <PROFILE> type declaration at the start',
     });
     result.valid = false;
   } else if (parsedProfile.type !== 'PROFILE') {
     result.warnings.push({
       type: 'unexpected_type',
-      message: `Expected <PROFILE> but found <${parsedProfile.type}>`
+      message: `Expected <PROFILE> but found <${parsedProfile.type}>`,
     });
   }
 
@@ -88,14 +131,14 @@ function validateProfileTemplate(parsedProfile) {
   if (result.customFields.length > 0) {
     result.info.push({
       type: 'custom_fields',
-      message: `Your profile includes ${result.customFields.length} custom field(s): ${result.customFields.join(', ')}. These are fully supported and will be preserved.`
+      message: `Your profile includes ${result.customFields.length} custom field(s): ${result.customFields.join(', ')}. These are fully supported and will be preserved.`,
     });
   }
 
   if (result.customSections.length > 0) {
     result.info.push({
       type: 'custom_sections',
-      message: `Your profile includes ${result.customSections.length} custom section(s): ${result.customSections.join(', ')}. These are fully supported and will be preserved.`
+      message: `Your profile includes ${result.customSections.length} custom section(s): ${result.customSections.join(', ')}. These are fully supported and will be preserved.`,
     });
   }
 
@@ -105,25 +148,31 @@ function validateProfileTemplate(parsedProfile) {
 /**
  * Validate top-level fields
  */
-function validateTopLevelFields(parsedProfile, result) {
+function validateTopLevelFields(
+  parsedProfile: ParsedProfile,
+  result: ProfileValidationResult
+): void {
   const fields = parsedProfile.topLevelFields || {};
   const fieldNames = Object.keys(fields);
 
   // Check required fields
-  PROFILE_SCHEMA.topLevelRequired.forEach(requiredField => {
+  PROFILE_SCHEMA.topLevelRequired.forEach((requiredField) => {
     if (!fields[requiredField] || fields[requiredField].trim() === '') {
       result.errors.push({
         type: 'missing_required_field',
         field: requiredField,
-        message: `Required field "${requiredField}" is missing or empty`
+        message: `Required field "${requiredField}" is missing or empty`,
       });
       result.valid = false;
     }
   });
 
   // Identify custom fields
-  const standardFields = [...PROFILE_SCHEMA.topLevelRequired, ...PROFILE_SCHEMA.topLevelOptional];
-  fieldNames.forEach(fieldName => {
+  const standardFields = [
+    ...PROFILE_SCHEMA.topLevelRequired,
+    ...PROFILE_SCHEMA.topLevelOptional,
+  ];
+  fieldNames.forEach((fieldName) => {
     if (!standardFields.includes(fieldName)) {
       result.customFields.push(fieldName);
     }
@@ -133,11 +182,14 @@ function validateTopLevelFields(parsedProfile, result) {
 /**
  * Validate sections
  */
-function validateSections(parsedProfile, result) {
+function validateSections(
+  parsedProfile: ParsedProfile,
+  result: ProfileValidationResult
+): void {
   const sections = parsedProfile.sections || {};
   const sectionNames = Object.keys(sections);
 
-  sectionNames.forEach(sectionName => {
+  sectionNames.forEach((sectionName) => {
     const section = sections[sectionName];
     const schema = PROFILE_SCHEMA.standardSections[sectionName];
 
@@ -161,12 +213,19 @@ function validateSections(parsedProfile, result) {
 /**
  * Validate a list-type section (e.g., INTERESTS)
  */
-function validateListSection(sectionName, section, result) {
+function validateListSection(
+  sectionName: string,
+  section: {
+    list?: string[];
+    entries?: Record<string, { fields: Record<string, string> }>;
+  },
+  result: ProfileValidationResult
+): void {
   if (!section.list || section.list.length === 0) {
     result.warnings.push({
       type: 'empty_section',
       section: sectionName,
-      message: `Section "${sectionName}" is empty`
+      message: `Section "${sectionName}" is empty`,
     });
   }
 }
@@ -174,7 +233,15 @@ function validateListSection(sectionName, section, result) {
 /**
  * Validate an entry-based section (e.g., EDUCATION, EXPERIENCE)
  */
-function validateEntrySection(sectionName, section, schema, result) {
+function validateEntrySection(
+  sectionName: string,
+  section: {
+    list?: string[];
+    entries?: Record<string, { fields: Record<string, string> }>;
+  },
+  schema: SectionSchema,
+  result: ProfileValidationResult
+): void {
   const entries = section.entries || {};
   const entryIds = Object.keys(entries);
 
@@ -182,34 +249,36 @@ function validateEntrySection(sectionName, section, schema, result) {
     result.warnings.push({
       type: 'empty_section',
       section: sectionName,
-      message: `Section "${sectionName}" has no entries`
+      message: `Section "${sectionName}" has no entries`,
     });
     return;
   }
 
-  entryIds.forEach(entryId => {
+  entryIds.forEach((entryId) => {
     const entry = entries[entryId];
     const fields = entry.fields || {};
 
     // Check required fields
-    schema.required.forEach(requiredField => {
-      if (!fields[requiredField] || fields[requiredField].trim() === '') {
-        result.errors.push({
-          type: 'missing_required_field',
-          section: sectionName,
-          entry: entryId,
-          field: requiredField,
-          message: `Required field "${requiredField}" is missing in ${sectionName}.${entryId}`
-        });
-        result.valid = false;
-      }
-    });
+    if (schema.required) {
+      schema.required.forEach((requiredField) => {
+        if (!fields[requiredField] || fields[requiredField].trim() === '') {
+          result.errors.push({
+            type: 'missing_required_field',
+            section: sectionName,
+            entry: entryId,
+            field: requiredField,
+            message: `Required field "${requiredField}" is missing in ${sectionName}.${entryId}`,
+          });
+          result.valid = false;
+        }
+      });
+    }
 
     // Validate enum fields
     if (schema.enums) {
-      Object.keys(schema.enums).forEach(enumField => {
+      Object.keys(schema.enums).forEach((enumField) => {
         const value = fields[enumField];
-        const allowedValues = schema.enums[enumField];
+        const allowedValues = schema.enums![enumField];
 
         if (value && !allowedValues.includes(value)) {
           result.errors.push({
@@ -219,7 +288,7 @@ function validateEntrySection(sectionName, section, schema, result) {
             field: enumField,
             value: value,
             allowedValues: allowedValues,
-            message: `Invalid value "${value}" for ${enumField} in ${sectionName}.${entryId}. Allowed values: ${allowedValues.join(', ')}`
+            message: `Invalid value "${value}" for ${enumField} in ${sectionName}.${entryId}. Allowed values: ${allowedValues.join(', ')}`,
           });
           result.valid = false;
         }
@@ -227,16 +296,21 @@ function validateEntrySection(sectionName, section, schema, result) {
     }
 
     // Identify custom fields in this entry
-    const standardFields = [...(schema.required || []), ...(schema.optional || [])];
-    const customEntryFields = Object.keys(fields).filter(f => !standardFields.includes(f));
-    
+    const standardFields = [
+      ...(schema.required || []),
+      ...(schema.optional || []),
+    ];
+    const customEntryFields = Object.keys(fields).filter(
+      (f) => !standardFields.includes(f)
+    );
+
     if (customEntryFields.length > 0) {
       result.info.push({
         type: 'custom_entry_fields',
         section: sectionName,
         entry: entryId,
         fields: customEntryFields,
-        message: `Entry ${sectionName}.${entryId} includes custom field(s): ${customEntryFields.join(', ')}`
+        message: `Entry ${sectionName}.${entryId} includes custom field(s): ${customEntryFields.join(', ')}`,
       });
     }
   });
@@ -244,11 +318,13 @@ function validateEntrySection(sectionName, section, schema, result) {
 
 /**
  * Get a human-readable summary of validation results
- * @param {Object} validationResult - Result from validateProfileTemplate()
- * @returns {string} Summary text
+ * @param validationResult - Result from validateProfileTemplate()
+ * @returns Summary text
  */
-function getValidationSummary(validationResult) {
-  const parts = [];
+function getProfileValidationSummary(
+  validationResult: ProfileValidationResult
+): string {
+  const parts: string[] = [];
 
   if (validationResult.valid) {
     parts.push('✅ Profile is valid!');
@@ -258,21 +334,21 @@ function getValidationSummary(validationResult) {
 
   if (validationResult.errors.length > 0) {
     parts.push(`\n\n🔴 Errors (${validationResult.errors.length}):`);
-    validationResult.errors.forEach(err => {
+    validationResult.errors.forEach((err) => {
       parts.push(`  - ${err.message}`);
     });
   }
 
   if (validationResult.warnings.length > 0) {
     parts.push(`\n\n🟡 Warnings (${validationResult.warnings.length}):`);
-    validationResult.warnings.forEach(warn => {
+    validationResult.warnings.forEach((warn) => {
       parts.push(`  - ${warn.message}`);
     });
   }
 
   if (validationResult.info.length > 0) {
     parts.push(`\n\nℹ️ Info (${validationResult.info.length}):`);
-    validationResult.info.forEach(info => {
+    validationResult.info.forEach((info) => {
       parts.push(`  - ${info.message}`);
     });
   }
@@ -283,12 +359,10 @@ function getValidationSummary(validationResult) {
 // Short aliases for convenience
 const validateProfile = validateProfileTemplate;
 
-// Export functions for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    validateProfileTemplate,
-    validateProfile,
-    getValidationSummary,
-    PROFILE_SCHEMA
-  };
-}
+// ES Module exports
+export {
+  validateProfileTemplate,
+  validateProfile,
+  getProfileValidationSummary,
+  PROFILE_SCHEMA,
+};

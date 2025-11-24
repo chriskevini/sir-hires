@@ -1,0 +1,140 @@
+/* ===================================================================
+   ValidationPanel Component Styles
+   Shared component that displays validation status and messages
+   =================================================================== */
+
+.validation-panel {
+  border-top: 2px solid #e0e0e0;
+  background-color: white;
+  flex-shrink: 0;
+  max-height: 250px;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  position: relative;
+  z-index: 20; /* Above overlay (z-index: 10) to ensure clickability */
+}
+
+.validation-panel.collapsed {
+  max-height: 44px;
+}
+
+.collapsible-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #e0e0e0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.collapsible-header:hover {
+  background-color: #f1f3f4;
+}
+
+.collapsible-toggle {
+  color: #666;
+  font-size: 12px;
+}
+
+.collapsible-content {
+  padding: 12px 16px;
+  max-height: 190px;
+  overflow-y: auto;
+}
+
+.collapsible-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.collapsible-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.collapsible-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.collapsible-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Validation-specific header styles */
+.validation-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.validation-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-icon {
+  font-size: 16px;
+}
+
+.validation-counts {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.count-errors {
+  color: #d93025;
+}
+
+.count-warnings {
+  color: #ea8600;
+}
+
+.count-info {
+  color: #1967d2;
+}
+
+/* Validation messages */
+.validation-message {
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  border-left: 3px solid;
+}
+
+.validation-message:last-child {
+  margin-bottom: 0;
+}
+
+.validation-error {
+  background-color: #fce8e6;
+  border-left-color: #d93025;
+  color: #5f2120;
+}
+
+.validation-warning {
+  background-color: #fef7e0;
+  border-left-color: #ea8600;
+  color: #614a00;
+}
+
+.validation-info {
+  background-color: #e8f0fe;
+  border-left-color: #1967d2;
+  color: #174ea6;
+}
+
+.validation-empty {
+  color: #666;
+  font-size: 13px;
+  text-align: center;
+  padding: 16px;
+}

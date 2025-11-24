@@ -1,0 +1,45 @@
+/* ===================================================================
+   EditorToolbar Component Styles
+   Top bar with tabs and action buttons
+   =================================================================== */
+
+.editor-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 16px 0 0;
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #d0d0d0;
+}
+
+.editor-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Synthesize button (purple for AI) */
+.btn-synthesize {
+  background-color: #9c27b0;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-synthesize:hover {
+  background-color: #7b1fa2;
+  box-shadow: 0 2px 4px rgba(156, 39, 176, 0.3);
+}
+
+.btn-synthesize:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}

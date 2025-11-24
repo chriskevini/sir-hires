@@ -1,13 +1,15 @@
+import type { Browser } from 'wxt/browser';
+
 // Content script that runs on all pages and extracts job data when requested
 
 export default defineContentScript({
   matches: ['<all_urls>'],
   runAt: 'document_idle',
-  
+
   main() {
     // All the extraction logic runs when the content script loads
     setupMessageListener();
-  }
+  },
 });
 
 function extractSource() {
@@ -30,23 +32,26 @@ function extractSource() {
  * @param {Object} data - The extracted job data object
  * @returns {string} Markdown-formatted job template
  */
-function generateJobContent(data) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function generateJobContent(data: any) {
   const lines = ['<JOB>'];
-  
+
   // Top-level fields
   if (data.jobTitle) lines.push(`TITLE: ${data.jobTitle}`);
   if (data.company) lines.push(`COMPANY: ${data.company}`);
   if (data.location) lines.push(`ADDRESS: ${data.location}`);
-  
+
   // Remote type (convert to uppercase enum)
   if (data.remoteType && data.remoteType !== 'Not specified') {
     const remoteTypeUpper = data.remoteType.toUpperCase().replace('-', '');
     lines.push(`REMOTE_TYPE: ${remoteTypeUpper}`);
   }
-  
+
   // Parse salary into min/max if possible
   if (data.salary) {
-    const salaryMatch = data.salary.match(/\$?([\d,]+)(?:\s*(?:-|to)\s*\$?([\d,]+))?/i);
+    const salaryMatch = data.salary.match(
+      /\$?([\d,]+)(?:\s*(?:-|to)\s*\$?([\d,]+))?/i
+    );
     if (salaryMatch) {
       const min = salaryMatch[1].replace(/,/g, '');
       const max = salaryMatch[2] ? salaryMatch[2].replace(/,/g, '') : null;
@@ -54,33 +59,33 @@ function generateJobContent(data) {
       if (max) lines.push(`SALARY_RANGE_MAX: ${max}`);
     }
   }
-  
+
   // Employment type (convert to uppercase enum)
   if (data.jobType) {
     const jobTypeUpper = data.jobType.toUpperCase().replace('-', '_');
     lines.push(`EMPLOYMENT_TYPE: ${jobTypeUpper}`);
   }
-  
+
   // Experience level (try to infer from job title if not available)
   const experienceLevel = inferExperienceLevel(data.jobTitle);
   if (experienceLevel) {
     lines.push(`EXPERIENCE_LEVEL: ${experienceLevel}`);
   }
-  
+
   // Dates
   if (data.postedDate) lines.push(`POSTED_DATE: ${data.postedDate}`);
   if (data.deadline) lines.push(`CLOSING_DATE: ${data.deadline}`);
-  
+
   // Add blank line before sections
   lines.push('');
-  
+
   // Description section
   if (data.aboutJob || data.rawDescription) {
     lines.push('# DESCRIPTION:');
     const description = data.aboutJob || data.rawDescription;
     // Convert to bullet points if not already
-    const descLines = description.split('\n').filter(l => l.trim());
-    descLines.forEach(line => {
+    const descLines = description.split('\n').filter((l: string) => l.trim());
+    descLines.forEach((line: string) => {
       const trimmed = line.trim();
       if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
         lines.push(trimmed.replace(/^[•]\s*/, '- '));
@@ -90,12 +95,14 @@ function generateJobContent(data) {
     });
     lines.push('');
   }
-  
+
   // Required skills section
   if (data.requirements) {
     lines.push('# REQUIRED_SKILLS:');
-    const reqLines = data.requirements.split('\n').filter(l => l.trim());
-    reqLines.forEach(line => {
+    const reqLines = data.requirements
+      .split('\n')
+      .filter((l: string) => l.trim());
+    reqLines.forEach((line: string) => {
       const trimmed = line.trim();
       if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
         lines.push(trimmed.replace(/^[•]\s*/, '- '));
@@ -105,12 +112,14 @@ function generateJobContent(data) {
     });
     lines.push('');
   }
-  
+
   // Responsibilities section (if different from description)
   if (data.responsibilities && data.responsibilities !== data.aboutJob) {
     lines.push('# RESPONSIBILITIES:');
-    const respLines = data.responsibilities.split('\n').filter(l => l.trim());
-    respLines.forEach(line => {
+    const respLines = data.responsibilities
+      .split('\n')
+      .filter((l: string) => l.trim());
+    respLines.forEach((line: string) => {
       const trimmed = line.trim();
       if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
         lines.push(trimmed.replace(/^[•]\s*/, '- '));
@@ -120,12 +129,14 @@ function generateJobContent(data) {
     });
     lines.push('');
   }
-  
+
   // About company section
   if (data.aboutCompany) {
     lines.push('# ABOUT_COMPANY:');
-    const companyLines = data.aboutCompany.split('\n').filter(l => l.trim());
-    companyLines.forEach(line => {
+    const companyLines = data.aboutCompany
+      .split('\n')
+      .filter((l: string) => l.trim());
+    companyLines.forEach((line: string) => {
       const trimmed = line.trim();
       if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
         lines.push(trimmed.replace(/^[•]\s*/, '- '));
@@ -134,7 +145,7 @@ function generateJobContent(data) {
       }
     });
   }
-  
+
   return lines.join('\n');
 }
 
@@ -143,56 +154,74 @@ function generateJobContent(data) {
  * @param {string} title - Job title
  * @returns {string} Experience level (ENTRY|MID|SENIOR|LEAD|null)
  */
-function inferExperienceLevel(title) {
+function inferExperienceLevel(title: string | undefined): string | null {
   if (!title) return null;
   const titleLower = title.toLowerCase();
-  
+
   if (titleLower.match(/\b(junior|jr|entry|associate|i\b|1\b)/)) return 'ENTRY';
-  if (titleLower.match(/\b(senior|sr|lead|principal|staff|iii\b|iv\b|3\b|4\b)/)) return 'SENIOR';
-  if (titleLower.match(/\b(lead|principal|architect|director|head|chief)/)) return 'LEAD';
+  if (titleLower.match(/\b(senior|sr|lead|principal|staff|iii\b|iv\b|3\b|4\b)/))
+    return 'SENIOR';
+  if (titleLower.match(/\b(lead|principal|architect|director|head|chief)/))
+    return 'LEAD';
   if (titleLower.match(/\b(ii\b|2\b)/)) return 'MID';
-  
+
   // Default to MID if no indicator
   return 'MID';
 }
 
 // Helper function to parse various date formats and return YYYY-MM-DD
 // Returns dates in local timezone to avoid timezone shift issues
-function parseToISODate(dateStr) {
+function parseToISODate(dateStr: string): string {
   if (!dateStr || dateStr.trim() === '') return '';
-  
+
   try {
     // If it's already YYYY-MM-DD format, return as-is
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
       return dateStr;
     }
-    
+
     // If it's a full ISO timestamp, extract just the date part
     if (/^\d{4}-\d{2}-\d{2}T/.test(dateStr)) {
       return dateStr.split('T')[0];
     }
-    
+
     // Handle relative dates like "2 days ago", "1 week ago", etc.
-    const relativeMatch = dateStr.match(/(\d+)\s*(second|minute|hour|day|week|month|year)s?\s*ago/i);
+    const relativeMatch = dateStr.match(
+      /(\d+)\s*(second|minute|hour|day|week|month|year)s?\s*ago/i
+    );
     if (relativeMatch) {
       const amount = parseInt(relativeMatch[1]);
       const unit = relativeMatch[2].toLowerCase();
       const now = new Date();
-      
+
       switch (unit) {
-        case 'second': now.setSeconds(now.getSeconds() - amount); break;
-        case 'minute': now.setMinutes(now.getMinutes() - amount); break;
-        case 'hour': now.setHours(now.getHours() - amount); break;
-        case 'day': now.setDate(now.getDate() - amount); break;
-        case 'week': now.setDate(now.getDate() - (amount * 7)); break;
-        case 'month': now.setMonth(now.getMonth() - amount); break;
-        case 'year': now.setFullYear(now.getFullYear() - amount); break;
+        case 'second':
+          now.setSeconds(now.getSeconds() - amount);
+          break;
+        case 'minute':
+          now.setMinutes(now.getMinutes() - amount);
+          break;
+        case 'hour':
+          now.setHours(now.getHours() - amount);
+          break;
+        case 'day':
+          now.setDate(now.getDate() - amount);
+          break;
+        case 'week':
+          now.setDate(now.getDate() - amount * 7);
+          break;
+        case 'month':
+          now.setMonth(now.getMonth() - amount);
+          break;
+        case 'year':
+          now.setFullYear(now.getFullYear() - amount);
+          break;
       }
-      
+
       // Return YYYY-MM-DD format using local timezone
       return formatLocalDate(now);
     }
-    
+
     // Handle "today", "yesterday"
     if (/^today$/i.test(dateStr.trim())) {
       return formatLocalDate(new Date());
@@ -202,27 +231,27 @@ function parseToISODate(dateStr) {
       yesterday.setDate(yesterday.getDate() - 1);
       return formatLocalDate(yesterday);
     }
-    
+
     // Check if date string lacks a year (e.g., "Nov 13", "December 25")
     // Pattern: month name/abbreviation followed by day, no 4-digit year
     const hasYear = /\b(19|20)\d{2}\b/.test(dateStr);
-    
+
     if (!hasYear) {
       // Add current year to the date string - user can correct via date picker if wrong
       const currentYear = new Date().getFullYear();
       const parsed = new Date(dateStr + ', ' + currentYear);
-      
+
       if (!isNaN(parsed.getTime())) {
         return formatLocalDate(parsed);
       }
     }
-    
+
     // Try to parse as a standard date string
     const parsed = new Date(dateStr);
     if (!isNaN(parsed.getTime())) {
       return formatLocalDate(parsed);
     }
-    
+
     // If all else fails, return empty string
     return '';
   } catch (error) {
@@ -232,7 +261,7 @@ function parseToISODate(dateStr) {
 }
 
 // Helper to format a Date object as YYYY-MM-DD in local timezone
-function formatLocalDate(date) {
+function formatLocalDate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
@@ -254,24 +283,32 @@ function extractRawJobText() {
     '[class*="job-content"]',
     '[id*="description"]',
     '[id*="job-detail"]',
-    '[itemprop="description"]'
+    '[itemprop="description"]',
   ];
 
   for (const selector of selectors) {
     const element = document.querySelector(selector);
     if (element) {
       // Use innerText for better formatted text
-      let text = element.innerText || element.textContent || '';
+      let text =
+        (element as HTMLElement).innerText || element.textContent || '';
       text = text.trim();
-      
+
       // Get a reasonable amount of text (not too much for the LLM)
       if (text.length > 10000) {
         text = text.substring(0, 10000);
       }
-      
-      if (text.length > 500) {  // Increased threshold
-        console.log('[Content] Raw text extracted for LLM via selector:', selector, '(length:', text.length, ')');
-        console.log('[Content] First 500 chars:', text.substring(0, 500));
+
+      if (text.length > 500) {
+        // Increased threshold
+        console.info(
+          '[Content] Raw text extracted for LLM via selector:',
+          selector,
+          '(length:',
+          text.length,
+          ')'
+        );
+        console.info('[Content] First 500 chars:', text.substring(0, 500));
         return text;
       }
     }
@@ -283,24 +320,37 @@ function extractRawJobText() {
     'about the role',
     'about this role',
     'description',
-    'position description'
+    'position description',
   ];
-  
-  const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6, strong, b');
+
+  const headings = document.querySelectorAll(
+    'h1, h2, h3, h4, h5, h6, strong, b'
+  );
   for (const heading of headings) {
     const headingText = heading.textContent.toLowerCase().trim();
-    
-    if (descriptionKeywords.some(keyword => headingText === keyword || headingText.includes(keyword))) {
+
+    if (
+      descriptionKeywords.some(
+        (keyword) => headingText === keyword || headingText.includes(keyword)
+      )
+    ) {
       let container = heading.parentElement;
       if (container) {
-        let text = container.innerText || container.textContent || '';
+        let text =
+          (container as HTMLElement).innerText || container.textContent || '';
         text = text.trim();
         if (text.length > 10000) {
           text = text.substring(0, 10000);
         }
         if (text.length > 500) {
-          console.log('[Content] Raw text extracted for LLM via heading:', headingText, '(length:', text.length, ')');
-          console.log('[Content] First 500 chars:', text.substring(0, 500));
+          console.info(
+            '[Content] Raw text extracted for LLM via heading:',
+            headingText,
+            '(length:',
+            text.length,
+            ')'
+          );
+          console.info('[Content] First 500 chars:', text.substring(0, 500));
           return text;
         }
       }
@@ -310,35 +360,47 @@ function extractRawJobText() {
   // Strategy 3: Find the largest text block on the page
   const candidates = document.querySelectorAll('div, section, article, main');
   let largestText = '';
-  
+
   for (const candidate of candidates) {
     // Skip if it contains too many nested containers (likely a wrapper)
     const nestedDivs = candidate.querySelectorAll('div, section').length;
     if (nestedDivs > 20) continue;
-    
-    const text = candidate.innerText?.trim() || '';
-    
+
+    const text = (candidate as HTMLElement).innerText?.trim() || '';
+
     // Must be substantial text (likely job description)
-    if (text.length > largestText.length && text.length > 500 && text.length < 20000) {
+    if (
+      text.length > largestText.length &&
+      text.length > 500 &&
+      text.length < 20000
+    ) {
       largestText = text;
     }
   }
-  
+
   if (largestText.length > 500) {
     let text = largestText;
     if (text.length > 10000) {
       text = text.substring(0, 10000);
     }
-    console.log('[Content] Raw text extracted for LLM via largest text block (length:', text.length, ')');
-    console.log('[Content] First 500 chars:', text.substring(0, 500));
+    console.info(
+      '[Content] Raw text extracted for LLM via largest text block (length:',
+      text.length,
+      ')'
+    );
+    console.info('[Content] First 500 chars:', text.substring(0, 500));
     return text;
   }
 
   // Last resort: get body text
   const bodyText = document.body.innerText || document.body.textContent || '';
   const truncated = bodyText.substring(0, 10000);
-  console.log('[Content] Raw text extracted for LLM - fallback to body (length:', truncated.length, ')');
-  console.log('[Content] First 500 chars:', truncated.substring(0, 500));
+  console.info(
+    '[Content] Raw text extracted for LLM - fallback to body (length:',
+    truncated.length,
+    ')'
+  );
+  console.info('[Content] First 500 chars:', truncated.substring(0, 500));
   return truncated;
 }
 
@@ -359,22 +421,30 @@ function extractRawJobText() {
 // - "date-time": ISO formatted dates
 // - ["option1", "option2"]: Enum (single choice)
 // - [["A", "B", "C"]]: Multi-label (multiple choices)
-async function extractAllFieldsWithLLM(rawText, llmSettings) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function _extractAllFieldsWithLLM(rawText: string, llmSettings: any) {
   try {
     // Define the extraction template using NuExtract's type system
     const extractionTemplate = {
-      "jobTitle": "verbatim-string",
-      "company": "verbatim-string",
-      "location": "verbatim-string",
-      "salary": "verbatim-string",
-      "jobType": ["Full-time", "Part-time", "Contract", "Temporary", "Internship", "Freelance"],
-      "remoteType": ["Remote", "Hybrid", "On-site", "Not specified"],
-      "postedDate": "verbatim-string",
-      "deadline": "verbatim-string",
-      "aboutJob": "verbatim-string",
-      "aboutCompany": "verbatim-string",
-      "responsibilities": "verbatim-string",
-      "requirements": "verbatim-string"
+      jobTitle: 'verbatim-string',
+      company: 'verbatim-string',
+      location: 'verbatim-string',
+      salary: 'verbatim-string',
+      jobType: [
+        'Full-time',
+        'Part-time',
+        'Contract',
+        'Temporary',
+        'Internship',
+        'Freelance',
+      ],
+      remoteType: ['Remote', 'Hybrid', 'On-site', 'Not specified'],
+      postedDate: 'verbatim-string',
+      deadline: 'verbatim-string',
+      aboutJob: 'verbatim-string',
+      aboutCompany: 'verbatim-string',
+      responsibilities: 'verbatim-string',
+      requirements: 'verbatim-string',
     };
 
     // Format for NuExtract: use the template in the prompt structure
@@ -382,31 +452,36 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
     const templateStr = JSON.stringify(extractionTemplate, null, 2);
     const promptContent = `# Template:\n${templateStr}\n# Context:\n${rawText}`;
 
-    console.log('[Content] Extraction template being sent to LLM:', extractionTemplate);
+    console.info(
+      '[Content] Extraction template being sent to LLM:',
+      extractionTemplate
+    );
 
     const requestBody = {
       model: llmSettings.model || 'local-model',
       messages: [
         {
           role: 'user',
-          content: promptContent
-        }
+          content: promptContent,
+        },
       ],
       max_tokens: 2000,
-      temperature: 0.0  // NuExtract recommends temperature at or very close to 0
+      temperature: 0.0, // NuExtract recommends temperature at or very close to 0
     };
 
     // Call background script to make the API request
     const response = await browser.runtime.sendMessage({
       action: 'callLLM',
       endpoint: llmSettings.endpoint,
-      requestBody: requestBody
+      requestBody: requestBody,
     });
 
-    console.log('[Content] LLM response received:', response);
+    console.info('[Content] LLM response received:', response);
 
     if (!response) {
-      throw new Error('No response from background script - message channel may have closed');
+      throw new Error(
+        'No response from background script - message channel may have closed'
+      );
     }
 
     if (!response.success) {
@@ -414,10 +489,10 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
     }
 
     const data = response.data;
-    
+
     // Extract the response text from LM Studio format
     const llmResponse = data.choices?.[0]?.message?.content || '';
-    
+
     if (!llmResponse) {
       throw new Error('Empty response from LLM');
     }
@@ -425,12 +500,12 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
     // NuExtract returns clean JSON directly (no markdown formatting)
     // But we'll still handle edge cases
     let jsonStr = llmResponse.trim();
-    
+
     // Remove markdown code blocks if present (shouldn't be needed with NuExtract)
     if (jsonStr.startsWith('```')) {
       jsonStr = jsonStr.replace(/^```json?\n?/, '').replace(/\n?```$/, '');
     }
-    
+
     // Try to find JSON object
     const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -440,13 +515,18 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
     const extracted = JSON.parse(jsonStr);
 
     // Log the parsed JSON object for easy inspection in Chrome DevTools
-    console.log('[Content] LLM extracted object:', extracted);
+    console.info('[Content] LLM extracted object:', extracted);
 
     // Parse dates through parseToISODate() to convert to YYYY-MM-DD format
     const postedDate = parseToISODate(extracted.postedDate || '');
     const deadline = parseToISODate(extracted.deadline || '');
-    
-    console.log('[Content] Parsed dates - postedDate:', postedDate, 'deadline:', deadline);
+
+    console.info(
+      '[Content] Parsed dates - postedDate:',
+      postedDate,
+      'deadline:',
+      deadline
+    );
 
     // Build the data object
     const extractedData = {
@@ -462,15 +542,15 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
       aboutCompany: extracted.aboutCompany || '',
       responsibilities: extracted.responsibilities || '',
       requirements: extracted.requirements || '',
-      url: '',  // Will be set by caller
-      source: '' // Will be set by caller
+      url: '', // Will be set by caller
+      source: '', // Will be set by caller
+      content: '', // Will be generated below
     };
 
     // Generate markdown content field from extracted data
     extractedData.content = generateJobContent(extractedData);
 
     return extractedData;
-
   } catch (error) {
     console.error('Error in LLM extraction:', error);
     throw error;
@@ -480,54 +560,74 @@ async function extractAllFieldsWithLLM(rawText, llmSettings) {
 // Setup message listener
 function setupMessageListener() {
   // Listen for messages from popup
-  browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'getJobUrl') {
-      // Simple URL getter for duplicate detection
-      try {
-        const url = window.location.href;
-        const source = extractSource();
-        sendResponse({ success: true, url, source });
-      } catch (error) {
-        console.error('[Content] Failed to get URL:', error);
-        sendResponse({ success: false, error: error.message });
-      }
-      return true; // Keep message channel open for async response
-    }
-
-    if (request.action === 'streamExtractJobData') {
-      (async () => {
+  browser.runtime.onMessage.addListener(
+    (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      request: any,
+      _sender: Browser.runtime.MessageSender,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      sendResponse: (response?: any) => void
+    ) => {
+      if (request.action === 'getJobUrl') {
+        // Simple URL getter for duplicate detection
         try {
-          const llmSettings = request.llmSettings || {};
-          const jobId = request.jobId;
-
-          // Check if LLM endpoint is configured (enabled field is optional)
-          if (!llmSettings.endpoint) {
-            throw new Error('LLM endpoint not configured. Streaming extraction requires LLM.');
-          }
-
-          console.log('[Content] Starting streaming extraction for job:', jobId);
-          
-          // Extract basic metadata and raw text
           const url = window.location.href;
           const source = extractSource();
-          const rawText = extractRawJobText();
-          
-          console.log('[Content] Extracted raw text length:', rawText.length);
-
-          // Send extraction request to background which has access to LLMClient
-          sendResponse({ 
-            success: true, 
-            url, 
-            source,
-            rawText,
-            jobId
-          });
+          sendResponse({ success: true, url, source });
         } catch (error) {
-          console.error('[Content] Streaming extraction error:', error);
-          sendResponse({ success: false, error: error.message });
+          console.error('[Content] Failed to get URL:', error);
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          sendResponse({ success: false, error: errorMessage });
         }
-      })();
-      return true; // Keep message channel open for async response
+        return true; // Keep message channel open for async response
+      }
+
+      if (request.action === 'streamExtractJobData') {
+        (async () => {
+          try {
+            const llmSettings = request.llmSettings || {};
+            const jobId = request.jobId;
+
+            // Check if LLM endpoint is configured (enabled field is optional)
+            if (!llmSettings.endpoint) {
+              throw new Error(
+                'LLM endpoint not configured. Streaming extraction requires LLM.'
+              );
+            }
+
+            console.info(
+              '[Content] Starting streaming extraction for job:',
+              jobId
+            );
+
+            // Extract basic metadata and raw text
+            const url = window.location.href;
+            const source = extractSource();
+            const rawText = extractRawJobText();
+
+            console.info(
+              '[Content] Extracted raw text length:',
+              rawText.length
+            );
+
+            // Send extraction request to background which has access to LLMClient
+            sendResponse({
+              success: true,
+              url,
+              source,
+              rawText,
+              jobId,
+            });
+          } catch (error) {
+            console.error('[Content] Streaming extraction error:', error);
+            const errorMessage =
+              error instanceof Error ? error.message : 'Unknown error';
+            sendResponse({ success: false, error: errorMessage });
+          }
+        })();
+        return true; // Keep message channel open for async response
+      }
     }
-  });
+  );
 }

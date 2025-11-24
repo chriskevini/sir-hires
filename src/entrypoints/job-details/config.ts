@@ -1,11 +1,19 @@
 // Configuration and constants for job details viewer
-// Schema version: 0.2.0
+// Schema version: 0.3.0
+
+import { JOB_EXTRACTION_PROMPT } from '../../utils/job-templates';
 
 // Re-export parser and validator utilities for use across the application
-export { parseJobTemplate, mapMarkdownFieldsToJob } from '../../utils/job-parser';
-export { validateJobTemplate, getValidationSummary } from '../../utils/job-validator';
+export {
+  parseJobTemplate,
+  mapMarkdownFieldsToJob,
+} from '../../utils/job-parser';
+export {
+  validateJobTemplate,
+  getJobValidationSummary,
+} from '../../utils/job-validator';
 
-// Status progression order for state-based navigation (v0.2.0)
+// Status progression order for state-based navigation (v0.3.0)
 export const statusOrder = [
   'Researching',
   'Drafting',
@@ -14,37 +22,43 @@ export const statusOrder = [
   'Deciding',
   'Accepted',
   'Rejected',
-  'Withdrawn'
+  'Withdrawn',
 ];
 
-// Status badge color configuration (v0.2.0)
+// Status badge color configuration (v0.3.0)
 // Used for both badge styling and progress bar colors
 export const statusColors = {
-  'Researching': { bg: '#f5f5f5', text: '#666' }, // Gray to match progress bar
-  'Drafting': { bg: '#d4edda', text: '#155724' },
+  Researching: { bg: '#f5f5f5', text: '#666' }, // Gray to match progress bar
+  Drafting: { bg: '#d4edda', text: '#155724' },
   'Awaiting Review': { bg: '#e8f0fe', text: '#1967d2' }, // Blue to match progress bar
-  'Interviewing': { bg: '#fff3cd', text: '#856404' },
-  'Deciding': { bg: '#f3e8fd', text: '#7627bb' },
-  'Accepted': { bg: '#ceead6', text: '#0d652d' },
-  'Rejected': { bg: '#f8d7da', text: '#721c24' },
-  'Withdrawn': { bg: '#e2e3e5', text: '#383d41' }
+  Interviewing: { bg: '#fff3cd', text: '#856404' },
+  Deciding: { bg: '#f3e8fd', text: '#7627bb' },
+  Accepted: { bg: '#ceead6', text: '#0d652d' },
+  Rejected: { bg: '#f8d7da', text: '#721c24' },
+  Withdrawn: { bg: '#e2e3e5', text: '#383d41' },
 };
 
-// Progress bar visual configuration for each status (v0.2.0)
+// Progress bar visual configuration for each status (v0.3.0)
 export const progressConfig = {
-  'Researching': { fill: 0, color: '#757575', textColor: '#666' },
-  'Drafting': { fill: 15, color: '#4caf50', textColor: '#fff' },
+  Researching: { fill: 0, color: '#757575', textColor: '#666' },
+  Drafting: { fill: 15, color: '#4caf50', textColor: '#fff' },
   'Awaiting Review': { fill: 35, color: '#2196f3', textColor: '#fff' },
-  'Interviewing': { fill: 60, color: '#ff9800', textColor: '#fff' },
-  'Deciding': { fill: 85, color: '#9c27b0', textColor: '#fff' },
-  'Accepted': { fill: 100, color: '#4caf50', textColor: '#fff' },
-  'Rejected': { fill: 100, color: '#f44336', textColor: '#fff' },
-  'Withdrawn': { fill: 100, color: '#757575', textColor: '#fff' }
+  Interviewing: { fill: 60, color: '#ff9800', textColor: '#fff' },
+  Deciding: { fill: 85, color: '#9c27b0', textColor: '#fff' },
+  Accepted: { fill: 100, color: '#4caf50', textColor: '#fff' },
+  Rejected: { fill: 100, color: '#f44336', textColor: '#fff' },
+  Withdrawn: { fill: 100, color: '#757575', textColor: '#fff' },
 };
 
-// Navigation button configuration for each status (v0.2.0)
-export function getNavigationButtons(status) {
-  const buttons = { left: null, right: [] };
+// Navigation button configuration for each status (v0.3.0)
+export function getNavigationButtons(status: string): {
+  left: { label: string; target: string } | null;
+  right: { label: string; target: string }[];
+} {
+  const buttons: {
+    left: { label: string; target: string } | null;
+    right: { label: string; target: string }[];
+  } = { left: null, right: [] };
 
   switch (status) {
     case 'Researching':
@@ -70,7 +84,7 @@ export function getNavigationButtons(status) {
       buttons.left = { label: 'Interviewing', target: 'Interviewing' };
       buttons.right = [
         { label: 'Accepted', target: 'Accepted' },
-        { label: 'Rejected', target: 'Rejected' }
+        { label: 'Rejected', target: 'Rejected' },
       ];
       break;
 
@@ -113,7 +127,7 @@ export const domIds = {
   resumeHint: 'resumeHint',
   createBackupBtn: 'createBackupBtn',
   restoreBackupBtn: 'restoreBackupBtn',
-  clearAllBtn: 'clearAllBtn'
+  clearAllBtn: 'clearAllBtn',
 };
 
 // CSS class names
@@ -124,24 +138,24 @@ export const cssClasses = {
   noJobs: 'no-jobs',
   errorState: 'error-state',
   hidden: 'hidden',
-  hasResume: 'has-resume'
+  hasResume: 'has-resume',
 };
 
 // Animation configuration
 export const animationConfig = {
   duration: 400, // milliseconds
-  easing: 'cubic-bezier(0.4, 0.0, 0.2, 1)'
+  easing: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
 };
 
-// Default values (v0.2.0)
+// Default values (v0.3.0)
 export const defaults = {
   status: 'Researching',
   filters: {
     search: '',
     source: 'all',
     status: 'all',
-    sort: 'newest'
-  }
+    sort: 'newest',
+  },
 };
 
 // LLM configuration for different tasks
@@ -151,7 +165,7 @@ export const llmConfig = {
     defaultModel: 'NuExtract-2.0-2B',
     alternativeModels: ['NuExtract-2.0-8B'],
     endpoint: 'http://localhost:1234/v1/chat/completions',
-    description: 'Optimized for structured data extraction from job postings'
+    description: 'Optimized for structured data extraction from job postings',
   },
 
   // Document synthesis LLM (for resume/cover letter generation)
@@ -185,129 +199,9 @@ Your sole goal is to synthesize one single, polished document by strictly follow
 3. Select and Prepare Content: Scan the [MASTER RESUME] to select content that aligns with the job/goal. **Confirm how the selected content will be treated** (verbatim, synthesized, or high-level reference) based on the document's specific rules.
 4. Synthesize Document: Generate the final document. **STRICTLY apply the simple rules and the required structure** defined in the [CURRENT DRAFT] block.
 `,
-      jobExtractor: `
-### ROLE
-You are an expert Data Extraction Engine. Your sole purpose is to parse unstructured job descriptions into a strict, structured data format.
-
-### OBJECTIVE
-Extract relevant data points from the user-provided text and map them to the specific schema defined below. Do not include conversational text, markdown formatting, or explanations. Output ONLY the raw data block.
-
-### DATA RULES & TRANSFORMATIONS
-1.  **Missing Data:**
-    * If a *Required* field is missing, output "UNKNOWN".
-    * If an *Optional* field is missing, output "N/A".
-2.  **Dates:** Convert all dates to YYYY-MM-DD format. If the year is implied, use the current year (2025).
-3.  **Salary:** Extract raw numbers. Format with commas (e.g., 100,000). Do not include currency symbols ($).
-4.  **Lists:** Format lists (Description, Skills) with hyphens "- ". Capture a maximum of 5 key points per section.
-5.  **White Space:** There must be an empty line above the names of lists.
-
-### ENUMERATION MAPPING (STRICT)
-You must map values to these exact categories. Do not invent new categories.
-
-* **REMOTE_TYPE:**
-    * "Onsite", "In-office" -> ONSITE
-    * "Remote", "WFH", "Work from home", "Anywhere" -> REMOTE
-    * "Hybrid", "Flexible location" -> HYBRID
-    * If unstated -> ONSITE
-* **EMPLOYMENT_TYPE:**
-    * [FULL-TIME | PART-TIME | CONTRACT | INTERNSHIP | COOP]
-    * Default to FULL-TIME if not specified but implied.
-* **EXPERIENCE_LEVEL:**
-    * Infer based on title or years of experience.
-    * 0-2 years -> ENTRY
-    * 3-5 years -> MID
-    * 5-8 years -> SENIOR
-    * 8+ years, "Principal", "Staff" -> LEAD
-
-### FEW-SHOT EXAMPLES
-
-**Input:**
-"Hiring a Junior Web Dev at TechStart! $60k-$80k. You must know React and HTML. Work from home available. Apply by Dec 1st."
-
-**Output:**
-<JOB>
-TITLE: Junior Web Developer
-COMPANY: TechStart
-ADDRESS: N/A
-REMOTE_TYPE: REMOTE
-SALARY_RANGE_MIN: 60,000
-SALARY_RANGE_MAX: 80,000
-EMPLOYMENT_TYPE: FULL-TIME
-EXPERIENCE_LEVEL: ENTRY
-POSTED_DATE: N/A
-CLOSING_DATE: 2025-12-01
-
-# DESCRIPTION:
-- Develop web applications using React and HTML.
-
-# REQUIRED_SKILLS:
-- React
-- HTML
-
-# PREFERRED_SKILLS:
-
-# ABOUT_COMPANY:
-
-**Input:**
-"Principal Architect needed. 10+ years exp required. Contract role for 6 months. New York City. Pay is 150/hr."
-
-**Output:**
-<JOB>
-TITLE: Principal Architect
-COMPANY: UNKNOWN
-ADDRESS: New York City, NY
-REMOTE_TYPE: ONSITE
-SALARY_RANGE_MIN: N/A
-SALARY_RANGE_MAX: N/A
-EMPLOYMENT_TYPE: CONTRACT
-EXPERIENCE_LEVEL: LEAD
-POSTED_DATE: N/A
-CLOSING_DATE: N/A
-
-# DESCRIPTION:
-- Lead architectural design for complex systems.
-
-# REQUIRED_SKILLS:
-- 10+ years experience
-- System Architecture
-
-# PREFERRED_SKILLS:
-
-# ABOUT_COMPANY:
-
-**Input:**
-"Acme Corp is looking for a Marketing Manager. Hybrid (2 days in SF office). Salary: 120,000. Great benefits."
-
-**Output:**
-<JOB>
-TITLE: Marketing Manager
-COMPANY: Acme Corp
-ADDRESS: San Francisco, CA
-REMOTE_TYPE: HYBRID
-SALARY_RANGE_MIN: 120,000
-SALARY_RANGE_MAX: 120,000
-EMPLOYMENT_TYPE: FULL-TIME
-EXPERIENCE_LEVEL: MID
-POSTED_DATE: N/A
-CLOSING_DATE: N/A
-
-# DESCRIPTION:
-- Manage marketing campaigns and strategy.
-
-# REQUIRED_SKILLS:
-- Marketing Strategy
-
-# PREFERRED_SKILLS:
-
-# ABOUT_COMPANY:
-- Offers great benefits.
-
-### CURRENT TASK
-Analyze the job listing provided below and output the <JOB> data sheet:
-
-`,
-    }
-  }
+      jobExtractor: JOB_EXTRACTION_PROMPT,
+    },
+  },
 };
 
 // Default document templates
@@ -378,48 +272,47 @@ Dear [RECIPIENT NAME or RECIPIENT TITLE],
 Sincerely,
 [YOUR SIGNATURE]
 [YOUR FULL NAME]
-`
+`,
 };
 
 // Checklist templates for each status
 export const checklistTemplates = {
-  'Researching': [
+  Researching: [
     { text: 'Review job description thoroughly', order: 0 },
     { text: 'Research company culture and values', order: 1 },
     { text: 'Create narrative strategy', order: 2 },
   ],
-  'Drafting': [
+  Drafting: [
     { text: 'Create tailored resume/CV', order: 0 },
     { text: 'Write cover letter', order: 1 },
     { text: 'Prepare all required documents', order: 2 },
-    { text: 'Review application for errors', order: 3 }
+    { text: 'Review application for errors', order: 3 },
   ],
   'Awaiting Review': [
     { text: 'Confirm application submitted', order: 0 },
     { text: 'Connect with a team member', order: 1 },
-    { text: 'Follow up if needed', order: 2 }
+    { text: 'Follow up if needed', order: 2 },
   ],
-  'Interviewing': [
+  Interviewing: [
     { text: 'Research interviewer backgrounds', order: 0 },
     { text: 'Prepare STAR responses', order: 1 },
     { text: 'Prepare questions to ask', order: 2 },
-    { text: 'Send thank you notes', order: 3 }
+    { text: 'Send thank you notes', order: 3 },
   ],
-  'Deciding': [
+  Deciding: [
     { text: 'Review offer details', order: 0 },
     { text: 'Analyze total compensation', order: 1 },
     { text: 'Negotiate if appropriate', order: 2 },
     { text: 'Compare with other offers', order: 3 },
   ],
-  'Accepted': [
+  Accepted: [
     { text: 'Sign offer letter', order: 0 },
     { text: 'Complete onboarding paperwork', order: 1 },
-    { text: 'Withdraw from other applications', order: 2 }
+    { text: 'Withdraw from other applications', order: 2 },
   ],
-  'Rejected': [
+  Rejected: [
     { text: 'Request feedback if appropriate', order: 0 },
-    { text: 'Update notes with learnings', order: 1 }
+    { text: 'Update notes with learnings', order: 1 },
   ],
-  'Withdrawn': [
-  ]
+  Withdrawn: [],
 };

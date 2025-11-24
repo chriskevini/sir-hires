@@ -26,6 +26,7 @@ interface ProfileSchema {
   topLevelRequired: string[];
   topLevelOptional: string[];
   standardSections: Record<string, SectionSchema>;
+  entryIdPatterns: Record<string, RegExp>;
 }
 
 /**
@@ -78,6 +79,13 @@ const PROFILE_SCHEMA: ProfileSchema = {
     INTERESTS: {
       isList: true, // Section is just a list, no entries
     },
+  },
+
+  // Expected entry ID patterns for standard sections
+  // Custom sections are exempt from these patterns
+  entryIdPatterns: {
+    EDUCATION: /^EDU_\d+$/,
+    EXPERIENCE: /^EXP_\d+$/,
   },
 };
 
@@ -194,6 +202,9 @@ function validateSections(
     const schema = PROFILE_SCHEMA.standardSections[sectionName];
 
     if (!schema) {
+      // Check if this looks like a typo of a standard section
+      validateSectionName(sectionName, result);
+
       // Custom section - this is encouraged!
       result.customSections.push(sectionName);
       return;
@@ -231,6 +242,100 @@ function validateListSection(
 }
 
 /**
+ * Validate section name to detect possible typos or formatting issues
+ */
+function validateSectionName(
+  sectionName: string,
+  result: ProfileValidationResult
+): void {
+  const standardSections = Object.keys(PROFILE_SCHEMA.standardSections);
+
+  // Check if this is a lowercase or mixed-case version of a standard section
+  const upperSectionName = sectionName.toUpperCase();
+  if (
+    standardSections.includes(upperSectionName) &&
+    sectionName !== upperSectionName
+  ) {
+    result.warnings.push({
+      type: 'section_name_case',
+      section: sectionName,
+      message: `Section "${sectionName}" should be uppercase: "${upperSectionName}". Section names must be in ALL_CAPS.`,
+    });
+    return;
+  }
+
+  // Check for common typos using Levenshtein-like similarity
+  for (const standardSection of standardSections) {
+    if (isSimilarSectionName(sectionName, standardSection)) {
+      result.warnings.push({
+        type: 'possible_typo',
+        section: sectionName,
+        message: `Section "${sectionName}" looks similar to standard section "${standardSection}". Did you mean "${standardSection}"?`,
+      });
+      return;
+    }
+  }
+}
+
+/**
+ * Check if a section name is similar to a standard section (possible typo)
+ * Uses simple string distance check
+ */
+function isSimilarSectionName(name: string, standard: string): boolean {
+  // If length differs by more than 2, not a typo
+  if (Math.abs(name.length - standard.length) > 2) {
+    return false;
+  }
+
+  // Count matching characters at same positions
+  const minLength = Math.min(name.length, standard.length);
+  let matches = 0;
+
+  for (let i = 0; i < minLength; i++) {
+    if (name[i] === standard[i]) {
+      matches++;
+    }
+  }
+
+  // If 80% or more characters match, likely a typo
+  const similarity = matches / Math.max(name.length, standard.length);
+  return similarity >= 0.8 && similarity < 1.0;
+}
+
+/**
+ * Validate entry ID naming convention for standard sections
+ */
+function validateEntryId(
+  sectionName: string,
+  entryId: string,
+  result: ProfileValidationResult
+): void {
+  const expectedPattern = PROFILE_SCHEMA.entryIdPatterns[sectionName];
+
+  if (!expectedPattern) {
+    // No expected pattern for this section (e.g., custom sections)
+    return;
+  }
+
+  if (!expectedPattern.test(entryId)) {
+    // Get expected format description
+    let expectedFormat = '';
+    if (sectionName === 'EDUCATION') {
+      expectedFormat = 'EDU_1, EDU_2, etc.';
+    } else if (sectionName === 'EXPERIENCE') {
+      expectedFormat = 'EXP_1, EXP_2, etc.';
+    }
+
+    result.warnings.push({
+      type: 'invalid_entry_id',
+      section: sectionName,
+      entry: entryId,
+      message: `Entry ID "${entryId}" in ${sectionName} doesn't follow the expected naming convention (${expectedFormat}). This may confuse LLMs processing your profile.`,
+    });
+  }
+}
+
+/**
  * Validate an entry-based section (e.g., EDUCATION, EXPERIENCE)
  */
 function validateEntrySection(
@@ -257,6 +362,9 @@ function validateEntrySection(
   entryIds.forEach((entryId) => {
     const entry = entries[entryId];
     const fields = entry.fields || {};
+
+    // Validate entry ID naming convention
+    validateEntryId(sectionName, entryId, result);
 
     // Check required fields
     if (schema.required) {

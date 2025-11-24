@@ -12,8 +12,6 @@ export default [
       '.output/**',
       '.wxt/**',
       'node_modules/**',
-      'chrome-extension/**',
-      'wxt-example/**',
       'src/entrypoints/profile/main.tsx', // Temporary: tsconfig project issue
     ],
   },

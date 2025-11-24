@@ -2,7 +2,7 @@
 
 > **Job search is painful. Make it delightful.**
 
-A cross-browser web extension with job data extraction, application lifecycle tracking, and LLM-powered document generation.
+A cross-browser web extension with job data extraction, application lifecycle tracking, and LLM super powers.
 
 ## Philosophy
 
@@ -50,7 +50,7 @@ A cross-browser web extension with job data extraction, application lifecycle tr
 - Download from [lmstudio.ai](https://lmstudio.ai/)
 - Install and launch LM Studio
 - Click the 🔍 icon
-- Install `qwen2.5-3b-instruct` (or any compatible model)
+- Install `qwen/qwen3-4b-2507` (or any compatible model)
 - Click the "Server" tab
 - Start the server (default: http://localhost:1234)
 

@@ -6,6 +6,12 @@ import {
   keepaliveStorage,
   extractionTriggerStorage,
 } from '../utils/storage';
+import {
+  LLM_API_TIMEOUT_MS,
+  SERVICE_WORKER_KEEPALIVE_INTERVAL_MS,
+  MESSAGE_RETRY_MAX_ATTEMPTS,
+  MESSAGE_RETRY_DELAY_MS,
+} from '../utils/constants';
 
 // Message type definitions
 interface BaseMessage {
@@ -164,7 +170,7 @@ export default defineBackground(() => {
       keepaliveStorage.getValue().then(() => {
         console.info('[Background] Global keepalive ping');
       });
-    }, 20000); // Ping every 20 seconds
+    }, SERVICE_WORKER_KEEPALIVE_INTERVAL_MS);
   }
 
   function stopGlobalKeepAlive() {
@@ -293,9 +299,12 @@ export default defineBackground(() => {
     );
 
     try {
-      // Add a timeout for the fetch request (60 seconds)
+      // Add a timeout for the fetch request
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000);
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        LLM_API_TIMEOUT_MS
+      );
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -328,7 +337,9 @@ export default defineBackground(() => {
 
       // Provide more specific error messages
       if (err.name === 'AbortError') {
-        throw new Error('LLM request timed out after 60 seconds');
+        throw new Error(
+          `LLM request timed out after ${LLM_API_TIMEOUT_MS / 1000} seconds`
+        );
       } else if (err.message.includes('Failed to fetch')) {
         throw new Error(
           'Cannot connect to LM Studio. Make sure it is running on ' + endpoint
@@ -349,8 +360,8 @@ export default defineBackground(() => {
   // Helper function to send messages with retry logic (for sidepanel timing issues)
   async function sendMessageWithRetry(
     message: NotificationMessage,
-    maxRetries: number = 5,
-    delayMs: number = 200
+    maxRetries: number = MESSAGE_RETRY_MAX_ATTEMPTS,
+    delayMs: number = MESSAGE_RETRY_DELAY_MS
   ): Promise<void> {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -476,17 +487,13 @@ export default defineBackground(() => {
 
             // Send initial metadata to sidepanel (for creating in-memory job)
             // Use retry logic because sidepanel may not be fully loaded yet
-            await sendMessageWithRetry(
-              {
-                action: 'extractionStarted',
-                jobId: jobId,
-                url: url,
-                source: source,
-                rawText: rawText,
-              },
-              5,
-              200
-            ); // 5 retries, 200ms delay between retries
+            await sendMessageWithRetry({
+              action: 'extractionStarted',
+              jobId: jobId,
+              url: url,
+              source: source,
+              rawText: rawText,
+            });
 
             // Prepare prompts from config
             const systemPrompt =

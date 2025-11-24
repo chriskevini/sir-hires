@@ -1,26 +1,22 @@
-/**
- * Background Service Worker
- *
- * Central coordination point for the extension. Handles:
- * - Extension lifecycle (installation, context menus)
- * - Service worker keepalive during LLM extraction (prevents Chrome MV3 termination)
- * - LLM API calls and streaming job extraction
- * - Cross-component state management (jobInFocus, job deletion)
- * - Message routing between content scripts, popup, and sidepanel
- *
- * Architecture:
- * - Uses hybrid event-driven pattern (see AGENTS.md)
- * - Rule 1: Coordinates multi-step async operations (extraction workflow)
- * - Rule 2: Manages cross-component state (jobInFocus, deletion)
- * - Rule 3: Simple mutations handled directly by components
- */
+// Background Service Worker
+//
+// Central coordination point for the extension. Handles:
+// - Extension lifecycle (installation, context menus)
+// - Service worker keepalive during LLM extraction (prevents Chrome MV3 termination)
+// - LLM API calls and streaming job extraction
+// - Cross-component state management (jobInFocus, job deletion)
+// - Message routing between content scripts, popup, and sidepanel
+//
+// Architecture:
+// - Uses hybrid event-driven pattern (see AGENTS.md)
+// - Rule 1: Coordinates multi-step async operations (extraction workflow)
+// - Rule 2: Manages cross-component state (jobInFocus, deletion)
+// - Rule 3: Simple mutations handled directly by components
 
 import type { Browser } from 'wxt/browser';
 import { LLMClient } from '../utils/llm-client';
 import {
   llmConfig,
-  LLM_API_TIMEOUT_MS,
-  LLM_API_TIMEOUT_SECONDS,
   SERVICE_WORKER_KEEPALIVE_INTERVAL_MS,
   MESSAGE_RETRY_MAX_ATTEMPTS,
   MESSAGE_RETRY_DELAY_MS,
@@ -31,7 +27,7 @@ import {
   extractionTriggerStorage,
 } from '../utils/storage';
 
-// ===== Message Type Definitions =====
+// Message Type Definitions
 // These types define the contract between components and the background script
 interface BaseMessage {
   action: string;
@@ -309,14 +305,7 @@ export default defineBackground(() => {
     }
   );
 
-  /**
-   * Call LLM API with timeout and error handling
-   *
-   * @param endpoint - LLM API endpoint URL
-   * @param requestBody - Request payload for the LLM
-   * @returns Promise resolving to LLM response data
-   * @throws Error with user-friendly message on failure
-   */
+  // Call LLM API with timeout and error handling
   async function callLLMAPI(endpoint: string, requestBody: unknown) {
     console.info('[Background] Calling LLM API:', endpoint);
     console.info(
@@ -329,7 +318,7 @@ export default defineBackground(() => {
       const controller = new AbortController();
       const timeoutId = setTimeout(
         () => controller.abort(),
-        LLM_API_TIMEOUT_MS
+        llmConfig.apiTimeoutMs
       );
 
       const response = await fetch(endpoint, {
@@ -364,7 +353,7 @@ export default defineBackground(() => {
       // Provide more specific error messages
       if (err.name === 'AbortError') {
         throw new Error(
-          `LLM request timed out after ${LLM_API_TIMEOUT_SECONDS} seconds`
+          `LLM request timed out after ${llmConfig.apiTimeoutSeconds} seconds`
         );
       } else if (err.message.includes('Failed to fetch')) {
         throw new Error(

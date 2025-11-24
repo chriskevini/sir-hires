@@ -25,17 +25,19 @@ The codebase is well-structured with minimal code smells. The project follows mo
 
 **Resolution:**
 
-- Created `src/utils/constants.ts` with named constants
-- Replaced all magic numbers with descriptive constant names
-- Updated files: `background.ts`, `profile/App.tsx`
+- Moved all constants to `src/config.ts` for user configurability
+- LLM-related constants integrated into `llmConfig` object
+- Created centralized `LLMConfig` interface
+- Replaced all magic numbers with named constants
+- Updated files: `background.ts`, `profile/App.tsx`, `config.ts`
 
 ```typescript
 // Before
 setTimeout(() => controller.abort(), 60000);
 
 // After
-import { LLM_API_TIMEOUT_MS } from '../utils/constants';
-setTimeout(() => controller.abort(), LLM_API_TIMEOUT_MS);
+import { llmConfig } from '../config';
+setTimeout(() => controller.abort(), llmConfig.apiTimeoutMs);
 ```
 
 #### 2. `any` Type Usage (FIXED)

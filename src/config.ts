@@ -145,24 +145,51 @@ export const defaults = {
   },
 };
 
-// ===== Performance & Timeout Configuration =====
+// Performance & Timeout Configuration
 // Adjust these based on your system performance and LLM speed
 
-export const LLM_API_TIMEOUT_MS = 60000; // LLM API timeout (60 seconds)
-export const LLM_API_TIMEOUT_SECONDS = 60; // Derived: for user-facing messages
 export const SERVICE_WORKER_KEEPALIVE_INTERVAL_MS = 20000; // Keepalive during LLM extraction (Chrome MV3 terminates after ~30s)
 export const UI_UPDATE_INTERVAL_MS = 60000; // UI refresh interval (1 minute)
 export const MESSAGE_RETRY_MAX_ATTEMPTS = 5; // Max retries for sidepanel messages
 export const MESSAGE_RETRY_DELAY_MS = 200; // Delay between retry attempts
 
-// LLM default configuration
-export const DEFAULT_LLM_ENDPOINT = 'http://localhost:1234/v1/chat/completions';
-export const DEFAULT_LLM_MODELS_ENDPOINT = 'http://localhost:1234/v1/models';
-export const DEFAULT_LLM_MAX_TOKENS = 2000;
-export const DEFAULT_LLM_TEMPERATURE = 0.3;
+// LLM Configuration Interface
+export interface LLMConfig {
+  apiTimeoutMs: number;
+  apiTimeoutSeconds: number;
+  defaultEndpoint: string;
+  defaultModelsEndpoint: string;
+  defaultMaxTokens: number;
+  defaultTemperature: number;
+  extraction: {
+    defaultModel: string;
+    alternativeModels: string[];
+    endpoint: string;
+    description: string;
+  };
+  synthesis: {
+    defaultModel: string;
+    alternativeModels: string[];
+    endpoint: string;
+    modelsEndpoint: string;
+    description: string;
+    maxTokens: number;
+    temperature: number;
+    prompts: {
+      universal: string;
+      jobExtractor: string;
+    };
+  };
+}
 
 // LLM configuration for different tasks
-export const llmConfig = {
+export const llmConfig: LLMConfig = {
+  apiTimeoutMs: 60000, // LLM API timeout (60 seconds)
+  apiTimeoutSeconds: 60, // Derived: for user-facing messages
+  defaultEndpoint: 'http://localhost:1234/v1/chat/completions',
+  defaultModelsEndpoint: 'http://localhost:1234/v1/models',
+  defaultMaxTokens: 2000,
+  defaultTemperature: 0.3,
   // Data extraction LLM (for job data extraction from web pages)
   extraction: {
     defaultModel: 'qwen/qwen3-4b-2507',

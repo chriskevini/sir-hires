@@ -19,7 +19,6 @@ The project follows the standard WXT directory layout. We use the **"Folder per 
 my-extension/
 ├── .wxt/                   # [DO NOT TOUCH] Generated types and config
 ├── .output/                # [DO NOT TOUCH] Build artifacts
-├── assets/                 # Static assets (processed by Vite)
 ├── public/                 # Public assets (copied as-is)
 ├── src/                    # Source code root (configure in wxt.config.ts)
 │   ├── components/         # Shared React Components
@@ -27,7 +26,6 @@ my-extension/
 │   │   └── features/       # Feature-specific components
 │   ├── hooks/              # Custom React Hooks
 │   ├── utils/              # Shared utility functions
-│   ├── assets/             # Source-specific assets (images, styles)
 │   ├── entrypoints/        # VITAL: Maps directly to manifest.json
 │   │   ├── background.ts   # Background script (Service Worker)
 │   │   ├── content.ts      # Content scripts (Headless)
@@ -35,10 +33,21 @@ my-extension/
 │   │   │   ├── index.html  # Entry HTML
 │   │   │   ├── main.tsx    # Mounts React Root
 │   │   │   └── App.tsx     # Main Popup Component
-│   │   └── options/        # Options UI Entrypoint
+│   │   ├── sidepanel/      # Sidepanel UI Entrypoint
 │   │   │   ├── index.html
 │   │   │   ├── main.tsx
 │   │   │   └── App.tsx
+│   │   ├── job-details/    # Job Details UI Entrypoint
+│   │   │   ├── index.html
+│   │   │   ├── main.tsx
+│   │   │   ├── App.tsx
+│   │   │   ├── views/      # View components
+│   │   │   ├── components/ # Page-specific components
+│   │   │   └── hooks/      # Page-specific hooks
+│   │   └── profile/        # Profile UI Entrypoint
+│   │       ├── index.html
+│   │       ├── main.tsx
+│   │       └── App.tsx
 ├── wxt.config.ts           # WXT Configuration
 ├── package.json
 ├── tsconfig.json
@@ -95,8 +104,8 @@ This project has **extensive reusable UI/feature components and custom hooks** t
 **Example:**
 
 ```typescript
-// src/entrypoints/job-details/views/researching-view.tsx
-import './researching-view.css'; // ✅ Component imports its own styles
+// src/entrypoints/job-details/views/ResearchingView.tsx
+import './ResearchingView.css'; // ✅ Component imports its own styles
 
 export function ResearchingView({ job }: Props) {
   return <div className="researching-editor">...</div>;

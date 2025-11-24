@@ -27,7 +27,7 @@
 **Usage Example:**
 
 ```typescript
-// From: src/entrypoints/job-details/views/researching-view.tsx:49
+// From: src/entrypoints/job-details/views/ResearchingView.tsx:49
 import { useToggleState } from '../hooks';
 
 const [isTemplateVisible, toggleTemplateVisible, setTemplateVisible] =
@@ -81,7 +81,7 @@ interface UseEditorStateOptions {
 **Usage Example:**
 
 ```typescript
-// From: src/entrypoints/job-details/views/researching-view.tsx:54
+// From: src/entrypoints/job-details/views/ResearchingView.tsx:54
 import { useEditorState } from '../hooks';
 
 const { content: editorContent, handleChange: handleEditorChange } =
@@ -154,7 +154,7 @@ interface ValidationResult {
 **Usage Example:**
 
 ```typescript
-// From: src/entrypoints/job-details/views/researching-view.tsx:70
+// From: src/entrypoints/job-details/views/ResearchingView.tsx:70
 import { useJobValidation } from '../hooks';
 
 const validation = useJobValidation({
@@ -235,7 +235,7 @@ interface UseSimpleAutoSaveOptions {
 **Usage Example:**
 
 ```typescript
-// From: src/entrypoints/job-details/views/researching-view.tsx:77
+// From: src/entrypoints/job-details/views/ResearchingView.tsx:77
 import { useSimpleAutoSave } from '../hooks';
 
 useSimpleAutoSave({

@@ -46,10 +46,10 @@ src/entrypoints/job-details/
 ├── App.tsx
 ├── styles.css          # 1840 lines, 129 CSS classes (page-level)
 └── views/
-    ├── researching-view.tsx
-    ├── researching-view.css  # ✅ NEW: Component-level (375 lines)
-    ├── drafting-view.tsx
-    └── drafting-view.css     # ✅ NEW: Component-level (384 lines)
+    ├── ResearchingView.tsx
+    ├── ResearchingView.css  # ✅ NEW: Component-level (375 lines)
+    ├── DraftingView.tsx
+    └── DraftingView.css     # ✅ NEW: Component-level (384 lines)
 ```
 
 **sidepanel page:**
@@ -74,10 +74,10 @@ src/components/features/
 
 ### Style Distribution
 
-| Component           | CSS Classes Used                                                                                                                               | Before Fix                                                                   | After Fix                                                     |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| **ResearchingView** | `.researching-editor`, `.editor-layout`, `.template-panel`, `.editor-panel`, `.job-markdown-editor`, `.validation-panel`, etc. (~23 classes)   | Duplicated in `assets/sidepanel.css` + missing from `job-details/styles.css` | ✅ Extracted to `researching-view.css`, imported by component |
-| **DraftingView**    | `.drafting-editor-container`, `.editor-wrapper`, `.editor-topbar`, `.editor-actions`, `.editor-footer`, `.document-editor`, etc. (~30 classes) | Only in `job-details/styles.css`, missing from `assets/sidepanel.css`        | ✅ Extracted to `drafting-view.css`, imported by component    |
+| Component           | CSS Classes Used                                                                                                                               | Before Fix                                                                   | After Fix                                                    |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| **ResearchingView** | `.researching-editor`, `.editor-layout`, `.template-panel`, `.editor-panel`, `.job-markdown-editor`, `.validation-panel`, etc. (~23 classes)   | Duplicated in `assets/sidepanel.css` + missing from `job-details/styles.css` | ✅ Extracted to `ResearchingView.css`, imported by component |
+| **DraftingView**    | `.drafting-editor-container`, `.editor-wrapper`, `.editor-topbar`, `.editor-actions`, `.editor-footer`, `.document-editor`, etc. (~30 classes) | Only in `job-details/styles.css`, missing from `assets/sidepanel.css`        | ✅ Extracted to `DraftingView.css`, imported by component    |
 
 ---
 
@@ -99,14 +99,14 @@ In WXT + React projects:
 
 #### 1. ResearchingView Fix (Commit `649cab0`)
 
-**Created:** `src/entrypoints/job-details/views/researching-view.css` (375 lines)
+**Created:** `src/entrypoints/job-details/views/ResearchingView.css` (375 lines)
 
 **Extracted from:** `assets/sidepanel.css` (lines 788-1143)
 
-**Updated:** `researching-view.tsx`
+**Updated:** `ResearchingView.tsx`
 
 ```typescript
-import './researching-view.css'; // ✅ Component imports its own styles
+import './ResearchingView.css'; // ✅ Component imports its own styles
 ```
 
 **Build Output:**
@@ -122,14 +122,14 @@ import './researching-view.css'; // ✅ Component imports its own styles
 
 #### 2. DraftingView Fix (Current Commit)
 
-**Created:** `src/entrypoints/job-details/views/drafting-view.css` (384 lines)
+**Created:** `src/entrypoints/job-details/views/DraftingView.css` (384 lines)
 
 **Extracted from:** `src/entrypoints/job-details/styles.css` (lines 1029-1412)
 
-**Updated:** `drafting-view.tsx`
+**Updated:** `DraftingView.tsx`
 
 ```typescript
-import './drafting-view.css'; // ✅ Component imports its own styles
+import './DraftingView.css'; // ✅ Component imports its own styles
 ```
 
 **Build Output:**

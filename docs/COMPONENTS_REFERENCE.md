@@ -33,7 +33,7 @@ interface ModalProps {
 **Real Usage Example:**
 
 ```typescript
-// From: src/entrypoints/job-details/views/drafting-view.tsx:293
+// From: src/entrypoints/job-details/views/DraftingView.tsx:293
 import { Modal } from '@/components/ui/Modal';
 
 const [isSynthesisModalOpen, setIsSynthesisModalOpen] = useState(false);
@@ -155,7 +155,7 @@ interface ValidationMessage {
 **Real Usage Example:**
 
 ```typescript
-// From: src/entrypoints/job-details/views/researching-view.tsx:136
+// From: src/entrypoints/job-details/views/ResearchingView.tsx:136
 import { ValidationPanel } from '@/components/ui/ValidationPanel';
 import { useJobValidation } from '../hooks';
 
@@ -214,7 +214,7 @@ interface EditorHeaderProps {
 **Real Usage Example:**
 
 ```typescript
-// From: src/entrypoints/job-details/views/researching-view.tsx:156
+// From: src/entrypoints/job-details/views/ResearchingView.tsx:156
 import { EditorHeader } from '@/components/ui/EditorHeader';
 import { StatusSelector } from '@/components/ui/StatusSelector';
 
@@ -271,7 +271,7 @@ interface EditorToolbarProps {
 **Real Usage Example:**
 
 ```typescript
-// From: src/entrypoints/job-details/views/drafting-view.tsx:198
+// From: src/entrypoints/job-details/views/DraftingView.tsx:198
 import { EditorToolbar } from '@/components/ui/EditorToolbar';
 
 <EditorToolbar
@@ -439,7 +439,7 @@ interface StatusSelectorProps {
 **Real Usage Example:**
 
 ```typescript
-// From: src/entrypoints/job-details/views/researching-view.tsx:163
+// From: src/entrypoints/job-details/views/ResearchingView.tsx:163
 import { StatusSelector } from '@/components/ui/StatusSelector';
 
 <StatusSelector
@@ -483,7 +483,7 @@ interface JobHeaderProps {
 **Real Usage Example:**
 
 ```typescript
-// From: src/entrypoints/job-details/views/researching-view.tsx:155
+// From: src/entrypoints/job-details/views/ResearchingView.tsx:155
 import { JobHeader } from '@/components/ui/JobHeader';
 
 <JobHeader
@@ -530,7 +530,7 @@ interface EditorContentPanelProps {
 **Real Usage Example:**
 
 ```typescript
-// From: src/entrypoints/job-details/views/drafting-view.tsx:245
+// From: src/entrypoints/job-details/views/DraftingView.tsx:245
 import { EditorContentPanel } from '@/components/ui/EditorContentPanel';
 
 {documentKeys.map((key) => (
@@ -584,7 +584,7 @@ interface EditorFooterProps {
 **Real Usage Example:**
 
 ```typescript
-// From: src/entrypoints/job-details/views/researching-view.tsx:180
+// From: src/entrypoints/job-details/views/ResearchingView.tsx:180
 import { EditorFooter } from '@/components/ui/EditorFooter';
 
 <EditorFooter
@@ -756,7 +756,7 @@ interface JobViewChecklistProps {
 **Real Usage Example:**
 
 ```typescript
-// From: src/entrypoints/job-details/views/researching-view.tsx:177
+// From: src/entrypoints/job-details/views/ResearchingView.tsx:177
 import { JobViewChecklist } from '@/components/features/JobViewChecklist';
 
 <JobViewChecklist
@@ -804,8 +804,8 @@ import { JobViewChecklist } from '@/components/features/JobViewChecklist';
 ### Example
 
 ```typescript
-// src/entrypoints/job-details/views/researching-view.tsx
-import './researching-view.css'; // ✅ Component imports its own styles
+// src/entrypoints/job-details/views/ResearchingView.tsx
+import './ResearchingView.css'; // ✅ Component imports its own styles
 
 export function ResearchingView({ job }: Props) {
   return <div className="researching-editor">...</div>;

@@ -24,7 +24,7 @@ This document tracks all modular refactors performed during the WXT migration. T
 
 **Files Changed:**
 
-- `src/entrypoints/job-details/views/researching-view.tsx`: 502 lines → 279 lines (**-44%**)
+- `src/entrypoints/job-details/views/ResearchingView.tsx`: 502 lines → 279 lines (**-44%**)
 - Created 11 new files (659 lines added, 223 removed from main view)
 
 **Components Extracted:**
@@ -64,7 +64,7 @@ ResearchingView (orchestrator)
 
 **Files Changed:**
 
-- `src/entrypoints/job-details/views/drafting-view.tsx`: 622 lines → 336 lines (**-46%**)
+- `src/entrypoints/job-details/views/DraftingView.tsx`: 622 lines → 336 lines (**-46%**)
 - Created 6 new files (391 lines added, 286 removed from main view)
 
 **Components Extracted:**
@@ -456,8 +456,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ ... }) => {
 **Example:**
 
 ```typescript
-// researching-view.tsx
-import './researching-view.css'; // ✅ Component imports own styles
+// ResearchingView.tsx
+import './ResearchingView.css'; // ✅ Component imports own styles
 
 export function ResearchingView({ job }: Props) {
   return <div className="researching-editor">...</div>;

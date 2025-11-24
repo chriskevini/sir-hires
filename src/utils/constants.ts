@@ -3,9 +3,5 @@
  * Non-configurable constants only - user-configurable values are in src/config.ts
  */
 
-// Storage key prefixes (WXT storage pattern)
-export const STORAGE_PREFIX = {
-  LOCAL: 'local:',
-  SESSION: 'session:',
-  SYNC: 'sync:',
-} as const;
+// Currently empty - all constants have been moved to src/config.ts for user configurability
+// This file is kept for future non-configurable constants if needed

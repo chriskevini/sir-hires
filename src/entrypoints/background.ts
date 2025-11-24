@@ -11,8 +11,8 @@
  * Architecture:
  * - Uses hybrid event-driven pattern (see AGENTS.md)
  * - Rule 1: Coordinates multi-step async operations (extraction workflow)
- * - Rule 2: Simple mutations handled directly by components
  * - Rule 3: Manages cross-component state (jobInFocus, deletion)
+ * - Rule 2: Simple mutations handled directly by components
  */
 
 import type { Browser } from 'wxt/browser';
@@ -383,18 +383,7 @@ export default defineBackground(() => {
   // 2. Clicking the extension icon (if setPanelBehavior is enabled)
   // 3. Chrome's built-in side panel menu
 
-  /**
-   * Send messages with retry logic to handle sidepanel timing issues
-   *
-   * The sidepanel may not be fully loaded when background tries to send messages,
-   * especially immediately after opening. This function retries on
-   * "Receiving end does not exist" errors.
-   *
-   * @param message - Notification message to send
-   * @param maxRetries - Maximum retry attempts (default: 5)
-   * @param delayMs - Delay between retries in milliseconds (default: 200)
-   * @throws Error if all retries fail or non-retryable error occurs
-   */
+  // Send messages with retry logic (for sidepanel timing issues)
   async function sendMessageWithRetry(
     message: NotificationMessage,
     maxRetries: number = MESSAGE_RETRY_MAX_ATTEMPTS,

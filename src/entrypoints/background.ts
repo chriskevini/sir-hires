@@ -1,13 +1,34 @@
+// Background Service Worker
+//
+// Central coordination point for the extension. Handles:
+// - Extension lifecycle (installation, context menus)
+// - Service worker keepalive during LLM extraction (prevents Chrome MV3 termination)
+// - LLM API calls and streaming job extraction
+// - Cross-component state management (jobInFocus, job deletion)
+// - Message routing between content scripts, popup, and sidepanel
+//
+// Architecture:
+// - Uses hybrid event-driven pattern (see AGENTS.md)
+// - Rule 1: Coordinates multi-step async operations (extraction workflow)
+// - Rule 2: Manages cross-component state (jobInFocus, deletion)
+// - Rule 3: Simple mutations handled directly by components
+
 import type { Browser } from 'wxt/browser';
 import { LLMClient } from '../utils/llm-client';
-import { llmConfig } from '../config';
+import {
+  llmConfig,
+  SERVICE_WORKER_KEEPALIVE_INTERVAL_MS,
+  MESSAGE_RETRY_MAX_ATTEMPTS,
+  MESSAGE_RETRY_DELAY_MS,
+} from '../config';
 import {
   jobsStorage,
   keepaliveStorage,
   extractionTriggerStorage,
 } from '../utils/storage';
 
-// Message type definitions
+// Message Type Definitions
+// These types define the contract between components and the background script
 interface BaseMessage {
   action: string;
 }
@@ -164,7 +185,7 @@ export default defineBackground(() => {
       keepaliveStorage.getValue().then(() => {
         console.info('[Background] Global keepalive ping');
       });
-    }, 20000); // Ping every 20 seconds
+    }, SERVICE_WORKER_KEEPALIVE_INTERVAL_MS);
   }
 
   function stopGlobalKeepAlive() {
@@ -284,7 +305,7 @@ export default defineBackground(() => {
     }
   );
 
-  // Helper function to call LLM API
+  // Call LLM API with timeout and error handling
   async function callLLMAPI(endpoint: string, requestBody: unknown) {
     console.info('[Background] Calling LLM API:', endpoint);
     console.info(
@@ -293,9 +314,12 @@ export default defineBackground(() => {
     );
 
     try {
-      // Add a timeout for the fetch request (60 seconds)
+      // Add a timeout for the fetch request
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000);
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        llmConfig.timeoutMs
+      );
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -328,7 +352,9 @@ export default defineBackground(() => {
 
       // Provide more specific error messages
       if (err.name === 'AbortError') {
-        throw new Error('LLM request timed out after 60 seconds');
+        throw new Error(
+          `LLM request timed out after ${llmConfig.timeoutSeconds} seconds`
+        );
       } else if (err.message.includes('Failed to fetch')) {
         throw new Error(
           'Cannot connect to LM Studio. Make sure it is running on ' + endpoint
@@ -346,11 +372,11 @@ export default defineBackground(() => {
   // 2. Clicking the extension icon (if setPanelBehavior is enabled)
   // 3. Chrome's built-in side panel menu
 
-  // Helper function to send messages with retry logic (for sidepanel timing issues)
+  // Send messages with retry logic (for sidepanel timing issues)
   async function sendMessageWithRetry(
     message: NotificationMessage,
-    maxRetries: number = 5,
-    delayMs: number = 200
+    maxRetries: number = MESSAGE_RETRY_MAX_ATTEMPTS,
+    delayMs: number = MESSAGE_RETRY_DELAY_MS
   ): Promise<void> {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -445,9 +471,9 @@ export default defineBackground(() => {
         // Use user settings or fallback to config defaults
         const llmSettings: LLMSettings = userLlmSettings || {
           provider: 'lm-studio',
-          model: llmConfig.extraction.defaultModel,
-          apiEndpoint: llmConfig.extraction.endpoint,
-          endpoint: llmConfig.extraction.endpoint,
+          model: llmConfig.extraction.model || llmConfig.model,
+          apiEndpoint: llmConfig.endpoint,
+          endpoint: llmConfig.endpoint,
           maxTokens: 2000,
           temperature: 0.3,
         };
@@ -476,28 +502,23 @@ export default defineBackground(() => {
 
             // Send initial metadata to sidepanel (for creating in-memory job)
             // Use retry logic because sidepanel may not be fully loaded yet
-            await sendMessageWithRetry(
-              {
-                action: 'extractionStarted',
-                jobId: jobId,
-                url: url,
-                source: source,
-                rawText: rawText,
-              },
-              5,
-              200
-            ); // 5 retries, 200ms delay between retries
+            await sendMessageWithRetry({
+              action: 'extractionStarted',
+              jobId: jobId,
+              url: url,
+              source: source,
+              rawText: rawText,
+            });
 
             // Prepare prompts from config
-            const systemPrompt =
-              llmConfig.synthesis.prompts.jobExtractor.trim();
+            const systemPrompt = llmConfig.extraction.prompt.trim();
             const userPrompt = rawText;
 
             // Use configured model or fallback to default extraction model
             const modelToUse =
               llmSettings.model && llmSettings.model.trim() !== ''
                 ? llmSettings.model
-                : llmConfig.extraction.defaultModel;
+                : llmConfig.extraction.model || llmConfig.model;
 
             console.info(
               '[Background] Using model for extraction:',

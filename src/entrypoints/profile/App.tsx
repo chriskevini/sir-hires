@@ -14,6 +14,7 @@ import {
   findNextSectionPosition,
   applyFix as applyFixUtil,
 } from '@/utils/profile-utils';
+import { UI_UPDATE_INTERVAL_MS } from '@/config';
 
 // Import hooks
 import {
@@ -164,7 +165,7 @@ export default function App() {
       if (lastSavedTime) {
         setLastSavedTime(lastSavedTime);
       }
-    }, 60000); // Update every minute
+    }, UI_UPDATE_INTERVAL_MS);
   };
 
   const showStatusMessage = (message: string, type: 'success' | 'error') => {

@@ -44,7 +44,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
 }) => {
   const [availableModels, setAvailableModels] = useState<Model[]>([]);
   const [selectedModel, setSelectedModel] = useState(
-    llmConfig.synthesis.defaultModel
+    llmConfig.synthesis.model || llmConfig.model
   );
   const [maxTokens, setMaxTokens] = useState(2000);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -53,8 +53,8 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   const [llmClient] = useState(
     () =>
       new LLMClient({
-        endpoint: llmConfig.synthesis.endpoint,
-        modelsEndpoint: llmConfig.synthesis.modelsEndpoint,
+        endpoint: llmConfig.endpoint,
+        modelsEndpoint: llmConfig.modelsEndpoint,
       })
   );
 
@@ -231,7 +231,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
       const context = await buildContext();
 
       // Build system prompt (from config) and user prompt (JIT)
-      const systemPrompt = llmConfig.synthesis.prompts.universal;
+      const systemPrompt = llmConfig.synthesis.prompt;
       const userPrompt = buildUserPrompt(context);
 
       // Capture these values before closing modal
@@ -323,8 +323,11 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
           </option>
         ))
       : [
-          <option key="default" value={llmConfig.synthesis.defaultModel}>
-            {llmConfig.synthesis.defaultModel} (not loaded)
+          <option
+            key="default"
+            value={llmConfig.synthesis.model || llmConfig.model}
+          >
+            {llmConfig.synthesis.model || llmConfig.model} (not loaded)
           </option>,
         ];
 

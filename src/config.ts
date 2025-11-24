@@ -145,30 +145,60 @@ export const defaults = {
   },
 };
 
+// Performance & Timeout Configuration
+// Adjust these based on your system performance and LLM speed
+
+export const SERVICE_WORKER_KEEPALIVE_INTERVAL_MS = 20000; // Keepalive during LLM extraction (Chrome MV3 terminates after ~30s)
+export const UI_UPDATE_INTERVAL_MS = 60000; // UI refresh interval (1 minute)
+export const MESSAGE_RETRY_MAX_ATTEMPTS = 5; // Max retries for sidepanel messages
+export const MESSAGE_RETRY_DELAY_MS = 200; // Delay between retry attempts
+
+// LLM Configuration Interfaces
+export interface TaskConfig {
+  model?: string; // Override global model
+  temperature: number;
+  maxTokens: number;
+  prompt: string; // System prompt for the task
+}
+
+export interface LLMConfig {
+  // Global Client Settings (shared across all tasks)
+  endpoint: string; // http://localhost:1234/v1/chat/completions
+  modelsEndpoint: string; // http://localhost:1234/v1/models
+  model: string; // Default model for all tasks
+  timeoutMs: number; // 60000
+  timeoutSeconds: number; // Calculated from timeoutMs
+
+  // Task-Specific Parameters (override global model if needed)
+  extraction: TaskConfig;
+  synthesis: TaskConfig;
+}
+
 // LLM configuration for different tasks
-export const llmConfig = {
+export const llmConfig: LLMConfig = {
+  // Global Client Settings
+  endpoint: 'http://localhost:1234/v1/chat/completions',
+  modelsEndpoint: 'http://localhost:1234/v1/models',
+  model: 'qwen/qwen3-4b-2507', // Default model
+  timeoutMs: 60000,
+  get timeoutSeconds() {
+    return this.timeoutMs / 1000;
+  },
+
   // Data extraction LLM (for job data extraction from web pages)
   extraction: {
-    defaultModel: 'qwen/qwen3-4b-2507',
-    alternativeModels: [],
-    endpoint: 'http://localhost:1234/v1/chat/completions',
-    description: 'Optimized for structured data extraction from job postings',
+    temperature: 0.3,
+    maxTokens: 2000,
+    prompt: JOB_EXTRACTION_PROMPT,
   },
 
   // Document synthesis LLM (for resume/cover letter generation)
   synthesis: {
-    defaultModel: 'Llama-3.1-8B-Instruct',
-    alternativeModels: ['Mistral-7B-Instruct', 'Qwen-2.5-7B-Instruct'],
-    endpoint: 'http://localhost:1234/v1/chat/completions',
-    modelsEndpoint: 'http://localhost:1234/v1/models',
-    description: 'Optimized for creative writing and document generation',
-    maxTokens: 2000,
     temperature: 0.7,
-
+    maxTokens: 2000,
     // Universal prompt for document generation
     // LLM determines document type from user instructions in {currentDraft}
-    prompts: {
-      universal: `
+    prompt: `
 You are an expert career counselor specialized in generating highly targeted, impactful job application documents (resumes, cover letters, and professional emails).
 
 Your sole goal is to synthesize one single, polished document by strictly following the instructions, format, and structure found within the [CURRENT DRAFT] input, including the **Document-Specific Generation Rules** explicitly defined within that block.
@@ -186,8 +216,6 @@ Your sole goal is to synthesize one single, polished document by strictly follow
 3. Select and Prepare Content: Scan the [MASTER RESUME] to select content that aligns with the job/goal. **Confirm how the selected content will be treated** (verbatim, synthesized, or high-level reference) based on the document's specific rules.
 4. Synthesize Document: Generate the final document. **STRICTLY apply the simple rules and the required structure** defined in the [CURRENT DRAFT] block.
 `,
-      jobExtractor: JOB_EXTRACTION_PROMPT,
-    },
   },
 };
 

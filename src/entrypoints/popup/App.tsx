@@ -153,10 +153,11 @@ export function App() {
             id="llmModel"
             value={llmModel}
             onChange={(e) => setLlmModel(e.target.value)}
-            placeholder={llmConfig.extraction.defaultModel}
+            placeholder={llmConfig.extraction.model || llmConfig.model}
           />
           <small>
-            Leave empty to use default ({llmConfig.extraction.defaultModel})
+            Leave empty to use default (
+            {llmConfig.extraction.model || llmConfig.model})
           </small>
         </div>
         <div className="button-group">

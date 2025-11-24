@@ -2,6 +2,40 @@ import type { Browser } from 'wxt/browser';
 
 // Content script that runs on all pages and extracts job data when requested
 
+/**
+ * Extracted job data interface
+ * Extensible for MarkdownDB - supports custom fields beyond these common ones
+ */
+interface ExtractedJobData {
+  // Common fields (for documentation and type hints)
+  jobTitle?: string;
+  company?: string;
+  location?: string;
+  remoteType?: string;
+  salary?: string;
+  jobType?: string;
+  postedDate?: string;
+  deadline?: string;
+  aboutJob?: string;
+  rawDescription?: string;
+  requirements?: string;
+  responsibilities?: string;
+  aboutCompany?: string;
+  // Allow any additional string fields for extensibility
+  [key: string]: string | undefined;
+}
+
+/**
+ * LLM settings interface
+ */
+interface LLMSettings {
+  endpoint: string;
+  modelsEndpoint?: string;
+  model?: string;
+  maxTokens?: number;
+  temperature?: number;
+}
+
 export default defineContentScript({
   matches: ['<all_urls>'],
   runAt: 'document_idle',
@@ -29,11 +63,10 @@ function extractSource() {
 
 /**
  * Generate markdown content field from extracted job data
- * @param {Object} data - The extracted job data object
- * @returns {string} Markdown-formatted job template
+ * @param data - The extracted job data object
+ * @returns Markdown-formatted job template
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function generateJobContent(data: any) {
+function generateJobContent(data: ExtractedJobData): string {
   const lines = ['<JOB>'];
 
   // Top-level fields
@@ -421,8 +454,10 @@ function extractRawJobText() {
 // - "date-time": ISO formatted dates
 // - ["option1", "option2"]: Enum (single choice)
 // - [["A", "B", "C"]]: Multi-label (multiple choices)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function _extractAllFieldsWithLLM(rawText: string, llmSettings: any) {
+async function _extractAllFieldsWithLLM(
+  rawText: string,
+  llmSettings: LLMSettings
+): Promise<ExtractedJobData> {
   try {
     // Define the extraction template using NuExtract's type system
     const extractionTemplate = {
@@ -557,16 +592,35 @@ async function _extractAllFieldsWithLLM(rawText: string, llmSettings: any) {
   }
 }
 
+/**
+ * Message request interface
+ */
+interface MessageRequest {
+  action: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Message response interface
+ */
+interface MessageResponse {
+  success?: boolean;
+  url?: string;
+  source?: string;
+  rawText?: string;
+  jobData?: ExtractedJobData;
+  content?: string;
+  error?: string;
+}
+
 // Setup message listener
 function setupMessageListener() {
   // Listen for messages from popup
   browser.runtime.onMessage.addListener(
     (
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      request: any,
+      request: MessageRequest,
       _sender: Browser.runtime.MessageSender,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      sendResponse: (response?: any) => void
+      sendResponse: (response?: MessageResponse) => void
     ) => {
       if (request.action === 'getJobUrl') {
         // Simple URL getter for duplicate detection

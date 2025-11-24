@@ -49,8 +49,7 @@ const ALLOWED_JOB_FIELDS = [
  * @param job - Job object to validate
  * @returns Array of violation messages (empty if valid)
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function validateJobObject(job: Record<string, any>): string[] {
+export function validateJobObject(job: Record<string, unknown>): string[] {
   const violations: string[] = [];
 
   for (const field of PROHIBITED_FIELDS) {
@@ -76,14 +75,21 @@ export function validateJobObject(job: Record<string, any>): string[] {
 }
 
 /**
+ * Storage item interface for WXT storage
+ */
+interface StorageItem<T> {
+  getValue(): Promise<T>;
+  setValue(value: T): Promise<void>;
+  update?(updates: Partial<T>): Promise<void>;
+}
+
+/**
  * Create a proxy wrapper for storage operations that validates Job objects
  * Only active in development mode (import.meta.env.COMMAND === 'serve')
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function createValidatedStorage<T extends Record<string, any>>(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  storageItem: any
-) {
+export function createValidatedStorage<T extends Record<string, unknown>>(
+  storageItem: StorageItem<T>
+): StorageItem<T> {
   // Only validate in development mode
   if (import.meta.env.COMMAND !== 'serve') {
     return storageItem;
@@ -152,8 +158,10 @@ export function createValidatedStorage<T extends Record<string, any>>(
  * Validate a single Job object and log violations
  * Use this in hooks/services before persisting data
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function assertValidJob(job: Record<string, any>, context?: string) {
+export function assertValidJob(
+  job: Record<string, unknown>,
+  context?: string
+): void {
   if (import.meta.env.COMMAND !== 'serve') {
     return; // No-op in production
   }

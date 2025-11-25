@@ -2,6 +2,7 @@
 // Schema version: 0.3.0
 
 import { JOB_EXTRACTION_PROMPT } from './utils/job-templates';
+import { PROFILE_EXTRACTION_PROMPT } from './utils/profile-templates';
 
 // Status progression order for state-based navigation (v0.3.0)
 export const statusOrder = [
@@ -172,6 +173,7 @@ export interface LLMConfig {
   // Task-Specific Parameters (override global model if needed)
   extraction: TaskConfig;
   synthesis: TaskConfig;
+  profileExtraction: TaskConfig;
 }
 
 // LLM configuration for different tasks
@@ -216,6 +218,13 @@ Your sole goal is to synthesize one single, polished document by strictly follow
 3. Select and Prepare Content: Scan the [MASTER RESUME] to select content that aligns with the job/goal. **Confirm how the selected content will be treated** (verbatim, synthesized, or high-level reference) based on the document's specific rules.
 4. Synthesize Document: Generate the final document. **STRICTLY apply the simple rules and the required structure** defined in the [CURRENT DRAFT] block.
 `,
+  },
+
+  // Profile extraction LLM (for converting resume text to MarkdownDB profile)
+  profileExtraction: {
+    temperature: 0.3,
+    maxTokens: 3000,
+    prompt: PROFILE_EXTRACTION_PROMPT,
   },
 };
 

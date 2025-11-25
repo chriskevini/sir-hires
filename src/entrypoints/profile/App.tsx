@@ -755,7 +755,7 @@ BULLETS:
           className={isExtracting ? 'btn-cancel-extraction' : 'btn-extract'}
           disabled={isExtracting && !content.trim()}
         >
-          {isExtracting ? '❌ Cancel Extraction' : '📋 Extract from Resume'}
+          {isExtracting ? '❌ Cancel Extraction' : '✨ Extract with LLM'}
         </button>
         <div className="export-buttons">
           <button onClick={formatProfile} className="btn-export">

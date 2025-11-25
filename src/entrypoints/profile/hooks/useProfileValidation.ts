@@ -6,36 +6,25 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { parseProfile } from '@/utils/profile-parser';
 import { validateProfile } from '@/utils/profile-validator';
-
-export interface ValidationError {
-  message: string;
-  type?: string;
-  section?: string;
-  entry?: string;
-  field?: string;
-  value?: string;
-  allowedValues?: string[];
-}
+import { generateFix } from '@/utils/profile-utils';
+import type {
+  ValidationFix,
+  ValidationMessage,
+} from '@/utils/validation-types';
 
 export interface ValidationResult {
-  errors: ValidationError[];
-  warnings: { message: string }[];
-  info: { message: string }[];
+  errors: ValidationMessage[];
+  warnings: ValidationMessage[];
+  info: ValidationMessage[];
   customFields: string[];
   customSections: string[];
 }
 
-export interface ValidationFix {
-  type: string;
-  text?: string;
-  buttonLabel?: string;
-  description?: string;
-  section?: string;
-  entry?: string;
-  field?: string;
-  currentValue?: string;
-  allowedValues?: string[];
-}
+// Re-export types for consumers
+export type {
+  ValidationFix,
+  ValidationMessage,
+} from '@/utils/validation-types';
 
 interface UseProfileValidationOptions {
   content: string;
@@ -65,95 +54,51 @@ export function useProfileValidation({
   const [validationFixes, setValidationFixes] = useState<
     (ValidationFix | null)[]
   >([]);
-  const validationTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const generateFix = useCallback(
-    (error: ValidationError): ValidationFix | null => {
-      if (!error || !error.type) {
-        return null;
-      }
-
-      switch (error.type) {
-        case 'missing_type':
-          return {
-            type: 'insert_at_start',
-            text: '<PROFILE>\n',
-            buttonLabel: 'Add <PROFILE>',
-            description: 'Insert <PROFILE> at the start',
-          };
-
-        case 'missing_required_field':
-          if (error.section && error.entry) {
-            return {
-              type: 'insert_field_in_entry',
-              section: error.section,
-              entry: error.entry,
-              field: error.field!,
-              text: `${error.field}: `,
-              buttonLabel: `Add ${error.field}`,
-              description: `Insert ${error.field} field in ${error.section}.${error.entry}`,
-            };
-          } else {
-            return {
-              type: 'insert_top_level_field',
-              field: error.field!,
-              text: `${error.field}: `,
-              buttonLabel: `Add ${error.field}`,
-              description: `Insert ${error.field} field after <PROFILE>`,
-            };
-          }
-
-        case 'invalid_enum_value':
-          return {
-            type: 'replace_enum_value_multi',
-            section: error.section,
-            entry: error.entry,
-            field: error.field,
-            currentValue: error.value,
-            allowedValues: error.allowedValues,
-            description: 'Replace with correct value',
-          };
-
-        default:
-          return null;
-      }
-    },
+  const [warningFixes, setWarningFixes] = useState<(ValidationFix | null)[]>(
     []
   );
+  const validationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const runValidation = useCallback(
-    (content: string) => {
-      if (!content || content.trim().length === 0) {
-        setValidation(EMPTY_VALIDATION);
-        setValidationFixes([]);
-        return;
-      }
+  const runValidation = useCallback((content: string) => {
+    if (!content || content.trim().length === 0) {
+      setValidation(EMPTY_VALIDATION);
+      setValidationFixes([]);
+      setWarningFixes([]);
+      return;
+    }
 
-      try {
-        const parsed = parseProfile(content);
-        const validationResult = validateProfile(parsed);
+    try {
+      const parsed = parseProfile(content);
+      const validationResult = validateProfile(parsed);
 
-        setValidation(validationResult);
+      setValidation(validationResult);
 
-        // Generate fixes for errors
-        const fixes = validationResult.errors.map((error: ValidationError) =>
-          generateFix(error)
-        );
-        setValidationFixes(fixes);
-      } catch (error: unknown) {
-        const err = error as Error;
-        setValidation({
-          errors: [{ message: `Parse error: ${err.message}` }],
-          warnings: [],
-          info: [],
-          customFields: [],
-          customSections: [],
-        });
-        setValidationFixes([]);
-      }
-    },
-    [generateFix]
-  );
+      // Generate fixes for errors
+      const errorFixes = validationResult.errors.map(
+        (error: ValidationMessage) => generateFix(error, content)
+      );
+      setValidationFixes(errorFixes);
+
+      // Generate fixes for warnings
+      const warnFixes = validationResult.warnings.map(
+        (warning: ValidationMessage) => generateFix(warning, content)
+      );
+      setWarningFixes(warnFixes);
+    } catch (error: unknown) {
+      const err = error as Error;
+      setValidation({
+        errors: [
+          { type: 'parse_error', message: `Parse error: ${err.message}` },
+        ],
+        warnings: [],
+        info: [],
+        customFields: [],
+        customSections: [],
+      });
+      setValidationFixes([]);
+      setWarningFixes([]);
+    }
+  }, []);
 
   const scheduleValidation = useCallback(() => {
     if (validationTimerRef.current) {
@@ -182,5 +127,6 @@ export function useProfileValidation({
   return {
     validation,
     validationFixes,
+    warningFixes,
   };
 }

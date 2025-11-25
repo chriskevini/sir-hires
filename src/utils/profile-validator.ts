@@ -165,7 +165,7 @@ function validateProfileTemplate(
         type: 'duplicate_entry_id',
         section,
         entry: entryId,
-        message: `Duplicate entry ID "${entryId}" in ${section}. Only the last occurrence will be kept.`,
+        message: `Duplicate entry ID "${entryId}" in ${section}`,
       });
     });
   }
@@ -204,7 +204,7 @@ function validateTopLevelFields(
       result.errors.push({
         type: 'missing_required_field',
         field: requiredField,
-        message: `Required field "${requiredField}" is missing or empty`,
+        message: `Missing required field "${requiredField}"`,
       });
       result.valid = false;
     }
@@ -242,6 +242,17 @@ function validateSections(
 
       // Custom section - this is encouraged!
       result.customSections.push(sectionName);
+
+      // Check if custom section is empty (no entries and no list items)
+      const hasEntries = Object.keys(section.entries || {}).length > 0;
+      const hasListItems = (section.list || []).length > 0;
+      if (!hasEntries && !hasListItems) {
+        result.warnings.push({
+          type: 'empty_section',
+          section: sectionName,
+          message: `Section "${sectionName}" is empty`,
+        });
+      }
       return;
     }
 
@@ -295,7 +306,8 @@ function validateSectionName(
     result.warnings.push({
       type: 'section_name_case',
       section: sectionName,
-      message: `Section "${sectionName}" should be uppercase: "${upperSectionName}". Section names must be ALL_CAPS.`,
+      suggestedValue: upperSectionName,
+      message: `Section "${sectionName}" should be uppercase`,
     });
     return;
   }
@@ -306,7 +318,8 @@ function validateSectionName(
       result.warnings.push({
         type: 'possible_section_typo',
         section: sectionName,
-        message: `Section "${sectionName}" looks similar to "${standardSection}". Did you mean "${standardSection}"?`,
+        suggestedValue: standardSection,
+        message: `Section "${sectionName}" may be a typo`,
       });
       return;
     }
@@ -360,7 +373,7 @@ function validateEntryId(
       type: 'invalid_entry_id',
       section: sectionName,
       entry: entryId,
-      message: `Entry ID "${entryId}" in ${sectionName} doesn't follow naming convention (${pattern.expectedFormat}). This may confuse LLMs.`,
+      message: `Entry ID "${entryId}" in ${sectionName} doesn't follow naming convention`,
     });
   }
 }
@@ -384,7 +397,7 @@ function validateEntrySection(
     result.warnings.push({
       type: 'empty_section',
       section: sectionName,
-      message: `Section "${sectionName}" has no entries`,
+      message: `Section "${sectionName}" is empty`,
     });
     return;
   }
@@ -405,7 +418,7 @@ function validateEntrySection(
             section: sectionName,
             entry: entryId,
             field: requiredField,
-            message: `Required field "${requiredField}" is missing in ${sectionName}.${entryId}`,
+            message: `Missing required field "${requiredField}" in ${sectionName}.${entryId}`,
           });
           result.valid = false;
         }
@@ -426,7 +439,7 @@ function validateEntrySection(
             field: enumField,
             value: value,
             allowedValues: allowedValues,
-            message: `Invalid value "${value}" for ${enumField} in ${sectionName}.${entryId}. Allowed values: ${allowedValues.join(', ')}`,
+            message: `Invalid value "${value}" for ${enumField} in ${sectionName}.${entryId}`,
           });
           result.valid = false;
         }

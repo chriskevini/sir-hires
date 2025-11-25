@@ -99,7 +99,7 @@ export default function App() {
   const hasReceivedContentRef = useRef<boolean>(false); // Track if real content has started streaming
 
   // Validation hook - disable during extraction to avoid performance issues
-  const { validation, validationFixes } = useProfileValidation({
+  const { validation, validationFixes, warningFixes } = useProfileValidation({
     content: isExtracting ? '' : content,
   });
 
@@ -707,6 +707,7 @@ BULLETS:
       <ValidationPanel
         validation={validation}
         validationFixes={validationFixes}
+        warningFixes={warningFixes}
         onApplyFix={applyFix}
         onInsertEducation={insertEducationTemplate}
         onInsertExperience={insertExperienceTemplate}

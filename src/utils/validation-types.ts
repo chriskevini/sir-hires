@@ -13,6 +13,7 @@ export interface ValidationMessage {
   entry?: string; // Used by profile validator for entry-based sections
   value?: string;
   allowedValues?: string[];
+  suggestedValue?: string; // For typo/case fix suggestions
   fields?: string[]; // Used by profile validator for field lists
 }
 
@@ -26,4 +27,33 @@ export interface BaseValidationResult {
   info: ValidationMessage[];
   customFields: string[];
   customSections: string[];
+}
+
+/**
+ * Valid fix types for validation autofix
+ */
+export type ValidationFixType =
+  | 'insert_at_start'
+  | 'insert_top_level_field'
+  | 'insert_field_in_entry'
+  | 'replace_enum_value_multi'
+  | 'rename_entry_id'
+  | 'rename_section'
+  | 'delete_section';
+
+/**
+ * Validation fix interface
+ * Represents an actionable fix for a validation error/warning
+ */
+export interface ValidationFix {
+  type: ValidationFixType;
+  text?: string;
+  buttonLabel?: string;
+  description?: string;
+  section?: string;
+  entry?: string;
+  field?: string;
+  currentValue?: string;
+  newValue?: string; // For rename operations
+  allowedValues?: string[];
 }

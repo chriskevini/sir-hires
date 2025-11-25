@@ -2,7 +2,10 @@
  * Profile-specific utility functions for editor manipulation and template insertion
  */
 
-import type { ValidationFix } from '@/entrypoints/profile/hooks/useProfileValidation';
+import type {
+  ValidationFix,
+  ValidationMessage,
+} from '@/utils/validation-types';
 
 // Constants
 const DEFAULT_LINE_HEIGHT = 16;
@@ -210,6 +213,150 @@ export const formatProfileContent = (content: string): string | null => {
 };
 
 /**
+ * Generates a validation fix object for a given validation message
+ * @param message - The validation message to generate a fix for
+ * @param content - The current content (needed for computing next entry IDs)
+ * @returns A ValidationFix object or null if no fix is available
+ */
+export const generateFix = (
+  message: ValidationMessage,
+  content: string
+): ValidationFix | null => {
+  if (!message || !message.type) {
+    return null;
+  }
+
+  switch (message.type) {
+    // === ERROR FIXES ===
+    case 'missing_type':
+      return {
+        type: 'insert_at_start',
+        text: '<PROFILE>\n',
+        buttonLabel: 'Add <PROFILE>',
+        description: 'Insert <PROFILE> at the start',
+      };
+
+    case 'missing_required_field':
+      if (message.section && message.entry) {
+        return {
+          type: 'insert_field_in_entry',
+          section: message.section,
+          entry: message.entry,
+          field: message.field!,
+          text: `${message.field}: `,
+          buttonLabel: `Add ${message.field}`,
+          description: `Insert ${message.field} field in ${message.section}.${message.entry}`,
+        };
+      } else {
+        return {
+          type: 'insert_top_level_field',
+          field: message.field!,
+          text: `${message.field}: `,
+          buttonLabel: `Add ${message.field}`,
+          description: `Insert ${message.field} field after <PROFILE>`,
+        };
+      }
+
+    case 'invalid_enum_value':
+      return {
+        type: 'replace_enum_value_multi',
+        section: message.section,
+        entry: message.entry,
+        field: message.field,
+        currentValue: message.value,
+        allowedValues: message.allowedValues,
+        description: 'Replace with correct value',
+      };
+
+    // === WARNING FIXES ===
+    case 'duplicate_entry_id': {
+      // Entry ID is duplicated - rename to next available
+      const entryId = message.entry || '';
+      const prefixMatch = entryId.match(/^([A-Z]+_)/);
+      let prefix = prefixMatch ? prefixMatch[1] : 'ENTRY_';
+      if (!prefixMatch && message.section === 'EDUCATION') prefix = 'EDU_';
+      if (!prefixMatch && message.section === 'EXPERIENCE') prefix = 'EXP_';
+      const nextId = findNextEntryId(content, prefix);
+      const newEntryId = `${prefix}${nextId}`;
+      return {
+        type: 'rename_entry_id',
+        section: message.section,
+        entry: message.entry,
+        currentValue: message.entry,
+        newValue: newEntryId,
+        buttonLabel: `→ ${newEntryId}`,
+        description: `Rename duplicate entry ID "${message.entry}" to "${newEntryId}"`,
+      };
+    }
+
+    case 'possible_section_typo': {
+      // Use suggestedValue from validation message
+      const suggestedSection = message.suggestedValue;
+      if (suggestedSection) {
+        return {
+          type: 'rename_section',
+          section: message.section,
+          currentValue: message.section,
+          newValue: suggestedSection,
+          buttonLabel: `→ ${suggestedSection}`,
+          description: `Rename section "${message.section}" to "${suggestedSection}"`,
+        };
+      }
+      return null;
+    }
+
+    case 'section_name_case': {
+      // Use suggestedValue from validation message
+      const uppercaseSection = message.suggestedValue;
+      if (uppercaseSection) {
+        return {
+          type: 'rename_section',
+          section: message.section,
+          currentValue: message.section,
+          newValue: uppercaseSection,
+          buttonLabel: `→ ${uppercaseSection}`,
+          description: `Rename section "${message.section}" to "${uppercaseSection}"`,
+        };
+      }
+      return null;
+    }
+
+    case 'invalid_entry_id': {
+      // Entry ID doesn't follow naming convention - rename to next available
+      let prefix = 'ENTRY_';
+      if (message.section === 'EDUCATION') prefix = 'EDU_';
+      if (message.section === 'EXPERIENCE') prefix = 'EXP_';
+      if (message.section === 'SKILLS') prefix = 'SKILL_';
+      if (message.section === 'PROJECTS') prefix = 'PROJ_';
+      if (message.section === 'CERTIFICATIONS') prefix = 'CERT_';
+      const nextId = findNextEntryId(content, prefix);
+      const newEntryId = `${prefix}${nextId}`;
+      return {
+        type: 'rename_entry_id',
+        section: message.section,
+        entry: message.entry,
+        currentValue: message.entry,
+        newValue: newEntryId,
+        buttonLabel: `→ ${newEntryId}`,
+        description: `Rename entry ID "${message.entry}" to "${newEntryId}"`,
+      };
+    }
+
+    case 'empty_section':
+      // Empty section - offer to delete
+      return {
+        type: 'delete_section',
+        section: message.section,
+        buttonLabel: 'Delete',
+        description: `Delete empty section "${message.section}"`,
+      };
+
+    default:
+      return null;
+  }
+};
+
+/**
  * Applies a validation fix to the content
  */
 export const applyFix = (
@@ -288,7 +435,111 @@ export const applyFix = (
       newContent = result.newContent;
       cursorPosition = result.cursorPosition;
     }
+  } else if (fix.type === 'rename_entry_id') {
+    // Rename entry ID (e.g., duplicate or invalid ID)
+    const entryId = fix.currentValue || fix.entry;
+    if (!entryId) return null;
+
+    // Use pre-computed newValue from generateFix to ensure consistency
+    // (avoids race condition if content changes between validation and fix)
+    const newEntryId = fix.newValue;
+    if (!newEntryId) return null;
+
+    // Replace the entry header
+    const entryRegex = new RegExp(
+      `^(##\\s+)${escapeRegex(entryId)}(\\s*)$`,
+      'm'
+    );
+    const entryMatch = currentContent.match(entryRegex);
+
+    if (entryMatch) {
+      const replaceStart = entryMatch.index!;
+      const replaceEnd = replaceStart + entryMatch[0].length;
+      const replacement = `${entryMatch[1]}${newEntryId}${entryMatch[2]}`;
+
+      newContent =
+        currentContent.slice(0, replaceStart) +
+        replacement +
+        currentContent.slice(replaceEnd);
+      cursorPosition = replaceStart + replacement.length;
+    }
+  } else if (fix.type === 'rename_section') {
+    // Rename section header (e.g., typo or case fix)
+    const oldSection = fix.currentValue || fix.section;
+    const newSection = fix.newValue;
+    if (!oldSection || !newSection) return null;
+
+    // Match section header (# SECTION_NAME with optional trailing colon)
+    const sectionRegex = new RegExp(
+      `^(#\\s+)${escapeRegex(oldSection)}(:?)(\\s*)$`,
+      'm'
+    );
+    const sectionMatch = currentContent.match(sectionRegex);
+
+    if (sectionMatch) {
+      const replaceStart = sectionMatch.index!;
+      const replaceEnd = replaceStart + sectionMatch[0].length;
+      // Preserve the colon if it was there
+      const replacement = `${sectionMatch[1]}${newSection}${sectionMatch[2]}${sectionMatch[3]}`;
+
+      newContent =
+        currentContent.slice(0, replaceStart) +
+        replacement +
+        currentContent.slice(replaceEnd);
+      cursorPosition = replaceStart + replacement.length;
+    }
+  } else if (fix.type === 'delete_section') {
+    // Delete empty section
+    const sectionName = fix.section;
+    if (!sectionName) return null;
+
+    // Match section header (with optional trailing colon)
+    const sectionRegex = new RegExp(
+      `^#\\s+${escapeRegex(sectionName)}:?\\s*$`,
+      'm'
+    );
+    const sectionMatch = currentContent.match(sectionRegex);
+
+    if (sectionMatch) {
+      const sectionStart = sectionMatch.index!;
+
+      // Find where this section ends (next section or end of content)
+      const afterHeader = sectionStart + sectionMatch[0].length;
+      const sectionEnd = findNextSectionPosition(currentContent, afterHeader);
+
+      // Check if there's content between section header and next section
+      const sectionContent = currentContent
+        .slice(afterHeader, sectionEnd)
+        .trim();
+
+      // Only delete if section is truly empty (no entries)
+      if (!sectionContent || !sectionContent.match(/^##\s+/m)) {
+        // Find start of line (include leading newline if present)
+        let deleteStart = sectionStart;
+        if (deleteStart > 0 && currentContent[deleteStart - 1] === '\n') {
+          deleteStart--;
+        }
+
+        // Include trailing whitespace/newlines
+        let deleteEnd = sectionEnd;
+
+        newContent =
+          currentContent.slice(0, deleteStart) +
+          currentContent.slice(deleteEnd);
+        cursorPosition = deleteStart;
+
+        // Clean up multiple consecutive newlines
+        newContent = newContent.replace(/\n{3,}/g, '\n\n');
+      }
+    }
   }
 
   return { newContent, cursorPosition };
+};
+
+/**
+ * Escapes special regex characters in a string
+ */
+const escapeRegex = (str: string): string => {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };

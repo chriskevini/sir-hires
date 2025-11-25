@@ -6,6 +6,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { parseProfile } from '@/utils/profile-parser';
 import { validateProfile } from '@/utils/profile-validator';
+import { findNextEntryId } from '@/utils/profile-utils';
 
 export interface ValidationMessage {
   message: string;
@@ -73,7 +74,7 @@ export function useProfileValidation({
   const validationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const generateFix = useCallback(
-    (message: ValidationMessage): ValidationFix | null => {
+    (message: ValidationMessage, content: string): ValidationFix | null => {
       if (!message || !message.type) {
         return null;
       }
@@ -121,16 +122,25 @@ export function useProfileValidation({
           };
 
         // === WARNING FIXES ===
-        case 'duplicate_entry_id':
+        case 'duplicate_entry_id': {
           // Entry ID is duplicated - rename to next available
+          const entryId = message.entry || '';
+          const prefixMatch = entryId.match(/^([A-Z]+_)/);
+          let prefix = prefixMatch ? prefixMatch[1] : 'ENTRY_';
+          if (!prefixMatch && message.section === 'EDUCATION') prefix = 'EDU_';
+          if (!prefixMatch && message.section === 'EXPERIENCE') prefix = 'EXP_';
+          const nextId = findNextEntryId(content, prefix);
+          const newEntryId = `${prefix}${nextId}`;
           return {
             type: 'rename_entry_id',
             section: message.section,
             entry: message.entry,
             currentValue: message.entry,
-            buttonLabel: 'Rename',
-            description: `Rename duplicate entry ID "${message.entry}" to next available`,
+            newValue: newEntryId,
+            buttonLabel: `→ ${newEntryId}`,
+            description: `Rename duplicate entry ID "${message.entry}" to "${newEntryId}"`,
           };
+        }
 
         case 'possible_section_typo': {
           // Use suggestedValue from validation message
@@ -164,16 +174,26 @@ export function useProfileValidation({
           return null;
         }
 
-        case 'invalid_entry_id':
-          // Entry ID doesn't follow naming convention - rename
+        case 'invalid_entry_id': {
+          // Entry ID doesn't follow naming convention - rename to next available
+          let prefix = 'ENTRY_';
+          if (message.section === 'EDUCATION') prefix = 'EDU_';
+          if (message.section === 'EXPERIENCE') prefix = 'EXP_';
+          if (message.section === 'SKILLS') prefix = 'SKILL_';
+          if (message.section === 'PROJECTS') prefix = 'PROJ_';
+          if (message.section === 'CERTIFICATIONS') prefix = 'CERT_';
+          const nextId = findNextEntryId(content, prefix);
+          const newEntryId = `${prefix}${nextId}`;
           return {
             type: 'rename_entry_id',
             section: message.section,
             entry: message.entry,
             currentValue: message.entry,
-            buttonLabel: 'Rename',
-            description: `Rename entry ID "${message.entry}" to follow naming convention`,
+            newValue: newEntryId,
+            buttonLabel: `→ ${newEntryId}`,
+            description: `Rename entry ID "${message.entry}" to "${newEntryId}"`,
           };
+        }
 
         case 'empty_section':
           // Empty section - offer to delete
@@ -208,13 +228,13 @@ export function useProfileValidation({
 
         // Generate fixes for errors
         const errorFixes = validationResult.errors.map(
-          (error: ValidationMessage) => generateFix(error)
+          (error: ValidationMessage) => generateFix(error, content)
         );
         setValidationFixes(errorFixes);
 
         // Generate fixes for warnings
         const warnFixes = validationResult.warnings.map(
-          (warning: ValidationMessage) => generateFix(warning)
+          (warning: ValidationMessage) => generateFix(warning, content)
         );
         setWarningFixes(warnFixes);
       } catch (error: unknown) {

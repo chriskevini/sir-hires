@@ -165,7 +165,7 @@ function validateProfileTemplate(
         type: 'duplicate_entry_id',
         section,
         entry: entryId,
-        message: `Duplicate entry ID "${entryId}" in ${section}. Only the last occurrence will be kept.`,
+        message: `Duplicate entry ID "${entryId}" in ${section}`,
       });
     });
   }
@@ -204,7 +204,7 @@ function validateTopLevelFields(
       result.errors.push({
         type: 'missing_required_field',
         field: requiredField,
-        message: `Required field "${requiredField}" is missing or empty`,
+        message: `Missing required field "${requiredField}"`,
       });
       result.valid = false;
     }
@@ -296,7 +296,7 @@ function validateSectionName(
       type: 'section_name_case',
       section: sectionName,
       suggestedValue: upperSectionName,
-      message: `Section "${sectionName}" should be uppercase: "${upperSectionName}"`,
+      message: `Section "${sectionName}" should be uppercase`,
     });
     return;
   }
@@ -362,7 +362,7 @@ function validateEntryId(
       type: 'invalid_entry_id',
       section: sectionName,
       entry: entryId,
-      message: `Entry ID "${entryId}" in ${sectionName} doesn't follow naming convention (${pattern.expectedFormat}). This may confuse LLMs.`,
+      message: `Entry ID "${entryId}" in ${sectionName} doesn't follow naming convention`,
     });
   }
 }
@@ -386,7 +386,7 @@ function validateEntrySection(
     result.warnings.push({
       type: 'empty_section',
       section: sectionName,
-      message: `Section "${sectionName}" has no entries`,
+      message: `Section "${sectionName}" is empty`,
     });
     return;
   }
@@ -407,7 +407,7 @@ function validateEntrySection(
             section: sectionName,
             entry: entryId,
             field: requiredField,
-            message: `Required field "${requiredField}" is missing in ${sectionName}.${entryId}`,
+            message: `Missing required field "${requiredField}" in ${sectionName}.${entryId}`,
           });
           result.valid = false;
         }
@@ -428,7 +428,7 @@ function validateEntrySection(
             field: enumField,
             value: value,
             allowedValues: allowedValues,
-            message: `Invalid value "${value}" for ${enumField} in ${sectionName}.${entryId}. Allowed values: ${allowedValues.join(', ')}`,
+            message: `Invalid value "${value}" for ${enumField} in ${sectionName}.${entryId}`,
           });
           result.valid = false;
         }

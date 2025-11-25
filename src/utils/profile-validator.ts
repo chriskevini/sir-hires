@@ -373,7 +373,7 @@ function validateEntryId(
       type: 'invalid_entry_id',
       section: sectionName,
       entry: entryId,
-      message: `Entry ID "${entryId}" in ${sectionName} doesn't follow naming convention`,
+      message: `Invalid entry ID "${entryId}" in ${sectionName}`,
     });
   }
 }
@@ -461,7 +461,7 @@ function validateEntrySection(
         section: sectionName,
         entry: entryId,
         fields: customEntryFields,
-        message: `Entry ${sectionName}.${entryId} includes custom field(s): ${customEntryFields.join(', ')}`,
+        message: `Custom fields in ${sectionName}.${entryId}: ${customEntryFields.join(', ')}`,
       });
     }
   });

@@ -133,7 +133,7 @@ function validateTopLevelFields(
       result.errors.push({
         type: 'missing_required_field',
         field: requiredField,
-        message: `Required field "${requiredField}" is missing or empty`,
+        message: `Missing required field "${requiredField}"`,
       });
       result.valid = false;
     }

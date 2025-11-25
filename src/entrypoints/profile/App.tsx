@@ -711,8 +711,8 @@ BULLETS:
             <div className="modal-hint-content">
               <p>
                 <strong>Tip:</strong> Label your projects clearly in your resume
-                (e.g., &quot;Personal Project: MyApp&quot;) - the LLM may not
-                recognize unlabeled projects.
+                (e.g., &quot;Project: MyApp&quot;) - the LLM may not recognize
+                unlabeled projects.
               </p>
             </div>
           </div>

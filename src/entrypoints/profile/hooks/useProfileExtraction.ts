@@ -11,6 +11,15 @@ export function useProfileExtraction(callbacks: {
   onExtractionError: (error: string) => void;
   onExtractionCancelled: () => void;
 }): void {
+  // Destructure callbacks to use individual dependencies
+  const {
+    onExtractionStarted,
+    onChunkReceived,
+    onExtractionComplete,
+    onExtractionError,
+    onExtractionCancelled,
+  } = callbacks;
+
   useEffect(() => {
     const messageListener = (
       message: {
@@ -23,29 +32,29 @@ export function useProfileExtraction(callbacks: {
     ) => {
       switch (message.action) {
         case 'profileExtractionStarted':
-          callbacks.onExtractionStarted();
+          onExtractionStarted();
           break;
 
         case 'profileExtractionChunk':
           if (message.chunk) {
-            callbacks.onChunkReceived(message.chunk);
+            onChunkReceived(message.chunk);
           }
           break;
 
         case 'profileExtractionComplete':
           if (message.fullContent !== undefined) {
-            callbacks.onExtractionComplete(message.fullContent);
+            onExtractionComplete(message.fullContent);
           }
           break;
 
         case 'profileExtractionError':
           if (message.error) {
-            callbacks.onExtractionError(message.error);
+            onExtractionError(message.error);
           }
           break;
 
         case 'profileExtractionCancelled':
-          callbacks.onExtractionCancelled();
+          onExtractionCancelled();
           break;
       }
     };
@@ -55,5 +64,11 @@ export function useProfileExtraction(callbacks: {
     return () => {
       browser.runtime.onMessage.removeListener(messageListener);
     };
-  }, [callbacks]);
+  }, [
+    onExtractionStarted,
+    onChunkReceived,
+    onExtractionComplete,
+    onExtractionError,
+    onExtractionCancelled,
+  ]);
 }

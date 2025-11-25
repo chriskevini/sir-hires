@@ -135,6 +135,11 @@ export default function App() {
         });
       },
       onExtractionComplete: (fullContent: string) => {
+        // Ensure progress interval is cleared
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
         setContent(fullContent);
         setIsExtracting(false);
         progressIndexRef.current = 0;
@@ -144,6 +149,11 @@ export default function App() {
         setTimeout(() => setStatusMessage(''), 3000);
       },
       onExtractionError: (error: string) => {
+        // Clear progress interval if still running
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
         setContent(originalContentRef.current); // REVERT to original
         setIsExtracting(false);
         progressIndexRef.current = 0;
@@ -153,6 +163,11 @@ export default function App() {
         setStatusMessage('');
       },
       onExtractionCancelled: () => {
+        // Clear progress interval if still running
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
         // Keep whatever was streamed (don't revert to original)
         setContent((prev) => {
           // If still showing progress message, revert to original

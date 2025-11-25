@@ -295,7 +295,8 @@ function validateSectionName(
     result.warnings.push({
       type: 'section_name_case',
       section: sectionName,
-      message: `Section "${sectionName}" should be uppercase: "${upperSectionName}". Section names must be ALL_CAPS.`,
+      suggestedValue: upperSectionName,
+      message: `Section "${sectionName}" should be uppercase: "${upperSectionName}"`,
     });
     return;
   }
@@ -306,7 +307,8 @@ function validateSectionName(
       result.warnings.push({
         type: 'possible_section_typo',
         section: sectionName,
-        message: `Section "${sectionName}" looks similar to "${standardSection}". Did you mean "${standardSection}"?`,
+        suggestedValue: standardSection,
+        message: `Section "${sectionName}" may be a typo`,
       });
       return;
     }

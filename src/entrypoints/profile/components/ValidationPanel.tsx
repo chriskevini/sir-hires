@@ -7,6 +7,7 @@ import type {
 interface ValidationPanelProps {
   validation: ValidationResult;
   validationFixes: (ValidationFix | null)[];
+  warningFixes: (ValidationFix | null)[];
   onApplyFix: (fix: ValidationFix, enumValue?: string) => void;
   onInsertEducation?: () => void;
   onInsertExperience?: () => void;
@@ -21,6 +22,7 @@ interface ValidationPanelProps {
 export function ValidationPanel({
   validation,
   validationFixes,
+  warningFixes,
   onApplyFix,
   onInsertEducation,
   onInsertExperience,
@@ -180,14 +182,26 @@ export function ValidationPanel({
               );
             })}
 
-            {validation.warnings.map((warning, index) => (
-              <div
-                key={`warning-${index}`}
-                className="validation-message validation-warning"
-              >
-                {warning.message}
-              </div>
-            ))}
+            {validation.warnings.map((warning, index) => {
+              const fix = warningFixes[index];
+              return (
+                <div
+                  key={`warning-${index}`}
+                  className="validation-message validation-warning"
+                >
+                  {warning.message}
+                  {fix && (
+                    <button
+                      className="fix-button"
+                      onClick={() => onApplyFix(fix)}
+                      title={fix.description}
+                    >
+                      {fix.buttonLabel}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
 
             {validation.info.map((info, index) => (
               <div

@@ -7,7 +7,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { parseProfile } from '@/utils/profile-parser';
 import { validateProfile } from '@/utils/profile-validator';
 
-export interface ValidationError {
+export interface ValidationMessage {
   message: string;
   type?: string;
   section?: string;
@@ -15,12 +15,13 @@ export interface ValidationError {
   field?: string;
   value?: string;
   allowedValues?: string[];
+  suggestedValue?: string; // For typo fixes
 }
 
 export interface ValidationResult {
-  errors: ValidationError[];
-  warnings: { message: string }[];
-  info: { message: string }[];
+  errors: ValidationMessage[];
+  warnings: ValidationMessage[];
+  info: ValidationMessage[];
   customFields: string[];
   customSections: string[];
 }
@@ -34,6 +35,7 @@ export interface ValidationFix {
   entry?: string;
   field?: string;
   currentValue?: string;
+  newValue?: string; // For rename operations
   allowedValues?: string[];
 }
 
@@ -65,15 +67,19 @@ export function useProfileValidation({
   const [validationFixes, setValidationFixes] = useState<
     (ValidationFix | null)[]
   >([]);
+  const [warningFixes, setWarningFixes] = useState<(ValidationFix | null)[]>(
+    []
+  );
   const validationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const generateFix = useCallback(
-    (error: ValidationError): ValidationFix | null => {
-      if (!error || !error.type) {
+    (message: ValidationMessage): ValidationFix | null => {
+      if (!message || !message.type) {
         return null;
       }
 
-      switch (error.type) {
+      switch (message.type) {
+        // === ERROR FIXES ===
         case 'missing_type':
           return {
             type: 'insert_at_start',
@@ -83,35 +89,99 @@ export function useProfileValidation({
           };
 
         case 'missing_required_field':
-          if (error.section && error.entry) {
+          if (message.section && message.entry) {
             return {
               type: 'insert_field_in_entry',
-              section: error.section,
-              entry: error.entry,
-              field: error.field!,
-              text: `${error.field}: `,
-              buttonLabel: `Add ${error.field}`,
-              description: `Insert ${error.field} field in ${error.section}.${error.entry}`,
+              section: message.section,
+              entry: message.entry,
+              field: message.field!,
+              text: `${message.field}: `,
+              buttonLabel: `Add ${message.field}`,
+              description: `Insert ${message.field} field in ${message.section}.${message.entry}`,
             };
           } else {
             return {
               type: 'insert_top_level_field',
-              field: error.field!,
-              text: `${error.field}: `,
-              buttonLabel: `Add ${error.field}`,
-              description: `Insert ${error.field} field after <PROFILE>`,
+              field: message.field!,
+              text: `${message.field}: `,
+              buttonLabel: `Add ${message.field}`,
+              description: `Insert ${message.field} field after <PROFILE>`,
             };
           }
 
         case 'invalid_enum_value':
           return {
             type: 'replace_enum_value_multi',
-            section: error.section,
-            entry: error.entry,
-            field: error.field,
-            currentValue: error.value,
-            allowedValues: error.allowedValues,
+            section: message.section,
+            entry: message.entry,
+            field: message.field,
+            currentValue: message.value,
+            allowedValues: message.allowedValues,
             description: 'Replace with correct value',
+          };
+
+        // === WARNING FIXES ===
+        case 'duplicate_entry_id':
+          // Entry ID is duplicated - rename to next available
+          return {
+            type: 'rename_entry_id',
+            section: message.section,
+            entry: message.entry,
+            currentValue: message.entry,
+            buttonLabel: 'Rename',
+            description: `Rename duplicate entry ID "${message.entry}" to next available`,
+          };
+
+        case 'possible_section_typo': {
+          // Use suggestedValue from validation message
+          const suggestedSection = message.suggestedValue;
+          if (suggestedSection) {
+            return {
+              type: 'rename_section',
+              section: message.section,
+              currentValue: message.section,
+              newValue: suggestedSection,
+              buttonLabel: `→ ${suggestedSection}`,
+              description: `Rename section "${message.section}" to "${suggestedSection}"`,
+            };
+          }
+          return null;
+        }
+
+        case 'section_name_case': {
+          // Use suggestedValue from validation message
+          const uppercaseSection = message.suggestedValue;
+          if (uppercaseSection) {
+            return {
+              type: 'rename_section',
+              section: message.section,
+              currentValue: message.section,
+              newValue: uppercaseSection,
+              buttonLabel: `→ ${uppercaseSection}`,
+              description: `Rename section "${message.section}" to "${uppercaseSection}"`,
+            };
+          }
+          return null;
+        }
+
+        case 'invalid_entry_id':
+          // Entry ID doesn't follow naming convention - rename
+          return {
+            type: 'rename_entry_id',
+            section: message.section,
+            entry: message.entry,
+            currentValue: message.entry,
+            buttonLabel: 'Rename',
+            description: `Rename entry ID "${message.entry}" to follow naming convention`,
+          };
+
+        case 'empty_section':
+          // Empty section - offer to delete
+          return {
+            type: 'delete_section',
+            section: message.section,
+            buttonLabel: 'Delete',
+            description: `Delete empty section "${message.section}"`,
           };
 
         default:
@@ -126,6 +196,7 @@ export function useProfileValidation({
       if (!content || content.trim().length === 0) {
         setValidation(EMPTY_VALIDATION);
         setValidationFixes([]);
+        setWarningFixes([]);
         return;
       }
 
@@ -136,10 +207,16 @@ export function useProfileValidation({
         setValidation(validationResult);
 
         // Generate fixes for errors
-        const fixes = validationResult.errors.map((error: ValidationError) =>
-          generateFix(error)
+        const errorFixes = validationResult.errors.map(
+          (error: ValidationMessage) => generateFix(error)
         );
-        setValidationFixes(fixes);
+        setValidationFixes(errorFixes);
+
+        // Generate fixes for warnings
+        const warnFixes = validationResult.warnings.map(
+          (warning: ValidationMessage) => generateFix(warning)
+        );
+        setWarningFixes(warnFixes);
       } catch (error: unknown) {
         const err = error as Error;
         setValidation({
@@ -150,6 +227,7 @@ export function useProfileValidation({
           customSections: [],
         });
         setValidationFixes([]);
+        setWarningFixes([]);
       }
     },
     [generateFix]
@@ -182,5 +260,6 @@ export function useProfileValidation({
   return {
     validation,
     validationFixes,
+    warningFixes,
   };
 }

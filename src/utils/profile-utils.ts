@@ -288,7 +288,128 @@ export const applyFix = (
       newContent = result.newContent;
       cursorPosition = result.cursorPosition;
     }
+  } else if (fix.type === 'rename_entry_id') {
+    // Rename entry ID (e.g., duplicate or invalid ID)
+    // Find the entry prefix (EDU_, EXP_, etc.)
+    const entryId = fix.currentValue || fix.entry;
+    if (!entryId) return null;
+
+    // Extract prefix from entry ID (e.g., "EDU_1" -> "EDU_", "EXP_2" -> "EXP_")
+    const prefixMatch = entryId.match(/^([A-Z]+_)/);
+    let prefix = '';
+    if (prefixMatch) {
+      prefix = prefixMatch[1];
+    } else {
+      // For invalid IDs without prefix, determine from section
+      if (fix.section === 'EDUCATION') {
+        prefix = 'EDU_';
+      } else if (fix.section === 'EXPERIENCE') {
+        prefix = 'EXP_';
+      } else {
+        // Default to generic entry prefix
+        prefix = 'ENTRY_';
+      }
+    }
+
+    // Find next available ID for this prefix
+    const nextId = findNextEntryId(currentContent, prefix);
+    const newEntryId = `${prefix}${nextId}`;
+
+    // Replace the entry header
+    const entryRegex = new RegExp(
+      `^(##\\s+)${escapeRegex(entryId)}(\\s*)$`,
+      'm'
+    );
+    const entryMatch = currentContent.match(entryRegex);
+
+    if (entryMatch) {
+      const replaceStart = entryMatch.index!;
+      const replaceEnd = replaceStart + entryMatch[0].length;
+      const replacement = `${entryMatch[1]}${newEntryId}${entryMatch[2]}`;
+
+      newContent =
+        currentContent.slice(0, replaceStart) +
+        replacement +
+        currentContent.slice(replaceEnd);
+      cursorPosition = replaceStart + replacement.length;
+    }
+  } else if (fix.type === 'rename_section') {
+    // Rename section header (e.g., typo or case fix)
+    const oldSection = fix.currentValue || fix.section;
+    const newSection = fix.newValue;
+    if (!oldSection || !newSection) return null;
+
+    // Match section header (# SECTION_NAME with optional trailing colon)
+    const sectionRegex = new RegExp(
+      `^(#\\s+)${escapeRegex(oldSection)}(:?)(\\s*)$`,
+      'm'
+    );
+    const sectionMatch = currentContent.match(sectionRegex);
+
+    if (sectionMatch) {
+      const replaceStart = sectionMatch.index!;
+      const replaceEnd = replaceStart + sectionMatch[0].length;
+      // Preserve the colon if it was there
+      const replacement = `${sectionMatch[1]}${newSection}${sectionMatch[2]}${sectionMatch[3]}`;
+
+      newContent =
+        currentContent.slice(0, replaceStart) +
+        replacement +
+        currentContent.slice(replaceEnd);
+      cursorPosition = replaceStart + replacement.length;
+    }
+  } else if (fix.type === 'delete_section') {
+    // Delete empty section
+    const sectionName = fix.section;
+    if (!sectionName) return null;
+
+    // Match section header (with optional trailing colon)
+    const sectionRegex = new RegExp(
+      `^#\\s+${escapeRegex(sectionName)}:?\\s*$`,
+      'm'
+    );
+    const sectionMatch = currentContent.match(sectionRegex);
+
+    if (sectionMatch) {
+      const sectionStart = sectionMatch.index!;
+
+      // Find where this section ends (next section or end of content)
+      const afterHeader = sectionStart + sectionMatch[0].length;
+      const sectionEnd = findNextSectionPosition(currentContent, afterHeader);
+
+      // Check if there's content between section header and next section
+      const sectionContent = currentContent
+        .slice(afterHeader, sectionEnd)
+        .trim();
+
+      // Only delete if section is truly empty (no entries)
+      if (!sectionContent || !sectionContent.match(/^##\s+/m)) {
+        // Find start of line (include leading newline if present)
+        let deleteStart = sectionStart;
+        if (deleteStart > 0 && currentContent[deleteStart - 1] === '\n') {
+          deleteStart--;
+        }
+
+        // Include trailing whitespace/newlines
+        let deleteEnd = sectionEnd;
+
+        newContent =
+          currentContent.slice(0, deleteStart) +
+          currentContent.slice(deleteEnd);
+        cursorPosition = deleteStart;
+
+        // Clean up multiple consecutive newlines
+        newContent = newContent.replace(/\n{3,}/g, '\n\n');
+      }
+    }
   }
 
   return { newContent, cursorPosition };
+};
+
+/**
+ * Escapes special regex characters in a string
+ */
+const escapeRegex = (str: string): string => {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };

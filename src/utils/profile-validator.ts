@@ -174,14 +174,14 @@ function validateProfileTemplate(
   if (result.customFields.length > 0) {
     result.info.push({
       type: 'custom_fields',
-      message: `Your profile includes ${result.customFields.length} custom field(s): ${result.customFields.join(', ')}. These are fully supported and will be preserved.`,
+      message: `Custom fields: ${result.customFields.join(', ')}`,
     });
   }
 
   if (result.customSections.length > 0) {
     result.info.push({
       type: 'custom_sections',
-      message: `Your profile includes ${result.customSections.length} custom section(s): ${result.customSections.join(', ')}. These are fully supported and will be preserved.`,
+      message: `Custom sections: ${result.customSections.join(', ')}`,
     });
   }
 
@@ -373,7 +373,7 @@ function validateEntryId(
       type: 'invalid_entry_id',
       section: sectionName,
       entry: entryId,
-      message: `Entry ID "${entryId}" in ${sectionName} doesn't follow naming convention`,
+      message: `Invalid entry ID "${entryId}" in ${sectionName}`,
     });
   }
 }
@@ -461,7 +461,7 @@ function validateEntrySection(
         section: sectionName,
         entry: entryId,
         fields: customEntryFields,
-        message: `Entry ${sectionName}.${entryId} includes custom field(s): ${customEntryFields.join(', ')}`,
+        message: `Custom fields in ${sectionName}.${entryId}: ${customEntryFields.join(', ')}`,
       });
     }
   });

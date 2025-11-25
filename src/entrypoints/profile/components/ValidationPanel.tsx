@@ -34,9 +34,6 @@ export function ValidationPanel({
   // Compute validation UI state
   const hasErrors = validation.errors.length > 0;
   const hasWarnings = validation.warnings.length > 0;
-  const hasInfo = validation.info.length > 0;
-  const hasCustomFields = validation.customFields.length > 0;
-  const hasCustomSections = validation.customSections.length > 0;
   const customCount =
     validation.customFields.length + validation.customSections.length;
 
@@ -92,7 +89,7 @@ export function ValidationPanel({
                 {validation.warnings.length > 1 ? 's' : ''}
               </span>
             )}
-            {(hasInfo || customCount > 0) && (
+            {customCount > 0 && (
               <span className="count-info" style={{ display: 'block' }}>
                 {customCount} custom
               </span>
@@ -129,9 +126,7 @@ export function ValidationPanel({
       <div className="validation-content">
         {validation.errors.length === 0 &&
         validation.warnings.length === 0 &&
-        validation.info.length === 0 &&
-        !hasCustomFields &&
-        !hasCustomSections ? (
+        validation.info.length === 0 ? (
           <div className="validation-empty">No validation messages</div>
         ) : (
           <>
@@ -207,19 +202,6 @@ export function ValidationPanel({
                 {info.message}
               </div>
             ))}
-
-            {hasCustomFields && (
-              <div className="validation-message validation-info">
-                ✨ Custom fields detected: {validation.customFields.join(', ')}
-              </div>
-            )}
-
-            {hasCustomSections && (
-              <div className="validation-message validation-info">
-                ✨ Custom sections detected:{' '}
-                {validation.customSections.join(', ')}
-              </div>
-            )}
           </>
         )}
       </div>

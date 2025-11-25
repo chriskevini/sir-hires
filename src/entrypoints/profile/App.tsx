@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import './styles.css';
 import { browser } from 'wxt/browser';
 
@@ -99,37 +99,42 @@ export default function App() {
   // Validation hook
   const { validation, validationFixes } = useProfileValidation({ content });
 
-  // Profile extraction hook
-  useProfileExtraction({
-    onExtractionStarted: () => {
-      setIsExtracting(true);
-      setExtractionError(null);
-      setStatusMessage('Extracting profile...');
-      originalContentRef.current = content; // Store original
-      setContent(''); // Clear editor
-    },
-    onChunkReceived: (chunk: string) => {
-      setContent((prev) => prev + chunk); // Append chunk
-    },
-    onExtractionComplete: (fullContent: string) => {
-      setContent(fullContent);
-      setIsExtracting(false);
-      setStatusMessage('Profile extracted successfully!');
-      setTimeout(() => setStatusMessage(''), 3000);
-    },
-    onExtractionError: (error: string) => {
-      setContent(originalContentRef.current); // REVERT to original
-      setIsExtracting(false);
-      setExtractionError(error);
-      setStatusMessage('');
-    },
-    onExtractionCancelled: () => {
-      setContent(originalContentRef.current); // REVERT to original
-      setIsExtracting(false);
-      setStatusMessage('Extraction cancelled');
-      setTimeout(() => setStatusMessage(''), 3000);
-    },
-  });
+  // Profile extraction hook - memoize callbacks to prevent infinite re-renders
+  const extractionCallbacks = useMemo(
+    () => ({
+      onExtractionStarted: () => {
+        setIsExtracting(true);
+        setExtractionError(null);
+        setStatusMessage('Extracting profile...');
+        originalContentRef.current = content; // Store original
+        setContent(''); // Clear editor
+      },
+      onChunkReceived: (chunk: string) => {
+        setContent((prev) => prev + chunk); // Append chunk
+      },
+      onExtractionComplete: (fullContent: string) => {
+        setContent(fullContent);
+        setIsExtracting(false);
+        setStatusMessage('Profile extracted successfully!');
+        setTimeout(() => setStatusMessage(''), 3000);
+      },
+      onExtractionError: (error: string) => {
+        setContent(originalContentRef.current); // REVERT to original
+        setIsExtracting(false);
+        setExtractionError(error);
+        setStatusMessage('');
+      },
+      onExtractionCancelled: () => {
+        setContent(originalContentRef.current); // REVERT to original
+        setIsExtracting(false);
+        setStatusMessage('Extraction cancelled');
+        setTimeout(() => setStatusMessage(''), 3000);
+      },
+    }),
+    [content]
+  );
+
+  useProfileExtraction(extractionCallbacks);
 
   // Load profile from storage on mount
   useEffect(() => {
@@ -562,8 +567,16 @@ BULLETS:
           replaced. Save a backup first if needed.
         </p>
         <div className="modal-actions">
-          <button onClick={() => setShowConfirmDialog(false)}>Cancel</button>
-          <button onClick={handleConfirmExtraction} className="btn-primary">
+          <button
+            onClick={() => setShowConfirmDialog(false)}
+            className="modal-btn-secondary"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirmExtraction}
+            className="modal-btn-primary"
+          >
             Continue
           </button>
         </div>
@@ -588,7 +601,7 @@ BULLETS:
         </button>
         <button
           onClick={handleExtractClick}
-          className={isExtracting ? 'btn-cancel' : 'btn-extract'}
+          className={isExtracting ? 'btn-cancel-extraction' : 'btn-extract'}
           disabled={isExtracting && !content.trim()}
         >
           {isExtracting ? '❌ Cancel Extraction' : '📋 Extract from Resume'}

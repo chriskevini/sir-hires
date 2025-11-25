@@ -20,13 +20,29 @@ interface SectionSchema {
 }
 
 /**
+ * Entry ID pattern configuration
+ */
+interface EntryIdPattern {
+  pattern: RegExp;
+  expectedFormat: string;
+}
+
+/**
  * Profile schema definition
  */
 interface ProfileSchema {
   topLevelRequired: string[];
   topLevelOptional: string[];
   standardSections: Record<string, SectionSchema>;
+  entryIdPatterns: Record<string, EntryIdPattern>;
 }
+
+/**
+ * Similarity threshold for typo detection (0-1 scale).
+ * 0.8 catches single-character substitutions while avoiding false positives
+ * on short section names like "SKILLS" vs "INTERESTS".
+ */
+const TYPO_SIMILARITY_THRESHOLD = 0.8;
 
 /**
  * Parsed profile data structure
@@ -77,6 +93,20 @@ const PROFILE_SCHEMA: ProfileSchema = {
     },
     INTERESTS: {
       isList: true, // Section is just a list, no entries
+    },
+  },
+
+  // Entry ID naming patterns for standard sections.
+  // Custom sections are exempt - users can name entries however they want.
+  // Note: INTERESTS is a list section (no entries), so no pattern needed.
+  entryIdPatterns: {
+    EDUCATION: {
+      pattern: /^EDU_\d+$/,
+      expectedFormat: 'EDU_1, EDU_2, etc.',
+    },
+    EXPERIENCE: {
+      pattern: /^EXP_\d+$/,
+      expectedFormat: 'EXP_1, EXP_2, etc.',
     },
   },
 };
@@ -194,6 +224,9 @@ function validateSections(
     const schema = PROFILE_SCHEMA.standardSections[sectionName];
 
     if (!schema) {
+      // Not a recognized standard section - check for typos/case issues
+      validateSectionName(sectionName, result);
+
       // Custom section - this is encouraged!
       result.customSections.push(sectionName);
       return;
@@ -231,6 +264,95 @@ function validateListSection(
 }
 
 /**
+ * Validate section name for case issues or potential typos.
+ * Called for sections not found in standardSections.
+ */
+function validateSectionName(
+  sectionName: string,
+  result: ProfileValidationResult
+): void {
+  const standardSections = Object.keys(PROFILE_SCHEMA.standardSections);
+
+  // Check if this is a case variation of a standard section (e.g., "education" → "EDUCATION")
+  const upperSectionName = sectionName.toUpperCase();
+  if (
+    standardSections.includes(upperSectionName) &&
+    sectionName !== upperSectionName
+  ) {
+    result.warnings.push({
+      type: 'section_name_case',
+      section: sectionName,
+      message: `Section "${sectionName}" should be uppercase: "${upperSectionName}". Section names must be ALL_CAPS.`,
+    });
+    return;
+  }
+
+  // Check for possible typos using similarity matching
+  for (const standardSection of standardSections) {
+    if (isSimilarString(sectionName.toUpperCase(), standardSection)) {
+      result.warnings.push({
+        type: 'possible_section_typo',
+        section: sectionName,
+        message: `Section "${sectionName}" looks similar to "${standardSection}". Did you mean "${standardSection}"?`,
+      });
+      return;
+    }
+  }
+}
+
+/**
+ * Check if two strings are similar (for typo detection).
+ * Uses positional character matching with a similarity threshold.
+ */
+function isSimilarString(a: string, b: string): boolean {
+  // Length difference > 2 means unlikely to be a typo
+  if (Math.abs(a.length - b.length) > 2) {
+    return false;
+  }
+
+  // Count characters matching at the same position
+  const maxLen = Math.max(a.length, b.length);
+  const minLen = Math.min(a.length, b.length);
+  let matches = 0;
+
+  for (let i = 0; i < minLen; i++) {
+    if (a[i] === b[i]) {
+      matches++;
+    }
+  }
+
+  const similarity = matches / maxLen;
+
+  // Must be similar but not exact (exact matches are handled elsewhere)
+  return similarity >= TYPO_SIMILARITY_THRESHOLD && similarity < 1.0;
+}
+
+/**
+ * Validate entry ID naming convention for standard sections.
+ */
+function validateEntryId(
+  sectionName: string,
+  entryId: string,
+  result: ProfileValidationResult
+): void {
+  const pattern = PROFILE_SCHEMA.entryIdPatterns[sectionName];
+
+  // No pattern defined for this section (e.g., custom sections, INTERESTS)
+  if (!pattern) {
+    return;
+  }
+
+  if (!pattern.pattern.test(entryId)) {
+    result.warnings.push({
+      type: 'invalid_entry_id',
+      section: sectionName,
+      entry: entryId,
+      message: `Entry ID "${entryId}" in ${sectionName} doesn't follow naming convention (${pattern.expectedFormat}). This may confuse LLMs.`,
+    });
+  }
+}
+
+/**
  * Validate an entry-based section (e.g., EDUCATION, EXPERIENCE)
  */
 function validateEntrySection(
@@ -257,6 +379,9 @@ function validateEntrySection(
   entryIds.forEach((entryId) => {
     const entry = entries[entryId];
     const fields = entry.fields || {};
+
+    // Validate entry ID naming convention (e.g., EDU_1, EXP_2)
+    validateEntryId(sectionName, entryId, result);
 
     // Check required fields
     if (schema.required) {

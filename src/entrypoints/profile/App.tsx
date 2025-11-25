@@ -21,12 +21,14 @@ import {
   useProfileValidation,
   type ValidationFix,
 } from './hooks/useProfileValidation';
+import { useProfileExtraction } from './hooks/useProfileExtraction';
 
 // Import components
 import {
   ValidationPanel,
   useValidationEditorClass,
 } from './components/ValidationPanel';
+import { Modal } from '@/components/ui/Modal';
 
 // Constants
 const AUTO_SAVE_INTERVAL = 3000; // 3 seconds
@@ -84,14 +86,50 @@ export default function App() {
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [isTemplatePanelVisible, setIsTemplatePanelVisible] = useState(true);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractionError, setExtractionError] = useState<string | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Refs
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const originalContentRef = useRef<string>(''); // Store original before extraction
 
   // Validation hook
   const { validation, validationFixes } = useProfileValidation({ content });
+
+  // Profile extraction hook
+  useProfileExtraction({
+    onExtractionStarted: () => {
+      setIsExtracting(true);
+      setExtractionError(null);
+      setStatusMessage('Extracting profile...');
+      originalContentRef.current = content; // Store original
+      setContent(''); // Clear editor
+    },
+    onChunkReceived: (chunk: string) => {
+      setContent((prev) => prev + chunk); // Append chunk
+    },
+    onExtractionComplete: (fullContent: string) => {
+      setContent(fullContent);
+      setIsExtracting(false);
+      setStatusMessage('Profile extracted successfully!');
+      setTimeout(() => setStatusMessage(''), 3000);
+    },
+    onExtractionError: (error: string) => {
+      setContent(originalContentRef.current); // REVERT to original
+      setIsExtracting(false);
+      setExtractionError(error);
+      setStatusMessage('');
+    },
+    onExtractionCancelled: () => {
+      setContent(originalContentRef.current); // REVERT to original
+      setIsExtracting(false);
+      setStatusMessage('Extraction cancelled');
+      setTimeout(() => setStatusMessage(''), 3000);
+    },
+  });
 
   // Load profile from storage on mount
   useEffect(() => {
@@ -396,6 +434,52 @@ BULLETS:
     window.location.href = browser.runtime.getURL('/job-details.html');
   };
 
+  const handleExtractClick = () => {
+    if (isExtracting) {
+      handleCancelExtraction();
+    } else {
+      setShowConfirmDialog(true);
+    }
+  };
+
+  const handleConfirmExtraction = async () => {
+    setShowConfirmDialog(false);
+
+    const pastedText = content.trim();
+    if (!pastedText) {
+      setExtractionError('Please paste resume text first');
+      return;
+    }
+
+    try {
+      const { llmSettingsStorage } = await import('@/utils/storage');
+      const llmSettings = await llmSettingsStorage.getValue();
+
+      const response = await browser.runtime.sendMessage({
+        action: 'streamExtractProfile',
+        rawText: pastedText,
+        llmSettings: llmSettings,
+      });
+
+      if (!response.success) {
+        throw new Error(response.error || 'Extraction failed');
+      }
+    } catch (error) {
+      const err = error as Error;
+      setExtractionError(err.message);
+    }
+  };
+
+  const handleCancelExtraction = async () => {
+    try {
+      await browser.runtime.sendMessage({
+        action: 'cancelProfileExtraction',
+      });
+    } catch (error) {
+      console.error('Failed to cancel extraction:', error);
+    }
+  };
+
   // Compute editor className based on validation state
   const editorClassName = useValidationEditorClass(validation, content);
 
@@ -454,13 +538,36 @@ BULLETS:
               ref={editorRef}
               id="profileEditor"
               className={editorClassName}
-              placeholder="Start typing your profile here using the template format..."
+              placeholder="Follow the template on the left or paste your resume here and click extract with LLM."
               value={content}
               onChange={(e) => setContent(e.target.value)}
             />
           </div>
+          {extractionError && (
+            <div className="extraction-error">
+              <strong>❌ Extraction Error:</strong> {extractionError}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <Modal
+        isOpen={showConfirmDialog}
+        onClose={() => setShowConfirmDialog(false)}
+        title="Confirm Extraction"
+      >
+        <p>
+          ⚠️ LLM extraction may have errors. The current content will be
+          replaced. Save a backup first if needed.
+        </p>
+        <div className="modal-actions">
+          <button onClick={() => setShowConfirmDialog(false)}>Cancel</button>
+          <button onClick={handleConfirmExtraction} className="btn-primary">
+            Continue
+          </button>
+        </div>
+      </Modal>
 
       {/* Validation Panel */}
       <ValidationPanel
@@ -478,6 +585,13 @@ BULLETS:
           className="template-guide-show"
         >
           📖 Toggle Template
+        </button>
+        <button
+          onClick={handleExtractClick}
+          className={isExtracting ? 'btn-cancel' : 'btn-extract'}
+          disabled={isExtracting && !content.trim()}
+        >
+          {isExtracting ? '❌ Cancel Extraction' : '📋 Extract from Resume'}
         </button>
         <div className="export-buttons">
           <button onClick={formatProfile} className="btn-export">

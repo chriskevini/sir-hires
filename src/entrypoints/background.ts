@@ -99,6 +99,7 @@ interface StreamExtractProfileMessage extends BaseMessage {
   action: 'streamExtractProfile';
   rawText: string;
   llmSettings?: LLMSettings;
+  maxTokens?: number; // Dynamic max tokens based on input length
 }
 
 interface CancelProfileExtractionMessage extends BaseMessage {
@@ -511,7 +512,7 @@ export default defineBackground(() => {
         // Use user settings or fallback to config defaults
         const llmSettings: LLMSettings = userLlmSettings || {
           provider: 'lm-studio',
-          model: llmConfig.extraction.model || llmConfig.model,
+          model: llmConfig.jobExtraction.model || llmConfig.model,
           apiEndpoint: llmConfig.endpoint,
           endpoint: llmConfig.endpoint,
           maxTokens: 2000,
@@ -551,14 +552,14 @@ export default defineBackground(() => {
             });
 
             // Prepare prompts from config
-            const systemPrompt = llmConfig.extraction.prompt.trim();
+            const systemPrompt = llmConfig.jobExtraction.prompt.trim();
             const userPrompt = rawText;
 
             // Use configured model or fallback to default extraction model
             const modelToUse =
               llmSettings.model && llmSettings.model.trim() !== ''
                 ? llmSettings.model
-                : llmConfig.extraction.model || llmConfig.model;
+                : llmConfig.jobExtraction.model || llmConfig.model;
 
             console.info(
               '[Background] Using model for extraction:',
@@ -693,19 +694,24 @@ export default defineBackground(() => {
 
       if (request.action === 'streamExtractProfile') {
         // Handle streaming profile extraction with LLM
-        const { rawText, llmSettings: userLlmSettings } = request;
+        const {
+          rawText,
+          llmSettings: userLlmSettings,
+          maxTokens: dynamicMaxTokens,
+        } = request;
         console.info(
-          '[Background] Received streaming profile extraction request'
+          '[Background] Received streaming profile extraction request',
+          dynamicMaxTokens ? `with dynamic maxTokens: ${dynamicMaxTokens}` : ''
         );
 
         // Use user settings or fallback to config defaults
         const llmSettings: LLMSettings = userLlmSettings || {
           provider: 'lm-studio',
-          model: llmConfig.extraction.model || llmConfig.model,
+          model: llmConfig.profileExtraction.model || llmConfig.model,
           apiEndpoint: llmConfig.endpoint,
           endpoint: llmConfig.endpoint,
-          maxTokens: 2000,
-          temperature: 0.3,
+          maxTokens: dynamicMaxTokens || llmConfig.profileExtraction.maxTokens, // Use dynamic value if provided, else config default
+          temperature: llmConfig.profileExtraction.temperature,
         };
 
         // Start global keepalive BEFORE responding to ensure worker stays alive
@@ -746,11 +752,11 @@ export default defineBackground(() => {
             const systemPrompt = PROFILE_EXTRACTION_PROMPT;
             const userPrompt = rawText;
 
-            // Use configured model or fallback to default extraction model
+            // Use configured model or fallback to default profile extraction model
             const modelToUse =
               llmSettings.model && llmSettings.model.trim() !== ''
                 ? llmSettings.model
-                : llmConfig.extraction.model || llmConfig.model;
+                : llmConfig.profileExtraction.model || llmConfig.model;
 
             console.info(
               '[Background] Using model for profile extraction:',

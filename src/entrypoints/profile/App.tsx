@@ -96,8 +96,10 @@ export default function App() {
   const lastSavedIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const originalContentRef = useRef<string>(''); // Store original before extraction
 
-  // Validation hook
-  const { validation, validationFixes } = useProfileValidation({ content });
+  // Validation hook - disable during extraction to avoid performance issues
+  const { validation, validationFixes } = useProfileValidation({
+    content: isExtracting ? '' : content,
+  });
 
   // Profile extraction hook - memoize callbacks to prevent infinite re-renders
   const extractionCallbacks = useMemo(
@@ -105,17 +107,23 @@ export default function App() {
       onExtractionStarted: () => {
         setIsExtracting(true);
         setExtractionError(null);
-        setStatusMessage('Extracting profile...');
+        setStatusMessage('🔍 Analyzing your resume...');
         originalContentRef.current = content; // Store original
-        setContent(''); // Clear editor
+        setContent('⏳ Extraction in progress...\n\n'); // Placeholder text during extraction
       },
       onChunkReceived: (chunk: string) => {
-        setContent((prev) => prev + chunk); // Append chunk
+        setContent((prev) => {
+          // Remove placeholder if this is the first real chunk
+          if (prev.startsWith('⏳ Extraction in progress...')) {
+            return chunk;
+          }
+          return prev + chunk;
+        });
       },
       onExtractionComplete: (fullContent: string) => {
         setContent(fullContent);
         setIsExtracting(false);
-        setStatusMessage('Profile extracted successfully!');
+        setStatusMessage('✅ Profile extracted successfully!');
         setTimeout(() => setStatusMessage(''), 3000);
       },
       onExtractionError: (error: string) => {
@@ -460,10 +468,22 @@ BULLETS:
       const { llmSettingsStorage } = await import('@/utils/storage');
       const llmSettings = await llmSettingsStorage.getValue();
 
+      // Calculate dynamic max tokens (~1.5x input length)
+      // Rough estimate: 1 token ≈ 4 characters
+      const estimatedInputTokens = Math.ceil(pastedText.length / 4);
+      const dynamicMaxTokens = Math.ceil(estimatedInputTokens * 1.5);
+      // Cap at reasonable maximum (4000 tokens)
+      const maxTokens = Math.min(dynamicMaxTokens, 4000);
+
+      console.info(
+        `[Profile] Input length: ${pastedText.length} chars, estimated tokens: ${estimatedInputTokens}, max tokens: ${maxTokens}`
+      );
+
       const response = await browser.runtime.sendMessage({
         action: 'streamExtractProfile',
         rawText: pastedText,
         llmSettings: llmSettings,
+        maxTokens: maxTokens, // Pass calculated max tokens
       });
 
       if (!response.success) {
@@ -546,6 +566,7 @@ BULLETS:
               placeholder="Follow the template on the left or paste your resume here and click extract with LLM."
               value={content}
               onChange={(e) => setContent(e.target.value)}
+              disabled={isExtracting}
             />
           </div>
           {extractionError && (
@@ -562,23 +583,30 @@ BULLETS:
         onClose={() => setShowConfirmDialog(false)}
         title="Confirm Extraction"
       >
-        <p>
-          ⚠️ LLM extraction may have errors. The current content will be
-          replaced. Save a backup first if needed.
-        </p>
-        <div className="modal-actions">
-          <button
-            onClick={() => setShowConfirmDialog(false)}
-            className="modal-btn-secondary"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleConfirmExtraction}
-            className="modal-btn-primary"
-          >
-            Continue
-          </button>
+        <div className="modal-body">
+          <div className="modal-warning">
+            <span className="modal-warning-icon">⚠️</span>
+            <div className="modal-warning-content">
+              <p>
+                LLM extraction may have errors. The current content will be
+                replaced. Save a backup first if needed.
+              </p>
+            </div>
+          </div>
+          <div className="modal-actions">
+            <button
+              onClick={() => setShowConfirmDialog(false)}
+              className="modal-btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmExtraction}
+              className="modal-btn-primary"
+            >
+              Continue with Extraction
+            </button>
+          </div>
         </div>
       </Modal>
 

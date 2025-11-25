@@ -28,3 +28,20 @@ export interface BaseValidationResult {
   customFields: string[];
   customSections: string[];
 }
+
+/**
+ * Validation fix interface
+ * Represents an actionable fix for a validation error/warning
+ */
+export interface ValidationFix {
+  type: string;
+  text?: string;
+  buttonLabel?: string;
+  description?: string;
+  section?: string;
+  entry?: string;
+  field?: string;
+  currentValue?: string;
+  newValue?: string; // For rename operations
+  allowedValues?: string[];
+}

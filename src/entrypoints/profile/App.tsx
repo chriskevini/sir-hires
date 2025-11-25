@@ -17,6 +17,7 @@ import {
   findNextSectionPosition,
   applyFix as applyFixUtil,
 } from '@/utils/profile-utils';
+import { PROFILE_TEMPLATE } from '@/utils/profile-templates';
 import { UI_UPDATE_INTERVAL_MS } from '@/config';
 
 // Import hooks
@@ -76,52 +77,6 @@ const EXTRACTION_PROGRESS_MESSAGES = [
 // Helper to check if text is a progress message
 const isProgressMessage = (text: string): boolean =>
   EXTRACTION_PROGRESS_MESSAGES.some((msg) => text.startsWith(msg));
-
-const TEMPLATE_TEXT = `<PROFILE>
-NAME: Place Holder // required
-ADDRESS: 123 Main Street, Anytown, CA 45678
-EMAIL: name@email.com
-// ex: PHONE, WEBSITE, GITHUB
-
-# EDUCATION
-## EDU_1
-DEGREE: Master of Science in Computer Science // required
-SCHOOL: University of Helsinki // required
-LOCATION: Helsinki, Finland
-START: September 1988
-END: March 1997
-// ex: GPA
-
-# EXPERIENCE
-## EXP_1
-TYPE: PROFESSIONAL // required [PROFESSIONAL|PROJECT|VOLUNTEER]
-TITLE: Senior Developer // required
-AT: Tech Solutions Inc.
-START: October 2020
-END: ONGOING
-BULLETS:
-- Built API...
-- Led team...
-
-## EXP_2
-TYPE: PROJECT // required [PROFESSIONAL|PROJECT|VOLUNTEER]
-TITLE: Linux Kernel // required
-BULLETS:
-- Architected kernel...
-- Integrated Rust...
-
-## EXP_3
-TYPE: VOLUNTEER // required [PROFESSIONAL|PROJECT|VOLUNTEER]
-TITLE: Community Volunteer // required
-AT: Local Non-Profit
-BULLETS:
-- Supported educational...
-- Helped organize...
-
-# INTERESTS:
-- Scuba diving
-- Reading
-// ex: # CERTIFICATIONS:`;
 
 export default function App() {
   // State
@@ -666,7 +621,7 @@ BULLETS:
               ✕
             </button>
           </div>
-          <div className="template-content">{TEMPLATE_TEXT}</div>
+          <div className="template-content">{PROFILE_TEMPLATE}</div>
         </div>
 
         {/* Right Panel: Editor */}

@@ -32,6 +32,47 @@ import { Modal } from '@/components/ui/Modal';
 
 // Constants
 const AUTO_SAVE_INTERVAL = 3000; // 3 seconds
+const PROGRESS_MESSAGE_INTERVAL_MS = 1000; // Cycle progress messages every 1 seconds
+
+// Progress messages shown sequentially during extraction
+const EXTRACTION_PROGRESS_MESSAGES = [
+  '⏳ Starting extraction',
+  '⏳ Starting extraction.',
+  '⏳ Starting extraction..',
+  '⏳ Starting extraction...',
+  '🔍 Analyzing resume structure',
+  '🔍 Analyzing resume structure.',
+  '🔍 Analyzing resume structure..',
+  '🔍 Analyzing resume structure...',
+  '📝 Extracting contact information',
+  '📝 Extracting contact information.',
+  '📝 Extracting contact information..',
+  '📝 Extracting contact information...',
+  '🎓 Processing education history',
+  '🎓 Processing education history.',
+  '🎓 Processing education history..',
+  '🎓 Processing education history...',
+  '💼 Parsing work experience',
+  '💼 Parsing work experience.',
+  '💼 Parsing work experience..',
+  '💼 Parsing work experience...',
+  '🔧 Identifying skills and projects',
+  '🔧 Identifying skills and projects.',
+  '🔧 Identifying skills and projects..',
+  '🔧 Identifying skills and projects...',
+  '✨ Formatting profile data',
+  '✨ Formatting profile data.',
+  '✨ Formatting profile data..',
+  '✨ Formatting profile data...',
+  '⏳ Almost done',
+  '⏳ Almost done.',
+  '⏳ Almost done..',
+  '⏳ Almost done...',
+];
+
+// Helper to check if text is a progress message
+const isProgressMessage = (text: string): boolean =>
+  EXTRACTION_PROGRESS_MESSAGES.some((msg) => text.startsWith(msg));
 
 const TEMPLATE_TEXT = `<PROFILE>
 NAME: Place Holder // required
@@ -94,7 +135,11 @@ export default function App() {
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIndexRef = useRef<number>(0); // Track progress message index
   const originalContentRef = useRef<string>(''); // Store original before extraction
+  const templateWasVisibleRef = useRef<boolean>(true); // Store template visibility before extraction
+  const hasReceivedContentRef = useRef<boolean>(false); // Track if real content has started streaming
 
   // Validation hook - disable during extraction to avoid performance issues
   const { validation, validationFixes } = useProfileValidation({
@@ -107,14 +152,25 @@ export default function App() {
       onExtractionStarted: () => {
         setIsExtracting(true);
         setExtractionError(null);
-        setStatusMessage('🔍 Analyzing your resume...');
-        originalContentRef.current = content; // Store original
-        setContent('⏳ Extraction in progress...\n\n'); // Placeholder text during extraction
+        progressIndexRef.current = 0;
+        hasReceivedContentRef.current = false;
+        // Capture content from editorRef to avoid stale closure
+        originalContentRef.current = editorRef.current?.value || '';
+        templateWasVisibleRef.current = isTemplatePanelVisible; // Store template visibility
+        setIsTemplatePanelVisible(false); // Hide template during extraction
+        setStatusMessage(''); // Clear header status - progress shown in editor
+        setContent(EXTRACTION_PROGRESS_MESSAGES[0] + '\n\n'); // Initial progress message
       },
       onChunkReceived: (chunk: string) => {
+        hasReceivedContentRef.current = true;
+        // Clear progress interval immediately when real content arrives
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
         setContent((prev) => {
-          // Remove placeholder if this is the first real chunk
-          if (prev.startsWith('⏳ Extraction in progress...')) {
+          // Remove progress message if this is the first real chunk
+          if (isProgressMessage(prev)) {
             return chunk;
           }
           return prev + chunk;
@@ -123,26 +179,75 @@ export default function App() {
       onExtractionComplete: (fullContent: string) => {
         setContent(fullContent);
         setIsExtracting(false);
+        progressIndexRef.current = 0;
+        hasReceivedContentRef.current = false;
+        setIsTemplatePanelVisible(templateWasVisibleRef.current); // Restore template visibility
         setStatusMessage('✅ Profile extracted successfully!');
         setTimeout(() => setStatusMessage(''), 3000);
       },
       onExtractionError: (error: string) => {
         setContent(originalContentRef.current); // REVERT to original
         setIsExtracting(false);
+        progressIndexRef.current = 0;
+        hasReceivedContentRef.current = false;
+        setIsTemplatePanelVisible(templateWasVisibleRef.current); // Restore template visibility
         setExtractionError(error);
         setStatusMessage('');
       },
       onExtractionCancelled: () => {
-        setContent(originalContentRef.current); // REVERT to original
+        // Keep whatever was streamed (don't revert to original)
+        setContent((prev) => {
+          // If still showing progress message, revert to original
+          if (isProgressMessage(prev)) {
+            return originalContentRef.current;
+          }
+          // Otherwise keep the streamed content as-is
+          return prev;
+        });
         setIsExtracting(false);
-        setStatusMessage('Extraction cancelled');
+        progressIndexRef.current = 0;
+        hasReceivedContentRef.current = false;
+        setIsTemplatePanelVisible(templateWasVisibleRef.current); // Restore template visibility
+        setStatusMessage('Extraction cancelled - content preserved');
         setTimeout(() => setStatusMessage(''), 3000);
       },
     }),
-    [content]
+    [isTemplatePanelVisible]
   );
 
   useProfileExtraction(extractionCallbacks);
+
+  // Progress message cycling during extraction (stops at last message)
+  useEffect(() => {
+    if (isExtracting && !hasReceivedContentRef.current) {
+      progressIntervalRef.current = setInterval(() => {
+        // Only update content if we haven't started receiving real content
+        if (!hasReceivedContentRef.current) {
+          const lastIndex = EXTRACTION_PROGRESS_MESSAGES.length - 1;
+          // Stop cycling at the last message
+          if (progressIndexRef.current < lastIndex) {
+            progressIndexRef.current += 1;
+            setContent(
+              EXTRACTION_PROGRESS_MESSAGES[progressIndexRef.current] + '\n\n'
+            );
+          } else {
+            // At last message - clear interval to stop cycling
+            if (progressIntervalRef.current) {
+              clearInterval(progressIntervalRef.current);
+              progressIntervalRef.current = null;
+            }
+          }
+        }
+      }, PROGRESS_MESSAGE_INTERVAL_MS);
+    }
+
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    };
+  }, [isExtracting]);
 
   // Load profile from storage on mount
   useEffect(() => {
@@ -552,12 +657,6 @@ BULLETS:
 
         {/* Right Panel: Editor */}
         <div className="editor-panel">
-          <div className="editor-help">
-            <strong>💡 Tip:</strong> Use the Profile Template format (see left
-            panel). Start with <code>&lt;PROFILE&gt;</code>, use{' '}
-            <code>KEY: value</code> pairs, <code>#</code> for sections,{' '}
-            <code>##</code> for entries, and <code>-</code> for lists.
-          </div>
           <div className="editor-wrapper">
             <textarea
               ref={editorRef}
@@ -590,6 +689,16 @@ BULLETS:
               <p>
                 LLM extraction may have errors. The current content will be
                 replaced. Save a backup first if needed.
+              </p>
+            </div>
+          </div>
+          <div className="modal-hint">
+            <span className="modal-hint-icon">💡</span>
+            <div className="modal-hint-content">
+              <p>
+                <strong>Tip:</strong> Label your projects clearly in your resume
+                (e.g., &quot;Personal Project: MyApp&quot;) - the LLM may not
+                recognize unlabeled projects.
               </p>
             </div>
           </div>

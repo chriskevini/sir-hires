@@ -16,6 +16,7 @@ interface ParsedProfile {
   topLevelFields: Record<string, string>;
   sections: Record<string, ProfileSection>;
   raw: string;
+  duplicateEntryIds?: Array<{ section: string; entryId: string }>;
 }
 
 /**
@@ -45,11 +46,12 @@ function parseProfileTemplate(content: string): ParsedProfile {
     topLevelFields: {},
     sections: {},
     raw: content,
+    duplicateEntryIds: [],
   };
 
-  let currentSection = null;
-  let currentEntry = null;
-  let currentList = null;
+  let currentSection: string | null = null;
+  let currentEntry: string | null = null;
+  let currentList: string | null = null;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -86,6 +88,13 @@ function parseProfileTemplate(content: string): ParsedProfile {
     if (entryMatch) {
       const entryId = entryMatch[1];
       if (currentSection) {
+        // Check for duplicate entry ID within this section
+        if (result.sections[currentSection].entries[entryId]) {
+          result.duplicateEntryIds!.push({
+            section: currentSection,
+            entryId: entryId,
+          });
+        }
         currentEntry = entryId;
         currentList = null;
         result.sections[currentSection].entries[currentEntry] = {

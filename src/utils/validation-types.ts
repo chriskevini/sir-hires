@@ -30,11 +30,23 @@ export interface BaseValidationResult {
 }
 
 /**
+ * Valid fix types for validation autofix
+ */
+export type ValidationFixType =
+  | 'insert_at_start'
+  | 'insert_top_level_field'
+  | 'insert_field_in_entry'
+  | 'replace_enum_value_multi'
+  | 'rename_entry_id'
+  | 'rename_section'
+  | 'delete_section';
+
+/**
  * Validation fix interface
  * Represents an actionable fix for a validation error/warning
  */
 export interface ValidationFix {
-  type: string;
+  type: ValidationFixType;
   text?: string;
   buttonLabel?: string;
   description?: string;

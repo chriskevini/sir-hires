@@ -437,30 +437,13 @@ export const applyFix = (
     }
   } else if (fix.type === 'rename_entry_id') {
     // Rename entry ID (e.g., duplicate or invalid ID)
-    // Find the entry prefix (EDU_, EXP_, etc.)
     const entryId = fix.currentValue || fix.entry;
     if (!entryId) return null;
 
-    // Extract prefix from entry ID (e.g., "EDU_1" -> "EDU_", "EXP_2" -> "EXP_")
-    const prefixMatch = entryId.match(/^([A-Z]+_)/);
-    let prefix = '';
-    if (prefixMatch) {
-      prefix = prefixMatch[1];
-    } else {
-      // For invalid IDs without prefix, determine from section
-      if (fix.section === 'EDUCATION') {
-        prefix = 'EDU_';
-      } else if (fix.section === 'EXPERIENCE') {
-        prefix = 'EXP_';
-      } else {
-        // Default to generic entry prefix
-        prefix = 'ENTRY_';
-      }
-    }
-
-    // Find next available ID for this prefix
-    const nextId = findNextEntryId(currentContent, prefix);
-    const newEntryId = `${prefix}${nextId}`;
+    // Use pre-computed newValue from generateFix to ensure consistency
+    // (avoids race condition if content changes between validation and fix)
+    const newEntryId = fix.newValue;
+    if (!newEntryId) return null;
 
     // Replace the entry header
     const entryRegex = new RegExp(

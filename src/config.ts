@@ -2,6 +2,7 @@
 // Schema version: 0.3.0
 
 import { JOB_EXTRACTION_PROMPT } from './utils/job-templates';
+import { PROFILE_EXTRACTION_PROMPT } from './utils/profile-templates';
 
 // Status progression order for state-based navigation (v0.3.0)
 export const statusOrder = [
@@ -170,7 +171,8 @@ export interface LLMConfig {
   timeoutSeconds: number; // Calculated from timeoutMs
 
   // Task-Specific Parameters (override global model if needed)
-  extraction: TaskConfig;
+  jobExtraction: TaskConfig;
+  profileExtraction: TaskConfig;
   synthesis: TaskConfig;
 }
 
@@ -185,11 +187,18 @@ export const llmConfig: LLMConfig = {
     return this.timeoutMs / 1000;
   },
 
-  // Data extraction LLM (for job data extraction from web pages)
-  extraction: {
+  // Job data extraction LLM (for extracting structured data from job postings)
+  jobExtraction: {
     temperature: 0.3,
     maxTokens: 2000,
     prompt: JOB_EXTRACTION_PROMPT,
+  },
+
+  // Profile extraction LLM (for extracting structured data from resumes/CVs)
+  profileExtraction: {
+    temperature: 0.3,
+    maxTokens: 4000, // Higher default for longer resumes
+    prompt: PROFILE_EXTRACTION_PROMPT,
   },
 
   // Document synthesis LLM (for resume/cover letter generation)

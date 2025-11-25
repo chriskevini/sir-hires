@@ -1,9 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import './styles.css';
 import { browser } from 'wxt/browser';
 
 // Import WXT storage
-import { userProfileStorage } from '@/utils/storage';
+import {
+  userProfileStorage,
+  profileTemplatePanelStorage,
+} from '@/utils/storage';
 
 // Import utilities
 import { formatSaveTime } from '@/utils/date-utils';
@@ -14,6 +17,7 @@ import {
   findNextSectionPosition,
   applyFix as applyFixUtil,
 } from '@/utils/profile-utils';
+import { PROFILE_TEMPLATE } from '@/utils/profile-templates';
 import { UI_UPDATE_INTERVAL_MS } from '@/config';
 
 // Import hooks
@@ -21,61 +25,58 @@ import {
   useProfileValidation,
   type ValidationFix,
 } from './hooks/useProfileValidation';
+import { useProfileExtraction } from './hooks/useProfileExtraction';
 
 // Import components
 import {
   ValidationPanel,
   useValidationEditorClass,
 } from './components/ValidationPanel';
+import { Modal } from '@/components/ui/Modal';
 
 // Constants
 const AUTO_SAVE_INTERVAL = 3000; // 3 seconds
+const PROGRESS_MESSAGE_INTERVAL_MS = 1000; // Cycle progress messages every 1 seconds
 
-const TEMPLATE_TEXT = `<PROFILE>
-NAME: Place Holder // required
-ADDRESS: 123 Main Street, Anytown, CA 45678
-EMAIL: name@email.com
-// ex: PHONE, WEBSITE, GITHUB
+// Progress messages shown sequentially during extraction
+const EXTRACTION_PROGRESS_MESSAGES = [
+  '⏳ Starting extraction',
+  '⏳ Starting extraction.',
+  '⏳ Starting extraction..',
+  '⏳ Starting extraction...',
+  '🔍 Analyzing resume structure',
+  '🔍 Analyzing resume structure.',
+  '🔍 Analyzing resume structure..',
+  '🔍 Analyzing resume structure...',
+  '📝 Extracting contact information',
+  '📝 Extracting contact information.',
+  '📝 Extracting contact information..',
+  '📝 Extracting contact information...',
+  '🎓 Processing education history',
+  '🎓 Processing education history.',
+  '🎓 Processing education history..',
+  '🎓 Processing education history...',
+  '💼 Parsing work experience',
+  '💼 Parsing work experience.',
+  '💼 Parsing work experience..',
+  '💼 Parsing work experience...',
+  '🔧 Identifying skills and projects',
+  '🔧 Identifying skills and projects.',
+  '🔧 Identifying skills and projects..',
+  '🔧 Identifying skills and projects...',
+  '✨ Formatting profile data',
+  '✨ Formatting profile data.',
+  '✨ Formatting profile data..',
+  '✨ Formatting profile data...',
+  '⏳ Almost done',
+  '⏳ Almost done.',
+  '⏳ Almost done..',
+  '⏳ Almost done...',
+];
 
-# EDUCATION
-## EDU_1
-DEGREE: Master of Science in Computer Science // required
-SCHOOL: University of Helsinki // required
-LOCATION: Helsinki, Finland
-START: September 1988
-END: March 1997
-// ex: GPA
-
-# EXPERIENCE
-## EXP_1
-TYPE: PROFESSIONAL // required [PROFESSIONAL|PROJECT|VOLUNTEER]
-TITLE: Senior Developer // required
-AT: Tech Solutions Inc.
-START: October 2020
-END: ONGOING
-BULLETS:
-- Built API...
-- Led team...
-
-## EXP_2
-TYPE: PROJECT // required [PROFESSIONAL|PROJECT|VOLUNTEER]
-TITLE: Linux Kernel // required
-BULLETS:
-- Architected kernel...
-- Integrated Rust...
-
-## EXP_3
-TYPE: VOLUNTEER // required [PROFESSIONAL|PROJECT|VOLUNTEER]
-TITLE: Community Volunteer // required
-AT: Local Non-Profit
-BULLETS:
-- Supported educational...
-- Helped organize...
-
-# INTERESTS:
-- Scuba diving
-- Reading
-// ex: # CERTIFICATIONS:`;
+// Helper to check if text is a progress message
+const isProgressMessage = (text: string): boolean =>
+  EXTRACTION_PROGRESS_MESSAGES.some((msg) => text.startsWith(msg));
 
 export default function App() {
   // State
@@ -84,18 +85,147 @@ export default function App() {
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [isTemplatePanelVisible, setIsTemplatePanelVisible] = useState(true);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractionError, setExtractionError] = useState<string | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Refs
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIndexRef = useRef<number>(0); // Track progress message index
+  const originalContentRef = useRef<string>(''); // Store original before extraction
+  const hasReceivedContentRef = useRef<boolean>(false); // Track if real content has started streaming
 
-  // Validation hook
-  const { validation, validationFixes } = useProfileValidation({ content });
+  // Validation hook - disable during extraction to avoid performance issues
+  const { validation, validationFixes } = useProfileValidation({
+    content: isExtracting ? '' : content,
+  });
+
+  // Profile extraction hook - memoize callbacks to prevent infinite re-renders
+  const extractionCallbacks = useMemo(
+    () => ({
+      onExtractionStarted: () => {
+        setIsExtracting(true);
+        setExtractionError(null);
+        progressIndexRef.current = 0;
+        hasReceivedContentRef.current = false;
+        // Capture content from editorRef to avoid stale closure
+        originalContentRef.current = editorRef.current?.value || '';
+        // Hide template during extraction and persist preference
+        setIsTemplatePanelVisible(false);
+        profileTemplatePanelStorage.setValue(false);
+        setStatusMessage(''); // Clear header status - progress shown in editor
+        setContent(EXTRACTION_PROGRESS_MESSAGES[0] + '\n\n'); // Initial progress message
+      },
+      onChunkReceived: (chunk: string) => {
+        hasReceivedContentRef.current = true;
+        // Clear progress interval immediately when real content arrives
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+        setContent((prev) => {
+          // Remove progress message if this is the first real chunk
+          if (isProgressMessage(prev)) {
+            return chunk;
+          }
+          return prev + chunk;
+        });
+      },
+      onExtractionComplete: (fullContent: string) => {
+        // Ensure progress interval is cleared
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+        setContent(fullContent);
+        setIsExtracting(false);
+        progressIndexRef.current = 0;
+        hasReceivedContentRef.current = false;
+        // Template stays hidden (user preference persisted)
+        setStatusMessage('✅ Profile extracted successfully!');
+        setTimeout(() => setStatusMessage(''), 3000);
+      },
+      onExtractionError: (error: string) => {
+        // Clear progress interval if still running
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+        setContent(originalContentRef.current); // REVERT to original
+        setIsExtracting(false);
+        progressIndexRef.current = 0;
+        hasReceivedContentRef.current = false;
+        // Template stays hidden (user preference persisted)
+        setExtractionError(error);
+        setStatusMessage('');
+      },
+      onExtractionCancelled: () => {
+        // Clear progress interval if still running
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+        // Keep whatever was streamed (don't revert to original)
+        setContent((prev) => {
+          // If still showing progress message, revert to original
+          if (isProgressMessage(prev)) {
+            return originalContentRef.current;
+          }
+          // Otherwise keep the streamed content as-is
+          return prev;
+        });
+        setIsExtracting(false);
+        progressIndexRef.current = 0;
+        hasReceivedContentRef.current = false;
+        // Template stays hidden (user preference persisted)
+        setStatusMessage('Extraction cancelled - content preserved');
+        setTimeout(() => setStatusMessage(''), 3000);
+      },
+    }),
+    []
+  );
+
+  useProfileExtraction(extractionCallbacks);
+
+  // Progress message cycling during extraction (stops at last message)
+  useEffect(() => {
+    if (isExtracting && !hasReceivedContentRef.current) {
+      progressIntervalRef.current = setInterval(() => {
+        // Only update content if we haven't started receiving real content
+        if (!hasReceivedContentRef.current) {
+          const lastIndex = EXTRACTION_PROGRESS_MESSAGES.length - 1;
+          // Stop cycling at the last message
+          if (progressIndexRef.current < lastIndex) {
+            progressIndexRef.current += 1;
+            setContent(
+              EXTRACTION_PROGRESS_MESSAGES[progressIndexRef.current] + '\n\n'
+            );
+          } else {
+            // At last message - clear interval to stop cycling
+            if (progressIntervalRef.current) {
+              clearInterval(progressIntervalRef.current);
+              progressIntervalRef.current = null;
+            }
+          }
+        }
+      }, PROGRESS_MESSAGE_INTERVAL_MS);
+    }
+
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    };
+  }, [isExtracting]);
 
   // Load profile from storage on mount
   useEffect(() => {
     loadProfile();
+    loadTemplatePanelPreference();
     startAutoSave();
     startLastSavedInterval();
 
@@ -106,6 +236,16 @@ export default function App() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const loadTemplatePanelPreference = async () => {
+    const isVisible = await profileTemplatePanelStorage.getValue();
+    setIsTemplatePanelVisible(isVisible);
+  };
+
+  const toggleTemplatePanel = (visible: boolean) => {
+    setIsTemplatePanelVisible(visible);
+    profileTemplatePanelStorage.setValue(visible);
+  };
 
   const loadProfile = async () => {
     try {
@@ -396,6 +536,64 @@ BULLETS:
     window.location.href = browser.runtime.getURL('/job-details.html');
   };
 
+  const handleExtractClick = () => {
+    if (isExtracting) {
+      handleCancelExtraction();
+    } else {
+      setShowConfirmDialog(true);
+    }
+  };
+
+  const handleConfirmExtraction = async () => {
+    setShowConfirmDialog(false);
+
+    const pastedText = content.trim();
+    if (!pastedText) {
+      setExtractionError('Please paste resume text first');
+      return;
+    }
+
+    try {
+      const { llmSettingsStorage } = await import('@/utils/storage');
+      const llmSettings = await llmSettingsStorage.getValue();
+
+      // Calculate dynamic max tokens (~1.5x input length)
+      // Rough estimate: 1 token ≈ 4 characters
+      const estimatedInputTokens = Math.ceil(pastedText.length / 4);
+      const dynamicMaxTokens = Math.ceil(estimatedInputTokens * 1.5);
+      // Cap at reasonable maximum (4000 tokens)
+      const maxTokens = Math.min(dynamicMaxTokens, 4000);
+
+      console.info(
+        `[Profile] Input length: ${pastedText.length} chars, estimated tokens: ${estimatedInputTokens}, max tokens: ${maxTokens}`
+      );
+
+      const response = await browser.runtime.sendMessage({
+        action: 'streamExtractProfile',
+        rawText: pastedText,
+        llmSettings: llmSettings,
+        maxTokens: maxTokens, // Pass calculated max tokens
+      });
+
+      if (!response.success) {
+        throw new Error(response.error || 'Extraction failed');
+      }
+    } catch (error) {
+      const err = error as Error;
+      setExtractionError(err.message);
+    }
+  };
+
+  const handleCancelExtraction = async () => {
+    try {
+      await browser.runtime.sendMessage({
+        action: 'cancelProfileExtraction',
+      });
+    } catch (error) {
+      console.error('Failed to cancel extraction:', error);
+    }
+  };
+
   // Compute editor className based on validation state
   const editorClassName = useValidationEditorClass(validation, content);
 
@@ -431,36 +629,79 @@ BULLETS:
           <div className="template-panel-header">
             <h3>📖 Profile Template</h3>
             <button
-              onClick={() => setIsTemplatePanelVisible(false)}
+              onClick={() => toggleTemplatePanel(false)}
               className="template-panel-close"
               title="Hide template"
             >
               ✕
             </button>
           </div>
-          <div className="template-content">{TEMPLATE_TEXT}</div>
+          <div className="template-content">{PROFILE_TEMPLATE}</div>
         </div>
 
         {/* Right Panel: Editor */}
         <div className="editor-panel">
-          <div className="editor-help">
-            <strong>💡 Tip:</strong> Use the Profile Template format (see left
-            panel). Start with <code>&lt;PROFILE&gt;</code>, use{' '}
-            <code>KEY: value</code> pairs, <code>#</code> for sections,{' '}
-            <code>##</code> for entries, and <code>-</code> for lists.
-          </div>
           <div className="editor-wrapper">
             <textarea
               ref={editorRef}
               id="profileEditor"
               className={editorClassName}
-              placeholder="Start typing your profile here using the template format..."
+              placeholder="Follow the template on the left or paste your resume here and click extract with LLM."
               value={content}
               onChange={(e) => setContent(e.target.value)}
+              disabled={isExtracting}
             />
           </div>
+          {extractionError && (
+            <div className="extraction-error">
+              <strong>❌ Extraction Error:</strong> {extractionError}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <Modal
+        isOpen={showConfirmDialog}
+        onClose={() => setShowConfirmDialog(false)}
+        title="Confirm Extraction"
+      >
+        <div className="modal-body">
+          <div className="modal-warning">
+            <span className="modal-warning-icon">⚠️</span>
+            <div className="modal-warning-content">
+              <p>
+                LLM extraction may have errors. The current content will be
+                replaced. Save a backup first if needed.
+              </p>
+            </div>
+          </div>
+          <div className="modal-hint">
+            <span className="modal-hint-icon">💡</span>
+            <div className="modal-hint-content">
+              <p>
+                <strong>Tip:</strong> Label your projects clearly in your resume
+                (e.g., &quot;Project: MyApp&quot;) - the LLM may not recognize
+                unlabeled projects.
+              </p>
+            </div>
+          </div>
+          <div className="modal-actions">
+            <button
+              onClick={() => setShowConfirmDialog(false)}
+              className="modal-btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmExtraction}
+              className="modal-btn-primary"
+            >
+              Continue with Extraction
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Validation Panel */}
       <ValidationPanel
@@ -474,10 +715,17 @@ BULLETS:
 
       <footer>
         <button
-          onClick={() => setIsTemplatePanelVisible(!isTemplatePanelVisible)}
+          onClick={() => toggleTemplatePanel(!isTemplatePanelVisible)}
           className="template-guide-show"
         >
           📖 Toggle Template
+        </button>
+        <button
+          onClick={handleExtractClick}
+          className={isExtracting ? 'btn-cancel-extraction' : 'btn-extract'}
+          disabled={isExtracting && !content.trim()}
+        >
+          {isExtracting ? '❌ Cancel Extraction' : '✨ Extract with LLM'}
         </button>
         <div className="export-buttons">
           <button onClick={formatProfile} className="btn-export">

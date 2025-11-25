@@ -95,6 +95,17 @@ interface CancelExtractionMessage extends BaseMessage {
   jobId: string;
 }
 
+interface StreamExtractProfileMessage extends BaseMessage {
+  action: 'streamExtractProfile';
+  rawText: string;
+  llmSettings?: LLMSettings;
+  maxTokens?: number; // Dynamic max tokens based on input length
+}
+
+interface CancelProfileExtractionMessage extends BaseMessage {
+  action: 'cancelProfileExtraction';
+}
+
 interface SetJobInFocusMessage extends BaseMessage {
   action: 'setJobInFocus';
   jobId: string | null;
@@ -111,6 +122,8 @@ type RuntimeMessage =
   | CallLLMMessage
   | StreamExtractJobMessage
   | CancelExtractionMessage
+  | StreamExtractProfileMessage
+  | CancelProfileExtractionMessage
   | SetJobInFocusMessage
   | DeleteJobMessage;
 
@@ -146,12 +159,40 @@ interface ExtractionErrorMessage extends BaseMessage {
   error: string;
 }
 
+interface ProfileExtractionStartedMessage extends BaseMessage {
+  action: 'profileExtractionStarted';
+}
+
+interface ProfileExtractionChunkMessage extends BaseMessage {
+  action: 'profileExtractionChunk';
+  chunk: string;
+}
+
+interface ProfileExtractionCompleteMessage extends BaseMessage {
+  action: 'profileExtractionComplete';
+  fullContent: string;
+}
+
+interface ProfileExtractionCancelledMessage extends BaseMessage {
+  action: 'profileExtractionCancelled';
+}
+
+interface ProfileExtractionErrorMessage extends BaseMessage {
+  action: 'profileExtractionError';
+  error: string;
+}
+
 type NotificationMessage =
   | ExtractionStartedMessage
   | ExtractionChunkMessage
   | ExtractionCompleteMessage
   | ExtractionCancelledMessage
-  | ExtractionErrorMessage;
+  | ExtractionErrorMessage
+  | ProfileExtractionStartedMessage
+  | ProfileExtractionChunkMessage
+  | ProfileExtractionCompleteMessage
+  | ProfileExtractionCancelledMessage
+  | ProfileExtractionErrorMessage;
 
 interface ActiveExtraction {
   llmClient: LLMClient;
@@ -235,6 +276,12 @@ export default defineBackground(() => {
         contexts: ['action'],
       });
 
+      await browser.contextMenus.create({
+        id: 'edit-profile',
+        title: 'Edit Profile',
+        contexts: ['action'],
+      });
+
       console.info('[Background] Context menus created');
     } catch (error) {
       console.error('[Background] Error creating context menus:', error);
@@ -300,6 +347,20 @@ export default defineBackground(() => {
           })
           .catch((error: unknown) => {
             console.error('[Background] Error opening job details:', error);
+          });
+      } else if (info.menuItemId === 'edit-profile') {
+        console.info('[Background] Opening profile page');
+
+        // Open profile page in a new tab
+        browser.tabs
+          .create({
+            url: browser.runtime.getURL('/profile.html'),
+          })
+          .then(() => {
+            console.info('[Background] Profile page opened successfully');
+          })
+          .catch((error: unknown) => {
+            console.error('[Background] Error opening profile:', error);
           });
       }
     }
@@ -471,7 +532,7 @@ export default defineBackground(() => {
         // Use user settings or fallback to config defaults
         const llmSettings: LLMSettings = userLlmSettings || {
           provider: 'lm-studio',
-          model: llmConfig.extraction.model || llmConfig.model,
+          model: llmConfig.jobExtraction.model || llmConfig.model,
           apiEndpoint: llmConfig.endpoint,
           endpoint: llmConfig.endpoint,
           maxTokens: 2000,
@@ -511,14 +572,14 @@ export default defineBackground(() => {
             });
 
             // Prepare prompts from config
-            const systemPrompt = llmConfig.extraction.prompt.trim();
+            const systemPrompt = llmConfig.jobExtraction.prompt.trim();
             const userPrompt = rawText;
 
             // Use configured model or fallback to default extraction model
             const modelToUse =
               llmSettings.model && llmSettings.model.trim() !== ''
                 ? llmSettings.model
-                : llmConfig.extraction.model || llmConfig.model;
+                : llmConfig.jobExtraction.model || llmConfig.model;
 
             console.info(
               '[Background] Using model for extraction:',
@@ -645,6 +706,185 @@ export default defineBackground(() => {
           sendResponse({
             success: false,
             message: 'No active extraction found',
+          });
+        }
+
+        return true;
+      }
+
+      if (request.action === 'streamExtractProfile') {
+        // Handle streaming profile extraction with LLM
+        const {
+          rawText,
+          llmSettings: userLlmSettings,
+          maxTokens: dynamicMaxTokens,
+        } = request;
+        console.info(
+          '[Background] Received streaming profile extraction request',
+          dynamicMaxTokens ? `with dynamic maxTokens: ${dynamicMaxTokens}` : ''
+        );
+
+        // Use user settings or fallback to config defaults
+        const llmSettings: LLMSettings = userLlmSettings || {
+          provider: 'lm-studio',
+          model: llmConfig.profileExtraction.model || llmConfig.model,
+          apiEndpoint: llmConfig.endpoint,
+          endpoint: llmConfig.endpoint,
+          maxTokens: dynamicMaxTokens || llmConfig.profileExtraction.maxTokens, // Use dynamic value if provided, else config default
+          temperature: llmConfig.profileExtraction.temperature,
+        };
+
+        // Start global keepalive BEFORE responding to ensure worker stays alive
+        startGlobalKeepAlive();
+
+        // Immediately acknowledge receipt
+        sendResponse({ success: true, message: 'Profile extraction started' });
+
+        // Start streaming in background (don't await)
+        (async () => {
+          const streamId = 'profile-extraction'; // Fixed streamId for profile
+          const PROFILE_EXTRACTION_KEY = 'profile-extraction'; // Key for activeExtractions map
+
+          try {
+            console.info('[Background] Starting LLM streaming for profile');
+
+            // Initialize LLM client
+            const llmClient = new LLMClient({
+              endpoint: llmSettings.endpoint,
+              modelsEndpoint: llmSettings.modelsEndpoint,
+            });
+
+            // Store in activeExtractions for cancellation
+            activeExtractions.set(PROFILE_EXTRACTION_KEY, {
+              llmClient,
+              streamId,
+            });
+
+            // Send initial metadata to profile page
+            await sendMessageWithRetry({
+              action: 'profileExtractionStarted',
+            });
+
+            // Import profile template
+            const { PROFILE_EXTRACTION_PROMPT } = await import(
+              '../utils/profile-templates'
+            );
+            const systemPrompt = PROFILE_EXTRACTION_PROMPT;
+            const userPrompt = rawText;
+
+            // Use configured model or fallback to default profile extraction model
+            const modelToUse =
+              llmSettings.model && llmSettings.model.trim() !== ''
+                ? llmSettings.model
+                : llmConfig.profileExtraction.model || llmConfig.model;
+
+            console.info(
+              '[Background] Using model for profile extraction:',
+              modelToUse
+            );
+
+            // Stream completion with callbacks
+            const result = await llmClient.streamCompletion({
+              streamId: streamId,
+              model: modelToUse,
+              systemPrompt: systemPrompt,
+              userPrompt: userPrompt,
+              maxTokens: llmSettings.maxTokens || 2000,
+              temperature: llmSettings.temperature || 0.3,
+              onThinkingUpdate: (delta: string) => {
+                console.info(
+                  '[Background] Profile thinking:',
+                  delta.substring(0, 50) + '...'
+                );
+              },
+              onDocumentUpdate: (delta: string) => {
+                console.info(
+                  '[Background] Sending profile chunk:',
+                  delta.substring(0, 50) + '...'
+                );
+                browser.runtime
+                  .sendMessage({
+                    action: 'profileExtractionChunk',
+                    chunk: delta,
+                  })
+                  .catch((err: unknown) => {
+                    console.error(
+                      '[Background] Failed to send profile chunk:',
+                      err
+                    );
+                  });
+              },
+            });
+
+            // Check if stream was cancelled
+            if (result.cancelled) {
+              console.info('[Background] Profile extraction cancelled');
+              await sendMessageWithRetry({
+                action: 'profileExtractionCancelled',
+              }).catch((err: unknown) => {
+                console.error(
+                  '[Background] Failed to send profile cancellation:',
+                  err
+                );
+              });
+              return;
+            }
+
+            // Send completion message
+            await sendMessageWithRetry({
+              action: 'profileExtractionComplete',
+              fullContent: result.documentContent,
+            }).catch((err: unknown) => {
+              console.error(
+                '[Background] Failed to send profile completion:',
+                err
+              );
+            });
+
+            console.info(
+              '[Background] Profile extraction completed successfully'
+            );
+          } catch (error: unknown) {
+            console.error('[Background] Profile extraction failed:', error);
+
+            const err = error as Error;
+            await sendMessageWithRetry({
+              action: 'profileExtractionError',
+              error: err.message,
+            }).catch((err: unknown) => {
+              console.error('[Background] Failed to send profile error:', err);
+            });
+          } finally {
+            // Clean up activeExtractions
+            activeExtractions.delete(PROFILE_EXTRACTION_KEY);
+
+            // Stop global keepalive when done
+            stopGlobalKeepAlive();
+          }
+        })();
+
+        return true; // Keep message channel open for async response
+      }
+
+      if (request.action === 'cancelProfileExtraction') {
+        // Handle cancellation of ongoing profile extraction
+        console.info('[Background] Received profile extraction cancellation');
+
+        const PROFILE_EXTRACTION_KEY = 'profile-extraction';
+        const extraction = activeExtractions.get(PROFILE_EXTRACTION_KEY);
+        if (extraction) {
+          const { llmClient, streamId } = extraction;
+          console.info('[Background] Cancelling profile stream:', streamId);
+          llmClient.cancelStream(streamId);
+          sendResponse({
+            success: true,
+            message: 'Profile extraction cancelled',
+          });
+        } else {
+          console.info('[Background] No active profile extraction found');
+          sendResponse({
+            success: false,
+            message: 'No active profile extraction found',
           });
         }
 

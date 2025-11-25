@@ -58,6 +58,7 @@ interface ParsedProfile {
     }
   >;
   raw: string;
+  duplicateEntryIds?: Array<{ section: string; entryId: string }>;
 }
 
 /**
@@ -157,6 +158,18 @@ function validateProfileTemplate(
   // Validate sections
   validateSections(parsedProfile, result);
 
+  // Check for duplicate entry IDs (detected by parser)
+  if (parsedProfile.duplicateEntryIds?.length) {
+    parsedProfile.duplicateEntryIds.forEach(({ section, entryId }) => {
+      result.warnings.push({
+        type: 'duplicate_entry_id',
+        section,
+        entry: entryId,
+        message: `Duplicate entry ID "${entryId}" in ${section}. Only the last occurrence will be kept.`,
+      });
+    });
+  }
+
   // Add informational messages about custom content
   if (result.customFields.length > 0) {
     result.info.push({
@@ -219,9 +232,6 @@ function validateSections(
   const sections = parsedProfile.sections || {};
   const sectionNames = Object.keys(sections);
 
-  // Track all entry IDs across sections to detect duplicates
-  const seenEntryIds = new Map<string, string>(); // entryId -> sectionName
-
   sectionNames.forEach((sectionName) => {
     const section = sections[sectionName];
     const schema = PROFILE_SCHEMA.standardSections[sectionName];
@@ -241,7 +251,7 @@ function validateSections(
       validateListSection(sectionName, section, result);
     } else {
       // Section has entries with fields
-      validateEntrySection(sectionName, section, schema, result, seenEntryIds);
+      validateEntrySection(sectionName, section, schema, result);
     }
   });
 }
@@ -365,8 +375,7 @@ function validateEntrySection(
     entries?: Record<string, { fields: Record<string, string> }>;
   },
   schema: SectionSchema,
-  result: ProfileValidationResult,
-  seenEntryIds: Map<string, string>
+  result: ProfileValidationResult
 ): void {
   const entries = section.entries || {};
   const entryIds = Object.keys(entries);
@@ -383,19 +392,6 @@ function validateEntrySection(
   entryIds.forEach((entryId) => {
     const entry = entries[entryId];
     const fields = entry.fields || {};
-
-    // Check for duplicate entry IDs across sections
-    const existingSection = seenEntryIds.get(entryId);
-    if (existingSection) {
-      result.warnings.push({
-        type: 'duplicate_entry_id',
-        section: sectionName,
-        entry: entryId,
-        message: `Entry ID "${entryId}" is duplicated (also in ${existingSection}). Entry IDs should be unique across all sections.`,
-      });
-    } else {
-      seenEntryIds.set(entryId, sectionName);
-    }
 
     // Validate entry ID naming convention (e.g., EDU_1, EXP_2)
     validateEntryId(sectionName, entryId, result);

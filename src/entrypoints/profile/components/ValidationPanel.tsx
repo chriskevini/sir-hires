@@ -139,16 +139,12 @@ export function ValidationPanel({
               const fix = validationFixes[index];
 
               if (fix && fix.type === 'replace_enum_value_multi') {
-                const messageWithoutValues = error.message.replace(
-                  /\. Allowed values:.*$/,
-                  ''
-                );
                 return (
                   <div
                     key={`error-${index}`}
                     className="validation-message validation-error"
                   >
-                    {messageWithoutValues}. Allowed values:
+                    {error.message}. Allowed:
                     {fix.allowedValues?.map((value) => (
                       <button
                         key={value}

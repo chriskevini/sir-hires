@@ -276,6 +276,12 @@ export default defineBackground(() => {
         contexts: ['action'],
       });
 
+      await browser.contextMenus.create({
+        id: 'edit-profile',
+        title: 'Edit Profile',
+        contexts: ['action'],
+      });
+
       console.info('[Background] Context menus created');
     } catch (error) {
       console.error('[Background] Error creating context menus:', error);
@@ -341,6 +347,20 @@ export default defineBackground(() => {
           })
           .catch((error: unknown) => {
             console.error('[Background] Error opening job details:', error);
+          });
+      } else if (info.menuItemId === 'edit-profile') {
+        console.info('[Background] Opening profile page');
+
+        // Open profile page in a new tab
+        browser.tabs
+          .create({
+            url: browser.runtime.getURL('/profile.html'),
+          })
+          .then(() => {
+            console.info('[Background] Profile page opened successfully');
+          })
+          .catch((error: unknown) => {
+            console.error('[Background] Error opening profile:', error);
           });
       }
     }

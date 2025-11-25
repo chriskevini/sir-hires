@@ -242,6 +242,17 @@ function validateSections(
 
       // Custom section - this is encouraged!
       result.customSections.push(sectionName);
+
+      // Check if custom section is empty (no entries and no list items)
+      const hasEntries = Object.keys(section.entries || {}).length > 0;
+      const hasListItems = (section.list || []).length > 0;
+      if (!hasEntries && !hasListItems) {
+        result.warnings.push({
+          type: 'empty_section',
+          section: sectionName,
+          message: `Section "${sectionName}" is empty`,
+        });
+      }
       return;
     }
 

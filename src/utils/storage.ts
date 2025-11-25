@@ -158,6 +158,17 @@ export const keepaliveStorage = storage.defineItem<number>('local:_keepalive', {
   version: 1,
 });
 
+/**
+ * Profile template panel visibility - User preference for showing/hiding the template panel
+ */
+export const profileTemplatePanelStorage = storage.defineItem<boolean>(
+  'local:profileTemplatePanel',
+  {
+    defaultValue: true,
+    version: 1,
+  }
+);
+
 // ===== Helper Functions =====
 
 /**

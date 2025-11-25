@@ -3,7 +3,10 @@ import './styles.css';
 import { browser } from 'wxt/browser';
 
 // Import WXT storage
-import { userProfileStorage } from '@/utils/storage';
+import {
+  userProfileStorage,
+  profileTemplatePanelStorage,
+} from '@/utils/storage';
 
 // Import utilities
 import { formatSaveTime } from '@/utils/date-utils';
@@ -138,7 +141,6 @@ export default function App() {
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const progressIndexRef = useRef<number>(0); // Track progress message index
   const originalContentRef = useRef<string>(''); // Store original before extraction
-  const templateWasVisibleRef = useRef<boolean>(true); // Store template visibility before extraction
   const hasReceivedContentRef = useRef<boolean>(false); // Track if real content has started streaming
 
   // Validation hook - disable during extraction to avoid performance issues
@@ -156,8 +158,9 @@ export default function App() {
         hasReceivedContentRef.current = false;
         // Capture content from editorRef to avoid stale closure
         originalContentRef.current = editorRef.current?.value || '';
-        templateWasVisibleRef.current = isTemplatePanelVisible; // Store template visibility
-        setIsTemplatePanelVisible(false); // Hide template during extraction
+        // Hide template during extraction and persist preference
+        setIsTemplatePanelVisible(false);
+        profileTemplatePanelStorage.setValue(false);
         setStatusMessage(''); // Clear header status - progress shown in editor
         setContent(EXTRACTION_PROGRESS_MESSAGES[0] + '\n\n'); // Initial progress message
       },
@@ -181,7 +184,7 @@ export default function App() {
         setIsExtracting(false);
         progressIndexRef.current = 0;
         hasReceivedContentRef.current = false;
-        setIsTemplatePanelVisible(templateWasVisibleRef.current); // Restore template visibility
+        // Template stays hidden (user preference persisted)
         setStatusMessage('✅ Profile extracted successfully!');
         setTimeout(() => setStatusMessage(''), 3000);
       },
@@ -190,7 +193,7 @@ export default function App() {
         setIsExtracting(false);
         progressIndexRef.current = 0;
         hasReceivedContentRef.current = false;
-        setIsTemplatePanelVisible(templateWasVisibleRef.current); // Restore template visibility
+        // Template stays hidden (user preference persisted)
         setExtractionError(error);
         setStatusMessage('');
       },
@@ -207,12 +210,12 @@ export default function App() {
         setIsExtracting(false);
         progressIndexRef.current = 0;
         hasReceivedContentRef.current = false;
-        setIsTemplatePanelVisible(templateWasVisibleRef.current); // Restore template visibility
+        // Template stays hidden (user preference persisted)
         setStatusMessage('Extraction cancelled - content preserved');
         setTimeout(() => setStatusMessage(''), 3000);
       },
     }),
-    [isTemplatePanelVisible]
+    []
   );
 
   useProfileExtraction(extractionCallbacks);
@@ -252,6 +255,7 @@ export default function App() {
   // Load profile from storage on mount
   useEffect(() => {
     loadProfile();
+    loadTemplatePanelPreference();
     startAutoSave();
     startLastSavedInterval();
 
@@ -262,6 +266,16 @@ export default function App() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const loadTemplatePanelPreference = async () => {
+    const isVisible = await profileTemplatePanelStorage.getValue();
+    setIsTemplatePanelVisible(isVisible);
+  };
+
+  const toggleTemplatePanel = (visible: boolean) => {
+    setIsTemplatePanelVisible(visible);
+    profileTemplatePanelStorage.setValue(visible);
+  };
 
   const loadProfile = async () => {
     try {
@@ -645,7 +659,7 @@ BULLETS:
           <div className="template-panel-header">
             <h3>📖 Profile Template</h3>
             <button
-              onClick={() => setIsTemplatePanelVisible(false)}
+              onClick={() => toggleTemplatePanel(false)}
               className="template-panel-close"
               title="Hide template"
             >
@@ -731,7 +745,7 @@ BULLETS:
 
       <footer>
         <button
-          onClick={() => setIsTemplatePanelVisible(!isTemplatePanelVisible)}
+          onClick={() => toggleTemplatePanel(!isTemplatePanelVisible)}
           className="template-guide-show"
         >
           📖 Toggle Template

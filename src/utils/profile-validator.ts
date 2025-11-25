@@ -174,14 +174,14 @@ function validateProfileTemplate(
   if (result.customFields.length > 0) {
     result.info.push({
       type: 'custom_fields',
-      message: `Your profile includes ${result.customFields.length} custom field(s): ${result.customFields.join(', ')}. These are fully supported and will be preserved.`,
+      message: `Custom fields: ${result.customFields.join(', ')}`,
     });
   }
 
   if (result.customSections.length > 0) {
     result.info.push({
       type: 'custom_sections',
-      message: `Your profile includes ${result.customSections.length} custom section(s): ${result.customSections.join(', ')}. These are fully supported and will be preserved.`,
+      message: `Custom sections: ${result.customSections.join(', ')}`,
     });
   }
 

@@ -119,6 +119,7 @@ interface DeleteJobMessage extends BaseMessage {
 interface FetchModelsMessage extends BaseMessage {
   action: 'fetchModels';
   endpoint: string;
+  apiKey?: string;
 }
 
 type RuntimeMessage =
@@ -523,7 +524,7 @@ export default defineBackground(() => {
 
       if (request.action === 'fetchModels') {
         // Handle fetching available models from LLM server
-        const { endpoint } = request;
+        const { endpoint, apiKey } = request;
         console.info('[Background] Fetching models from:', endpoint);
 
         (async () => {
@@ -531,8 +532,14 @@ export default defineBackground(() => {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
+            const headers: Record<string, string> = {};
+            if (apiKey) {
+              headers['Authorization'] = `Bearer ${apiKey}`;
+            }
+
             const response = await fetch(endpoint, {
               method: 'GET',
+              headers,
               signal: controller.signal,
             });
 

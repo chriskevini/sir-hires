@@ -35,6 +35,7 @@ export interface LLMSettings {
   endpoint: string;
   modelsEndpoint: string;
   model: string;
+  apiKey?: string;
   maxTokens: number;
   temperature: number;
 }

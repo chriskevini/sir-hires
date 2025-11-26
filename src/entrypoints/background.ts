@@ -116,6 +116,12 @@ interface DeleteJobMessage extends BaseMessage {
   jobId: string;
 }
 
+interface FetchModelsMessage extends BaseMessage {
+  action: 'fetchModels';
+  endpoint: string;
+  apiKey?: string;
+}
+
 type RuntimeMessage =
   | GetJobsMessage
   | SaveJobMessage
@@ -125,7 +131,8 @@ type RuntimeMessage =
   | StreamExtractProfileMessage
   | CancelProfileExtractionMessage
   | SetJobInFocusMessage
-  | DeleteJobMessage;
+  | DeleteJobMessage
+  | FetchModelsMessage;
 
 // Internal notification message types (sent from background to components)
 interface ExtractionStartedMessage extends BaseMessage {
@@ -510,6 +517,66 @@ export default defineBackground(() => {
             console.error('[Background] LLM call failed:', error);
             const err = error as Error;
             sendResponse({ success: false, error: err.message });
+          }
+        })();
+        return true;
+      }
+
+      if (request.action === 'fetchModels') {
+        // Handle fetching available models from LLM server
+        const { endpoint, apiKey } = request;
+        console.info('[Background] Fetching models from:', endpoint);
+
+        (async () => {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+            const headers: Record<string, string> = {};
+            if (apiKey) {
+              headers['Authorization'] = `Bearer ${apiKey}`;
+            }
+
+            const response = await fetch(endpoint, {
+              method: 'GET',
+              headers,
+              signal: controller.signal,
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+              throw new Error(
+                `HTTP ${response.status}: ${response.statusText}`
+              );
+            }
+
+            const data = await response.json();
+
+            // Extract model IDs from the response
+            // OpenAI-compatible API returns { data: [{ id: "model-name", ... }, ...] }
+            const models: string[] = (data.data || []).map(
+              (m: { id: string }) => m.id
+            );
+
+            console.info('[Background] Found models:', models);
+            sendResponse({ success: true, models });
+          } catch (error: unknown) {
+            console.error('[Background] Failed to fetch models:', error);
+
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            const errorName = error instanceof Error ? error.name : '';
+
+            let displayMessage = errorMessage;
+            if (errorName === 'AbortError') {
+              displayMessage = 'Request timed out. Is the LLM server running?';
+            } else if (errorMessage.includes('Failed to fetch')) {
+              displayMessage =
+                'Cannot connect to LLM server. Make sure it is running.';
+            }
+
+            sendResponse({ success: false, error: displayMessage });
           }
         })();
         return true;

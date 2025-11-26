@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { llmConfig } from '../config';
 import { LLMClient } from '../../../utils/llm-client';
 import type { Job } from '../hooks';
 import { useParsedJob } from '../../../components/features/ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '../../../utils/job-parser';
 import { userProfileStorage } from '../../../utils/storage';
+import { useLLMSettings } from '../../../hooks/useLLMSettings';
+import { DEFAULT_MODEL, DEFAULT_MAX_TOKENS } from '../../../utils/llm-utils';
 
 interface SynthesisFormProps {
   job: Job | null;
@@ -27,10 +29,6 @@ interface SynthesisFormProps {
   onClose: () => void;
 }
 
-interface Model {
-  id: string;
-}
-
 export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   job,
   jobIndex,
@@ -42,45 +40,50 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   onError,
   onClose,
 }) => {
-  const [availableModels, setAvailableModels] = useState<Model[]>([]);
-  const [selectedModel, setSelectedModel] = useState(
-    llmConfig.synthesis.model || llmConfig.model
-  );
-  const [maxTokens, setMaxTokens] = useState(2000);
+  // Use shared LLM settings hook (auto-connects to fetch models)
+  const {
+    availableModels,
+    model: savedModel,
+    endpoint,
+    modelsEndpoint,
+    temperature: savedTemperature,
+    isLoading: isLoadingSettings,
+    isConnected,
+  } = useLLMSettings();
+
+  // Local state for form controls (initialized from saved settings)
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
+  const [maxTokens, setMaxTokens] = useState(DEFAULT_MAX_TOKENS);
   const [isGenerating, setIsGenerating] = useState(false);
   const [userProfile, setUserProfile] = useState('');
   const [_hasExistingContent, setHasExistingContent] = useState(false);
-  const [llmClient] = useState(
+
+  // Sync local model state with saved settings when they load
+  useEffect(() => {
+    if (!isLoadingSettings && savedModel) {
+      setSelectedModel(savedModel);
+    }
+  }, [isLoadingSettings, savedModel]);
+
+  // Create LLM client with current settings (memoized to avoid recreating on every render)
+  const llmClient = useMemo(
     () =>
       new LLMClient({
-        endpoint: llmConfig.endpoint,
-        modelsEndpoint: llmConfig.modelsEndpoint,
-      })
+        endpoint,
+        modelsEndpoint,
+      }),
+    [endpoint, modelsEndpoint]
   );
 
-  // Fetch available models when component mounts
+  // Fetch user profile on mount
   useEffect(() => {
     const init = async () => {
-      await fetchAvailableModels();
       await fetchUserProfile();
       checkExistingContent();
     };
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job, documentKey]);
-
-  const fetchAvailableModels = async () => {
-    const models = await llmClient.fetchModels();
-    setAvailableModels(models);
-
-    // Set default model if available
-    if (
-      models.length > 0 &&
-      !models.find((m: { id: string }) => m.id === selectedModel)
-    ) {
-      setSelectedModel(models[0].id);
-    }
-  };
 
   const fetchUserProfile = async () => {
     const userProfileData = await userProfileStorage.getValue();
@@ -197,7 +200,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
       systemPrompt,
       userPrompt,
       maxTokens,
-      temperature: llmConfig.synthesis.temperature,
+      temperature: savedTemperature,
       onThinkingUpdate: onThinkingUpdate
         ? (delta: string) => onThinkingUpdate(documentKey!, delta)
         : undefined,
@@ -231,7 +234,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
       const context = await buildContext();
 
       // Build system prompt (from config) and user prompt (JIT)
-      const systemPrompt = llmConfig.synthesis.prompt;
+      const systemPrompt = llmConfig.synthesis.prompts.universal;
       const userPrompt = buildUserPrompt(context);
 
       // Capture these values before closing modal
@@ -255,7 +258,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
 
         // Show alert to user
         alert(
-          `⚠️ Response was truncated due to token limit (${result.currentTokens} tokens).\n\n` +
+          `Warning: Response was truncated due to token limit (${result.currentTokens} tokens).\n\n` +
             `This often happens with thinking models that use reasoning before output.\n\n` +
             `Please reopen the synthesis modal, increase "Max Tokens", and try again.`
         );
@@ -290,7 +293,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
         <div className="modal-body">
           <div className="error-warning">
             <p>
-              ℹ️ <strong>Please create a profile before continuing.</strong>
+              <strong>Please create a profile before continuing.</strong>
             </p>
             <button
               className="btn-primary"
@@ -317,17 +320,14 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   // User profile exists - show full form UI
   const modelOptions =
     availableModels.length > 0
-      ? availableModels.map((model) => (
-          <option key={model.id} value={model.id}>
-            {model.id}
+      ? availableModels.map((m) => (
+          <option key={m} value={m}>
+            {m}
           </option>
         ))
       : [
-          <option
-            key="default"
-            value={llmConfig.synthesis.model || llmConfig.model}
-          >
-            {llmConfig.synthesis.model || llmConfig.model} (not loaded)
+          <option key="default" value={selectedModel}>
+            {selectedModel} (not loaded)
           </option>,
         ];
 
@@ -409,15 +409,14 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
 
         <div className="existing-content-info">
           <p>
-            💡 <strong>Tip:</strong> You can paste your own document to be used
-            as a template during synthesis.
+            <strong>Tip:</strong> You can paste your own document to be used as
+            a template during synthesis.
           </p>
         </div>
 
         {missingFields.length > 0 && (
           <div className="missing-fields-warning">
             <p>
-              ⚠️{' '}
               <strong>
                 {missingFields.length} field
                 {missingFields.length === 1 ? ' is' : 's are'} missing.
@@ -438,8 +437,8 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
           >
             {modelOptions}
           </select>
-          {availableModels.length === 0 && (
-            <span className="model-warning">⚠️ No models loaded</span>
+          {!isConnected && !isLoadingSettings && (
+            <span className="model-warning">No models loaded</span>
           )}
         </div>
         <div className="max-tokens-group">
@@ -463,7 +462,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
             onClick={handleGenerate}
             disabled={isGenerating}
           >
-            {isGenerating ? '⏳ Generating...' : 'Generate'}
+            {isGenerating ? 'Generating...' : 'Generate'}
           </button>
         </div>
       </div>

@@ -158,26 +158,12 @@ export const defaults = {
   },
 };
 
-// LLM configuration for different tasks
+// LLM prompt configuration for different tasks
+// Note: Endpoint, model, and temperature settings are managed via useLLMSettings hook
+// and stored in llmSettingsStorage (configured in popup)
 export const llmConfig = {
-  // Data extraction LLM (for job data extraction from web pages)
-  extraction: {
-    defaultModel: 'NuExtract-2.0-2B',
-    alternativeModels: ['NuExtract-2.0-8B'],
-    endpoint: 'http://localhost:1234/v1/chat/completions',
-    description: 'Optimized for structured data extraction from job postings',
-  },
-
-  // Document synthesis LLM (for resume/cover letter generation)
+  // Document synthesis prompts (for resume/cover letter generation)
   synthesis: {
-    defaultModel: 'Llama-3.1-8B-Instruct',
-    alternativeModels: ['Mistral-7B-Instruct', 'Qwen-2.5-7B-Instruct'],
-    endpoint: 'http://localhost:1234/v1/chat/completions',
-    modelsEndpoint: 'http://localhost:1234/v1/models',
-    description: 'Optimized for creative writing and document generation',
-    maxTokens: 2000,
-    temperature: 0.7,
-
     // Universal prompt for document generation
     // LLM determines document type from user instructions in {currentDraft}
     prompts: {

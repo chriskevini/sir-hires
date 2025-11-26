@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { browser } from 'wxt/browser';
-import { llmConfig } from '../../config';
 import { llmSettingsStorage } from '../../utils/storage';
 import './styles.css';
 
@@ -62,6 +61,10 @@ export function App() {
   );
   const [llmModel, setLlmModel] = useState('');
 
+  // Model dropdown state
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
+
   useEffect(() => {
     loadSettings();
   }, []);
@@ -91,6 +94,46 @@ export function App() {
       setTimeout(() => {
         setStatusMessage('');
       }, 5000);
+    }
+  };
+
+  const fetchModels = async () => {
+    setLoadingModels(true);
+    try {
+      const endpoint = normalizeEndpoint(
+        llmEndpoint || 'http://localhost:1234/v1/chat/completions'
+      );
+      const modelsEndpoint = getModelsEndpoint(endpoint);
+
+      const response = await browser.runtime.sendMessage({
+        action: 'fetchModels',
+        endpoint: modelsEndpoint,
+      });
+
+      if (response.success && response.models) {
+        setAvailableModels(response.models);
+        if (response.models.length > 0) {
+          showStatus(
+            `Found ${response.models.length} model${response.models.length === 1 ? '' : 's'}`,
+            'info'
+          );
+        }
+      } else {
+        setAvailableModels([]);
+        showStatus(
+          response.error || 'Failed to fetch models. Is LM Studio running?',
+          'error'
+        );
+      }
+    } catch (error) {
+      console.error('Error fetching models:', error);
+      setAvailableModels([]);
+      showStatus(
+        'Failed to fetch models: ' + (error as Error).message,
+        'error'
+      );
+    } finally {
+      setLoadingModels(false);
     }
   };
 
@@ -186,17 +229,39 @@ export function App() {
           <small>Default: LM Studio (http://localhost:1234)</small>
         </div>
         <div className="form-group">
-          <label htmlFor="llmModel">Model Name (optional)</label>
-          <input
-            type="text"
-            id="llmModel"
-            value={llmModel}
-            onChange={(e) => setLlmModel(e.target.value)}
-            placeholder={llmConfig.jobExtraction.model || llmConfig.model}
-          />
+          <label htmlFor="llmModel">Model</label>
+          <div className="model-selector">
+            <select
+              id="llmModel"
+              value={llmModel}
+              onChange={(e) => setLlmModel(e.target.value)}
+              disabled={loadingModels}
+            >
+              <option value="">
+                {availableModels.length === 0
+                  ? 'Click "Load Models" to fetch available models'
+                  : '-- Select a model --'}
+              </option>
+              {availableModels.map((model) => (
+                <option key={model} value={model}>
+                  {model}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="btn btn-small"
+              onClick={fetchModels}
+              disabled={loadingModels}
+              title="Fetch available models from the LLM server"
+            >
+              {loadingModels ? 'Loading...' : 'Load Models'}
+            </button>
+          </div>
           <small>
-            Leave empty to use default (
-            {llmConfig.jobExtraction.model || llmConfig.model})
+            {availableModels.length > 0
+              ? `${availableModels.length} model${availableModels.length === 1 ? '' : 's'} available`
+              : 'Load models from your LLM server to select one'}
           </small>
         </div>
         <div className="button-group">

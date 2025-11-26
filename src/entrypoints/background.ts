@@ -563,17 +563,20 @@ export default defineBackground(() => {
             sendResponse({ success: true, models });
           } catch (error: unknown) {
             console.error('[Background] Failed to fetch models:', error);
-            const err = error as Error;
 
-            let errorMessage = err.message;
-            if (err.name === 'AbortError') {
-              errorMessage = 'Request timed out. Is the LLM server running?';
-            } else if (err.message.includes('Failed to fetch')) {
-              errorMessage =
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            const errorName = error instanceof Error ? error.name : '';
+
+            let displayMessage = errorMessage;
+            if (errorName === 'AbortError') {
+              displayMessage = 'Request timed out. Is the LLM server running?';
+            } else if (errorMessage.includes('Failed to fetch')) {
+              displayMessage =
                 'Cannot connect to LLM server. Make sure it is running.';
             }
 
-            sendResponse({ success: false, error: errorMessage });
+            sendResponse({ success: false, error: displayMessage });
           }
         })();
         return true;

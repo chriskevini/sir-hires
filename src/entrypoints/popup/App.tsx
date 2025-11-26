@@ -1,16 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { browser } from 'wxt/browser';
-import { llmSettingsStorage } from '../../utils/storage';
+import { llmSettingsStorage, LLMSettings } from '../../utils/storage';
 import './styles.css';
-
-interface LLMSettings {
-  endpoint: string;
-  modelsEndpoint: string;
-  model: string;
-  apiKey?: string;
-  maxTokens: number;
-  temperature: number;
-}
 
 type ProviderType = 'local' | 'cloud';
 type ConnectionStatus = 'idle' | 'loading' | 'connected' | 'error';
@@ -36,16 +27,18 @@ function detectProvider(endpoint: string): ProviderType {
       hostname === '0.0.0.0' ||
       hostname.startsWith('192.168.') ||
       hostname.startsWith('10.') ||
-      hostname.startsWith('172.16.') ||
-      hostname.startsWith('172.17.') ||
-      hostname.startsWith('172.18.') ||
-      hostname.startsWith('172.19.') ||
-      hostname.startsWith('172.2') ||
-      hostname.startsWith('172.30.') ||
-      hostname.startsWith('172.31.') ||
       !hostname.includes('.') // e.g., "charlie:1234" or just "myserver"
     ) {
       return 'local';
+    }
+
+    // Check 172.16.0.0 - 172.31.255.255 (RFC 1918 private range)
+    if (hostname.startsWith('172.')) {
+      const parts = hostname.split('.');
+      const second = parseInt(parts[1], 10);
+      if (second >= 16 && second <= 31) {
+        return 'local';
+      }
     }
 
     return 'cloud';
@@ -100,25 +93,24 @@ export function App() {
 
   // Load settings on mount
   useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await llmSettingsStorage.getValue();
+        if (settings) {
+          // Extract base URL from endpoint (remove /v1/chat/completions)
+          const baseUrl = settings.endpoint
+            .replace('/v1/chat/completions', '')
+            .replace(/\/+$/, '');
+          setServerUrl(baseUrl || DEFAULT_ENDPOINT);
+          setModel(settings.model || DEFAULT_MODEL);
+          setApiKey(settings.apiKey || '');
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      }
+    };
     loadSettings();
   }, []);
-
-  const loadSettings = async () => {
-    try {
-      const settings = await llmSettingsStorage.getValue();
-      if (settings) {
-        // Extract base URL from endpoint (remove /v1/chat/completions)
-        const baseUrl = settings.endpoint
-          .replace('/v1/chat/completions', '')
-          .replace(/\/+$/, '');
-        setServerUrl(baseUrl || DEFAULT_ENDPOINT);
-        setModel(settings.model || DEFAULT_MODEL);
-        setApiKey(settings.apiKey || '');
-      }
-    } catch (error) {
-      console.error('Error loading settings:', error);
-    }
-  };
 
   const fetchModels = useCallback(async () => {
     setStatus('loading');
@@ -137,11 +129,6 @@ export function App() {
       if (response.success && response.models) {
         setAvailableModels(response.models);
         setStatus('connected');
-
-        // If current model not in list and list has models, keep current or use first
-        if (response.models.length > 0 && !response.models.includes(model)) {
-          // Keep the current model value - user may have typed it manually
-        }
       } else {
         setAvailableModels([]);
         setStatus('error');
@@ -153,7 +140,7 @@ export function App() {
       setStatus('error');
       setErrorMessage((error as Error).message);
     }
-  }, [serverUrl, apiKey, model]);
+  }, [serverUrl, apiKey]);
 
   // Auto-fetch models when server URL or API key changes (debounced)
   useEffect(() => {
@@ -173,9 +160,9 @@ export function App() {
         endpoint,
         modelsEndpoint: getModelsEndpoint(endpoint),
         model: model.trim() || DEFAULT_MODEL,
-        apiKey: apiKey.trim() || undefined,
         maxTokens: 2000,
         temperature: 0.3,
+        ...(apiKey.trim() && { apiKey: apiKey.trim() }),
       };
 
       await llmSettingsStorage.setValue(settings);
@@ -228,10 +215,10 @@ export function App() {
             {/* API Key - Only show for cloud providers */}
             {provider === 'cloud' && (
               <div className="form-row">
-                <label htmlFor="apiKey">API Key</label>
+                <label htmlFor="apiKey-connected">API Key</label>
                 <input
                   type="password"
-                  id="apiKey"
+                  id="apiKey-connected"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder="sk-..."
@@ -310,10 +297,10 @@ export function App() {
               <>
                 <h3>API Key Required</h3>
                 <div className="form-row">
-                  <label htmlFor="apiKey">API Key</label>
+                  <label htmlFor="apiKey-error">API Key</label>
                   <input
                     type="password"
-                    id="apiKey"
+                    id="apiKey-error"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder="sk-..."

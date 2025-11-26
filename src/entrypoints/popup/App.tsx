@@ -15,6 +15,42 @@ interface LLMSettings {
 
 type StatusType = 'success' | 'error' | 'info';
 
+/**
+ * Normalizes an endpoint URL by ensuring it has a protocol prefix
+ * and the correct path for chat completions.
+ *
+ * Examples:
+ * - "10.0.0.175:1234" -> "http://10.0.0.175:1234/v1/chat/completions"
+ * - "charlie:1234" -> "http://charlie:1234/v1/chat/completions"
+ * - "http://localhost:1234" -> "http://localhost:1234/v1/chat/completions"
+ * - "http://localhost:1234/v1/chat/completions" -> unchanged
+ */
+function normalizeEndpoint(endpoint: string): string {
+  let normalized = endpoint.trim();
+
+  // Add http:// if no protocol specified
+  if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+    normalized = 'http://' + normalized;
+  }
+
+  // Add /v1/chat/completions if not present
+  if (!normalized.includes('/v1/chat/completions')) {
+    // Remove trailing slash if present
+    normalized = normalized.replace(/\/+$/, '');
+    normalized += '/v1/chat/completions';
+  }
+
+  return normalized;
+}
+
+/**
+ * Derives the models endpoint from a chat completions endpoint.
+ * Replaces /v1/chat/completions with /v1/models.
+ */
+function getModelsEndpoint(chatEndpoint: string): string {
+  return chatEndpoint.replace('/v1/chat/completions', '/v1/models');
+}
+
 export function App() {
   const [statusMessage, setStatusMessage] = useState('');
   const [statusType, setStatusType] = useState<StatusType>('success');
@@ -60,10 +96,12 @@ export function App() {
 
   const handleSaveSettings = async () => {
     try {
+      const endpoint = normalizeEndpoint(
+        llmEndpoint || 'http://localhost:1234/v1/chat/completions'
+      );
       const settings: LLMSettings = {
-        endpoint:
-          llmEndpoint.trim() || 'http://localhost:1234/v1/chat/completions',
-        modelsEndpoint: 'http://localhost:1234/v1/models',
+        endpoint,
+        modelsEndpoint: getModelsEndpoint(endpoint),
         model: llmModel.trim(),
         maxTokens: 2000,
         temperature: 0.3,
@@ -81,8 +119,9 @@ export function App() {
     setTesting(true);
 
     try {
-      const endpoint =
-        llmEndpoint.trim() || 'http://localhost:1234/v1/chat/completions';
+      const endpoint = normalizeEndpoint(
+        llmEndpoint || 'http://localhost:1234/v1/chat/completions'
+      );
       const model = llmModel.trim();
 
       const requestBody = {

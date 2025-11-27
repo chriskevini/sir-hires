@@ -97,6 +97,7 @@ export default function App() {
   const progressIndexRef = useRef<number>(0); // Track progress message index
   const originalContentRef = useRef<string>(''); // Store original before extraction
   const hasReceivedContentRef = useRef<boolean>(false); // Track if real content has started streaming
+  const streamedContentRef = useRef<string>(''); // Accumulate streamed content synchronously
 
   // Immediate save callback - saves to storage on every change
   const saveProfile = useCallback(async (newContent: string) => {
@@ -509,6 +510,9 @@ BULLETS:
     setStatusMessage(''); // Clear header status - progress shown in editor
     setContent(EXTRACTION_PROGRESS_MESSAGES[0] + '\n\n'); // Initial progress message
 
+    // Reset streamed content ref for new extraction
+    streamedContentRef.current = '';
+
     // Create abort controller for cancellation
     abortControllerRef.current = new AbortController();
 
@@ -563,13 +567,10 @@ BULLETS:
             progressIntervalRef.current = null;
           }
 
-          setContent((prev) => {
-            // Remove progress message if this is the first real chunk
-            if (isProgressMessage(prev)) {
-              return delta;
-            }
-            return prev + delta;
-          });
+          // Accumulate in ref synchronously (never loses chunks)
+          streamedContentRef.current += delta;
+          // Update React state from ref (complete value, not delta)
+          setContent(streamedContentRef.current);
         },
       });
 

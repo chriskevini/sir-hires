@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import './styles.css';
 import { browser } from 'wxt/browser';
 
@@ -26,6 +26,7 @@ import {
   type ValidationFix,
 } from './hooks/useProfileValidation';
 import { useProfileExtraction } from './hooks/useProfileExtraction';
+import { useAutoSave } from '@/hooks/useAutoSave';
 
 // Import components
 import {
@@ -35,7 +36,7 @@ import {
 import { Modal } from '@/components/ui/Modal';
 
 // Constants
-const AUTO_SAVE_INTERVAL = 3000; // 3 seconds
+const AUTO_SAVE_DEBOUNCE_MS = 2000; // 2 seconds debounce
 const PROGRESS_MESSAGE_INTERVAL_MS = 1000; // Cycle progress messages every 1 seconds
 
 // Progress messages shown sequentially during extraction
@@ -74,29 +75,52 @@ const EXTRACTION_PROGRESS_MESSAGES = [
   '⏳ Almost done...',
 ];
 
-// Helper to check if text is a progress message
-const isProgressMessage = (text: string): boolean =>
-  EXTRACTION_PROGRESS_MESSAGES.some((msg) => text.startsWith(msg));
-
 export default function App() {
   // State
-  const [content, setContent] = useState('');
-  const [savedContent, setSavedContent] = useState('');
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [isTemplatePanelVisible, setIsTemplatePanelVisible] = useState(true);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionError, setExtractionError] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [initialContent, setInitialContent] = useState('');
 
   // Refs
   const editorRef = useRef<HTMLTextAreaElement>(null);
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const progressIndexRef = useRef<number>(0); // Track progress message index
   const originalContentRef = useRef<string>(''); // Store original before extraction
   const hasReceivedContentRef = useRef<boolean>(false); // Track if real content has started streaming
+  const streamedContentRef = useRef<string>(''); // Accumulate streamed content to avoid stale closures
+
+  // Auto-save callback - saves to storage and localStorage backup
+  const handleAutoSave = useCallback(async (value: string) => {
+    try {
+      const profileData = {
+        content: value,
+        updatedAt: new Date().toISOString(),
+      };
+
+      await userProfileStorage.setValue(profileData);
+      setLastSavedTime(profileData.updatedAt);
+
+      // Also save to localStorage as backup
+      localStorage.setItem('userProfileDraft', value);
+    } catch (error) {
+      console.error('Auto-save error:', error);
+      // Keep localStorage backup even if browser.storage fails
+      localStorage.setItem('userProfileDraft', value);
+    }
+  }, []);
+
+  // Auto-save hook - replaces manual setInterval
+  const { value: content, setValue: setContent } = useAutoSave({
+    initialValue: initialContent,
+    onSave: handleAutoSave,
+    debounceMs: AUTO_SAVE_DEBOUNCE_MS,
+    disabled: isExtracting, // Disable auto-save during extraction
+  });
 
   // Validation hook - disable during extraction to avoid performance issues
   const { validation, validationFixes, warningFixes } = useProfileValidation({
@@ -111,6 +135,7 @@ export default function App() {
         setExtractionError(null);
         progressIndexRef.current = 0;
         hasReceivedContentRef.current = false;
+        streamedContentRef.current = ''; // Reset streamed content
         // Capture content from editorRef to avoid stale closure
         originalContentRef.current = editorRef.current?.value || '';
         // Hide template during extraction and persist preference
@@ -126,13 +151,15 @@ export default function App() {
           clearInterval(progressIntervalRef.current);
           progressIntervalRef.current = null;
         }
-        setContent((prev) => {
-          // Remove progress message if this is the first real chunk
-          if (isProgressMessage(prev)) {
-            return chunk;
-          }
-          return prev + chunk;
-        });
+        // Use ref to accumulate content (avoids stale closure)
+        if (streamedContentRef.current === '') {
+          // First chunk - start fresh (replaces progress message)
+          streamedContentRef.current = chunk;
+        } else {
+          // Subsequent chunks - append
+          streamedContentRef.current += chunk;
+        }
+        setContent(streamedContentRef.current);
       },
       onExtractionComplete: (fullContent: string) => {
         // Ensure progress interval is cleared
@@ -141,6 +168,7 @@ export default function App() {
           progressIntervalRef.current = null;
         }
         setContent(fullContent);
+        streamedContentRef.current = ''; // Reset
         setIsExtracting(false);
         progressIndexRef.current = 0;
         hasReceivedContentRef.current = false;
@@ -155,6 +183,7 @@ export default function App() {
           progressIntervalRef.current = null;
         }
         setContent(originalContentRef.current); // REVERT to original
+        streamedContentRef.current = ''; // Reset
         setIsExtracting(false);
         progressIndexRef.current = 0;
         hasReceivedContentRef.current = false;
@@ -168,15 +197,13 @@ export default function App() {
           clearInterval(progressIntervalRef.current);
           progressIntervalRef.current = null;
         }
-        // Keep whatever was streamed (don't revert to original)
-        setContent((prev) => {
-          // If still showing progress message, revert to original
-          if (isProgressMessage(prev)) {
-            return originalContentRef.current;
-          }
-          // Otherwise keep the streamed content as-is
-          return prev;
-        });
+        // Keep whatever was streamed, or revert if nothing streamed yet
+        if (streamedContentRef.current) {
+          setContent(streamedContentRef.current);
+        } else {
+          setContent(originalContentRef.current);
+        }
+        streamedContentRef.current = ''; // Reset
         setIsExtracting(false);
         progressIndexRef.current = 0;
         hasReceivedContentRef.current = false;
@@ -226,11 +253,9 @@ export default function App() {
   useEffect(() => {
     loadProfile();
     loadTemplatePanelPreference();
-    startAutoSave();
     startLastSavedInterval();
 
     return () => {
-      if (autoSaveTimerRef.current) clearInterval(autoSaveTimerRef.current);
       if (lastSavedIntervalRef.current)
         clearInterval(lastSavedIntervalRef.current);
     };
@@ -255,14 +280,13 @@ export default function App() {
         const profileContent = userProfile.content;
         const updatedAt = userProfile.updatedAt;
 
-        setContent(profileContent);
-        setSavedContent(profileContent);
+        setInitialContent(profileContent);
         setLastSavedTime(updatedAt);
       } else {
         // Check for draft in localStorage
         const draft = localStorage.getItem('userProfileDraft');
         if (draft) {
-          setContent(draft);
+          setInitialContent(draft);
           setStatusMessage('Draft recovered');
         }
       }
@@ -270,33 +294,6 @@ export default function App() {
       console.error('Error loading profile:', error);
       showStatusMessage('Error loading profile', 'error');
     }
-  };
-
-  const startAutoSave = () => {
-    autoSaveTimerRef.current = setInterval(async () => {
-      const currentContent = editorRef.current?.value.trim() || '';
-
-      if (currentContent !== savedContent) {
-        try {
-          const profileData = {
-            content: currentContent,
-            updatedAt: new Date().toISOString(),
-          };
-
-          await userProfileStorage.setValue(profileData);
-
-          setSavedContent(currentContent);
-          setLastSavedTime(profileData.updatedAt);
-
-          // Also save to localStorage as backup
-          localStorage.setItem('userProfileDraft', currentContent);
-        } catch (error) {
-          console.error('Auto-save error:', error);
-          // Keep localStorage backup even if browser.storage fails
-          localStorage.setItem('userProfileDraft', currentContent);
-        }
-      }
-    }, AUTO_SAVE_INTERVAL);
   };
 
   const startLastSavedInterval = () => {

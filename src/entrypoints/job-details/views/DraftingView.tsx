@@ -12,7 +12,7 @@ import { formatSaveTime } from '@/utils/date-utils';
 import { defaultDocuments } from '@/utils/document-config';
 import { countWords } from '@/utils/text-utils';
 import { exportMarkdown, exportPDF } from '@/utils/export-utils';
-import { useAutoSaveMulti } from '../hooks/useAutoSave';
+import { useAutoSaveMulti } from '@/hooks/useAutoSave';
 import { useTabState } from '../hooks/useTabState';
 import { useToggleState } from '../hooks/useToggleState';
 import { useDocumentManager } from '../hooks/useDocumentManager';

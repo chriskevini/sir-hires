@@ -6,7 +6,7 @@ export { useNavigation } from './useNavigation';
 export { useExtractionEvents } from './useExtractionEvents';
 export { useDebounce } from './useDebounce';
 export { useInterval } from './useInterval';
-export { useAutoSave, useAutoSaveMulti } from './useAutoSave';
+export { useAutoSave, useAutoSaveMulti } from '@/hooks/useAutoSave';
 export { useEditorState } from './useEditorState';
 export { useToggleState } from './useToggleState';
 export { useTabState } from './useTabState';

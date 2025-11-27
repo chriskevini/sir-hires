@@ -1,14 +1,14 @@
 import React from 'react';
 import { Checklist } from '@/entrypoints/job-details/components/checklist';
-import { ChecklistItem } from '@/entrypoints/job-details/hooks/useJobState';
+import type { ChecklistItem } from '@/entrypoints/job-details/hooks';
 
 interface JobViewChecklistProps {
   checklist: Record<string, ChecklistItem[]> | undefined;
   applicationStatus: string;
-  jobIndex: number;
+  jobId: string;
   isExpanded?: boolean;
-  onToggleExpand: (index: number, isExpanded: boolean) => void;
-  onToggleItem: (index: number, itemId: string) => void;
+  onToggleExpand: (isExpanded: boolean) => void;
+  onToggleItem: (jobId: string, itemId: string) => void;
 }
 
 /**
@@ -18,7 +18,7 @@ interface JobViewChecklistProps {
 export const JobViewChecklist: React.FC<JobViewChecklistProps> = ({
   checklist,
   applicationStatus,
-  jobIndex,
+  jobId,
   isExpanded = false,
   onToggleExpand,
   onToggleItem,
@@ -32,7 +32,7 @@ export const JobViewChecklist: React.FC<JobViewChecklistProps> = ({
     <Checklist
       checklist={checklist}
       status={applicationStatus}
-      jobIndex={jobIndex}
+      jobId={jobId}
       isExpanded={isExpanded}
       animate={false}
       onToggleExpand={onToggleExpand}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParsedJob } from './ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '../../utils/job-parser';
-import type { Job } from '../../entrypoints/job-details/hooks/useJobState';
+import type { Job } from '../../entrypoints/job-details/hooks';
 import { defaults } from '../../entrypoints/job-details/config';
 import { JobViewOverlay } from './JobViewOverlay';
 

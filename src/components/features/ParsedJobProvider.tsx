@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useMemo, useRef } from 'react';
 import { parseJobTemplate } from '../../utils/job-parser';
 import type { JobTemplateData } from '../../utils/job-parser';
-import type { Job } from '../../entrypoints/job-details/hooks/useJobState';
+import type { Job } from '../../entrypoints/job-details/hooks';
 
 /**
  * Cache entry for parsed job data

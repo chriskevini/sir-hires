@@ -19,7 +19,7 @@ import './JobViewOverlay.css';
  * @param props - Overlay configuration
  * @returns Overlay container with Checklist and NavigationButtons
  */
-import { ChecklistItem } from '@/entrypoints/job-details/hooks/useJobState';
+import type { ChecklistItem } from '@/entrypoints/job-details/hooks';
 
 interface JobViewOverlayProps {
   job: {

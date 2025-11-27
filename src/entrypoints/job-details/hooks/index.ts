@@ -1,6 +1,6 @@
 // Export all hooks from a single entry point
-export { useJobState } from './useJobState';
-export { useJobStorage } from './useJobStorage';
+
+// Active hooks (unified store replaces useJobState/useJobStorage/useJobHandlers)
 export { useJobStore } from './useJobStore';
 export { useJobService } from './useJobService';
 export { useNavigation } from './useNavigation';
@@ -13,20 +13,19 @@ export { useTabState } from './useTabState';
 export { useJobValidation } from './useJobValidation';
 export { useDocumentManager } from './useDocumentManager';
 export { useParsedJob } from './useParsedJob';
-export { useJobHandlers } from './useJobHandlers';
 
-// Re-export types
-export type { JobHandlers } from './useJobHandlers';
+// Re-export types from types.ts (source of truth for shared types)
 export type {
   Job,
   JobDocument,
   ChecklistItem,
   Filters,
   JobState,
-} from './useJobState';
+  StorageChanges,
+  StorageChangeCallback,
+} from './types';
 
-export type { StorageChanges, StorageChangeCallback } from './useJobStorage';
-
+// Re-export types from active hooks
 export type { JobStoreState, JobStoreActions, JobStore } from './useJobStore';
 
 export type {

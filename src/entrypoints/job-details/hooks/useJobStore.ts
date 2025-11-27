@@ -25,7 +25,7 @@ import {
   type ViewerFilters,
 } from '../../../utils/storage';
 import { mergeJobs, cleanupRecentSaves } from '../../../utils/job-merge';
-import type { Job, JobDocument, ChecklistItem, Filters } from './useJobState';
+import type { Job, JobDocument, ChecklistItem, Filters } from './types';
 import { checklistTemplates } from '../config';
 import {
   parseJobTemplate,

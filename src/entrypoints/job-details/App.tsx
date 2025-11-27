@@ -17,7 +17,7 @@ import {
 import { defaults } from './config';
 import { browser } from 'wxt/browser';
 import type { JobStore } from './hooks/useJobStore';
-import type { Job } from './hooks/useJobState';
+import type { Job } from './hooks';
 
 interface Document {
   title: string;

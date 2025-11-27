@@ -5,7 +5,7 @@ import { DraftingView } from '../job-details/views/DraftingView';
 import { useJobStore } from '../job-details/hooks/useJobStore';
 import { JobViewRouter } from '../../components/features/JobViewRouter';
 import { ParsedJobProvider } from '../../components/features/ParsedJobProvider';
-import type { Job } from '../job-details/hooks';
+import type { Job, ChecklistItem } from '../job-details/hooks';
 import { useJobExtraction, useBackupRestore } from './hooks';
 import { EmptyState } from './components/EmptyState';
 import { ExtractionLoadingView } from '../job-details/components/ExtractionLoadingView';
@@ -14,7 +14,6 @@ import { DuplicateJobModal } from './components/DuplicateJobModal';
 import { parseJobTemplate } from '../../utils/job-parser';
 import { checklistTemplates, defaults } from '../job-details/config';
 import { jobsStorage, restoreStorageFromBackup } from '../../utils/storage';
-import type { ChecklistItem } from '../job-details/hooks/useJobState';
 
 /**
  * Create default checklist for all statuses (adapter for useJobExtraction)
@@ -55,12 +54,6 @@ export const App: React.FC = () => {
   const currentJob = useMemo(() => {
     if (!store.jobInFocusId) return null;
     return store.jobs.find((j) => j.id === store.jobInFocusId) || null;
-  }, [store.jobInFocusId, store.jobs]);
-
-  // Find selected index (global index in jobs array)
-  const selectedIndex = useMemo(() => {
-    if (!store.jobInFocusId) return -1;
-    return store.jobs.findIndex((j) => j.id === store.jobInFocusId);
   }, [store.jobInFocusId, store.jobs]);
 
   /**
@@ -143,52 +136,49 @@ export const App: React.FC = () => {
   }, [currentJob, store]);
 
   /**
-   * Handle saving a field on the current job
+   * Handle saving a field on a job (ID-based)
    */
   const handleSaveField = useCallback(
-    async (
-      _index: number,
-      fieldName: string,
-      value: unknown,
-      immediate?: boolean
-    ) => {
-      if (!currentJob) return;
-
-      if (immediate) {
-        // For immediate saves (like status changes), use updateJobField
-        await store.updateJobField(currentJob.id, fieldName, value);
-      } else {
-        // For debounced saves (like content changes), use updateJob
-        store.updateJob(currentJob.id, { [fieldName]: value } as Partial<Job>);
-      }
+    async (jobId: string, fieldName: string, value: string) => {
+      // Use updateJobField for persistence
+      await store.updateJobField(jobId, fieldName, value);
     },
-    [currentJob, store]
+    [store]
   );
 
   /**
-   * Handle saving a document
+   * Handle saving a document (ID-based)
    */
   const handleSaveDocument = useCallback(
     async (
-      _index: number,
+      jobId: string,
       documentKey: string,
-      data: { text?: string; title?: string }
+      data: { title: string; text: string }
     ) => {
-      if (!currentJob) return;
-      await store.saveDocument(currentJob.id, documentKey, data);
+      await store.saveDocument(jobId, documentKey, data);
     },
-    [currentJob, store]
+    [store]
   );
 
   /**
-   * Handle initializing documents for a job
+   * Handle initializing documents for a job (ID-based)
    */
   const handleInitializeDocuments = useCallback(
-    (_index: number) => {
-      if (!currentJob) return;
-      store.initializeDocuments(currentJob.id);
+    (
+      jobId: string,
+      _documents: Record<
+        string,
+        {
+          title: string;
+          text: string;
+          lastEdited: string | null;
+          order: number;
+        }
+      >
+    ) => {
+      store.initializeDocuments(jobId);
     },
-    [currentJob, store]
+    [store]
   );
 
   /**
@@ -199,16 +189,16 @@ export const App: React.FC = () => {
   }, [store]);
 
   /**
-   * Handle toggling a checklist item
-   * Adapter: converts index-based call to ID-based store method
+   * Handle toggling a checklist item (ID-based)
    */
   const handleChecklistToggleItem = useCallback(
-    async (_index: number, itemId: string) => {
-      if (!currentJob) return;
-      const status = currentJob.applicationStatus || defaults.status;
-      await store.toggleChecklistItem(currentJob.id, status, itemId);
+    async (jobId: string, itemId: string) => {
+      const job = store.jobs.find((j) => j.id === jobId);
+      if (!job) return;
+      const status = job.applicationStatus || defaults.status;
+      await store.toggleChecklistItem(jobId, status, itemId);
     },
-    [currentJob, store]
+    [store]
   );
 
   /**
@@ -227,7 +217,6 @@ export const App: React.FC = () => {
     return (
       <JobViewRouter
         job={currentJob}
-        index={selectedIndex}
         isChecklistExpanded={store.checklistExpanded}
         ResearchingView={ResearchingView}
         DraftingView={DraftingView}
@@ -286,7 +275,7 @@ export const App: React.FC = () => {
           parsedEphemeral.topLevelFields['COMPANY'] ||
           extraction.extractingJob.source
         }
-        index={0}
+        jobId={extraction.extractingJob.id}
         onDelete={handleCancelExtraction}
       />
     );

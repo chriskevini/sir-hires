@@ -10,7 +10,7 @@
  * - Optimistic Updates: Trust local state, only accept genuinely new remote changes
  */
 
-import type { Job } from '../entrypoints/job-details/hooks/useJobState';
+import type { Job } from '../entrypoints/job-details/hooks';
 
 /**
  * Merge remote jobs with local state, preserving local changes

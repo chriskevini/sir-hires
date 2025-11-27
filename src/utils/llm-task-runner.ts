@@ -212,6 +212,15 @@ export async function runTask(options: RunTaskOptions): Promise<TaskResult> {
 
   // Set up abort handling
   if (signal) {
+    // Handle case where signal is already aborted (user cancelled very quickly)
+    if (signal.aborted) {
+      return {
+        content: '',
+        thinking: '',
+        finishReason: 'cancelled',
+        cancelled: true,
+      };
+    }
     signal.addEventListener(
       'abort',
       () => {

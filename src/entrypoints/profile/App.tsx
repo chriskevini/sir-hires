@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import './styles.css';
 import { browser } from 'wxt/browser';
 
@@ -6,6 +6,7 @@ import { browser } from 'wxt/browser';
 import {
   userProfileStorage,
   profileTemplatePanelStorage,
+  llmSettingsStorage,
 } from '@/utils/storage';
 
 // Import utilities
@@ -17,15 +18,17 @@ import {
   findNextSectionPosition,
   applyFix as applyFixUtil,
 } from '@/utils/profile-utils';
-import { PROFILE_TEMPLATE } from '@/tasks';
+import { PROFILE_TEMPLATE, profileExtractionConfig } from '@/tasks';
 import { UI_UPDATE_INTERVAL_MS } from '@/config';
+import { LLMClient } from '@/utils/llm-client';
+import { runTask, startKeepalive } from '@/utils/llm-task-runner';
+import { DEFAULT_TASK_SETTINGS } from '@/utils/llm-utils';
 
 // Import hooks
 import {
   useProfileValidation,
   type ValidationFix,
 } from './hooks/useProfileValidation';
-import { useProfileExtraction } from './hooks/useProfileExtraction';
 
 // Import components
 import {
@@ -148,103 +151,8 @@ export default function App() {
     }
   };
 
-  // Profile extraction hook - memoize callbacks to prevent infinite re-renders
-  const extractionCallbacks = useMemo(
-    () => ({
-      onExtractionStarted: () => {
-        setIsExtracting(true);
-        setExtractionError(null);
-        progressIndexRef.current = 0;
-        hasReceivedContentRef.current = false;
-        // Capture content from editorRef to avoid stale closure
-        originalContentRef.current = editorRef.current?.value || '';
-        // Hide template during extraction and persist preference
-        setIsTemplatePanelVisible(false);
-        profileTemplatePanelStorage.setValue(false);
-        setStatusMessage(''); // Clear header status - progress shown in editor
-        setContent(EXTRACTION_PROGRESS_MESSAGES[0] + '\n\n'); // Initial progress message
-      },
-      onChunkReceived: (chunk: string) => {
-        hasReceivedContentRef.current = true;
-        // Clear progress interval immediately when real content arrives
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-          progressIntervalRef.current = null;
-        }
-        setContent((prev) => {
-          // Remove progress message if this is the first real chunk
-          if (isProgressMessage(prev)) {
-            return chunk;
-          }
-          return prev + chunk;
-        });
-      },
-      onExtractionComplete: (fullContent: string) => {
-        // Ensure progress interval is cleared
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-          progressIntervalRef.current = null;
-        }
-        setContent(fullContent);
-        setIsExtracting(false);
-        progressIndexRef.current = 0;
-        hasReceivedContentRef.current = false;
-        // Template stays hidden (user preference persisted)
-        setStatusMessage('✅ Profile extracted successfully!');
-        setTimeout(() => setStatusMessage(''), 3000);
-        // Save extracted content immediately (extraction is complete, so isExtracting is now false)
-        saveProfileToStorage(fullContent);
-      },
-      onExtractionError: (error: string) => {
-        // Clear progress interval if still running
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-          progressIntervalRef.current = null;
-        }
-        setContent(originalContentRef.current); // REVERT to original
-        setIsExtracting(false);
-        progressIndexRef.current = 0;
-        hasReceivedContentRef.current = false;
-        // Template stays hidden (user preference persisted)
-        setExtractionError(error);
-        setStatusMessage('');
-        // No save needed - we reverted to originalContentRef which was already saved
-      },
-      onExtractionCancelled: () => {
-        // Clear progress interval if still running
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-          progressIntervalRef.current = null;
-        }
-        // Keep whatever was streamed (don't revert to original)
-        // Use a variable to track what content we end up with for saving
-        let contentToSave: string | null = null;
-        setContent((prev) => {
-          // If still showing progress message, revert to original
-          if (isProgressMessage(prev)) {
-            // No need to save - original was already saved
-            return originalContentRef.current;
-          }
-          // Otherwise keep the streamed content as-is and save it
-          contentToSave = prev;
-          return prev;
-        });
-        setIsExtracting(false);
-        progressIndexRef.current = 0;
-        hasReceivedContentRef.current = false;
-        // Template stays hidden (user preference persisted)
-        setStatusMessage('Extraction cancelled - content preserved');
-        setTimeout(() => setStatusMessage(''), 3000);
-        // Save the preserved streamed content if we kept it
-        if (contentToSave) {
-          saveProfileToStorage(contentToSave);
-        }
-      },
-    }),
-    []
-  );
-
-  useProfileExtraction(extractionCallbacks);
+  // AbortController for extraction cancellation
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Progress message cycling during extraction (stops at last message)
   useEffect(() => {
@@ -277,6 +185,15 @@ export default function App() {
       }
     };
   }, [isExtracting]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   // Load profile from storage on mount
   useEffect(() => {
@@ -579,9 +496,33 @@ BULLETS:
       return;
     }
 
+    // Initialize extraction state
+    setIsExtracting(true);
+    setExtractionError(null);
+    progressIndexRef.current = 0;
+    hasReceivedContentRef.current = false;
+    // Capture content from editorRef to avoid stale closure
+    originalContentRef.current = editorRef.current?.value || '';
+    // Hide template during extraction and persist preference
+    setIsTemplatePanelVisible(false);
+    profileTemplatePanelStorage.setValue(false);
+    setStatusMessage(''); // Clear header status - progress shown in editor
+    setContent(EXTRACTION_PROGRESS_MESSAGES[0] + '\n\n'); // Initial progress message
+
+    // Create abort controller for cancellation
+    abortControllerRef.current = new AbortController();
+
+    // Start keepalive to prevent service worker termination
+    const stopKeepalive = startKeepalive();
+
     try {
-      const { llmSettingsStorage } = await import('@/utils/storage');
       const llmSettings = await llmSettingsStorage.getValue();
+
+      if (!llmSettings?.endpoint || llmSettings.endpoint.trim() === '') {
+        throw new Error(
+          '⚠️ LLM endpoint not configured. Please configure settings in the popup first.'
+        );
+      }
 
       // Calculate dynamic max tokens (~1.5x input length)
       // Rough estimate: 1 token ≈ 4 characters
@@ -594,29 +535,113 @@ BULLETS:
         `[Profile] Input length: ${pastedText.length} chars, estimated tokens: ${estimatedInputTokens}, max tokens: ${maxTokens}`
       );
 
-      const response = await browser.runtime.sendMessage({
-        action: 'streamExtractProfile',
-        rawText: pastedText,
-        llmSettings: llmSettings,
-        maxTokens: maxTokens, // Pass calculated max tokens
+      // Initialize LLM client
+      const llmClient = new LLMClient({
+        endpoint: llmSettings.endpoint,
+        modelsEndpoint: llmSettings.modelsEndpoint,
       });
 
-      if (!response.success) {
-        throw new Error(response.error || 'Extraction failed');
+      // Get task-specific settings (use extraction settings)
+      const extractionTemperature =
+        llmSettings.tasks?.extraction?.temperature ??
+        DEFAULT_TASK_SETTINGS.extraction.temperature;
+
+      // Track accumulated content for final save
+      let accumulatedContent = '';
+
+      // Run extraction task
+      const result = await runTask({
+        config: profileExtractionConfig,
+        context: { rawText: pastedText },
+        llmClient,
+        model: llmSettings.model || '',
+        maxTokens,
+        temperature: extractionTemperature,
+        signal: abortControllerRef.current.signal,
+        onChunk: (delta) => {
+          hasReceivedContentRef.current = true;
+          // Clear progress interval immediately when real content arrives
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+          }
+          accumulatedContent += delta;
+          setContent((prev) => {
+            // Remove progress message if this is the first real chunk
+            if (isProgressMessage(prev)) {
+              return delta;
+            }
+            return prev + delta;
+          });
+        },
+      });
+
+      // Check if cancelled
+      if (result.cancelled) {
+        console.info('[Profile] Extraction cancelled');
+        // Clear progress interval if still running
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+        // Keep whatever was streamed (don't revert to original)
+        setContent((prev) => {
+          // If still showing progress message, revert to original
+          if (isProgressMessage(prev)) {
+            return originalContentRef.current;
+          }
+          // Otherwise keep the streamed content as-is and save it
+          if (prev && !isProgressMessage(prev)) {
+            saveProfileToStorage(prev);
+          }
+          return prev;
+        });
+        setIsExtracting(false);
+        progressIndexRef.current = 0;
+        hasReceivedContentRef.current = false;
+        setStatusMessage('Extraction cancelled - content preserved');
+        setTimeout(() => setStatusMessage(''), 3000);
+        return;
       }
+
+      // Handle completion
+      console.info('[Profile] Extraction complete');
+      // Ensure progress interval is cleared
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      setContent(result.content);
+      setIsExtracting(false);
+      progressIndexRef.current = 0;
+      hasReceivedContentRef.current = false;
+      setStatusMessage('✅ Profile extracted successfully!');
+      setTimeout(() => setStatusMessage(''), 3000);
+      // Save extracted content
+      saveProfileToStorage(result.content);
     } catch (error) {
-      const err = error as Error;
-      setExtractionError(err.message);
+      console.error('[Profile] Extraction failed:', error);
+      // Clear progress interval if still running
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      setContent(originalContentRef.current); // REVERT to original
+      setIsExtracting(false);
+      progressIndexRef.current = 0;
+      hasReceivedContentRef.current = false;
+      setExtractionError((error as Error).message);
+      setStatusMessage('');
+    } finally {
+      stopKeepalive();
+      abortControllerRef.current = null;
     }
   };
 
-  const handleCancelExtraction = async () => {
-    try {
-      await browser.runtime.sendMessage({
-        action: 'cancelProfileExtraction',
-      });
-    } catch (error) {
-      console.error('Failed to cancel extraction:', error);
+  const handleCancelExtraction = () => {
+    if (abortControllerRef.current) {
+      console.info('[Profile] Cancelling extraction via AbortController');
+      abortControllerRef.current.abort();
     }
   };
 

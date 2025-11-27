@@ -640,6 +640,29 @@ function setupMessageListener() {
         return true; // Keep message channel open for async response
       }
 
+      if (request.action === 'getPageContent') {
+        // Returns URL, source, and raw text for LLM extraction
+        // Used by useJobExtraction hook which runs extraction in the component
+        try {
+          const url = window.location.href;
+          const source = extractSource();
+          const rawText = extractRawJobText();
+
+          console.info(
+            '[Content] getPageContent - extracted raw text length:',
+            rawText.length
+          );
+
+          sendResponse({ success: true, url, source, rawText });
+        } catch (error) {
+          console.error('[Content] Failed to get page content:', error);
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          sendResponse({ success: false, error: errorMessage });
+        }
+        return true; // Keep message channel open for async response
+      }
+
       if (request.action === 'streamExtractJobData') {
         (async () => {
           try {

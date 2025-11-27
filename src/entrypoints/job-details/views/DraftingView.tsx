@@ -1,12 +1,28 @@
-import React, { useEffect, useMemo, useCallback, useState } from 'react';
+import React, {
+  useEffect,
+  useMemo,
+  useCallback,
+  useState,
+  useRef,
+} from 'react';
 import { Modal } from '../../../components/ui/Modal';
-import { SynthesisForm } from '../components/SynthesisForm';
 import { EditorToolbar } from '@/components/ui/EditorToolbar';
 import { EditorContentPanel } from '@/components/ui/EditorContentPanel';
 import { EditorFooter } from '@/components/ui/EditorFooter';
+import {
+  SynthesisFooter,
+  getRandomTone,
+} from '@/components/ui/SynthesisFooter';
 import { JobViewOverlay } from '@/components/features/JobViewOverlay';
 import { useParsedJob } from '@/components/features/ParsedJobProvider';
-import { getJobTitle, getCompanyName } from '@/utils/job-parser';
+import {
+  getJobTitle,
+  getCompanyName,
+  extractDescription,
+  extractAboutCompany,
+  extractRequiredSkills,
+  extractPreferredSkills,
+} from '@/utils/job-parser';
 import { escapeHtml } from '@/utils/shared-utils';
 import { formatSaveTime } from '@/utils/date-utils';
 import { defaultDocuments } from '@/utils/document-config';
@@ -16,6 +32,11 @@ import { useImmediateSaveMulti } from '@/hooks/useImmediateSave';
 import { useTabState } from '../hooks/useTabState';
 import { useToggleState } from '../hooks/useToggleState';
 import { useDocumentManager } from '../hooks/useDocumentManager';
+import { llmConfig } from '../config';
+import { LLMClient } from '@/utils/llm-client';
+import { userProfileStorage } from '@/utils/storage';
+import { useLLMSettings } from '@/hooks/useLLMSettings';
+import { DEFAULT_MODEL, DEFAULT_TASK_SETTINGS } from '@/utils/llm-utils';
 import type { Job } from '../hooks';
 import './DraftingView.css';
 
@@ -45,6 +66,41 @@ interface DraftingViewProps {
   hideOverlay?: boolean;
 }
 
+// Progress messages shown sequentially during synthesis
+const SYNTHESIS_PROGRESS_MESSAGES = [
+  'Starting synthesis',
+  'Starting synthesis.',
+  'Starting synthesis..',
+  'Starting synthesis...',
+  'Analyzing job requirements',
+  'Analyzing job requirements.',
+  'Analyzing job requirements..',
+  'Analyzing job requirements...',
+  'Matching profile to job',
+  'Matching profile to job.',
+  'Matching profile to job..',
+  'Matching profile to job...',
+  'Crafting your document',
+  'Crafting your document.',
+  'Crafting your document..',
+  'Crafting your document...',
+  'Almost done',
+  'Almost done.',
+  'Almost done..',
+  'Almost done...',
+];
+
+const PROGRESS_MESSAGE_INTERVAL_MS = 1000;
+
+// Helper to check if text is a progress message
+const isProgressMessage = (text: string): boolean =>
+  SYNTHESIS_PROGRESS_MESSAGES.some((msg) => text.startsWith(msg));
+
+// Helper to convert array to bullet-point string
+const arrayToString = (arr: string[]): string => {
+  return arr.length > 0 ? arr.map((item) => `- ${item}`).join('\n') : '';
+};
+
 export const DraftingView: React.FC<DraftingViewProps> = ({
   job,
   isChecklistExpanded = false,
@@ -59,9 +115,69 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   // Toggle states
   const [exportDropdownOpen, toggleExportDropdown, setExportDropdownOpen] =
     useToggleState(false);
-  const [isSynthesisModalOpen, _toggleSynthesisModal, setIsSynthesisModalOpen] =
-    useToggleState(false);
   const [wordCount, setWordCount] = React.useState<number>(0);
+
+  // Synthesis state
+  const [tone, setTone] = useState(() => getRandomTone());
+  const [isSynthesizing, setIsSynthesizing] = useState(false);
+  const [synthesisError, setSynthesisError] = useState<string | null>(null);
+  const [showProfileWarning, setShowProfileWarning] = useState(false);
+  const [userProfile, setUserProfile] = useState('');
+
+  // Refs for synthesis
+  const originalContentRef = useRef<string>('');
+  const hasReceivedContentRef = useRef<boolean>(false);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIndexRef = useRef<number>(0);
+
+  // LLM settings
+  const {
+    model: savedModel,
+    endpoint,
+    modelsEndpoint,
+    maxTokens: savedMaxTokens,
+    temperature: savedTemperature,
+    isLoading: isLoadingSettings,
+  } = useLLMSettings({ task: 'synthesis' });
+
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
+  const [maxTokens, setMaxTokens] = useState(
+    DEFAULT_TASK_SETTINGS.synthesis.maxTokens
+  );
+
+  // Sync local model state with saved settings when they load
+  useEffect(() => {
+    if (!isLoadingSettings && savedModel) {
+      setSelectedModel(savedModel);
+    }
+  }, [isLoadingSettings, savedModel]);
+
+  // Sync local maxTokens with saved task settings when they load
+  useEffect(() => {
+    if (!isLoadingSettings) {
+      setMaxTokens(savedMaxTokens);
+    }
+  }, [isLoadingSettings, savedMaxTokens]);
+
+  // Create LLM client
+  const llmClient = useMemo(
+    () =>
+      new LLMClient({
+        endpoint,
+        modelsEndpoint,
+      }),
+    [endpoint, modelsEndpoint]
+  );
+
+  // Fetch user profile on mount
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const userProfileData = await userProfileStorage.getValue();
+      const profile = userProfileData?.content || '';
+      setUserProfile(profile);
+    };
+    fetchUserProfile();
+  }, []);
 
   // Parse job content on-read (MarkdownDB pattern) using cached provider
   const parsed = useParsedJob(job.id);
@@ -177,6 +293,249 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     }
   };
 
+  // Handle tone refresh
+  const handleRefreshTone = useCallback(() => {
+    setTone(getRandomTone());
+  }, []);
+
+  // Build context for synthesis
+  const buildContext = useCallback((): Record<string, string> => {
+    if (!job || !parsed)
+      return {
+        masterResume: 'Not provided',
+        jobTitle: 'Not provided',
+        company: 'Not provided',
+        aboutJob: 'Not provided',
+        aboutCompany: 'Not provided',
+        requirements: 'Not provided',
+        preferredSkills: 'Not provided',
+        template: '',
+        tone: tone,
+      };
+
+    // Extract fields from parsed MarkdownDB template
+    const description = arrayToString(extractDescription(parsed));
+    const aboutCompany = arrayToString(extractAboutCompany(parsed));
+    const requiredSkills = arrayToString(extractRequiredSkills(parsed));
+    const preferredSkills = arrayToString(extractPreferredSkills(parsed));
+
+    return {
+      masterResume: userProfile || 'Not provided',
+      jobTitle: getJobTitle(parsed) || 'Not provided',
+      company: getCompanyName(parsed) || 'Not provided',
+      aboutJob: description || 'Not provided',
+      aboutCompany: aboutCompany || 'Not provided',
+      requirements: requiredSkills || 'Not provided',
+      preferredSkills: preferredSkills || 'Not provided',
+      template: getLatestValue(activeTab) || '',
+      tone: tone,
+    };
+  }, [job, parsed, userProfile, activeTab, tone, getLatestValue]);
+
+  // Build user prompt for LLM
+  const buildUserPrompt = useCallback(
+    (context: Record<string, string>): string => {
+      const sections = [];
+
+      if (context.masterResume && context.masterResume !== 'Not provided') {
+        sections.push(`[MASTER RESUME]\n${context.masterResume}`);
+      }
+
+      if (context.jobTitle && context.jobTitle !== 'Not provided') {
+        sections.push(`[JOB TITLE]\n${context.jobTitle}`);
+      }
+
+      if (context.company && context.company !== 'Not provided') {
+        sections.push(`[COMPANY]\n${context.company}`);
+      }
+
+      if (context.aboutJob && context.aboutJob !== 'Not provided') {
+        sections.push(`[ABOUT THE JOB]\n${context.aboutJob}`);
+      }
+
+      if (context.aboutCompany && context.aboutCompany !== 'Not provided') {
+        sections.push(`[ABOUT THE COMPANY]\n${context.aboutCompany}`);
+      }
+
+      if (context.requirements && context.requirements !== 'Not provided') {
+        sections.push(`[REQUIRED SKILLS]\n${context.requirements}`);
+      }
+
+      if (
+        context.preferredSkills &&
+        context.preferredSkills !== 'Not provided'
+      ) {
+        sections.push(`[PREFERRED SKILLS]\n${context.preferredSkills}`);
+      }
+
+      if (context.tone && context.tone.trim()) {
+        sections.push(`[TONE]\n${context.tone}`);
+      }
+
+      if (context.template && context.template.trim()) {
+        sections.push(`[TEMPLATE]\n${context.template}`);
+      }
+
+      return (
+        sections.join('\n\n') +
+        '\n\nSynthesize the document now, strictly following the STREAMING PROTOCOL.'
+      );
+    },
+    []
+  );
+
+  // Handle synthesis
+  const handleSynthesize = useCallback(async () => {
+    // Check if profile is valid
+    if (!userProfile || userProfile.trim().length === 0) {
+      setShowProfileWarning(true);
+      return;
+    }
+
+    // Start synthesis
+    setIsSynthesizing(true);
+    setSynthesisError(null);
+    progressIndexRef.current = 0;
+    hasReceivedContentRef.current = false;
+
+    // Store original content
+    originalContentRef.current = getLatestValue(activeTab) || '';
+
+    // Show initial progress message
+    updateContent(activeTab, SYNTHESIS_PROGRESS_MESSAGES[0] + '\n\n');
+
+    // Start progress message cycling
+    progressIntervalRef.current = setInterval(() => {
+      if (!hasReceivedContentRef.current) {
+        const lastIndex = SYNTHESIS_PROGRESS_MESSAGES.length - 1;
+        if (progressIndexRef.current < lastIndex) {
+          progressIndexRef.current += 1;
+          updateContent(
+            activeTab,
+            SYNTHESIS_PROGRESS_MESSAGES[progressIndexRef.current] + '\n\n'
+          );
+        } else {
+          // At last message - clear interval to stop cycling
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+          }
+        }
+      }
+    }, PROGRESS_MESSAGE_INTERVAL_MS);
+
+    try {
+      // Build context and prompts
+      const context = buildContext();
+      const systemPrompt = llmConfig.synthesis.prompts.universal;
+      const userPrompt = buildUserPrompt(context);
+
+      // Stream the synthesis
+      const result = await llmClient.streamCompletion({
+        model: selectedModel,
+        systemPrompt,
+        userPrompt,
+        maxTokens,
+        temperature: savedTemperature,
+        onThinkingUpdate: (_delta: string) => {
+          // Optional: could show thinking in a separate panel
+        },
+        onDocumentUpdate: (delta: string) => {
+          hasReceivedContentRef.current = true;
+          // Clear progress interval when real content arrives
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+          }
+
+          // Get current content and append delta
+          const currentContent = getLatestValue(activeTab) || '';
+          // If still showing progress message, replace it
+          if (isProgressMessage(currentContent)) {
+            updateContent(activeTab, delta);
+          } else {
+            updateContent(activeTab, currentContent + delta);
+          }
+        },
+      });
+
+      // Clear progress interval if still running
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+
+      // Check for truncation
+      if (result.finishReason === 'length') {
+        console.warn('[DraftingView] Response truncated due to token limit');
+        showToast(
+          `Warning: Response was truncated due to token limit (${maxTokens} tokens).`,
+          'error'
+        );
+      }
+
+      // Save the final content
+      const finalContent =
+        result.documentContent || getLatestValue(activeTab) || '';
+      updateContent(activeTab, finalContent);
+
+      // Trigger save
+      const defaultTitle =
+        defaultDocuments[activeTab]?.defaultTitle(
+          parsedJob.jobTitle,
+          parsedJob.company
+        ) || 'Untitled';
+      onSaveDocument(job.id, activeTab, {
+        title: defaultTitle,
+        text: finalContent,
+      });
+      setSaveStatusText(`Last saved ${formatSaveTime(new Date())}`);
+
+      showToast('Document synthesized successfully!', 'success');
+    } catch (error) {
+      console.error('[DraftingView] Synthesis failed:', error);
+
+      // Clear progress interval
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+
+      // Revert to original content
+      updateContent(activeTab, originalContentRef.current);
+      setSynthesisError((error as Error).message);
+      showToast(`Synthesis failed: ${(error as Error).message}`, 'error');
+    } finally {
+      setIsSynthesizing(false);
+      progressIndexRef.current = 0;
+      hasReceivedContentRef.current = false;
+    }
+  }, [
+    userProfile,
+    getLatestValue,
+    activeTab,
+    updateContent,
+    buildContext,
+    buildUserPrompt,
+    llmClient,
+    selectedModel,
+    maxTokens,
+    savedTemperature,
+    parsedJob.jobTitle,
+    parsedJob.company,
+    onSaveDocument,
+    job.id,
+  ]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, []);
+
   return (
     <>
       <div className="drafting-view">
@@ -217,7 +576,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
             onToggleExportDropdown={toggleExportDropdown}
             onCloseExportDropdown={() => setExportDropdownOpen(false)}
             onExport={handleExport}
-            onSynthesizeClick={() => setIsSynthesisModalOpen(true)}
           />
 
           {/* Editor wrapper */}
@@ -239,10 +597,27 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
                   textareaRef={getTabRef(key)}
                   onChange={(value) => handleTextareaChange(key, value)}
                   jobId={job.id}
+                  disabled={isSynthesizing}
                 />
               );
             })}
           </div>
+
+          {/* Synthesis error display */}
+          {synthesisError && (
+            <div className="synthesis-error">
+              <strong>Synthesis Error:</strong> {synthesisError}
+            </div>
+          )}
+
+          {/* Synthesis Footer (above EditorFooter) */}
+          <SynthesisFooter
+            tone={tone}
+            onToneChange={setTone}
+            onRefreshTone={handleRefreshTone}
+            onSynthesize={handleSynthesize}
+            isSynthesizing={isSynthesizing}
+          />
 
           {/* Footer with status and word count */}
           <EditorFooter saveStatus={saveStatusText} wordCount={wordCount} />
@@ -259,52 +634,44 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
         hidden={hideOverlay}
       />
 
-      {/* Synthesis Modal */}
+      {/* Profile Warning Modal */}
       <Modal
-        isOpen={isSynthesisModalOpen}
-        onClose={() => setIsSynthesisModalOpen(false)}
-        title="✨ Synthesize Document with LLM"
+        isOpen={showProfileWarning}
+        onClose={() => setShowProfileWarning(false)}
+        title="Profile Required"
       >
-        <SynthesisForm
-          job={job}
-          jobId={job.id}
-          documentKey={activeTab}
-          onClose={() => setIsSynthesisModalOpen(false)}
-          onGenerationStart={(jobId, docKey) => {
-            // Show thinking panel with loading message
-            console.info('Generation started for', docKey);
-          }}
-          onThinkingUpdate={(docKey, delta) => {
-            // Update thinking panel
-            console.info('Thinking update:', delta);
-          }}
-          onDocumentUpdate={(docKey, delta) => {
-            // Use getLatestValue to avoid stale closure during streaming
-            const currentContent = getLatestValue(docKey);
-            updateContent(docKey, currentContent + delta);
-          }}
-          onGenerate={(jobId, docKey, result) => {
-            // Save generated content
-            const generatedContent =
-              result.content || documentContents[docKey] || '';
-            updateContent(docKey, generatedContent);
+        <div className="modal-body">
+          <div className="error-warning">
+            <p>
+              <strong>
+                Please create a profile before synthesizing documents.
+              </strong>
+            </p>
+            <p>
+              Your profile contains your resume information which is used to
+              generate tailored documents for this job.
+            </p>
+            <button
+              className="btn-primary"
+              onClick={() => {
+                window.location.href = '/profile.html';
+              }}
+            >
+              Create Profile
+            </button>
+          </div>
+        </div>
 
-            // Trigger immediate save
-            const defaultTitle =
-              defaultDocuments[docKey]?.defaultTitle() || 'Untitled';
-            onSaveDocument(job.id, docKey, {
-              title: defaultTitle,
-              text: generatedContent,
-            });
-            setSaveStatusText(`Last saved ${formatSaveTime(new Date())}`);
-
-            showToast('Document generated successfully!', 'success');
-          }}
-          onError={(jobId, docKey, error) => {
-            console.error('Generation failed:', error);
-            showToast(`Generation failed: ${error.message}`, 'error');
-          }}
-        />
+        <div className="modal-footer">
+          <div className="action-buttons-group" style={{ marginLeft: 'auto' }}>
+            <button
+              className="btn-secondary"
+              onClick={() => setShowProfileWarning(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       </Modal>
     </>
   );

@@ -12,7 +12,6 @@ interface EditorToolbarProps {
   onToggleExportDropdown: () => void;
   onCloseExportDropdown: () => void;
   onExport: (type: 'md' | 'pdf') => void;
-  onSynthesizeClick: () => void;
 }
 
 export const EditorToolbar: React.FC<EditorToolbarProps> = ({
@@ -24,7 +23,6 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   onToggleExportDropdown,
   onCloseExportDropdown,
   onExport,
-  onSynthesizeClick,
 }) => {
   return (
     <div className="editor-topbar">
@@ -37,13 +35,6 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         onTabChange={onTabChange}
       />
       <div className="editor-actions">
-        <button
-          className="btn-synthesize"
-          id="synthesizeBtn"
-          onClick={onSynthesizeClick}
-        >
-          ✨ Synthesize with LLM
-        </button>
         <Dropdown
           isOpen={exportDropdownOpen}
           onToggle={onToggleExportDropdown}

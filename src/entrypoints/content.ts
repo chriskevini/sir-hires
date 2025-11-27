@@ -115,7 +115,7 @@ function generateJobContent(data: ExtractedJobData): string {
   // Description section
   if (data.aboutJob || data.rawDescription) {
     lines.push('# DESCRIPTION:');
-    const description = data.aboutJob || data.rawDescription;
+    const description = (data.aboutJob || data.rawDescription) as string;
     // Convert to bullet points if not already
     const descLines = description.split('\n').filter((l: string) => l.trim());
     descLines.forEach((line: string) => {
@@ -597,6 +597,8 @@ async function _extractAllFieldsWithLLM(
  */
 interface MessageRequest {
   action: string;
+  llmSettings?: LLMSettings;
+  jobId?: string;
   [key: string]: unknown;
 }
 
@@ -611,6 +613,7 @@ interface MessageResponse {
   jobData?: ExtractedJobData;
   content?: string;
   error?: string;
+  jobId?: string;
 }
 
 // Setup message listener
@@ -640,11 +643,11 @@ function setupMessageListener() {
       if (request.action === 'streamExtractJobData') {
         (async () => {
           try {
-            const llmSettings = request.llmSettings || {};
+            const llmSettings = request.llmSettings;
             const jobId = request.jobId;
 
             // Check if LLM endpoint is configured (enabled field is optional)
-            if (!llmSettings.endpoint) {
+            if (!llmSettings?.endpoint) {
               throw new Error(
                 'LLM endpoint not configured. Streaming extraction requires LLM.'
               );

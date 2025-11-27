@@ -16,7 +16,7 @@ import type {
   Job,
   JobDocument,
   ChecklistItem,
-} from '../entrypoints/job-details/hooks/useJobState';
+} from '../entrypoints/job-details/hooks';
 
 // ===== Type Definitions =====
 

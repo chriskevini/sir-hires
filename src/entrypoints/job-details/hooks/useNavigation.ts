@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { statusOrder, defaults } from '../config';
-import type { Job } from './useJobState';
+import type { Job } from './types';
 
 export interface NavigationHookParams {
   allJobs: Job[];

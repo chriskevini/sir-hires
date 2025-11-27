@@ -6,17 +6,17 @@ import './checklist.css';
 interface ChecklistProps {
   checklist: Record<string, ChecklistItem[]>;
   status: string;
-  jobIndex: number;
+  jobId: string;
   isExpanded?: boolean;
   animate?: boolean;
-  onToggleExpand: (_index: number, _isExpanded: boolean) => void;
-  onToggleItem: (_index: number, _itemId: string) => void;
+  onToggleExpand: (_isExpanded: boolean) => void;
+  onToggleItem: (_jobId: string, _itemId: string) => void;
 }
 
 export const Checklist: React.FC<ChecklistProps> = ({
   checklist,
   status,
-  jobIndex,
+  jobId,
   isExpanded = false,
   animate = false,
   onToggleExpand,
@@ -85,12 +85,12 @@ export const Checklist: React.FC<ChecklistProps> = ({
 
   const handleExpanderClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onToggleExpand(jobIndex, !isExpanded);
+    onToggleExpand(!isExpanded);
   };
 
   const handleItemClick = (e: React.MouseEvent, itemId: string) => {
     e.stopPropagation();
-    onToggleItem(jobIndex, itemId);
+    onToggleItem(jobId, itemId);
   };
 
   const renderExpander = () => (
@@ -115,7 +115,7 @@ export const Checklist: React.FC<ChecklistProps> = ({
         <div
           ref={dropdownRef}
           className="checklist-dropdown expanded"
-          data-index={jobIndex}
+          data-job-id={jobId}
         >
           <div className="checklist-items">
             <div
@@ -138,7 +138,7 @@ export const Checklist: React.FC<ChecklistProps> = ({
       <div
         ref={dropdownRef}
         className="checklist-dropdown expanded"
-        data-index={jobIndex}
+        data-job-id={jobId}
       >
         <div className="checklist-items">
           {sortedItems.map((item) => (
@@ -146,7 +146,7 @@ export const Checklist: React.FC<ChecklistProps> = ({
               key={item.id}
               className="checklist-item"
               data-item-id={item.id}
-              data-index={jobIndex}
+              data-job-id={jobId}
               onClick={(e) => handleItemClick(e, item.id)}
             >
               <span className="checklist-text">{item.text}</span>

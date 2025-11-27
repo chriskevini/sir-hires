@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { ResearchingView } from './views/ResearchingView';
 import { DraftingView } from './views/DraftingView';
-import { useJobState, useJobStorage, useJobHandlers } from './hooks';
+import { useJobStore } from './hooks';
 import { JobViewRouter } from '../../components/features/JobViewRouter';
 import {
   ParsedJobProvider,
@@ -16,86 +16,134 @@ import {
 } from '../../utils/storage';
 import { defaults } from './config';
 import { browser } from 'wxt/browser';
+import type { JobStore } from './hooks/useJobStore';
+import type { Job } from './hooks';
+
+interface Document {
+  title: string;
+  text: string;
+  lastEdited: string | null;
+  order: number;
+}
 
 /**
  * Inner component that uses ParsedJobProvider context
  * Must be rendered inside ParsedJobProvider
  */
 interface AppContentProps {
-  jobState: ReturnType<typeof useJobState>;
+  store: JobStore;
 }
 
-const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
-  // Initialize hooks (no duplicate jobState!)
-  const storage = useJobStorage();
+const AppContent: React.FC<AppContentProps> = ({ store }) => {
   const getParsedJob = useGetParsedJob();
 
-  // Local state for UI controls
+  // Local state for UI controls (will be migrated to store.updateFilters in future)
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [sortOrder, setSortOrder] = useState('newest');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, _setError] = useState<string | null>(null);
 
-  // Suppress reload flag for document auto-save
-  const [suppressReloadUntil, setSuppressReloadUntil] = useState<number | null>(
-    null
+  // ============================================================================
+  // ID-based handlers: Pass directly to view components
+  // No more index-to-ID adapter functions needed!
+  // ============================================================================
+
+  /**
+   * Handle save field event (generic field updates)
+   */
+  const handleSaveField = useCallback(
+    async (jobId: string, fieldName: string, value: string) => {
+      await store.updateJobField(jobId, fieldName, value);
+      console.info(`[App] Updated ${fieldName} for job ${jobId}`);
+    },
+    [store]
   );
 
   /**
-   * Load jobs from storage on mount
+   * Handle delete job event
    */
-  const loadJobs = useCallback(async () => {
-    console.info('Loading jobs from storage...');
+  const handleDeleteJob = useCallback(
+    async (jobId: string) => {
+      // eslint-disable-next-line no-undef
+      if (!confirm('Are you sure you want to delete this job?')) {
+        return;
+      }
 
-    // Check if animation is active
-    if (jobState.isAnimating) {
-      console.info('Animation in progress, setting pending reload flag');
-      jobState.setPendingReload(true);
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Load all data in parallel
-      const [jobs, jobInFocusId, checklistExpanded] = await Promise.all([
-        storage.getAllJobs(),
-        storage.getJobInFocus(),
-        storage.getChecklistExpanded(),
-      ]);
-
-      console.info(`[loadJobs] Loaded ${jobs.length} jobs from storage`, {
-        jobIds: jobs.map((j) => j.id),
-        jobInFocusId,
-      });
-
-      // Update state
-      jobState.setAllJobs(jobs);
-      jobState.setJobInFocus(jobInFocusId);
-      jobState.setChecklistExpanded(checklistExpanded);
-
-      console.info(`Loaded ${jobs.length} jobs from storage`);
-    } catch (err) {
-      console.error('Error loading jobs:', err);
-      setError('Failed to load jobs. Please refresh the page.');
-    } finally {
-      setIsLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty deps - uses latest jobState/storage via closure
+      await store.deleteJob(jobId);
+      console.info(`[App] Deleted job ${jobId}`);
+    },
+    [store]
+  );
 
   /**
-   * Filter jobs based on current filter settings
-   * Optimized with ParsedJobProvider cache to reduce redundant parsing operations
+   * Handle checklist toggle expand (global setting)
    */
+  const handleChecklistToggleExpand = useCallback(
+    async (isExpanded: boolean) => {
+      await store.setChecklistExpanded(isExpanded);
+      console.info(`[App] Toggled checklist expand globally to ${isExpanded}`);
+    },
+    [store]
+  );
+
+  /**
+   * Handle checklist toggle item
+   */
+  const handleChecklistToggleItem = useCallback(
+    async (jobId: string, itemId: string) => {
+      const job = store.jobs.find((j: Job) => j.id === jobId);
+      if (!job || !job.checklist) {
+        console.error(
+          '[App] handleChecklistToggleItem: Job or checklist not found:',
+          jobId
+        );
+        return;
+      }
+
+      const status = job.applicationStatus || defaults.status;
+      await store.toggleChecklistItem(jobId, status, itemId);
+      console.info(`[App] Toggled checklist item ${itemId}`);
+    },
+    [store]
+  );
+
+  /**
+   * Handle initialize documents (Drafting view)
+   */
+  const handleInitializeDocuments = useCallback(
+    (jobId: string, documents: Record<string, Document>) => {
+      store.initializeDocuments(jobId, documents);
+      console.info(`[App] Initialized documents for job ${jobId}`);
+    },
+    [store]
+  );
+
+  /**
+   * Handle save document (auto-save or manual save)
+   */
+  const handleSaveDocument = useCallback(
+    async (
+      jobId: string,
+      documentKey: string,
+      documentData: { title: string; text: string }
+    ) => {
+      await store.saveDocument(jobId, documentKey, documentData);
+      console.info(`[App] Saved document ${documentKey} for job ${jobId}`);
+    },
+    [store]
+  );
+
+  // ============================================================================
+  // Filter jobs based on current filter settings
+  // TODO: Migrate to store.updateFilters() in a future iteration
+  // ============================================================================
+
   const filterJobs = useCallback(() => {
-    const allJobs = jobState.allJobs;
+    const allJobs = store.jobs;
     console.info(`[filterJobs] Starting filter with ${allJobs.length} jobs`);
 
     // Filter jobs using provider's cached parsing
-    let filtered = allJobs.filter((job) => {
+    let filtered = allJobs.filter((job: Job) => {
       const parsed = getParsedJob(job.id);
       if (!parsed) return true; // Include jobs with no content
 
@@ -110,8 +158,6 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
         if (!matchesSearch) return false;
       }
 
-      // Source filter - removed, no longer stored
-
       // Status filter
       if (statusFilter && statusFilter !== '') {
         const jobStatus = job.applicationStatus || defaults.status;
@@ -124,18 +170,18 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
     // Sort jobs using provider's cached parsing
     if (sortOrder === 'newest') {
       filtered = filtered.sort(
-        (a, b) =>
+        (a: Job, b: Job) =>
           new Date(b.updatedAt || 0).getTime() -
           new Date(a.updatedAt || 0).getTime()
       );
     } else if (sortOrder === 'oldest') {
       filtered = filtered.sort(
-        (a, b) =>
+        (a: Job, b: Job) =>
           new Date(a.updatedAt || 0).getTime() -
           new Date(b.updatedAt || 0).getTime()
       );
     } else if (sortOrder === 'company') {
-      filtered = filtered.sort((a, b) => {
+      filtered = filtered.sort((a: Job, b: Job) => {
         const parsedA = getParsedJob(a.id) || null;
         const parsedB = getParsedJob(b.id) || null;
         const companyA = parsedA ? getCompanyName(parsedA) || '' : '';
@@ -143,7 +189,7 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
         return companyA.localeCompare(companyB);
       });
     } else if (sortOrder === 'title') {
-      filtered = filtered.sort((a, b) => {
+      filtered = filtered.sort((a: Job, b: Job) => {
         const parsedA = getParsedJob(a.id) || null;
         const parsedB = getParsedJob(b.id) || null;
         const titleA = parsedA ? getJobTitle(parsedA) || '' : '';
@@ -157,17 +203,19 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
       statusFilter,
       sortOrder,
     });
-    jobState.setFilteredJobs(filtered);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, statusFilter, sortOrder, getParsedJob]); // Don't include jobState - it's used, not watched
+
+    return filtered;
+  }, [store.jobs, searchTerm, statusFilter, sortOrder, getParsedJob]);
+
+  // Calculate filtered jobs (memoized via filterJobs callback)
+  const filteredJobs = filterJobs();
 
   /**
    * Select a job by index in filtered list
    */
   const selectJob = useCallback(
     async (filteredIndex: number) => {
-      const filtered = jobState.filteredJobs;
-      const job = filtered[filteredIndex];
+      const job = filteredJobs[filteredIndex];
 
       if (!job) {
         console.error('Job not found at filtered index:', filteredIndex);
@@ -175,23 +223,22 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
       }
 
       // Find global index
-      const globalIndex = jobState.allJobs.findIndex((j) => j.id === job.id);
+      const globalIndex = store.jobs.findIndex((j: Job) => j.id === job.id);
       if (globalIndex === -1) {
-        console.error('Job not found in allJobs array');
+        console.error('Job not found in jobs array');
         return;
       }
 
       // Update selected index (use global index)
-      jobState.setSelectedIndex(globalIndex);
+      store.setSelectedIndex(globalIndex);
 
       // Set as job in focus
       if (job.id) {
-        await storage.setJobInFocus(job.id);
-        jobState.setJobInFocus(job.id);
+        await store.setJobInFocus(job.id);
         console.info(`Set job ${job.id} as job in focus`);
       }
     },
-    [jobState, storage]
+    [filteredJobs, store]
   );
 
   /**
@@ -314,103 +361,72 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
     }
   }, []);
 
-  // Initialize shared job handlers
-  const handlers = useJobHandlers(
-    jobState,
-    storage,
-    loadJobs,
-    suppressReloadUntil,
-    setSuppressReloadUntil
-  );
-
   /**
    * Initialize app on mount
    */
   useEffect(() => {
     console.info('Initializing JobDetailsApp...');
     initDevModeValidation(); // Enable MarkdownDB pattern validation in dev mode
-    loadJobs();
     console.info('JobDetailsApp initialized');
-  }, [loadJobs]);
+  }, []);
 
   /**
-   * Register storage change listener
+   * Auto-select job after filtering or when jobInFocus changes
    */
   useEffect(() => {
-    storage.onStorageChange(handlers.handleStorageChange);
-
-    return () => {
-      storage.offStorageChange(handlers.handleStorageChange);
-    };
-  }, [storage, handlers.handleStorageChange]);
-
-  /**
-   * Filter jobs when filters change
-   */
-  useEffect(() => {
-    filterJobs();
-  }, [jobState.allJobs, searchTerm, statusFilter, sortOrder, filterJobs]);
-
-  /**
-   * Auto-select job after filtering
-   */
-  useEffect(() => {
-    const filtered = jobState.filteredJobs;
-
-    if (filtered.length === 0) {
-      jobState.setSelectedIndex(-1);
+    if (filteredJobs.length === 0) {
+      store.setSelectedIndex(-1);
       return;
     }
 
     // Priority 1: Job in focus
-    if (jobState.jobInFocusId) {
-      const focusIndex = jobState.allJobs.findIndex(
-        (job) => job.id === jobState.jobInFocusId
+    if (store.jobInFocusId) {
+      const focusIndex = store.jobs.findIndex(
+        (job: Job) => job.id === store.jobInFocusId
       );
       if (focusIndex !== -1) {
-        jobState.setSelectedIndex(focusIndex);
+        store.setSelectedIndex(focusIndex);
         return;
       }
     }
 
     // Priority 2: Currently selected job
-    const selectedIndex = jobState.selectedJobIndex;
-    if (selectedIndex >= 0 && selectedIndex < jobState.allJobs.length) {
+    const selectedIndex = store.selectedJobIndex;
+    if (selectedIndex >= 0 && selectedIndex < store.jobs.length) {
       return; // Keep current selection
     }
 
     // Priority 3: First job
-    jobState.setSelectedIndex(0);
+    store.setSelectedIndex(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    jobState.filteredJobs,
-    jobState.jobInFocusId,
-    jobState.selectedJobIndex,
-    jobState.allJobs.length,
-  ]); // Only watch specific properties that affect selection logic
+    filteredJobs.length,
+    store.jobInFocusId,
+    store.selectedJobIndex,
+    store.jobs.length,
+  ]);
 
   /**
    * Get the view component for the current job
    */
   const renderJobView = () => {
-    const index = jobState.selectedJobIndex;
-    const job = jobState.allJobs[index];
+    const index = store.selectedJobIndex;
+    const job = store.jobs[index];
 
     return (
       <JobViewRouter
         job={job}
-        index={index}
-        isChecklistExpanded={jobState.checklistExpanded}
+        isChecklistExpanded={store.checklistExpanded}
         ResearchingView={ResearchingView}
         DraftingView={DraftingView}
-        onDeleteJob={handlers.handleDeleteJob}
-        onSaveField={handlers.handleSaveField}
-        onSaveDocument={handlers.handleSaveDocument}
-        onInitializeDocuments={handlers.handleInitializeDocuments}
-        onToggleChecklistExpand={handlers.handleChecklistToggleExpand}
-        onToggleChecklistItem={handlers.handleChecklistToggleItem}
+        onDeleteJob={handleDeleteJob}
+        onSaveField={handleSaveField}
+        onSaveDocument={handleSaveDocument}
+        onInitializeDocuments={handleInitializeDocuments}
+        onToggleChecklistExpand={handleChecklistToggleExpand}
+        onToggleChecklistItem={handleChecklistToggleItem}
         emptyStateMessage={
-          jobState.filteredJobs.length === 0
+          filteredJobs.length === 0
             ? 'No jobs match your filters'
             : 'No job selected'
         }
@@ -419,7 +435,7 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
   };
 
   // Loading state
-  if (isLoading) {
+  if (store.isLoading) {
     return (
       <div className="app-loading">
         <p>Loading jobs...</p>
@@ -438,7 +454,7 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
   }
 
   // Empty state
-  if (jobState.allJobs.length === 0) {
+  if (store.jobs.length === 0) {
     return (
       <div className="container">
         <div id="emptyState" className="empty-state">
@@ -454,9 +470,9 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
 
   // Main app UI
   console.info('[Render] Main app UI', {
-    allJobs: jobState.allJobs.length,
-    filteredJobs: jobState.filteredJobs.length,
-    selectedIndex: jobState.selectedJobIndex,
+    allJobs: store.jobs.length,
+    filteredJobs: filteredJobs.length,
+    selectedIndex: store.selectedJobIndex,
   });
 
   return (
@@ -466,7 +482,7 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
         <div className="header-title">
           <h1>Saved Jobs</h1>
           <span className="job-count">
-            {jobState.filteredJobs.length} of {jobState.allJobs.length} jobs
+            {filteredJobs.length} of {store.jobs.length} jobs
           </span>
         </div>
         <div className="header-actions">
@@ -523,11 +539,11 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
             </div>
           </div>
           <div className="jobs-list-sidebar" id="jobsList">
-            {jobState.filteredJobs.map((job, filteredIndex) => {
-              const globalIndex = jobState.allJobs.findIndex(
-                (j) => j.id === job.id
+            {filteredJobs.map((job: Job, filteredIndex: number) => {
+              const globalIndex = store.jobs.findIndex(
+                (j: Job) => j.id === job.id
               );
-              const isSelected = globalIndex === jobState.selectedJobIndex;
+              const isSelected = globalIndex === store.selectedJobIndex;
               const parsed = getParsedJob(job.id);
 
               return (
@@ -548,7 +564,7 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
                         className="btn-delete-card"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handlers.handleDeleteJob(globalIndex);
+                          handleDeleteJob(job.id);
                         }}
                         title="Delete this job"
                       >
@@ -577,18 +593,23 @@ const AppContent: React.FC<AppContentProps> = ({ jobState }) => {
  * Main App component - wraps AppContent with ParsedJobProvider
  * Provides parsed job caching to all child components
  *
- * Why two components?
- * - ParsedJobProvider is a React Context that must wrap components that use useGetParsedJob()
- * - App creates jobState and passes allJobs to ParsedJobProvider
- * - AppContent receives jobState as prop and uses useGetParsedJob() hook
- * - This ensures single source of truth for jobState (no duplicate instances)
+ * Architecture:
+ * - App creates useJobStore (single source of truth for job state + storage)
+ * - ParsedJobProvider receives jobs array for caching parsed job templates
+ * - AppContent receives store and uses useGetParsedJob() hook for cached parsing
+ *
+ * The useJobStore hook handles:
+ * - Loading jobs from storage on mount
+ * - Storage change listener with echo cancellation (no more suppressReloadUntil)
+ * - ID-based updates (immune to array reordering)
+ * - Optimistic updates with fire-and-forget persistence
  */
 export const App: React.FC = () => {
-  const jobState = useJobState();
+  const store = useJobStore();
 
   return (
-    <ParsedJobProvider jobs={jobState.allJobs}>
-      <AppContent jobState={jobState} />
+    <ParsedJobProvider jobs={store.jobs}>
+      <AppContent store={store} />
     </ParsedJobProvider>
   );
 };

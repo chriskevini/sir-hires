@@ -22,10 +22,10 @@ const arrayToString = (arr: string[]): string => {
 
 interface SynthesisFormProps {
   job: Job | null;
-  jobIndex: number | null;
+  jobId: string | null;
   documentKey: string | null;
   onGenerate: (
-    _jobIndex: number,
+    _jobId: string,
     _documentKey: string,
     _result: {
       content: string;
@@ -34,16 +34,16 @@ interface SynthesisFormProps {
       currentTokens: number;
     }
   ) => void;
-  onGenerationStart?: (_jobIndex: number, _documentKey: string) => void;
+  onGenerationStart?: (_jobId: string, _documentKey: string) => void;
   onThinkingUpdate?: (_documentKey: string, _delta: string) => void;
   onDocumentUpdate?: (_documentKey: string, _delta: string) => void;
-  onError?: (_jobIndex: number, _documentKey: string, _error: Error) => void;
+  onError?: (_jobId: string, _documentKey: string, _error: Error) => void;
   onClose: () => void;
 }
 
 export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   job,
-  jobIndex,
+  jobId,
   documentKey,
   onGenerate,
   onGenerationStart,
@@ -224,7 +224,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   };
 
   const handleGenerate = async () => {
-    if (!job || jobIndex === null || !documentKey) return;
+    if (!job || jobId === null || !documentKey) return;
 
     if (maxTokens < 100 || maxTokens > 32000) {
       alert('Max tokens must be between 100 and 32000');
@@ -242,7 +242,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
       const userPrompt = buildUserPrompt(context);
 
       // Capture these values before closing modal
-      const capturedJobIndex = jobIndex;
+      const capturedJobId = jobId;
       const capturedDocumentKey = documentKey;
 
       // Close modal immediately so user can watch streaming
@@ -250,7 +250,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
 
       // Notify that generation is starting (before stream begins)
       if (onGenerationStart) {
-        onGenerationStart(capturedJobIndex, capturedDocumentKey);
+        onGenerationStart(capturedJobId, capturedDocumentKey);
       }
 
       // Synthesize document with system + user prompts and streaming callbacks
@@ -268,17 +268,17 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
         );
 
         // Still call onGenerate to save truncated content
-        onGenerate(capturedJobIndex, capturedDocumentKey, result);
+        onGenerate(capturedJobId, capturedDocumentKey, result);
         return;
       }
 
       // Call callback with generated content
-      onGenerate(capturedJobIndex, capturedDocumentKey, result);
+      onGenerate(capturedJobId, capturedDocumentKey, result);
     } catch (error) {
       console.error('[SynthesisForm] Synthesis failed:', error);
 
-      if (jobIndex !== null && documentKey && onError) {
-        onError(jobIndex, documentKey, error as Error);
+      if (jobId !== null && documentKey && onError) {
+        onError(jobId, documentKey, error as Error);
       }
 
       // Still show alert to user

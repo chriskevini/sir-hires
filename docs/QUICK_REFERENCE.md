@@ -42,13 +42,12 @@
 | ---------------- | --------------------------- | --------------------------------------- | ---------------------- |
 | `useToggleState` | Boolean toggle state        | `[state, toggle, setValue]`             | `useToggleState.ts:7`  |
 | `useEditorState` | Textarea state + auto-reset | `{ content, handleChange, handleBlur }` | `useEditorState.ts:45` |
-| `useJobState`    | Complete job state mgmt     | `JobState`                              | `useJobState.ts`       |
+| `useJobStore`    | Unified job state + storage | `JobStore` (state + actions)            | `useJobStore.ts:227`   |
 
 ### Storage & Persistence Hooks
 
 | Hook                | Purpose                    | Returns                          | Location               |
 | ------------------- | -------------------------- | -------------------------------- | ---------------------- |
-| `useJobStorage`     | Job storage operations     | Storage methods                  | `useJobStorage.ts`     |
 | `useSimpleAutoSave` | Auto-save with debouncing  | `void`                           | `useSimpleAutoSave.ts` |
 | `useBackupRestore`  | Import/export backup files | `{ handleImport, handleExport }` | `useBackupRestore.ts`  |
 
@@ -98,10 +97,10 @@
 ❓ Boolean State (toggle) → ✅ useToggleState
 ❓ Textarea Content → ✅ useEditorState
 ❓ Auto-Save → ✅ useSimpleAutoSave
+❓ Job State (CRUD, filters, focus) → ✅ useJobStore
 ❓ Job Validation → ✅ useJobValidation
 ❓ Job Parsing → ✅ useParsedJob (wrap with ParsedJobProvider)
-❓ Job Storage → ✅ useJobStorage
-❓ Document State → ✅ useDocumentManager
+❓ Document State → ✅ useJobStore().saveDocument()
 ❓ View Navigation → ✅ useNavigation
 ❓ Debounced Callback → ✅ useDebounce
 ```
@@ -175,6 +174,7 @@ For complete usage examples, props, and implementation details:
 - ❗ "I need validation UI" → `ValidationPanel` + `useJobValidation`
 - ❗ "I need collapsible section" → `CollapsiblePanel`
 - ❗ "I need to toggle something" → `useToggleState`
+- ❗ "I need to manage job state" → `useJobStore`
 - ❗ "I need to parse job data" → `useParsedJob` (wrap with `ParsedJobProvider`)
 - ❗ "I need auto-save" → `useSimpleAutoSave`
 - ❗ "I need to route based on status" → `JobViewRouter`

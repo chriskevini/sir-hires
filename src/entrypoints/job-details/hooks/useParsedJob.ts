@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { parseJobTemplate } from '../../../utils/job-parser';
-import type { Job } from './useJobState';
+import type { Job } from './types';
 import type { JobTemplateData } from '../../../utils/job-parser';
 
 /**

@@ -103,7 +103,9 @@ export function createValidatedStorage<T extends Record<string, unknown>>(
       if (typeof value === 'object' && value !== null) {
         for (const [jobId, job] of Object.entries(value)) {
           if (typeof job === 'object' && job !== null) {
-            const violations = validateJobObject(job);
+            const violations = validateJobObject(
+              job as Record<string, unknown>
+            );
             if (violations.length > 0) {
               console.error(
                 `[MarkdownDB Validator] Violations detected in job ${jobId}:`,

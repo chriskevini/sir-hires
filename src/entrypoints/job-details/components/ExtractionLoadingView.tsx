@@ -8,7 +8,7 @@ interface ExtractionLoadingViewProps {
   content: string;
   jobTitle: string;
   company: string;
-  index: number;
+  jobId: string;
   onDelete: () => void;
 }
 
@@ -20,7 +20,7 @@ export const ExtractionLoadingView: React.FC<ExtractionLoadingViewProps> = ({
   content,
   jobTitle,
   company,
-  index,
+  jobId,
   onDelete,
 }) => {
   const partialContent = getCompleteLines(content);
@@ -42,7 +42,7 @@ export const ExtractionLoadingView: React.FC<ExtractionLoadingViewProps> = ({
             id="jobEditor"
             className="job-markdown-editor extracting"
             readOnly
-            data-index={index}
+            data-job-id={jobId}
             placeholder="Waiting for LLM response..."
             value={partialContent}
           />

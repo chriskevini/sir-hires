@@ -10,7 +10,7 @@ interface EditorContentPanelProps {
   textareaRef: ((el: HTMLTextAreaElement | null) => void) | null;
   onChange: (value: string) => void;
   onBlur?: () => void;
-  index: number;
+  jobId: string;
 }
 
 export const EditorContentPanel: React.FC<EditorContentPanelProps> = ({
@@ -21,7 +21,7 @@ export const EditorContentPanel: React.FC<EditorContentPanelProps> = ({
   textareaRef,
   onChange,
   onBlur,
-  index,
+  jobId,
 }) => {
   return (
     <div
@@ -45,7 +45,7 @@ export const EditorContentPanel: React.FC<EditorContentPanelProps> = ({
         className="document-editor"
         data-field={`${documentKey}-text`}
         placeholder={escapeHtml(placeholder)}
-        data-index={index}
+        data-job-id={jobId}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}

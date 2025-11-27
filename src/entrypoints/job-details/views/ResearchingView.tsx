@@ -23,18 +23,16 @@ interface Job {
 
 interface ResearchingViewProps {
   job: Job;
-  index: number;
   isChecklistExpanded?: boolean;
-  onDeleteJob: (index: number) => void;
-  onSaveField: (index: number, fieldName: string, value: string) => void;
-  onToggleChecklistExpand: (index: number, isExpanded: boolean) => void;
-  onToggleChecklistItem: (index: number, itemId: string) => void;
+  onDeleteJob: (jobId: string) => void;
+  onSaveField: (jobId: string, fieldName: string, value: string) => void;
+  onToggleChecklistExpand: (isExpanded: boolean) => void;
+  onToggleChecklistItem: (jobId: string, itemId: string) => void;
   hideOverlay?: boolean;
 }
 
 export const ResearchingView: React.FC<ResearchingViewProps> = ({
   job,
-  index,
   isChecklistExpanded = false,
   onDeleteJob,
   onSaveField,
@@ -50,7 +48,7 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   const { value: editorContent, setValue: setEditorContent } = useImmediateSave(
     {
       initialValue: job.content || '',
-      onSave: (value) => onSaveField(index, 'content', value),
+      onSave: (value) => onSaveField(job.id, 'content', value),
       disabled: job.isExtracting || !!job.extractionError,
       resetKey: job.id, // Re-initialize when switching jobs
     }
@@ -82,7 +80,7 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   });
 
   const handleDelete = () => {
-    onDeleteJob(index);
+    onDeleteJob(job.id);
   };
 
   // Render extraction state (streaming)
@@ -92,7 +90,7 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
         content={job.content || ''}
         jobTitle={parsedJob.jobTitle || 'Untitled Position'}
         company={parsedJob.company || 'Unknown Company'}
-        index={index}
+        jobId={job.id}
         onDelete={handleDelete}
       />
     );
@@ -106,7 +104,7 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
         jobUrl={job.url}
         partialContent={job.content}
         editorContent={editorContent}
-        index={index}
+        jobId={job.id}
         onEditorChange={handleEditorChange}
         onDelete={handleDelete}
       />
@@ -166,7 +164,7 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
             <textarea
               id="jobEditor"
               className={editorClass}
-              data-index={index}
+              data-job-id={job.id}
               value={editorContent}
               onChange={handleEditorChange}
             />
@@ -191,7 +189,6 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
       {/* Overlay container for Checklist and Navigation */}
       <JobViewOverlay
         job={job}
-        jobIndex={index}
         isChecklistExpanded={isChecklistExpanded}
         onSaveField={onSaveField}
         onToggleChecklistExpand={onToggleChecklistExpand}

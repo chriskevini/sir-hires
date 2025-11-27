@@ -1,8 +1,22 @@
 // Storage operations module - handles all browser.storage.local interactions
 
 import { checklistTemplates } from './config';
+import type { Job, JobDocument, ChecklistItem, Filters } from './hooks';
+
+// Type for checklist templates
+type ChecklistTemplateStatus = keyof typeof checklistTemplates;
+
+// Storage change callback type
+export type StorageChangeCallback = (
+  changes: Record<string, { oldValue?: unknown; newValue?: unknown }>
+) => void;
+
+// Document defaults type - uses Record for compatibility with Job.documents
+type DocumentDefaults = Record<string, JobDocument>;
 
 export class StorageService {
+  private storageChangeListeners: StorageChangeCallback[] = [];
+
   constructor() {
     this.storageChangeListeners = [];
   }
@@ -12,19 +26,17 @@ export class StorageService {
   /**
    * Initialize empty documents for a job
    * Creates default tailoredResume and coverLetter documents
-   * @param {Object} job - Job object
-   * @returns {Object} Documents object with default structure
    */
-  initializeDocuments(job) {
+  initializeDocuments(job: Partial<Job>): DocumentDefaults {
     return {
       tailoredResume: {
-        title: `${job.jobTitle || 'Resume'} - ${job.company || 'Company'}`,
+        title: `${job.content ? 'Resume' : 'Resume'} - ${job.content ? 'Company' : 'Company'}`,
         text: '',
         lastEdited: null,
         order: 0,
       },
       coverLetter: {
-        title: `Cover Letter - ${job.jobTitle || 'Position'} at ${job.company || 'Company'}`,
+        title: `Cover Letter - Position at Company`,
         text: '',
         lastEdited: null,
         order: 1,
@@ -34,18 +46,15 @@ export class StorageService {
 
   /**
    * Get document by key with fallback to defaults
-   * @param {Object} job - Job object
-   * @param {string} documentKey - Document key (e.g., 'tailoredResume')
-   * @returns {Object} Document object
    */
-  getDocument(job, documentKey) {
+  getDocument(job: Job, documentKey: string): JobDocument {
     // Ensure documents object exists
     if (!job.documents) {
       job.documents = this.initializeDocuments(job);
     }
 
     // Return the document or create default
-    if (job.documents[documentKey]) {
+    if (job.documents && job.documents[documentKey]) {
       return job.documents[documentKey];
     }
 
@@ -63,15 +72,15 @@ export class StorageService {
 
   /**
    * Save a document to a job
-   * @param {string} jobId - Job ID
-   * @param {string} documentKey - Document key
-   * @param {Object} documentData - Document data with title and text
-   * @returns {Promise<void>}
    */
-  async saveDocument(jobId, documentKey, documentData) {
+  async saveDocument(
+    jobId: string,
+    documentKey: string,
+    documentData: { title?: string; text?: string }
+  ): Promise<void> {
     try {
       const result = await browser.storage.local.get('jobs');
-      const jobsObj = result.jobs || {};
+      const jobsObj: Record<string, Job> = result.jobs || {};
 
       if (!jobsObj[jobId]) {
         throw new Error(`Job ${jobId} not found`);
@@ -83,8 +92,8 @@ export class StorageService {
       }
 
       // Update the document
-      jobsObj[jobId].documents[documentKey] = {
-        ...jobsObj[jobId].documents[documentKey],
+      jobsObj[jobId].documents![documentKey] = {
+        ...jobsObj[jobId].documents![documentKey],
         ...documentData,
         lastEdited: new Date().toISOString(),
       };
@@ -101,18 +110,16 @@ export class StorageService {
 
   /**
    * Get sorted document keys from a job
-   * @param {Object} job - Job object
-   * @returns {Array<string>} Array of document keys sorted by order
    */
-  getDocumentKeys(job) {
+  getDocumentKeys(job: Job): string[] {
     if (!job.documents) {
       return ['tailoredResume', 'coverLetter'];
     }
 
     // Get all keys and sort by order
     return Object.keys(job.documents).sort((a, b) => {
-      const orderA = job.documents[a]?.order ?? 999;
-      const orderB = job.documents[b]?.order ?? 999;
+      const orderA = job.documents![a]?.order ?? 999;
+      const orderB = job.documents![b]?.order ?? 999;
       return orderA - orderB;
     });
   }
@@ -122,23 +129,25 @@ export class StorageService {
   /**
    * Initialize checklists for all application statuses
    * Creates a checklist object with arrays for each status
-   * @returns {Object} Checklist object with status keys
    */
-  initializeAllChecklists() {
-    const checklist = {};
+  initializeAllChecklists(): Record<string, ChecklistItem[]> {
+    const checklist: Record<string, ChecklistItem[]> = {};
 
     // Create checklist arrays for each status
     Object.keys(checklistTemplates).forEach((status) => {
-      const template = checklistTemplates[status];
+      const template =
+        checklistTemplates[status as ChecklistTemplateStatus] || [];
       const timestamp = Date.now();
 
       // Create checklist items with unique IDs
-      checklist[status] = template.map((templateItem, index) => ({
-        id: `item_${timestamp}_${status}_${index}_${Math.random().toString(36).substr(2, 9)}`,
-        text: templateItem.text,
-        checked: false,
-        order: templateItem.order,
-      }));
+      checklist[status] = template.map(
+        (templateItem: { text: string; order: number }, index: number) => ({
+          id: `item_${timestamp}_${status}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+          text: templateItem.text,
+          checked: false,
+          order: templateItem.order,
+        })
+      );
     });
 
     return checklist;
@@ -146,36 +155,36 @@ export class StorageService {
 
   /**
    * Initialize checklist for a specific status (used for adding missing statuses)
-   * @param {string} status - Application status
-   * @returns {Array} Array of checklist items for the status
    */
-  initializeChecklistForStatus(status) {
+  initializeChecklistForStatus(status: string): ChecklistItem[] {
     const template =
-      checklistTemplates[status] || checklistTemplates['Researching'];
+      checklistTemplates[status as ChecklistTemplateStatus] ||
+      checklistTemplates['Researching'];
     const timestamp = Date.now();
 
     // Create checklist items with unique IDs
-    return template.map((templateItem, index) => ({
-      id: `item_${timestamp}_${status}_${index}_${Math.random().toString(36).substr(2, 9)}`,
-      text: templateItem.text,
-      checked: false,
-      order: templateItem.order,
-    }));
+    return template.map(
+      (templateItem: { text: string; order: number }, index: number) => ({
+        id: `item_${timestamp}_${status}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+        text: templateItem.text,
+        checked: false,
+        order: templateItem.order,
+      })
+    );
   }
 
   // ===== Job Operations =====
 
   /**
    * Get all jobs from storage
-   * @returns {Promise<Array>} Array of job objects
    */
-  async getAllJobs() {
+  async getAllJobs(): Promise<Job[]> {
     try {
       const result = await browser.storage.local.get('jobs');
-      const jobsObj = result.jobs || {};
+      const jobsObj: Record<string, Job> = result.jobs || {};
 
       // Convert object to array and ensure all jobs have an ID
-      const jobsArray = Object.values(jobsObj).map((job) => {
+      const jobsArray = Object.values(jobsObj).map((job: Job) => {
         if (!job.id) {
           job.id = this.generateId();
         }
@@ -191,14 +200,12 @@ export class StorageService {
 
   /**
    * Save all jobs to storage (bulk operation for backup/restore)
-   * @param {Array} jobsArray - Array of job objects
-   * @returns {Promise<void>}
    */
-  async saveAllJobs(jobsArray) {
+  async saveAllJobs(jobsArray: Job[]): Promise<void> {
     try {
       // Convert array to object format keyed by job ID
-      const jobsObj = {};
-      jobsArray.forEach((job) => {
+      const jobsObj: Record<string, Job> = {};
+      jobsArray.forEach((job: Job) => {
         if (job.id) {
           jobsObj[job.id] = job;
         } else {
@@ -217,14 +224,11 @@ export class StorageService {
 
   /**
    * Update a single job by ID
-   * @param {string} jobId - ID of job to update
-   * @param {Object} jobData - Updated job data
-   * @returns {Promise<void>}
    */
-  async updateJob(jobId, jobData) {
+  async updateJob(jobId: string, jobData: Job): Promise<void> {
     try {
       const result = await browser.storage.local.get('jobs');
-      const jobsObj = result.jobs || {};
+      const jobsObj: Record<string, Job> = result.jobs || {};
 
       jobsObj[jobId] = jobData;
 
@@ -237,13 +241,11 @@ export class StorageService {
 
   /**
    * Delete a single job by ID
-   * @param {string} jobId - ID of job to delete
-   * @returns {Promise<void>}
    */
-  async deleteJob(jobId) {
+  async deleteJob(jobId: string): Promise<void> {
     try {
       const result = await browser.storage.local.get('jobs');
-      const jobsObj = result.jobs || {};
+      const jobsObj: Record<string, Job> = result.jobs || {};
 
       delete jobsObj[jobId];
 
@@ -256,9 +258,8 @@ export class StorageService {
 
   /**
    * Generate a unique ID for a job
-   * @returns {string} Unique ID
    */
-  generateId() {
+  generateId(): string {
     return `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
@@ -266,9 +267,8 @@ export class StorageService {
 
   /**
    * Get the currently focused job ID
-   * @returns {Promise<string|null>} Job ID or null
    */
-  async getJobInFocus() {
+  async getJobInFocus(): Promise<string | null> {
     try {
       const result = await browser.storage.local.get('jobInFocus');
       return result.jobInFocus || null;
@@ -280,10 +280,8 @@ export class StorageService {
 
   /**
    * Set the currently focused job
-   * @param {string} jobId - Job ID to focus
-   * @returns {Promise<void>}
    */
-  async setJobInFocus(jobId) {
+  async setJobInFocus(jobId: string): Promise<void> {
     try {
       await browser.storage.local.set({ jobInFocus: jobId });
     } catch (error) {
@@ -294,9 +292,8 @@ export class StorageService {
 
   /**
    * Clear the focused job
-   * @returns {Promise<void>}
    */
-  async clearJobInFocus() {
+  async clearJobInFocus(): Promise<void> {
     try {
       await browser.storage.local.remove('jobInFocus');
     } catch (error) {
@@ -309,9 +306,8 @@ export class StorageService {
 
   /**
    * Get master resume from storage
-   * @returns {Promise<Object|null>} Master resume object or null
    */
-  async getMasterResume() {
+  async getMasterResume(): Promise<Record<string, unknown> | null> {
     try {
       const result = await browser.storage.local.get('userProfile');
       return result.userProfile || null;
@@ -323,10 +319,8 @@ export class StorageService {
 
   /**
    * Set/save master resume to storage
-   * @param {Object} resumeData - Resume data object
-   * @returns {Promise<void>}
    */
-  async setMasterResume(resumeData) {
+  async setMasterResume(resumeData: Record<string, unknown>): Promise<void> {
     try {
       await browser.storage.local.set({ userProfile: resumeData });
     } catch (error) {
@@ -339,10 +333,8 @@ export class StorageService {
 
   /**
    * Set/save filter preferences
-   * @param {Object} filters - Filter configuration
-   * @returns {Promise<void>}
    */
-  async setFilters(filters) {
+  async setFilters(filters: Filters): Promise<void> {
     try {
       await browser.storage.local.set({ viewerFilters: filters });
     } catch (error) {
@@ -353,9 +345,8 @@ export class StorageService {
 
   /**
    * Get filter preferences
-   * @returns {Promise<Object|null>} Filter configuration or null
    */
-  async getFilters() {
+  async getFilters(): Promise<Filters | null> {
     try {
       const result = await browser.storage.local.get('viewerFilters');
       return result.viewerFilters || null;
@@ -369,9 +360,8 @@ export class StorageService {
 
   /**
    * Get global checklist expanded state
-   * @returns {Promise<boolean>} Whether checklist should be expanded (default: false)
    */
-  async getChecklistExpanded() {
+  async getChecklistExpanded(): Promise<boolean> {
     try {
       const result = await browser.storage.local.get('checklistExpanded');
       return result.checklistExpanded !== undefined
@@ -385,10 +375,8 @@ export class StorageService {
 
   /**
    * Set global checklist expanded state
-   * @param {boolean} isExpanded - Whether checklist should be expanded
-   * @returns {Promise<void>}
    */
-  async setChecklistExpanded(isExpanded) {
+  async setChecklistExpanded(isExpanded: boolean): Promise<void> {
     try {
       await browser.storage.local.set({ checklistExpanded: isExpanded });
     } catch (error) {
@@ -401,9 +389,8 @@ export class StorageService {
 
   /**
    * Create a backup of all data
-   * @returns {Promise<Object>} All storage data
    */
-  async createBackup() {
+  async createBackup(): Promise<Record<string, unknown>> {
     try {
       const data = await browser.storage.local.get(null);
       return data;
@@ -415,10 +402,8 @@ export class StorageService {
 
   /**
    * Restore data from backup
-   * @param {Object} data - Backup data to restore
-   * @returns {Promise<void>}
    */
-  async restoreBackup(data) {
+  async restoreBackup(data: Record<string, unknown>): Promise<void> {
     try {
       await browser.storage.local.clear();
 
@@ -434,9 +419,8 @@ export class StorageService {
 
   /**
    * Clear all data from storage
-   * @returns {Promise<void>}
    */
-  async clearAll() {
+  async clearAll(): Promise<void> {
     try {
       await browser.storage.local.clear();
     } catch (error) {
@@ -449,9 +433,8 @@ export class StorageService {
 
   /**
    * Register a callback for storage changes
-   * @param {Function} callback - Callback function
    */
-  onStorageChange(callback) {
+  onStorageChange(callback: StorageChangeCallback): void {
     if (typeof callback === 'function') {
       this.storageChangeListeners.push(callback);
     }
@@ -459,9 +442,8 @@ export class StorageService {
 
   /**
    * Unregister a storage change callback
-   * @param {Function} callback - Callback function to remove
    */
-  offStorageChange(callback) {
+  offStorageChange(callback: StorageChangeCallback): void {
     this.storageChangeListeners = this.storageChangeListeners.filter(
       (cb) => cb !== callback
     );
@@ -470,7 +452,7 @@ export class StorageService {
   /**
    * Initialize storage change listener
    */
-  initStorageListener() {
+  initStorageListener(): void {
     browser.storage.onChanged.addListener((changes, namespace) => {
       if (namespace === 'local') {
         this.storageChangeListeners.forEach((callback) => {
@@ -488,9 +470,13 @@ export class StorageService {
 
   /**
    * Get storage usage statistics
-   * @returns {Promise<Object>} Storage usage info
    */
-  async getStorageInfo() {
+  async getStorageInfo(): Promise<{
+    bytesInUse: number;
+    jobCount: number;
+    hasMasterResume: boolean;
+    keys: string[];
+  } | null> {
     try {
       const bytesInUse = await browser.storage.local.getBytesInUse();
       const data = await browser.storage.local.get(null);

@@ -293,7 +293,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
       job: job.content || '',
       template: getLatestValue(activeTab) || '',
       tone: tone,
-      task: 'Follow the template and output only the final document.',
+      task: 'Follow the TEMPLATE and TONE and output only the final document.',
     };
   }, [job.content, userProfile, activeTab, tone, getLatestValue]);
 

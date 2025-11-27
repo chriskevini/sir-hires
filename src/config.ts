@@ -205,7 +205,8 @@ export const llmConfig: LLMConfig = {
   synthesis: {
     temperature: 0.7,
     maxTokens: 2000,
-    prompt: `You are an expert career counselor. Analyze <PROFILE> and <JOB> to find relevant experiences and skills. Apply the <TONE> and follow the <TEMPLATE> structure exactly. Execute the <TASK> and output only the final document.`,
+    prompt:
+      'Analyze the given PROFILE and JOB to find the most relevant experiences and skills.',
   },
 };
 

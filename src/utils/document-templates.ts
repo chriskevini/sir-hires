@@ -39,70 +39,63 @@ export const defaultDocuments: Record<string, DefaultDocConfig> = {
  */
 export const documentTemplates = {
   tailoredResume: `
-# Tailored Resume
-# Do not paraphrase achievements.
-# Bullet points MUST be copied from the Master Resume verbatim.
-# Only include content relevant to the target job description.
-# Limit the final document to a single page.
-
-[YOUR FULL NAME]
-[YOUR PHONE NUMBER] | [YOUR EMAIL] | [YOUR LINKEDIN PROFILE URL]
+# **[Name]**
+[Address]
+[Phone] | [Email]
 
 ---
 
-## Summary (Optional)
-[1-4 sentences summarizing your career and aligning it with the role.]
+### Skills
 
----
+- [Skill 1]
+- [Skill 2]
 
-## Experience
+### Professional Experience
 
-### [COMPANY NAME] | [CITY, STATE]
-**[Job Title]** | [Month Year] – [Month Year]
-* [Master Resume Bullet 1 - Copied Verbatim]
-* [Master Resume Bullet 2 - Copied Verbatim]
+**[Experience Title]** | [At]
+*[Month Year] - [Month Year]*
 
----
+- [Bullet 1]
+- [Bullet 2]
 
-## Skills
-[List technical skills, tools, and languages relevant to the job posting.]
+### Technical Project Experience (DELETE if irrelevant)
 
----
+**[Project Title]** 
 
-## Education
-**[Degree Name]** | [University Name] | [City, State] | [Month Year]
+- [Bullet 1]
+- [Bullet 2]
+
+### Education
+
+**[Degree]** | [University]
+*[Month Year] - [Month Year]*
 `,
 
   coverLetter: `
-# Cover Letter
-# Paraphrase and synthesize achievements. Maintain a confident tone.
-# All hard skills and project details MUST be supported by facts traceable to the Master Resume.
-# Address the top job requirements. Soft skills and contextual anecdotes are exempt from factual checks.
+# **[Name]**
+[Address]
+[Phone] | [Email]
 
-[YOUR FULL NAME]
-[YOUR STREET ADDRESS] | [YOUR CITY, POSTAL CODE]
-[YOUR PHONE NUMBER]
-[YOUR EMAIL ADDRESS] | [YOUR LINKEDIN PROFILE URL]
+---
 
-[DATE]
+[Date]
 
-[RECIPIENT NAME]
-[RECIPIENT TITLE]
-[COMPANY NAME]
-[COMPANY STREET ADDRESS] | [COMPANY CITY, POSTAL CODE]
+Hiring Manager
+[Company Name]
+[Company Address]
 
-Dear [RECIPIENT NAME or RECIPIENT TITLE],
+Re: Application for [Job Title]
 
-[HOOK: State your most relevant career achievement, a powerful statistic, or a strong declaration of your passion and alignment with the company's mission/role.]
+Dear Hiring Manager,
 
-[RELEVANCE: Connect your top 2-3 skills to the job requirements. Use a quantifiable achievement from a previous role.]
+[Opening Hook: Enthusiasm & Fit]
 
-[CULTURE/COMPANY FIT: Explain why you are applying to this specific company, citing its mission, values, or recent work.]
+[Value Proposition: Evidence & Skills]
 
-[CALL TO ACTION: Reiterate your enthusiasm. Clearly state how to reach you, and guide the recipient to your comprehensive portfolio/work samples, whether they are attached to this email/application or hosted on your website.]
+[Closing: Call to Action]
 
 Sincerely,
-[YOUR SIGNATURE]
-[YOUR FULL NAME]
+
+[Name]
 `,
 };

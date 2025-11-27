@@ -114,7 +114,7 @@ export type JobStore = JobStoreState & JobStoreActions;
 // Constants
 // ============================================================================
 
-const ECHO_WINDOW_MS = 1000; // Ignore storage echoes within 1 second
+const ECHO_WINDOW_MS = 2000; // Ignore storage echoes within 2 seconds (allows for slow networks)
 const CLEANUP_INTERVAL_MS = 5000; // Clean up old save entries every 5 seconds
 
 const DEFAULT_FILTERS: Filters = {
@@ -864,12 +864,11 @@ export function useJobStore(): JobStore {
           );
 
           // Only update if jobs actually changed
+          // Compare object references since mergeJobs preserves referential
+          // identity when jobs are unchanged (handles content changes too)
           const jobsChanged =
             mergedJobs.length !== currentState.jobs.length ||
-            mergedJobs.some(
-              (job, i) =>
-                !currentState.jobs[i] || job.id !== currentState.jobs[i].id
-            );
+            mergedJobs.some((job, i) => job !== currentState.jobs[i]);
 
           const focusChanged = focusId !== currentState.jobInFocusId;
 

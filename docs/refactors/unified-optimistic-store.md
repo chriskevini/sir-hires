@@ -1,6 +1,6 @@
 # Unified Optimistic Store Architecture
 
-## Status: In Progress (Phase 2)
+## Status: Complete
 
 ## Problem Statement
 
@@ -372,20 +372,20 @@ const { value, setValue } = useImmediateSave({
 - [x] Create `src/utils/job-merge.ts` with `mergeJobs` and `isDeepEqual`
 - [x] Update hook exports in `index.ts`
 
-### Phase 2: Migrate Consumers (In Progress)
+### Phase 2: Migrate Consumers
 
 - [x] Migrate `job-details/App.tsx` to use `useJobStore`
 - [x] Migrate `sidepanel/App.tsx` to use `useJobStore`
-- [ ] Refactor `useJobHandlers` to use ID-based `updateJob` (currently uses adapter)
-- [ ] Update `ResearchingView` to pass `updateJob` to `useImmediateSave`
-- [ ] Update `DraftingView` similarly
-- [ ] Remove `suppressReloadUntil` and `pendingReload` from state
+- [x] Refactor `useJobHandlers` to use ID-based `updateJob` (currently uses adapter)
+- [x] Update `ResearchingView` to pass `updateJob` to `useImmediateSave`
+- [x] Update `DraftingView` similarly
+- [x] Remove `suppressReloadUntil` and `pendingReload` from state
 
 ### Phase 3: Cleanup
 
-- [ ] Remove deprecated `useJobState.ts` (merged into store)
-- [ ] Remove deprecated `useJobStorage.ts` (merged into store)
-- [ ] Remove storage listener duplication from `useJobHandlers.ts`
+- [x] Remove deprecated `useJobState.ts` (merged into store)
+- [x] Remove deprecated `useJobStorage.ts` (merged into store)
+- [x] Remove storage listener duplication from `useJobHandlers.ts`
 
 ### Testing
 

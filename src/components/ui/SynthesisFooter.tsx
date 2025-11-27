@@ -40,6 +40,7 @@ interface SynthesisFooterProps {
   onToneChange: (tone: string) => void;
   onRefreshTone: () => void;
   onSynthesize: () => void;
+  onCancel?: () => void;
   disabled?: boolean;
   isSynthesizing?: boolean;
 }
@@ -49,6 +50,7 @@ export const SynthesisFooter: React.FC<SynthesisFooterProps> = ({
   onToneChange,
   onRefreshTone,
   onSynthesize,
+  onCancel,
   disabled = false,
   isSynthesizing = false,
 }) => {
@@ -77,13 +79,19 @@ export const SynthesisFooter: React.FC<SynthesisFooterProps> = ({
           placeholder="e.g., professional"
         />
       </div>
-      <button
-        className="btn-synthesize-footer"
-        onClick={onSynthesize}
-        disabled={disabled || isSynthesizing}
-      >
-        {isSynthesizing ? 'Synthesizing...' : 'Synthesize'}
-      </button>
+      {isSynthesizing ? (
+        <button className="btn-cancel-synthesis" onClick={onCancel}>
+          Cancel
+        </button>
+      ) : (
+        <button
+          className="btn-synthesize-footer"
+          onClick={onSynthesize}
+          disabled={disabled}
+        >
+          Synthesize
+        </button>
+      )}
     </div>
   );
 };

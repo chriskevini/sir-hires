@@ -120,7 +120,11 @@ export default function App() {
   // Note: `disabled` only prevents auto-save from triggering, not state updates.
   // This allows setContent() calls during extraction to update the UI (e.g., progress messages)
   // while preventing those updates from being persisted to storage.
-  const { value: content, setValue: setContent } = useAutoSave({
+  const {
+    value: content,
+    setValue: setContent,
+    flush,
+  } = useAutoSave({
     initialValue: initialContent,
     onSave: handleAutoSave,
     debounceMs: AUTO_SAVE_DEBOUNCE_MS,
@@ -535,6 +539,9 @@ BULLETS:
   };
 
   const goBack = () => {
+    // Flush pending saves before navigation (hard navigation destroys the page
+    // before React's unmount cleanup can complete async saves)
+    flush();
     window.location.href = browser.runtime.getURL('/job-details.html');
   };
 

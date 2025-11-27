@@ -56,6 +56,8 @@ interface UseAutoSaveMultiReturn {
   values: Record<string, string>;
   /** Update a specific value */
   setValue: (key: string, value: string) => void;
+  /** Get the latest value for a key (reads from ref, avoids stale closures) */
+  getLatestValue: (key: string) => string;
   /** Whether any value has unsaved changes */
   isDirty: boolean;
   /** Manually flush all pending saves */
@@ -210,6 +212,7 @@ export function useAutoSaveMulti({
   const onSaveRef = useRef(onSave);
   const disabledRef = useRef(disabled);
   const timeoutRefs = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const prevInitialValuesRef = useRef(initialValues);
 
   // Keep refs updated
   useEffect(() => {
@@ -227,6 +230,53 @@ export function useAutoSaveMulti({
   useEffect(() => {
     disabledRef.current = disabled;
   }, [disabled]);
+
+  // Sync with external initialValues changes (e.g., streaming updates from LLM)
+  // Only update keys where:
+  // 1. The external value changed
+  // 2. The change did NOT come from our own save (newInitial !== savedValue)
+  // 3. User hasn't made local edits (currentValue === oldInitial OR currentValue === savedValue)
+  useEffect(() => {
+    const prevInitial = prevInitialValuesRef.current;
+    let hasChanges = false;
+    const newValues = { ...valuesRef.current };
+    const newSavedValues = { ...savedValuesRef.current };
+
+    Object.keys(initialValues).forEach((key) => {
+      const newInitial = initialValues[key];
+      const oldInitial = prevInitial[key];
+      const currentValue = valuesRef.current[key];
+      const savedValue = savedValuesRef.current[key];
+
+      // Skip if initialValue didn't change
+      if (newInitial === oldInitial) return;
+
+      // Skip if this change came from our own save (the new initial matches what we saved)
+      if (newInitial === savedValue) {
+        // Just update the ref to track the new initial, but don't change state
+        return;
+      }
+
+      // Only sync if user hasn't made local edits
+      // (current value matches either the old initial or the last saved value)
+      const userHasEdits =
+        currentValue !== oldInitial && currentValue !== savedValue;
+      if (!userHasEdits) {
+        newValues[key] = newInitial;
+        newSavedValues[key] = newInitial;
+        hasChanges = true;
+      }
+    });
+
+    if (hasChanges) {
+      setValuesState(newValues);
+      setSavedValues(newSavedValues);
+      valuesRef.current = newValues;
+      savedValuesRef.current = newSavedValues;
+    }
+
+    prevInitialValuesRef.current = initialValues;
+  }, [initialValues]);
 
   // Debounced save effect - runs when any value changes
   useEffect(() => {
@@ -294,6 +344,10 @@ export function useAutoSaveMulti({
     });
   }, []);
 
+  const getLatestValue = useCallback((key: string): string => {
+    return valuesRef.current[key] || '';
+  }, []);
+
   const flush = useCallback(() => {
     // Clear all pending timeouts
     Object.values(timeoutRefs.current).forEach(clearTimeout);
@@ -333,6 +387,7 @@ export function useAutoSaveMulti({
   return {
     values,
     setValue,
+    getLatestValue,
     isDirty,
     flush,
     initializeValues,

@@ -105,6 +105,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   const {
     values: documentContents,
     setValue: updateContent,
+    getLatestValue,
     flush,
   } = useAutoSaveMulti({
     initialValues: initialDocumentValues,
@@ -287,8 +288,8 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
             console.info('Thinking update:', delta);
           }}
           onDocumentUpdate={(docKey, delta) => {
-            // Update document content
-            const currentContent = documentContents[docKey] || '';
+            // Use getLatestValue to avoid stale closure during streaming
+            const currentContent = getLatestValue(docKey);
             updateContent(docKey, currentContent + delta);
           }}
           onGenerate={(jobIdx, docKey, result) => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import './styles.css';
 import { browser } from 'wxt/browser';
 
@@ -35,8 +35,7 @@ import {
 import { Modal } from '@/components/ui/Modal';
 
 // Constants
-const AUTO_SAVE_INTERVAL = 3000; // 3 seconds
-const PROGRESS_MESSAGE_INTERVAL_MS = 1000; // Cycle progress messages every 1 seconds
+const PROGRESS_MESSAGE_INTERVAL_MS = 1000; // Cycle progress messages every 1 second
 
 // Progress messages shown sequentially during extraction
 const EXTRACTION_PROGRESS_MESSAGES = [
@@ -81,7 +80,6 @@ const isProgressMessage = (text: string): boolean =>
 export default function App() {
   // State
   const [content, setContent] = useState('');
-  const [savedContent, setSavedContent] = useState('');
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [isTemplatePanelVisible, setIsTemplatePanelVisible] = useState(true);
@@ -91,17 +89,64 @@ export default function App() {
 
   // Refs
   const editorRef = useRef<HTMLTextAreaElement>(null);
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const progressIndexRef = useRef<number>(0); // Track progress message index
   const originalContentRef = useRef<string>(''); // Store original before extraction
   const hasReceivedContentRef = useRef<boolean>(false); // Track if real content has started streaming
 
+  // Immediate save callback - saves to storage on every change
+  const saveProfile = useCallback(async (newContent: string) => {
+    try {
+      const profileData = {
+        content: newContent,
+        updatedAt: new Date().toISOString(),
+      };
+
+      await userProfileStorage.setValue(profileData);
+      setLastSavedTime(profileData.updatedAt);
+
+      // Also save to localStorage as backup
+      localStorage.setItem('userProfileDraft', newContent);
+    } catch (error) {
+      console.error('Save error:', error);
+      // Keep localStorage backup even if browser.storage fails
+      localStorage.setItem('userProfileDraft', newContent);
+    }
+  }, []);
+
+  // Content change handler - saves immediately when not extracting
+  const handleContentChange = useCallback(
+    (newContent: string) => {
+      setContent(newContent);
+      // Save immediately if not extracting (progress messages are temporary)
+      if (!isExtracting) {
+        saveProfile(newContent);
+      }
+    },
+    [isExtracting, saveProfile]
+  );
+
   // Validation hook - disable during extraction to avoid performance issues
   const { validation, validationFixes, warningFixes } = useProfileValidation({
     content: isExtracting ? '' : content,
   });
+
+  // Helper to save profile directly to storage (for use in extraction callbacks)
+  const saveProfileToStorage = async (newContent: string) => {
+    try {
+      const profileData = {
+        content: newContent,
+        updatedAt: new Date().toISOString(),
+      };
+      await userProfileStorage.setValue(profileData);
+      setLastSavedTime(profileData.updatedAt);
+      localStorage.setItem('userProfileDraft', newContent);
+    } catch (error) {
+      console.error('Save error:', error);
+      localStorage.setItem('userProfileDraft', newContent);
+    }
+  };
 
   // Profile extraction hook - memoize callbacks to prevent infinite re-renders
   const extractionCallbacks = useMemo(
@@ -147,6 +192,8 @@ export default function App() {
         // Template stays hidden (user preference persisted)
         setStatusMessage('✅ Profile extracted successfully!');
         setTimeout(() => setStatusMessage(''), 3000);
+        // Save extracted content immediately (extraction is complete, so isExtracting is now false)
+        saveProfileToStorage(fullContent);
       },
       onExtractionError: (error: string) => {
         // Clear progress interval if still running
@@ -161,6 +208,7 @@ export default function App() {
         // Template stays hidden (user preference persisted)
         setExtractionError(error);
         setStatusMessage('');
+        // No save needed - we reverted to originalContentRef which was already saved
       },
       onExtractionCancelled: () => {
         // Clear progress interval if still running
@@ -169,12 +217,16 @@ export default function App() {
           progressIntervalRef.current = null;
         }
         // Keep whatever was streamed (don't revert to original)
+        // Use a variable to track what content we end up with for saving
+        let contentToSave: string | null = null;
         setContent((prev) => {
           // If still showing progress message, revert to original
           if (isProgressMessage(prev)) {
+            // No need to save - original was already saved
             return originalContentRef.current;
           }
-          // Otherwise keep the streamed content as-is
+          // Otherwise keep the streamed content as-is and save it
+          contentToSave = prev;
           return prev;
         });
         setIsExtracting(false);
@@ -183,6 +235,10 @@ export default function App() {
         // Template stays hidden (user preference persisted)
         setStatusMessage('Extraction cancelled - content preserved');
         setTimeout(() => setStatusMessage(''), 3000);
+        // Save the preserved streamed content if we kept it
+        if (contentToSave) {
+          saveProfileToStorage(contentToSave);
+        }
       },
     }),
     []
@@ -226,11 +282,9 @@ export default function App() {
   useEffect(() => {
     loadProfile();
     loadTemplatePanelPreference();
-    startAutoSave();
     startLastSavedInterval();
 
     return () => {
-      if (autoSaveTimerRef.current) clearInterval(autoSaveTimerRef.current);
       if (lastSavedIntervalRef.current)
         clearInterval(lastSavedIntervalRef.current);
     };
@@ -256,7 +310,6 @@ export default function App() {
         const updatedAt = userProfile.updatedAt;
 
         setContent(profileContent);
-        setSavedContent(profileContent);
         setLastSavedTime(updatedAt);
       } else {
         // Check for draft in localStorage
@@ -270,33 +323,6 @@ export default function App() {
       console.error('Error loading profile:', error);
       showStatusMessage('Error loading profile', 'error');
     }
-  };
-
-  const startAutoSave = () => {
-    autoSaveTimerRef.current = setInterval(async () => {
-      const currentContent = editorRef.current?.value.trim() || '';
-
-      if (currentContent !== savedContent) {
-        try {
-          const profileData = {
-            content: currentContent,
-            updatedAt: new Date().toISOString(),
-          };
-
-          await userProfileStorage.setValue(profileData);
-
-          setSavedContent(currentContent);
-          setLastSavedTime(profileData.updatedAt);
-
-          // Also save to localStorage as backup
-          localStorage.setItem('userProfileDraft', currentContent);
-        } catch (error) {
-          console.error('Auto-save error:', error);
-          // Keep localStorage backup even if browser.storage fails
-          localStorage.setItem('userProfileDraft', currentContent);
-        }
-      }
-    }, AUTO_SAVE_INTERVAL);
   };
 
   const startLastSavedInterval = () => {
@@ -330,7 +356,7 @@ export default function App() {
         result.newContent,
         result.cursorPosition
       );
-      setContent(result.newContent);
+      handleContentChange(result.newContent);
     }
   };
 
@@ -375,7 +401,7 @@ export default function App() {
     );
 
     if (newContent !== content) {
-      setContent(newContent);
+      handleContentChange(newContent);
       showStatusMessage('Formatting fixed', 'success');
     } else {
       showStatusMessage('No formatting issues found', 'success');
@@ -434,7 +460,7 @@ END:
 
       if (editorRef.current) {
         setCursorAndScroll(editorRef.current, newContent, cursorPos);
-        setContent(newContent);
+        handleContentChange(newContent);
       }
     } else {
       const profileMatch = content.match(/^<PROFILE>\s*$/m);
@@ -457,7 +483,7 @@ END:
 
       if (editorRef.current) {
         setCursorAndScroll(editorRef.current, newContent, cursorPos);
-        setContent(newContent);
+        handleContentChange(newContent);
       }
     }
   };
@@ -490,7 +516,7 @@ BULLETS:
 
       if (editorRef.current) {
         setCursorAndScroll(editorRef.current, newContent, cursorPos);
-        setContent(newContent);
+        handleContentChange(newContent);
       }
     } else {
       const eduSectionMatch = content.match(/^#\s+EDUCATION\s*$/m);
@@ -527,7 +553,7 @@ BULLETS:
 
       if (editorRef.current) {
         setCursorAndScroll(editorRef.current, newContent, cursorPos);
-        setContent(newContent);
+        handleContentChange(newContent);
       }
     }
   };
@@ -648,7 +674,7 @@ BULLETS:
               className={editorClassName}
               placeholder="Follow the template on the left or paste your resume here and click extract with LLM."
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(e) => handleContentChange(e.target.value)}
               disabled={isExtracting}
             />
           </div>

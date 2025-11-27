@@ -64,7 +64,6 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
    */
   const handleDeleteJob = useCallback(
     async (jobId: string) => {
-      // eslint-disable-next-line no-undef
       if (!confirm('Are you sure you want to delete this job?')) {
         return;
       }
@@ -309,7 +308,6 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
           keys: Object.keys(backup).slice(0, 10),
         });
 
-        // eslint-disable-next-line no-undef
         const confirmed = confirm(
           'This will overwrite all current data. Are you sure you want to restore this backup?'
         );
@@ -338,13 +336,11 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
    * Delete all storage data (with double confirmation)
    */
   const handleDeleteAll = useCallback(async () => {
-    // eslint-disable-next-line no-undef
     const firstConfirm = confirm(
       'WARNING: This will permanently delete ALL jobs and data. This cannot be undone. Are you sure?'
     );
     if (!firstConfirm) return;
 
-    // eslint-disable-next-line no-undef
     const secondConfirm = confirm(
       'FINAL WARNING: This is your last chance to cancel. Delete everything?'
     );

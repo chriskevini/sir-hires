@@ -40,6 +40,7 @@ export default [
         Element: 'readonly',
         Node: 'readonly',
         alert: 'readonly',
+        confirm: 'readonly',
         requestAnimationFrame: 'readonly',
         localStorage: 'readonly',
         crypto: 'readonly',

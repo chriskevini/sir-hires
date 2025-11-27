@@ -32,6 +32,7 @@ import {
   getJobTitle,
   getCompanyName,
 } from '../../../utils/job-parser';
+import { generateJobId, generateItemId } from '../../../utils/shared-utils';
 
 // ============================================================================
 // Types
@@ -132,7 +133,7 @@ const DEFAULT_FILTERS: Filters = {
  * Generate a unique ID for a job
  */
 function generateId(): string {
-  return `job_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+  return generateJobId();
 }
 
 /**
@@ -204,13 +205,12 @@ function createDefaultDocuments(job: Job): Record<string, JobDocument> {
  */
 function createDefaultChecklist(): Record<string, ChecklistItem[]> {
   const checklist: Record<string, ChecklistItem[]> = {};
-  const timestamp = Date.now();
 
   Object.keys(checklistTemplates).forEach((status) => {
     const template =
       checklistTemplates[status as keyof typeof checklistTemplates];
     checklist[status] = template.map((item, index) => ({
-      id: `item_${timestamp}_${status}_${index}_${Math.random().toString(36).substring(2, 11)}`,
+      id: generateItemId(status, index),
       text: item.text,
       checked: false,
       order: item.order,

@@ -14,7 +14,7 @@ import type {
   ExtractionChunkMessage,
   ExtractionCompleteMessage,
 } from '../../job-details/hooks';
-import { normalizeUrl } from '../../../utils/shared-utils';
+import { normalizeUrl, generateJobId } from '../../../utils/shared-utils';
 
 /**
  * Ephemeral extraction state (not persisted to storage)
@@ -196,8 +196,7 @@ export function useJobExtraction(
       }
 
       // Different URL or no current job - create new job
-      jobId =
-        'job_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+      jobId = generateJobId();
       console.info('[useJobExtraction] Creating new job extraction:', jobId);
 
       // Note: We DON'T set jobInFocus here because the job doesn't exist yet
@@ -277,8 +276,7 @@ export function useJobExtraction(
     setExtracting(true);
 
     // Generate new job ID
-    const newJobId =
-      'job_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+    const newJobId = generateJobId();
 
     // Send message to background to start streaming with new ID
     await browser.runtime.sendMessage({

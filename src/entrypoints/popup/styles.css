@@ -478,3 +478,61 @@ kbd {
   color: #666;
   font-size: 13px;
 }
+
+/* Task Settings Section */
+.task-settings-section {
+  background-color: #f8f9fa;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  padding: 12px;
+  margin-top: 4px;
+}
+
+.task-settings-group {
+  margin-bottom: 16px;
+}
+
+.task-settings-group:last-of-type {
+  margin-bottom: 8px;
+}
+
+.task-settings-group h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 4px 0;
+}
+
+.task-description {
+  font-size: 11px;
+  color: #666;
+  margin: 0 0 8px 0;
+}
+
+.task-settings-row {
+  display: flex;
+  gap: 12px;
+}
+
+.task-settings-row .form-row {
+  flex: 1;
+}
+
+.task-settings-row input[type='number'] {
+  width: 100%;
+}
+
+/* Reset link button */
+.btn-link {
+  background: none;
+  border: none;
+  color: #1a73e8;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 0;
+  text-decoration: none;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}

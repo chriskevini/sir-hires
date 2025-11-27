@@ -3,27 +3,33 @@
  *
  * Provides:
  * - Loading/saving settings from llmSettingsStorage
+ * - Per-task settings (maxTokens, temperature) for synthesis vs extraction
  * - Fetching available models via background message
  * - Connection status state machine
  *
  * Used by:
- * - Popup (LLM settings configuration UI)
- * - SynthesisForm (document generation)
+ * - Popup (LLM settings configuration UI) - no task specified, manages all settings
+ * - SynthesisForm (document generation) - task: 'synthesis'
+ * - Background extraction - task: 'extraction'
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { browser } from 'wxt/browser';
-import { llmSettingsStorage, LLMSettings } from '../utils/storage';
+import {
+  llmSettingsStorage,
+  LLMSettings,
+  TaskSettings,
+} from '../utils/storage';
 import {
   DEFAULT_ENDPOINT,
   DEFAULT_MODEL,
-  DEFAULT_MAX_TOKENS,
-  DEFAULT_TEMPERATURE,
+  DEFAULT_TASK_SETTINGS,
   normalizeEndpoint,
   getModelsEndpoint,
   getBaseUrl,
   detectProvider,
   ProviderType,
+  LLMTask,
 } from '../utils/llm-utils';
 
 // ===== Types =====
@@ -31,6 +37,11 @@ import {
 export type ConnectionStatus = 'idle' | 'loading' | 'connected' | 'error';
 
 export interface UseLLMSettingsOptions {
+  /**
+   * Task type to get settings for (synthesis or extraction)
+   * If not specified, returns settings management UI mode (all tasks editable)
+   */
+  task?: LLMTask;
   /**
    * Whether to auto-fetch models on mount and when settings change
    * @default true
@@ -49,17 +60,25 @@ export interface UseLLMSettingsResult {
   errorMessage: string;
   isConnected: boolean;
 
-  // Settings (editable in UI)
+  // Shared settings (same for all tasks)
   serverUrl: string;
   setServerUrl: (url: string) => void;
   apiKey: string;
   setApiKey: (key: string) => void;
   model: string;
   setModel: (model: string) => void;
+
+  // Task-specific settings (when task is specified)
+  // These return the values for the specified task, or synthesis defaults if no task
   maxTokens: number;
   setMaxTokens: (tokens: number) => void;
   temperature: number;
   setTemperature: (temp: number) => void;
+
+  // All task settings (for UI mode - popup)
+  taskSettings: Record<LLMTask, TaskSettings>;
+  setTaskSettings: (task: LLMTask, settings: Partial<TaskSettings>) => void;
+  resetTaskSettings: () => void;
 
   // Derived
   provider: ProviderType;
@@ -82,19 +101,25 @@ export interface UseLLMSettingsResult {
 export function useLLMSettings(
   options: UseLLMSettingsOptions = {}
 ): UseLLMSettingsResult {
-  const { autoConnect = true, debounceMs = 500 } = options;
+  const { task, autoConnect = true, debounceMs = 500 } = options;
 
   // Connection state
   const [status, setStatus] = useState<ConnectionStatus>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Settings state
+  // Shared settings state
   const [serverUrl, setServerUrl] = useState(DEFAULT_ENDPOINT);
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState(DEFAULT_MODEL);
-  const [maxTokens, setMaxTokens] = useState(DEFAULT_MAX_TOKENS);
-  const [temperature, setTemperature] = useState(DEFAULT_TEMPERATURE);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
+
+  // Per-task settings state
+  const [taskSettings, setTaskSettingsState] = useState<
+    Record<LLMTask, TaskSettings>
+  >({
+    synthesis: { ...DEFAULT_TASK_SETTINGS.synthesis },
+    extraction: { ...DEFAULT_TASK_SETTINGS.extraction },
+  });
 
   // Loading state
   const [isLoading, setIsLoading] = useState(true);
@@ -110,6 +135,57 @@ export function useLLMSettings(
   );
   const modelsEndpoint = useMemo(() => getModelsEndpoint(endpoint), [endpoint]);
 
+  // Get current task settings (defaults to synthesis if no task specified)
+  const currentTaskSettings = task
+    ? taskSettings[task]
+    : taskSettings.synthesis;
+
+  // Convenience accessors for maxTokens/temperature
+  const maxTokens = currentTaskSettings.maxTokens;
+  const temperature = currentTaskSettings.temperature;
+
+  // Setters for current task's maxTokens/temperature
+  const setMaxTokens = useCallback(
+    (tokens: number) => {
+      const targetTask = task || 'synthesis';
+      setTaskSettingsState((prev) => ({
+        ...prev,
+        [targetTask]: { ...prev[targetTask], maxTokens: tokens },
+      }));
+    },
+    [task]
+  );
+
+  const setTemperature = useCallback(
+    (temp: number) => {
+      const targetTask = task || 'synthesis';
+      setTaskSettingsState((prev) => ({
+        ...prev,
+        [targetTask]: { ...prev[targetTask], temperature: temp },
+      }));
+    },
+    [task]
+  );
+
+  // Generic setter for any task's settings (for popup UI)
+  const setTaskSettings = useCallback(
+    (targetTask: LLMTask, settings: Partial<TaskSettings>) => {
+      setTaskSettingsState((prev) => ({
+        ...prev,
+        [targetTask]: { ...prev[targetTask], ...settings },
+      }));
+    },
+    []
+  );
+
+  // Reset all task settings to defaults in a single state update
+  const resetTaskSettings = useCallback(() => {
+    setTaskSettingsState({
+      synthesis: { ...DEFAULT_TASK_SETTINGS.synthesis },
+      extraction: { ...DEFAULT_TASK_SETTINGS.extraction },
+    });
+  }, []);
+
   // Load settings on mount
   useEffect(() => {
     const loadSettings = async () => {
@@ -122,8 +198,28 @@ export function useLLMSettings(
           setServerUrl(baseUrl || DEFAULT_ENDPOINT);
           setModel(settings.model || DEFAULT_MODEL);
           setApiKey(settings.apiKey || '');
-          setMaxTokens(settings.maxTokens || DEFAULT_MAX_TOKENS);
-          setTemperature(settings.temperature || DEFAULT_TEMPERATURE);
+
+          // Load per-task settings (with fallback to defaults)
+          if (settings.tasks) {
+            setTaskSettingsState({
+              synthesis: {
+                maxTokens:
+                  settings.tasks.synthesis?.maxTokens ??
+                  DEFAULT_TASK_SETTINGS.synthesis.maxTokens,
+                temperature:
+                  settings.tasks.synthesis?.temperature ??
+                  DEFAULT_TASK_SETTINGS.synthesis.temperature,
+              },
+              extraction: {
+                maxTokens:
+                  settings.tasks.extraction?.maxTokens ??
+                  DEFAULT_TASK_SETTINGS.extraction.maxTokens,
+                temperature:
+                  settings.tasks.extraction?.temperature ??
+                  DEFAULT_TASK_SETTINGS.extraction.temperature,
+              },
+            });
+          }
         }
       } catch (error) {
         console.error('[useLLMSettings] Error loading settings:', error);
@@ -165,18 +261,25 @@ export function useLLMSettings(
     }
   }, [serverUrl, apiKey]);
 
+  // Ref callback pattern: keeps ref updated to latest closure on every render
+  // without causing the effect below to re-run (avoiding double-firing)
+  const fetchModelsRef = useRef(fetchModels);
+  fetchModelsRef.current = fetchModels;
+
   // Auto-fetch models when server URL or API key changes (debounced)
+  // Note: We use fetchModelsRef to avoid double-firing when fetchModels changes
+  // (fetchModels depends on serverUrl/apiKey which are already in this effect's deps)
   useEffect(() => {
     if (!autoConnect || isLoading) return;
 
     const timer = setTimeout(() => {
       if (serverUrl.trim()) {
-        fetchModels();
+        fetchModelsRef.current();
       }
     }, debounceMs);
 
     return () => clearTimeout(timer);
-  }, [serverUrl, apiKey, fetchModels, autoConnect, isLoading, debounceMs]);
+  }, [serverUrl, apiKey, autoConnect, isLoading, debounceMs]);
 
   // Save settings to storage
   const saveSettings = useCallback(async (): Promise<boolean> => {
@@ -186,8 +289,7 @@ export function useLLMSettings(
         endpoint: currentEndpoint,
         modelsEndpoint: getModelsEndpoint(currentEndpoint),
         model: model.trim() || DEFAULT_MODEL,
-        maxTokens: maxTokens || DEFAULT_MAX_TOKENS,
-        temperature: temperature || DEFAULT_TEMPERATURE,
+        tasks: taskSettings,
         ...(apiKey.trim() && { apiKey: apiKey.trim() }),
       };
 
@@ -197,7 +299,7 @@ export function useLLMSettings(
       console.error('[useLLMSettings] Error saving settings:', error);
       return false;
     }
-  }, [serverUrl, model, apiKey, maxTokens, temperature]);
+  }, [serverUrl, model, apiKey, taskSettings]);
 
   return {
     // Connection state
@@ -205,17 +307,24 @@ export function useLLMSettings(
     errorMessage,
     isConnected,
 
-    // Settings
+    // Shared settings
     serverUrl,
     setServerUrl,
     apiKey,
     setApiKey,
     model,
     setModel,
+
+    // Task-specific settings (convenience accessors)
     maxTokens,
     setMaxTokens,
     temperature,
     setTemperature,
+
+    // All task settings (for popup UI)
+    taskSettings,
+    setTaskSettings,
+    resetTaskSettings,
 
     // Derived
     provider,
@@ -233,6 +342,3 @@ export function useLLMSettings(
     isLoading,
   };
 }
-
-// Note: Import constants/utils directly from '../utils/llm-utils'
-// Note: Import LLMSettings type from '../utils/storage'

@@ -3,10 +3,22 @@ import { llmConfig } from '../config';
 import { LLMClient } from '../../../utils/llm-client';
 import type { Job } from '../hooks';
 import { useParsedJob } from '../../../components/features/ParsedJobProvider';
-import { getJobTitle, getCompanyName } from '../../../utils/job-parser';
+import {
+  getJobTitle,
+  getCompanyName,
+  extractDescription,
+  extractAboutCompany,
+  extractRequiredSkills,
+  extractPreferredSkills,
+} from '../../../utils/job-parser';
 import { userProfileStorage } from '../../../utils/storage';
 import { useLLMSettings } from '../../../hooks/useLLMSettings';
-import { DEFAULT_MODEL, DEFAULT_MAX_TOKENS } from '../../../utils/llm-utils';
+import { DEFAULT_MODEL, DEFAULT_TASK_SETTINGS } from '../../../utils/llm-utils';
+
+// Helper to convert array to bullet-point string
+const arrayToString = (arr: string[]): string => {
+  return arr.length > 0 ? arr.map((item) => `- ${item}`).join('\n') : '';
+};
 
 interface SynthesisFormProps {
   job: Job | null;
@@ -40,20 +52,23 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   onError,
   onClose,
 }) => {
-  // Use shared LLM settings hook (auto-connects to fetch models)
+  // Use shared LLM settings hook with synthesis task
   const {
     availableModels,
     model: savedModel,
     endpoint,
     modelsEndpoint,
+    maxTokens: savedMaxTokens,
     temperature: savedTemperature,
     isLoading: isLoadingSettings,
     isConnected,
-  } = useLLMSettings();
+  } = useLLMSettings({ task: 'synthesis' });
 
   // Local state for form controls (initialized from saved settings)
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
-  const [maxTokens, setMaxTokens] = useState(DEFAULT_MAX_TOKENS);
+  const [maxTokens, setMaxTokens] = useState(
+    DEFAULT_TASK_SETTINGS.synthesis.maxTokens
+  );
   const [isGenerating, setIsGenerating] = useState(false);
   const [userProfile, setUserProfile] = useState('');
   const [_hasExistingContent, setHasExistingContent] = useState(false);
@@ -64,6 +79,13 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
       setSelectedModel(savedModel);
     }
   }, [isLoadingSettings, savedModel]);
+
+  // Sync local maxTokens with saved task settings when they load
+  useEffect(() => {
+    if (!isLoadingSettings) {
+      setMaxTokens(savedMaxTokens);
+    }
+  }, [isLoadingSettings, savedMaxTokens]);
 
   // Create LLM client with current settings (memoized to avoid recreating on every render)
   const llmClient = useMemo(
@@ -102,40 +124,32 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   const parsed = useParsedJob(job?.id || '');
 
   const buildContext = async (): Promise<Record<string, string>> => {
-    if (!job)
+    if (!job || !parsed)
       return {
         masterResume: 'Not provided',
         jobTitle: 'Not provided',
         company: 'Not provided',
         aboutJob: 'Not provided',
         aboutCompany: 'Not provided',
-        responsibilities: 'Not provided',
         requirements: 'Not provided',
-        narrativeStrategy: 'Not provided',
+        preferredSkills: 'Not provided',
         currentDraft: '',
       };
 
+    // Extract fields from parsed MarkdownDB template
+    const description = arrayToString(extractDescription(parsed));
+    const aboutCompany = arrayToString(extractAboutCompany(parsed));
+    const requiredSkills = arrayToString(extractRequiredSkills(parsed));
+    const preferredSkills = arrayToString(extractPreferredSkills(parsed));
+
     return {
       masterResume: userProfile || 'Not provided',
-      jobTitle: parsed ? getJobTitle(parsed) || 'Not provided' : 'Not provided',
-      company: parsed
-        ? getCompanyName(parsed) || 'Not provided'
-        : 'Not provided',
-      aboutJob:
-        ((job as unknown as Record<string, unknown>).aboutJob as string) ||
-        'Not provided',
-      aboutCompany:
-        ((job as unknown as Record<string, unknown>).aboutCompany as string) ||
-        'Not provided',
-      responsibilities:
-        ((job as unknown as Record<string, unknown>)
-          .responsibilities as string) || 'Not provided',
-      requirements:
-        ((job as unknown as Record<string, unknown>).requirements as string) ||
-        'Not provided',
-      narrativeStrategy:
-        ((job as unknown as Record<string, unknown>)
-          .narrativeStrategy as string) || 'Not provided',
+      jobTitle: getJobTitle(parsed) || 'Not provided',
+      company: getCompanyName(parsed) || 'Not provided',
+      aboutJob: description || 'Not provided',
+      aboutCompany: aboutCompany || 'Not provided',
+      requirements: requiredSkills || 'Not provided',
+      preferredSkills: preferredSkills || 'Not provided',
       currentDraft: job.documents?.[documentKey || '']?.text || '',
     };
   };
@@ -163,22 +177,12 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
       sections.push(`[ABOUT THE COMPANY]\n${context.aboutCompany}`);
     }
 
-    if (
-      context.responsibilities &&
-      context.responsibilities !== 'Not provided'
-    ) {
-      sections.push(`[RESPONSIBILITIES]\n${context.responsibilities}`);
-    }
-
     if (context.requirements && context.requirements !== 'Not provided') {
-      sections.push(`[REQUIREMENTS]\n${context.requirements}`);
+      sections.push(`[REQUIRED SKILLS]\n${context.requirements}`);
     }
 
-    if (
-      context.narrativeStrategy &&
-      context.narrativeStrategy !== 'Not provided'
-    ) {
-      sections.push(`[NARRATIVE STRATEGY]\n${context.narrativeStrategy}`);
+    if (context.preferredSkills && context.preferredSkills !== 'Not provided') {
+      sections.push(`[PREFERRED SKILLS]\n${context.preferredSkills}`);
     }
 
     if (context.currentDraft && context.currentDraft !== 'Not provided') {
@@ -331,6 +335,12 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
           </option>,
         ];
 
+  // Extract parsed data for display in checklist
+  const description = parsed ? extractDescription(parsed) : [];
+  const aboutCompanyData = parsed ? extractAboutCompany(parsed) : [];
+  const requiredSkillsData = parsed ? extractRequiredSkills(parsed) : [];
+  const preferredSkillsData = parsed ? extractPreferredSkills(parsed) : [];
+
   const dataFields = [
     { key: 'masterResume', label: 'Profile', value: userProfile },
     {
@@ -345,28 +355,30 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
     },
     {
       key: 'aboutJob',
-      label: 'About Job',
-      value: (job as unknown as Record<string, unknown>)?.aboutJob,
+      label: 'Description',
+      value: description.length > 0 ? description.join('\n') : undefined,
     },
     {
       key: 'aboutCompany',
       label: 'About Company',
-      value: (job as unknown as Record<string, unknown>)?.aboutCompany,
-    },
-    {
-      key: 'responsibilities',
-      label: 'Responsibilities',
-      value: (job as unknown as Record<string, unknown>)?.responsibilities,
+      value:
+        aboutCompanyData.length > 0 ? aboutCompanyData.join('\n') : undefined,
     },
     {
       key: 'requirements',
-      label: 'Requirements',
-      value: (job as unknown as Record<string, unknown>)?.requirements,
+      label: 'Required Skills',
+      value:
+        requiredSkillsData.length > 0
+          ? requiredSkillsData.join('\n')
+          : undefined,
     },
     {
-      key: 'narrativeStrategy',
-      label: 'Narrative Strategy',
-      value: (job as unknown as Record<string, unknown>)?.narrativeStrategy,
+      key: 'preferredSkills',
+      label: 'Preferred Skills',
+      value:
+        preferredSkillsData.length > 0
+          ? preferredSkillsData.join('\n')
+          : undefined,
     },
     {
       key: 'currentDraft',
@@ -376,10 +388,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   ];
 
   const missingFields = dataFields.filter(
-    (f) =>
-      !f.value ||
-      (typeof f.value === 'string' && f.value.trim() === '') ||
-      typeof f.value !== 'string'
+    (f) => !f.value || (typeof f.value === 'string' && f.value.trim() === '')
   );
 
   return (

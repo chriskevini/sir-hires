@@ -4,7 +4,7 @@ import { DEFAULT_ENDPOINT } from '../../utils/llm-utils';
 import './styles.css';
 
 export function App() {
-  // Use shared LLM settings hook
+  // Use shared LLM settings hook (no task = UI management mode)
   const {
     status,
     errorMessage,
@@ -17,12 +17,16 @@ export function App() {
     setModel,
     provider,
     availableModels,
+    taskSettings,
+    setTaskSettings,
+    resetTaskSettings,
     fetchModels,
     saveSettings,
   } = useLLMSettings();
 
   // Local UI state
   const [saveMessage, setSaveMessage] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleSave = async () => {
     const success = await saveSettings();
@@ -37,6 +41,10 @@ export function App() {
 
   const handleRefresh = () => {
     fetchModels();
+  };
+
+  const handleResetDefaults = () => {
+    resetTaskSettings();
   };
 
   return (
@@ -110,6 +118,114 @@ export function App() {
                 )}
               </select>
             </div>
+
+            {/* Advanced Settings Toggle */}
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              style={{ marginTop: '4px' }}
+            >
+              {showAdvanced ? 'Hide' : 'Show'} Advanced Settings
+            </button>
+
+            {/* Per-Task Settings (collapsible) */}
+            {showAdvanced && (
+              <div className="task-settings-section">
+                {/* Synthesis Settings */}
+                <div className="task-settings-group">
+                  <h4>Synthesis (Resume/Cover Letter)</h4>
+                  <p className="task-description">
+                    Higher creativity for document generation
+                  </p>
+                  <div className="task-settings-row">
+                    <div className="form-row">
+                      <label htmlFor="synthesis-tokens">Max Tokens</label>
+                      <input
+                        type="number"
+                        id="synthesis-tokens"
+                        value={taskSettings.synthesis.maxTokens}
+                        onChange={(e) =>
+                          setTaskSettings('synthesis', {
+                            maxTokens: parseInt(e.target.value) || 4000,
+                          })
+                        }
+                        min={100}
+                        max={32000}
+                        step={100}
+                      />
+                    </div>
+                    <div className="form-row">
+                      <label htmlFor="synthesis-temp">Temperature</label>
+                      <input
+                        type="number"
+                        id="synthesis-temp"
+                        value={taskSettings.synthesis.temperature}
+                        onChange={(e) =>
+                          setTaskSettings('synthesis', {
+                            temperature: parseFloat(e.target.value) || 0.7,
+                          })
+                        }
+                        min={0}
+                        max={2}
+                        step={0.1}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Extraction Settings */}
+                <div className="task-settings-group">
+                  <h4>Extraction (Job Parsing)</h4>
+                  <p className="task-description">
+                    Low creativity for consistent parsing
+                  </p>
+                  <div className="task-settings-row">
+                    <div className="form-row">
+                      <label htmlFor="extraction-tokens">Max Tokens</label>
+                      <input
+                        type="number"
+                        id="extraction-tokens"
+                        value={taskSettings.extraction.maxTokens}
+                        onChange={(e) =>
+                          setTaskSettings('extraction', {
+                            maxTokens: parseInt(e.target.value) || 2000,
+                          })
+                        }
+                        min={100}
+                        max={32000}
+                        step={100}
+                      />
+                    </div>
+                    <div className="form-row">
+                      <label htmlFor="extraction-temp">Temperature</label>
+                      <input
+                        type="number"
+                        id="extraction-temp"
+                        value={taskSettings.extraction.temperature}
+                        onChange={(e) =>
+                          setTaskSettings('extraction', {
+                            temperature: parseFloat(e.target.value) || 0,
+                          })
+                        }
+                        min={0}
+                        max={2}
+                        step={0.1}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reset to Defaults */}
+                <button
+                  type="button"
+                  className="btn-link"
+                  onClick={handleResetDefaults}
+                >
+                  Reset to defaults
+                </button>
+              </div>
+            )}
 
             {/* Save Button */}
             <button className="btn btn-primary" onClick={handleSave}>

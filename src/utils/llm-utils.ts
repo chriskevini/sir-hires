@@ -7,16 +7,45 @@
  * - Any future LLM-related features
  */
 
+import type { TaskSettings } from './storage';
+
 // ===== Constants =====
 
 export const DEFAULT_ENDPOINT = 'http://localhost:1234';
 export const DEFAULT_MODEL = 'qwen/qwen3-4b-2507';
-export const DEFAULT_MAX_TOKENS = 2000;
-export const DEFAULT_TEMPERATURE = 0.3;
 
 // ===== Types =====
 
 export type ProviderType = 'local' | 'cloud';
+
+/**
+ * Task types for per-task LLM settings
+ * - synthesis: Resume/cover letter generation (creative, more tokens)
+ * - extraction: Job parsing (deterministic, fewer tokens)
+ */
+export type LLMTask = 'synthesis' | 'extraction';
+
+// ===== Per-Task Default Settings =====
+
+/**
+ * Default settings for each task type
+ *
+ * Synthesis: Higher creativity (temp ~0.7), more tokens (~4000)
+ * - Used for resume/cover letter generation where variety is desired
+ *
+ * Extraction: Low creativity (temp ~0), fewer tokens (~2000)
+ * - Used for job parsing where deterministic output is important
+ */
+export const DEFAULT_TASK_SETTINGS: Record<LLMTask, TaskSettings> = {
+  synthesis: {
+    maxTokens: 4000,
+    temperature: 0.7,
+  },
+  extraction: {
+    maxTokens: 2000,
+    temperature: 0,
+  },
+};
 
 // ===== Utility Functions =====
 

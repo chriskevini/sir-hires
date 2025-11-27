@@ -1,12 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { useParsedJob } from '@/components/features/ParsedJobProvider';
 import { JobViewOverlay } from '@/components/features/JobViewOverlay';
 import { escapeHtml } from '@/utils/shared-utils';
 import {
   useToggleState,
-  useEditorState,
   useJobValidation,
-  useSimpleAutoSave,
+  useAutoSave,
   ChecklistItem,
 } from '../hooks';
 import { ValidationPanel } from '@/components/ui/ValidationPanel';
@@ -50,10 +49,21 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   const [isValidationCollapsed, toggleValidationCollapsed] =
     useToggleState(true);
 
-  const { content: editorContent, handleChange: handleEditorChange } =
-    useEditorState({
-      initialContent: job.content || '',
-    });
+  // Auto-save hook manages content state and saves automatically
+  // Includes save-on-unmount to prevent data loss on navigation
+  const { value: editorContent, setValue: setEditorContent } = useAutoSave({
+    initialValue: job.content || '',
+    onSave: (value) => onSaveField(index, 'content', value),
+    disabled: job.isExtracting || !!job.extractionError,
+  });
+
+  // Handle textarea change
+  const handleEditorChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setEditorContent(e.target.value);
+    },
+    [setEditorContent]
+  );
 
   // Parse job content on-read (MarkdownDB pattern) using cached provider
   const parsed = useParsedJob(job.id);
@@ -70,15 +80,6 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
     content: editorContent,
     isExtracting: job.isExtracting,
     hasError: !!job.extractionError,
-  });
-
-  // Use auto-save hook
-  useSimpleAutoSave({
-    currentValue: editorContent,
-    savedValue: job.content || '',
-    isExtracting: job.isExtracting,
-    hasError: !!job.extractionError,
-    onSave: (value) => onSaveField(index, 'content', value),
   });
 
   const handleDelete = () => {

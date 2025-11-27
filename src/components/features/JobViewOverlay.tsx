@@ -13,6 +13,9 @@ import './JobViewOverlay.css';
  * Provides consistent bottom-aligned UI elements across all job views.
  * Eliminates duplication between ResearchingView, DraftingView, and future views.
  *
+ * Note: Save-on-unmount is handled by useAutoSave hook in each view,
+ * so no onBeforeNavigate callback is needed.
+ *
  * @param props - Overlay configuration
  * @returns Overlay container with Checklist and NavigationButtons
  */

@@ -36,7 +36,9 @@ import {
 import { Modal } from '@/components/ui/Modal';
 
 // Constants
-const AUTO_SAVE_DEBOUNCE_MS = 2000; // 2 seconds debounce
+// Note: Changed from 3s interval-based to 2s debounce-based auto-save.
+// Debounce is more efficient (saves only after user stops typing) and 2s feels responsive.
+const AUTO_SAVE_DEBOUNCE_MS = 2000;
 const PROGRESS_MESSAGE_INTERVAL_MS = 1000; // Cycle progress messages every 1 seconds
 
 // Progress messages shown sequentially during extraction
@@ -115,11 +117,14 @@ export default function App() {
   }, []);
 
   // Auto-save hook - replaces manual setInterval
+  // Note: `disabled` only prevents auto-save from triggering, not state updates.
+  // This allows setContent() calls during extraction to update the UI (e.g., progress messages)
+  // while preventing those updates from being persisted to storage.
   const { value: content, setValue: setContent } = useAutoSave({
     initialValue: initialContent,
     onSave: handleAutoSave,
     debounceMs: AUTO_SAVE_DEBOUNCE_MS,
-    disabled: isExtracting, // Disable auto-save during extraction
+    disabled: isExtracting,
   });
 
   // Validation hook - disable during extraction to avoid performance issues
@@ -212,7 +217,7 @@ export default function App() {
         setTimeout(() => setStatusMessage(''), 3000);
       },
     }),
-    []
+    [setContent]
   );
 
   useProfileExtraction(extractionCallbacks);
@@ -247,7 +252,7 @@ export default function App() {
         progressIntervalRef.current = null;
       }
     };
-  }, [isExtracting]);
+  }, [isExtracting, setContent]);
 
   // Load profile from storage on mount
   useEffect(() => {

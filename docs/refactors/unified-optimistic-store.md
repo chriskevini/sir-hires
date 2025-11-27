@@ -1,6 +1,6 @@
 # Unified Optimistic Store Architecture
 
-## Status: Proposal
+## Status: In Progress (Phase 2)
 
 ## Problem Statement
 
@@ -366,15 +366,29 @@ const { value, setValue } = useImmediateSave({
 
 ## Implementation Checklist
 
-- [ ] Create `src/entrypoints/job-details/hooks/useJobStore.ts`
-- [ ] Create `src/utils/job-merge.ts` with `mergeJobs` and `isDeepEqual`
-- [ ] Refactor `useJobHandlers` to use ID-based `updateJob`
-- [ ] Remove `suppressReloadUntil` and `pendingReload` from state
-- [ ] Update `handleSaveField` to use functional updates
+### Phase 1: Core Infrastructure ✅
+
+- [x] Create `src/entrypoints/job-details/hooks/useJobStore.ts`
+- [x] Create `src/utils/job-merge.ts` with `mergeJobs` and `isDeepEqual`
+- [x] Update hook exports in `index.ts`
+
+### Phase 2: Migrate Consumers (In Progress)
+
+- [x] Migrate `job-details/App.tsx` to use `useJobStore`
+- [x] Migrate `sidepanel/App.tsx` to use `useJobStore`
+- [ ] Refactor `useJobHandlers` to use ID-based `updateJob` (currently uses adapter)
 - [ ] Update `ResearchingView` to pass `updateJob` to `useImmediateSave`
 - [ ] Update `DraftingView` similarly
-- [ ] Remove storage listener duplication
-- [ ] Update hook exports in `index.ts`
+- [ ] Remove `suppressReloadUntil` and `pendingReload` from state
+
+### Phase 3: Cleanup
+
+- [ ] Remove deprecated `useJobState.ts` (merged into store)
+- [ ] Remove deprecated `useJobStorage.ts` (merged into store)
+- [ ] Remove storage listener duplication from `useJobHandlers.ts`
+
+### Testing
+
 - [ ] Test: Rapid typing doesn't lose focus
 - [ ] Test: Navigation during edit preserves data
 - [ ] Test: Multi-tab sync works correctly

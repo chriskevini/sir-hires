@@ -295,6 +295,11 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     setTone(getRandomTone());
   }, []);
 
+  // Handle cancel synthesis
+  const handleCancelSynthesis = useCallback(() => {
+    abortControllerRef.current?.abort();
+  }, []);
+
   // Handle adding a new document from template
   const handleAddDocument = useCallback(
     (templateKey: DocumentTemplateKey) => {
@@ -622,6 +627,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
             onToneChange={setTone}
             onRefreshTone={handleRefreshTone}
             onSynthesize={handleSynthesize}
+            onCancel={handleCancelSynthesis}
             isSynthesizing={isSynthesizing}
             disabled={documentKeys.length === 0}
           />

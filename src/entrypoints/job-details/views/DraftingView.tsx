@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useCallback } from 'react';
+import React, { useEffect, useMemo, useCallback, useState } from 'react';
 import { Modal } from '../../../components/ui/Modal';
 import { SynthesisForm } from '../components/SynthesisForm';
 import { EditorToolbar } from '@/components/ui/EditorToolbar';
@@ -12,7 +12,7 @@ import { formatSaveTime } from '@/utils/date-utils';
 import { defaultDocuments } from '@/utils/document-config';
 import { countWords } from '@/utils/text-utils';
 import { exportMarkdown, exportPDF } from '@/utils/export-utils';
-import { useAutoSave } from '../hooks/useAutoSave';
+import { useAutoSaveMulti } from '../hooks/useAutoSave';
 import { useTabState } from '../hooks/useTabState';
 import { useToggleState } from '../hooks/useToggleState';
 import { useDocumentManager } from '../hooks/useDocumentManager';
@@ -76,30 +76,39 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   );
 
   // Use document manager hook
-  const { documentKeys, getDocument, getInitialSaveStatus } =
-    useDocumentManager({
-      job,
-      jobIndex: index,
-      parsedJob,
-      onInitializeDocuments,
-    });
+  const { documentKeys, getDocument } = useDocumentManager({
+    job,
+    jobIndex: index,
+    parsedJob,
+    onInitializeDocuments,
+  });
 
   // Tab state management
   const { activeTab, switchTab, getTabRef } = useTabState({
     initialTab: documentKeys[0] || 'tailoredResume',
   });
 
-  // Auto-save hook
+  // Build initial values for auto-save from job documents
+  // Depend on job.documents directly to avoid unstable getDocument reference
+  const initialDocumentValues = useMemo(() => {
+    const contents: Record<string, string> = {};
+    documentKeys.forEach((key) => {
+      contents[key] = job.documents?.[key]?.text || '';
+    });
+    return contents;
+  }, [documentKeys, job.documents]);
+
+  // Track save status display text
+  const [saveStatusText, setSaveStatusText] = useState('');
+
+  // Auto-save hook (multi-value mode)
   const {
-    documentContents,
-    saveStatus,
-    updateContent,
-    markAsSaved,
-    initializeContents,
-    setSaveStatus,
-  } = useAutoSave(documentKeys, {
-    interval: 5000,
-    onSave: (key, content) => {
+    values: documentContents,
+    setValue: updateContent,
+    flush,
+  } = useAutoSaveMulti({
+    initialValues: initialDocumentValues,
+    onSave: (key: string, content: string) => {
       const defaultTitle =
         defaultDocuments[key]?.defaultTitle(
           parsedJob.jobTitle,
@@ -109,22 +118,9 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
         title: defaultTitle,
         text: content,
       });
-      markAsSaved(key, content, `Last saved ${formatSaveTime(new Date())}`);
+      setSaveStatusText(`Last saved ${formatSaveTime(new Date())}`);
     },
-    getTimestamp: () => `Last saved ${formatSaveTime(new Date())}`,
   });
-
-  // Initialize document contents from job
-  useEffect(() => {
-    const contents: Record<string, string> = {};
-
-    documentKeys.forEach((key) => {
-      const doc = getDocument(key);
-      contents[key] = doc.text;
-    });
-
-    initializeContents(contents);
-  }, [job.documents, documentKeys, getDocument, initializeContents]);
 
   // Update word count when active tab changes or content changes
   useEffect(() => {
@@ -133,11 +129,17 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     setWordCount(count);
   }, [activeTab, documentContents]);
 
-  // Update save status on tab change
+  // Update save status text on tab change (show last edited time from stored doc)
   useEffect(() => {
     const doc = getDocument(activeTab);
-    setSaveStatus(getInitialSaveStatus(doc));
-  }, [activeTab, getDocument, getInitialSaveStatus, setSaveStatus]);
+    if (doc.lastEdited) {
+      setSaveStatusText(
+        `Last saved ${formatSaveTime(new Date(doc.lastEdited))}`
+      );
+    } else {
+      setSaveStatusText('');
+    }
+  }, [activeTab, getDocument]);
 
   // Handle textarea change
   const handleTextareaChange = useCallback(
@@ -147,26 +149,11 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     [updateContent]
   );
 
-  // Handle textarea blur (immediate save)
-  const handleTextareaBlur = useCallback(
-    (documentKey: string) => {
-      const currentText = documentContents[documentKey] || '';
-      const defaultTitle =
-        defaultDocuments[documentKey]?.defaultTitle() || 'Untitled';
-
-      onSaveDocument(index, documentKey, {
-        title: defaultTitle,
-        text: currentText,
-      });
-
-      markAsSaved(
-        documentKey,
-        currentText,
-        `Last saved ${formatSaveTime(new Date())}`
-      );
-    },
-    [documentContents, index, onSaveDocument, markAsSaved]
-  );
+  // Handle textarea blur (immediate save via flush)
+  // Uses the hook's flush() to avoid double-saving
+  const handleTextareaBlur = useCallback(() => {
+    flush();
+  }, [flush]);
 
   // Handle export
   const handleExport = useCallback(
@@ -257,7 +244,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
                   placeholder={placeholder}
                   textareaRef={getTabRef(key)}
                   onChange={(value) => handleTextareaChange(key, value)}
-                  onBlur={() => handleTextareaBlur(key)}
+                  onBlur={handleTextareaBlur}
                   index={index}
                 />
               );
@@ -265,7 +252,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           </div>
 
           {/* Footer with status and word count */}
-          <EditorFooter saveStatus={saveStatus} wordCount={wordCount} />
+          <EditorFooter saveStatus={saveStatusText} wordCount={wordCount} />
         </div>
       </div>
 
@@ -317,11 +304,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
               title: defaultTitle,
               text: generatedContent,
             });
-            markAsSaved(
-              docKey,
-              generatedContent,
-              `Last saved ${formatSaveTime(new Date())}`
-            );
+            setSaveStatusText(`Last saved ${formatSaveTime(new Date())}`);
 
             showToast('Document generated successfully!', 'success');
           }}

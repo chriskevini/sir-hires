@@ -25,7 +25,7 @@ import {
 } from '@/utils/job-parser';
 import { escapeHtml } from '@/utils/shared-utils';
 import { formatSaveTime } from '@/utils/date-utils';
-import { defaultDocuments } from '@/utils/document-config';
+import { defaultDocuments } from '@/utils/document-templates';
 import { countWords } from '@/utils/text-utils';
 import { exportMarkdown, exportPDF } from '@/utils/export-utils';
 import { useImmediateSaveMulti } from '@/hooks/useImmediateSave';

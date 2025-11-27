@@ -4,9 +4,11 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { defaultDocuments } from '@/utils/document-config';
+import {
+  defaultDocuments,
+  documentTemplates,
+} from '@/utils/document-templates';
 import { formatSaveTime } from '@/utils/date-utils';
-import { documentTemplates } from '../config';
 
 interface Document {
   title: string;

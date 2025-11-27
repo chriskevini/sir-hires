@@ -9,7 +9,7 @@
 - [Auto-Save Hooks](#auto-save-hooks) - `useSimpleAutoSave`
 - [Business Logic Hooks](#business-logic-hooks) - `useJobExtraction`, `useBackupRestore`, `useParsedJob`
 - [Utility Hooks](#utility-hooks) - `useDebounce`, `useInterval`
-- [Unified Job Store](#unified-job-store) - `useJobStore` (replaces useJobState, useJobStorage, useJobHandlers)
+- [Unified Job Store](#unified-job-store) - `useJobStore`
 - [Supporting Hooks](#supporting-hooks) - `useJobService`, `useDocumentManager`, `useNavigation`
 - [Job Merge Utilities](#job-merge-utilities) - `mergeJobs`, `isJobEqual`, `cleanupRecentSaves`
 - [Anti-Patterns](#-anti-patterns-what-not-to-do)
@@ -513,8 +513,6 @@ useInterval(
 
 **Location:** `src/entrypoints/job-details/hooks/useJobStore.ts`
 
-**This hook replaces the deprecated `useJobState`, `useJobStorage`, and `useJobHandlers` hooks.**
-
 **Returns:** `JobStore` (combines `JobStoreState` and `JobStoreActions`)
 
 ```typescript
@@ -672,17 +670,6 @@ function App() {
 - Managing job list, filtering, selection
 - Checklist operations
 - Document management within jobs
-
-**Migration from Deprecated Hooks:**
-
-| Old Hook                              | New Equivalent in `useJobStore`                      |
-| ------------------------------------- | ---------------------------------------------------- |
-| `useJobState().jobs`                  | `useJobStore().jobs`                                 |
-| `useJobState().currentJob`            | `useJobStore().getJobById(jobInFocusId)`             |
-| `useJobStorage().saveJob(job)`        | `useJobStore().updateJob(job.id, changes)`           |
-| `useJobStorage().deleteJob(id)`       | `useJobStore().deleteJob(id)`                        |
-| `useJobHandlers().handleJobClick`     | `useJobStore().setJobInFocus(id)`                    |
-| `useJobHandlers().handleStatusChange` | `useJobStore().updateJob(id, { applicationStatus })` |
 
 ---
 

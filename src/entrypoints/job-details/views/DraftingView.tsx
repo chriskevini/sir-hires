@@ -222,13 +222,17 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   } = useImmediateSaveMulti({
     initialValues: initialDocumentValues,
     onSave: (key: string, content: string) => {
-      const defaultTitle =
+      // Preserve existing title, fallback to defaultDocuments lookup for known template keys
+      const existingTitle = job.documents?.[key]?.title;
+      const title =
+        existingTitle ||
         defaultDocuments[key]?.defaultTitle(
           parsedJob.jobTitle,
           parsedJob.company
-        ) || 'Untitled';
+        ) ||
+        'Untitled';
       onSaveDocument(job.id, key, {
-        title: defaultTitle,
+        title,
         text: content,
       });
       setSaveStatusText(`Last saved ${formatSaveTime(new Date())}`);
@@ -468,14 +472,17 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
         result.documentContent || getLatestValue(activeTab) || '';
       updateContent(activeTab, finalContent);
 
-      // Trigger save
-      const defaultTitle =
+      // Trigger save - preserve existing title
+      const existingTitle = job.documents?.[activeTab]?.title;
+      const title =
+        existingTitle ||
         defaultDocuments[activeTab]?.defaultTitle(
           parsedJob.jobTitle,
           parsedJob.company
-        ) || 'Untitled';
+        ) ||
+        'Untitled';
       onSaveDocument(job.id, activeTab, {
-        title: defaultTitle,
+        title,
         text: finalContent,
       });
       setSaveStatusText(`Last saved ${formatSaveTime(new Date())}`);

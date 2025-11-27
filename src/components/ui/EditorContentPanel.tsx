@@ -9,7 +9,7 @@ interface EditorContentPanelProps {
   placeholder: string;
   textareaRef: ((el: HTMLTextAreaElement | null) => void) | null;
   onChange: (value: string) => void;
-  onBlur: () => void;
+  onBlur?: () => void;
   index: number;
 }
 

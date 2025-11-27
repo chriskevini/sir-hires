@@ -2,12 +2,8 @@ import React, { useMemo, useCallback } from 'react';
 import { useParsedJob } from '@/components/features/ParsedJobProvider';
 import { JobViewOverlay } from '@/components/features/JobViewOverlay';
 import { escapeHtml } from '@/utils/shared-utils';
-import {
-  useToggleState,
-  useJobValidation,
-  useAutoSave,
-  ChecklistItem,
-} from '../hooks';
+import { useToggleState, useJobValidation, ChecklistItem } from '../hooks';
+import { useImmediateSave } from '@/hooks/useImmediateSave';
 import { ValidationPanel } from '@/components/ui/ValidationPanel';
 import { EditorHeader } from '@/components/ui/EditorHeader';
 import { ExtractionLoadingView } from '../components/ExtractionLoadingView';
@@ -49,13 +45,16 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   const [isValidationCollapsed, toggleValidationCollapsed] =
     useToggleState(true);
 
-  // Auto-save hook manages content state and saves automatically
-  // Includes save-on-unmount to prevent data loss on navigation
-  const { value: editorContent, setValue: setEditorContent } = useAutoSave({
-    initialValue: job.content || '',
-    onSave: (value) => onSaveField(index, 'content', value),
-    disabled: job.isExtracting || !!job.extractionError,
-  });
+  // Immediate-save hook: saves to storage on every change
+  // Uses resetKey to re-initialize only when switching jobs (not on storage reload)
+  const { value: editorContent, setValue: setEditorContent } = useImmediateSave(
+    {
+      initialValue: job.content || '',
+      onSave: (value) => onSaveField(index, 'content', value),
+      disabled: job.isExtracting || !!job.extractionError,
+      resetKey: job.id, // Re-initialize when switching jobs
+    }
+  );
 
   // Handle textarea change
   const handleEditorChange = useCallback(

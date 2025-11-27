@@ -55,6 +55,11 @@ export function useJobHandlers(
 
   /**
    * Handle save field event (generic field updates)
+   *
+   * IMPORTANT: For non-content fields, we read fresh data from storage first
+   * to avoid overwriting concurrent changes made by useImmediateSave.
+   * useImmediateSave updates storage directly without updating React state,
+   * so jobState.allJobs may have stale content.
    */
   const handleSaveField = useCallback(
     async (index: number, fieldName: string, value: string) => {
@@ -64,8 +69,24 @@ export function useJobHandlers(
         return;
       }
 
+      // Suppress reloads for content saves to prevent focus loss during typing
+      if (fieldName === 'content') {
+        setSuppressReloadUntil(Date.now() + 500);
+      }
+
+      // For non-content fields (e.g., applicationStatus from navigation buttons),
+      // read fresh job data from storage to avoid overwriting concurrent content changes
+      let baseJob = job;
+      if (fieldName !== 'content') {
+        const freshJobs = await storage.getAllJobs();
+        const freshJob = freshJobs.find((j) => j.id === job.id);
+        if (freshJob) {
+          baseJob = freshJob;
+        }
+      }
+
       const updatedJob = {
-        ...job,
+        ...baseJob,
         [fieldName]: value,
         updatedAt: new Date().toISOString(),
       };
@@ -75,7 +96,7 @@ export function useJobHandlers(
         `[useJobHandlers] Updated ${fieldName} for job at index ${index}`
       );
     },
-    [jobState.allJobs, storage]
+    [jobState.allJobs, storage, setSuppressReloadUntil]
   );
 
   /**

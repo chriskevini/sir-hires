@@ -12,7 +12,7 @@ import { formatSaveTime } from '@/utils/date-utils';
 import { defaultDocuments } from '@/utils/document-config';
 import { countWords } from '@/utils/text-utils';
 import { exportMarkdown, exportPDF } from '@/utils/export-utils';
-import { useAutoSaveMulti } from '../hooks/useAutoSave';
+import { useImmediateSaveMulti } from '@/hooks/useImmediateSave';
 import { useTabState } from '../hooks/useTabState';
 import { useToggleState } from '../hooks/useToggleState';
 import { useDocumentManager } from '../hooks/useDocumentManager';
@@ -101,13 +101,13 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   // Track save status display text
   const [saveStatusText, setSaveStatusText] = useState('');
 
-  // Auto-save hook (multi-value mode)
+  // Immediate-save hook (multi-value mode): saves on every change
+  // Uses resetKey to re-initialize only when switching jobs (not on storage reload)
   const {
     values: documentContents,
     setValue: updateContent,
     getLatestValue,
-    flush,
-  } = useAutoSaveMulti({
+  } = useImmediateSaveMulti({
     initialValues: initialDocumentValues,
     onSave: (key: string, content: string) => {
       const defaultTitle =
@@ -121,6 +121,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
       });
       setSaveStatusText(`Last saved ${formatSaveTime(new Date())}`);
     },
+    resetKey: job.id, // Re-initialize when switching jobs
   });
 
   // Update word count when active tab changes or content changes
@@ -149,12 +150,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     },
     [updateContent]
   );
-
-  // Handle textarea blur (immediate save via flush)
-  // Uses the hook's flush() to avoid double-saving
-  const handleTextareaBlur = useCallback(() => {
-    flush();
-  }, [flush]);
 
   // Handle export
   const handleExport = useCallback(
@@ -245,7 +240,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
                   placeholder={placeholder}
                   textareaRef={getTabRef(key)}
                   onChange={(value) => handleTextareaChange(key, value)}
-                  onBlur={handleTextareaBlur}
                   index={index}
                 />
               );

@@ -2,6 +2,7 @@
 
 import { checklistTemplates } from './config';
 import type { Job, JobDocument, ChecklistItem, Filters } from './hooks';
+import { generateJobId, generateItemId } from '../../utils/shared-utils';
 
 // Type for checklist templates
 type ChecklistTemplateStatus = keyof typeof checklistTemplates;
@@ -137,12 +138,11 @@ export class StorageService {
     Object.keys(checklistTemplates).forEach((status) => {
       const template =
         checklistTemplates[status as ChecklistTemplateStatus] || [];
-      const timestamp = Date.now();
 
       // Create checklist items with unique IDs
       checklist[status] = template.map(
         (templateItem: { text: string; order: number }, index: number) => ({
-          id: `item_${timestamp}_${status}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+          id: generateItemId(status, index),
           text: templateItem.text,
           checked: false,
           order: templateItem.order,
@@ -160,12 +160,11 @@ export class StorageService {
     const template =
       checklistTemplates[status as ChecklistTemplateStatus] ||
       checklistTemplates['Researching'];
-    const timestamp = Date.now();
 
     // Create checklist items with unique IDs
     return template.map(
       (templateItem: { text: string; order: number }, index: number) => ({
-        id: `item_${timestamp}_${status}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+        id: generateItemId(status, index),
         text: templateItem.text,
         checked: false,
         order: templateItem.order,
@@ -260,7 +259,7 @@ export class StorageService {
    * Generate a unique ID for a job
    */
   generateId(): string {
-    return `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return generateJobId();
   }
 
   // ===== Job In Focus Operations =====

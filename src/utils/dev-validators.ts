@@ -150,8 +150,12 @@ export function createValidatedStorage<T extends Record<string, unknown>>(
         }
       }
 
-      // @ts-ignore - update method exists at runtime
-      return storageItem.update?.(updates) ?? storageItem.setValue(updates);
+      if (storageItem.update) {
+        return storageItem.update(updates);
+      }
+      // Fallback for storage items without update method - merge with current value
+      const current = await storageItem.getValue();
+      return storageItem.setValue({ ...current, ...updates });
     },
   };
 }

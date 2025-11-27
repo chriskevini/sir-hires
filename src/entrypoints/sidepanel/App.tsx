@@ -14,19 +14,19 @@ import { DuplicateJobModal } from './components/DuplicateJobModal';
 import { parseJobTemplate } from '../../utils/job-parser';
 import { checklistTemplates, defaults } from '../job-details/config';
 import { jobsStorage, restoreStorageFromBackup } from '../../utils/storage';
+import { generateItemId } from '../../utils/shared-utils';
 
 /**
  * Create default checklist for all statuses (adapter for useJobExtraction)
  */
 function createDefaultChecklist(): Record<string, ChecklistItem[]> {
   const checklist: Record<string, ChecklistItem[]> = {};
-  const timestamp = Date.now();
 
   Object.keys(checklistTemplates).forEach((status) => {
     const template =
       checklistTemplates[status as keyof typeof checklistTemplates];
     checklist[status] = template.map((item, index) => ({
-      id: `item_${timestamp}_${status}_${index}_${Math.random().toString(36).substring(2, 11)}`,
+      id: generateItemId(status, index),
       text: item.text,
       checked: false,
       order: item.order,

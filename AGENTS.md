@@ -169,48 +169,46 @@ const parsed = useMemo(
 
 ### Event-Driven Architecture (Hybrid Approach)
 
-This project uses a **hybrid event-driven architecture** to prevent race conditions while avoiding over-engineering. Follow these three rules when implementing state changes:
+This project uses a **hybrid event-driven architecture** to prevent race conditions while avoiding over-engineering. Follow these two rules when implementing state changes:
 
-#### Rule 1: Multi-Step Async Operations → Background Coordinates
+#### Rule 1: LLM Tasks → Component-Level with `runTask()`
 
-**When:** Operations with multiple async steps that must happen in sequence
+**When:** Any LLM-powered operation (extraction, synthesis, etc.)
 
 **Examples:**
 
-- Job extraction (create job → stream content → save → set focus)
-- Bulk operations (import/export multiple jobs)
-- Complex workflows with dependencies
+- Job extraction from page content
+- Profile extraction
+- Resume/cover letter synthesis
 
 **Pattern:**
 
 ```typescript
-// Component sends message to background
-const result = await browser.runtime.sendMessage({
-  action: 'startExtraction',
-  url: jobUrl,
-  jobId: newJobId,
-});
+// In component - use runTask() directly
+import { runTask, startKeepalive } from '@/utils/llm-task-runner';
+import { jobExtractionConfig } from '@/tasks';
 
-// Background coordinates the workflow
-// background.ts
-if (request.action === 'startExtraction') {
-  // Step 1: Initialize
-  await sendMessage({ action: 'extractionStarted', jobId });
-
-  // Step 2: Process (with progress updates)
-  for (const chunk of streamChunks()) {
-    await sendMessage({ action: 'extractionChunk', chunk });
+const handleExtract = async () => {
+  const stopKeepalive = startKeepalive(); // Prevent service worker termination
+  try {
+    const result = await runTask({
+      config: jobExtractionConfig,
+      context: { rawText: pageContent },
+      llmClient,
+      model: settings.model,
+      onChunk: (delta) => setContent((prev) => prev + delta),
+    });
+    // Handle result in component
+    await saveJob({ ...job, content: result.content });
+  } finally {
+    stopKeepalive();
   }
-
-  // Step 3: Complete
-  await sendMessage({ action: 'extractionComplete', jobId, content });
-
-  sendResponse({ success: true });
-  return true;
-}
+};
 ```
 
-**Why:** Background service worker provides centralized coordination, preventing race conditions when multiple async operations need ordering guarantees.
+**Why:** Components have direct access to LLMClient, can stream to UI in real-time, and handle their own lifecycle. No background message passing needed for LLM operations.
+
+**Reference:** See `src/utils/llm-task-runner.ts` and `src/tasks/` for full implementation.
 
 #### Rule 2: Simple Mutations → Direct Storage
 
@@ -274,8 +272,8 @@ storage.onStorageChange((changes) => {
 #### Decision Flowchart
 
 ```
-Is this a multi-step async operation (extraction, bulk ops)?
-├─ YES → Rule 1: Background coordinates
+Is this an LLM-powered operation?
+├─ YES → Rule 1: Component-level runTask()
 └─ NO → Is this state shared across components/tabs?
     ├─ YES → Rule 3: Background manages
     └─ NO → Rule 2: Direct storage write
@@ -292,15 +290,13 @@ await extractAndSaveJob(jobId); // Extraction might fail
 // loadJobInFocus() runs, finds no job, clears jobInFocus
 ```
 
-**✅ Use background coordination:**
+**✅ Complete extraction before setting focus:**
 
 ```typescript
-// GOOD: Background coordinates lifecycle
-await browser.runtime.sendMessage({
-  action: 'startExtraction',
-  jobId,
-});
-// Background handles: extract → save → setJobInFocus (in order)
+// GOOD: Component handles extraction, then updates focus
+const result = await runTask({ config, context, llmClient, onChunk });
+await saveJob({ id: jobId, content: result.content });
+await browser.runtime.sendMessage({ action: 'setJobInFocus', jobId });
 ```
 
 **❌ Direct storage writes for cross-component state:**
@@ -328,10 +324,10 @@ await browser.runtime.sendMessage({
 
 **Implemented:**
 
-- `streamExtractJob` - Multi-step extraction with streaming (Rule 1)
-- `cancelExtraction` - Cancel ongoing extraction (Rule 1)
 - `setJobInFocus` - Update focused job across all tabs (Rule 3)
 - `deleteJob` - Delete job and update all tabs (Rule 3)
+- `callLLM` - Proxy LLM calls for content scripts (no direct fetch access)
+- `fetchModels` - Fetch available models from LLM server
 
 **Direct storage via `useJobStore` (no message needed):**
 
@@ -339,6 +335,146 @@ await browser.runtime.sendMessage({
 - `updateJobField()` - Edit single field (Rule 2)
 - `toggleChecklistItem()` - Toggle checklist (Rule 2)
 - `saveDocument()` - Save document content (Rule 2)
+
+### LLM Task System
+
+This project uses a **unified task-based pattern** for all LLM operations. Tasks are defined declaratively in `src/tasks/` and executed via `runTask()` from components.
+
+#### Architecture Overview
+
+```
+src/tasks/                     # Task definitions (single source of truth)
+├── index.ts                   # Re-exports all tasks
+├── types.ts                   # TaskConfig type definitions
+├── job-extraction.ts          # Job extraction task config + prompt
+├── profile-extraction.ts      # Profile extraction task config + prompt
+└── synthesis.ts               # Synthesis task config + prompt
+
+src/utils/
+├── llm-client.ts              # LLMClient class (streaming, cancellation)
+└── llm-task-runner.ts         # runTask() helper + buildUserPrompt()
+```
+
+#### Creating a New Task
+
+1. **Define task config in `src/tasks/`:**
+
+```typescript
+// src/tasks/my-task.ts
+import type { TaskConfig } from './types';
+
+export const MY_TASK_PROMPT = `
+You are an expert at doing X...
+Rules:
+1. ...
+`;
+
+export const myTaskConfig: TaskConfig = {
+  temperature: 0.3, // 0 = deterministic, 1 = creative
+  maxTokens: 2000, // Output limit
+  prompt: MY_TASK_PROMPT, // System prompt
+  context: ['rawText'], // Required context keys
+};
+```
+
+2. **Export from `src/tasks/index.ts`:**
+
+```typescript
+export { myTaskConfig, MY_TASK_PROMPT } from './my-task';
+```
+
+3. **Use in component with `runTask()`:**
+
+```typescript
+import { runTask, startKeepalive } from '@/utils/llm-task-runner';
+import { myTaskConfig } from '@/tasks';
+
+const result = await runTask({
+  config: myTaskConfig,
+  context: { rawText: pageContent },
+  llmClient,
+  model: settings.model,
+  onChunk: (delta) => setContent((prev) => prev + delta),
+});
+```
+
+#### Context Types
+
+Tasks declare which context they need via the `context` array:
+
+**Storage-backed (fetched automatically):**
+
+- `profile` - User profile content from storage
+- `job` - Job content from jobInFocus
+- `jobTemplate` - Empty job template for extraction
+- `profileTemplate` - Empty profile template for extraction
+
+**Runtime (passed directly):**
+
+- `rawText` - Raw page content for extraction
+- `template` - Document template being edited
+- `tone` - Tone modifier for synthesis
+- `task` - Task instruction (last item for quick switching)
+
+#### `runTask()` API
+
+```typescript
+interface RunTaskOptions {
+  config: TaskConfig; // From src/tasks/
+  context: Record<string, string>; // Context values
+  llmClient: LLMClient; // Client instance
+  model?: string; // Override config model
+  maxTokens?: number; // Override config tokens
+  temperature?: number; // Override config temp
+  onChunk?: (delta: string) => void; // Document stream
+  onThinking?: (delta: string) => void; // Thinking stream
+  signal?: AbortSignal; // Cancellation
+}
+
+interface TaskResult {
+  content: string; // Final document content
+  thinking: string; // Thinking content (if model supports)
+  finishReason: string; // 'stop', 'length', 'cancelled'
+  cancelled: boolean;
+}
+```
+
+#### Keepalive for Long Tasks
+
+Extension pages must prevent service worker termination during streaming:
+
+```typescript
+const handleExtract = async () => {
+  const stopKeepalive = startKeepalive(); // Start pinging storage
+  try {
+    const result = await runTask({ ... });
+  } finally {
+    stopKeepalive(); // Always clean up
+  }
+};
+```
+
+#### Cancellation Pattern
+
+```typescript
+const [controller, setController] = useState<AbortController | null>(null);
+
+const handleStart = async () => {
+  const ctrl = new AbortController();
+  setController(ctrl);
+
+  try {
+    await runTask({ ..., signal: ctrl.signal });
+  } catch (e) {
+    if (e.name === 'AbortError') return; // Expected
+    throw e;
+  } finally {
+    setController(null);
+  }
+};
+
+const handleCancel = () => controller?.abort();
+```
 
 ### Content Script UIs (React)
 

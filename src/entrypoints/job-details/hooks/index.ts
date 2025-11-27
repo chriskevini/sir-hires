@@ -4,7 +4,6 @@
 export { useJobStore } from './useJobStore';
 export { useJobService } from './useJobService';
 export { useNavigation } from './useNavigation';
-export { useExtractionEvents } from './useExtractionEvents';
 export { useDebounce } from './useDebounce';
 export { useInterval } from './useInterval';
 export { useEditorState } from './useEditorState';
@@ -36,15 +35,3 @@ export type {
 } from './useJobService';
 
 export type { NavigationHookParams } from './useNavigation';
-
-export type {
-  ExtractionEvent,
-  ExtractionEventType,
-  ExtractionMessage,
-  ExtractionStartedMessage,
-  ExtractionChunkMessage,
-  ExtractionCompleteMessage,
-  ExtractionErrorMessage,
-  ExtractionCancelledMessage,
-  ExtractionEventCallback,
-} from './useExtractionEvents';

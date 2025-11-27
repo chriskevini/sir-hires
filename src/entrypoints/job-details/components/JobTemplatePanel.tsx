@@ -1,6 +1,6 @@
 import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel';
 import { escapeHtml } from '@/utils/shared-utils';
-import { JOB_TEMPLATE } from '@/utils/job-templates';
+import { JOB_TEMPLATE } from '@/tasks';
 
 interface JobTemplatePanelProps {
   isVisible: boolean;

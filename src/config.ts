@@ -1,8 +1,19 @@
 // Configuration and constants for job details viewer
 // Schema version: 0.3.0
 
-import { JOB_EXTRACTION_PROMPT } from './utils/job-templates';
-import { PROFILE_EXTRACTION_PROMPT } from './utils/profile-templates';
+import {
+  jobExtractionConfig,
+  profileExtractionConfig,
+  synthesisConfig,
+} from './tasks';
+
+// Re-export types from tasks for backward compatibility
+export type {
+  StorageContextType,
+  RuntimeContextType,
+  ContextType,
+  TaskConfig,
+} from './tasks';
 
 // Status progression order for state-based navigation (v0.3.0)
 export const statusOrder = [
@@ -154,14 +165,7 @@ export const UI_UPDATE_INTERVAL_MS = 60000; // UI refresh interval (1 minute)
 export const MESSAGE_RETRY_MAX_ATTEMPTS = 5; // Max retries for sidepanel messages
 export const MESSAGE_RETRY_DELAY_MS = 200; // Delay between retry attempts
 
-// LLM Configuration Interfaces
-export interface TaskConfig {
-  model?: string; // Override global model
-  temperature: number;
-  maxTokens: number;
-  prompt: string; // System prompt for the task
-}
-
+// LLM Configuration Interface
 export interface LLMConfig {
   // Global Client Settings (shared across all tasks)
   endpoint: string; // http://localhost:1234/v1/chat/completions
@@ -170,10 +174,10 @@ export interface LLMConfig {
   timeoutMs: number; // 60000
   timeoutSeconds: number; // Calculated from timeoutMs
 
-  // Task-Specific Parameters (override global model if needed)
-  jobExtraction: TaskConfig;
-  profileExtraction: TaskConfig;
-  synthesis: TaskConfig;
+  // Task-Specific Parameters (imported from tasks/)
+  jobExtraction: typeof jobExtractionConfig;
+  profileExtraction: typeof profileExtractionConfig;
+  synthesis: typeof synthesisConfig;
 }
 
 // LLM configuration for different tasks
@@ -187,27 +191,10 @@ export const llmConfig: LLMConfig = {
     return this.timeoutMs / 1000;
   },
 
-  // Job data extraction LLM (for extracting structured data from job postings)
-  jobExtraction: {
-    temperature: 0.3,
-    maxTokens: 2000,
-    prompt: JOB_EXTRACTION_PROMPT,
-  },
-
-  // Profile extraction LLM (for extracting structured data from resumes/CVs)
-  profileExtraction: {
-    temperature: 0.3,
-    maxTokens: 4000, // Higher default for longer resumes
-    prompt: PROFILE_EXTRACTION_PROMPT,
-  },
-
-  // Document synthesis LLM (for resume/cover letter generation)
-  synthesis: {
-    temperature: 0.7,
-    maxTokens: 2000,
-    prompt:
-      'Analyze the given PROFILE and JOB to find the most relevant experiences and skills.',
-  },
+  // Task configurations imported from src/tasks/
+  jobExtraction: jobExtractionConfig,
+  profileExtraction: profileExtractionConfig,
+  synthesis: synthesisConfig,
 };
 
 // Checklist templates for each status

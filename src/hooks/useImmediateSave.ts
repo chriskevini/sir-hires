@@ -217,9 +217,11 @@ export function useImmediateSaveMulti({
   }, [initialValues]);
 
   const setValue = useCallback((key: string, newValue: string) => {
+    // Update ref FIRST (synchronously) to prevent batching issues
+    valuesRef.current = { ...valuesRef.current, [key]: newValue };
+
     setValuesState((prev) => {
       const updated = { ...prev, [key]: newValue };
-      valuesRef.current = updated;
       return updated;
     });
 

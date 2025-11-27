@@ -4,10 +4,7 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import {
-  defaultDocuments,
-  documentTemplates,
-} from '@/utils/document-templates';
+import { defaultDocuments, documentTemplates } from '@/tasks';
 import { formatSaveTime } from '@/utils/date-utils';
 import type { DocumentTemplateKey } from '@/components/ui/NewDocumentModal';
 

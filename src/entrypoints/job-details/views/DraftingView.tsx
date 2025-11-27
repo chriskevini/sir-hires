@@ -22,27 +22,20 @@ import { useParsedJob } from '@/components/features/ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '@/utils/job-parser';
 import { escapeHtml } from '@/utils/shared-utils';
 import { formatSaveTime } from '@/utils/date-utils';
-import { defaultDocuments } from '@/utils/document-templates';
+import { defaultDocuments, synthesisConfig } from '@/tasks';
 import { countWords } from '@/utils/text-utils';
 import { exportMarkdown, exportPDF } from '@/utils/export-utils';
 import { useImmediateSaveMulti } from '@/hooks/useImmediateSave';
 import { useTabState } from '../hooks/useTabState';
 import { useToggleState } from '../hooks/useToggleState';
 import { useDocumentManager } from '../hooks/useDocumentManager';
-import { llmConfig } from '@/config';
 import { LLMClient } from '@/utils/llm-client';
 import { userProfileStorage } from '@/utils/storage';
 import { useLLMSettings } from '@/hooks/useLLMSettings';
 import { DEFAULT_MODEL, DEFAULT_TASK_SETTINGS } from '@/utils/llm-utils';
+import { runTask, startKeepalive } from '@/utils/llm-task-runner';
 import type { Job } from '../hooks';
 import './DraftingView.css';
-
-interface Document {
-  title: string;
-  text: string;
-  lastEdited: string | null;
-  order: number;
-}
 
 interface DraftingViewProps {
   job: Job;
@@ -139,6 +132,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   const hasReceivedContentRef = useRef<boolean>(false);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const progressIndexRef = useRef<number>(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // LLM settings
   const {
@@ -360,26 +354,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     };
   }, [job.content, userProfile, activeTab, tone, getLatestValue]);
 
-  // Build user prompt for LLM - wraps each context field in chevron tags
-  // Skips wrapping if content already starts with the expected tag
-  const buildUserPrompt = useCallback(
-    (context: Record<string, string>): string => {
-      return Object.entries(context)
-        .filter(([_, value]) => value.trim())
-        .map(([key, value]) => {
-          const tag = key.toUpperCase();
-          // Skip wrapping if content already starts with the tag
-          if (value.trimStart().startsWith(`<${tag}>`)) {
-            return value.trim();
-          }
-          return `<${tag}>\n${value}\n</${tag}>`;
-        })
-        .join('\n\n');
-    },
-    []
-  );
-
-  // Handle synthesis
+  // Handle synthesis using runTask()
   const handleSynthesize = useCallback(async () => {
     // Check if profile is valid
     if (!userProfile || userProfile.trim().length === 0) {
@@ -393,8 +368,12 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     progressIndexRef.current = 0;
     hasReceivedContentRef.current = false;
 
-    // Store original content
+    // Store original content for rollback on error
     originalContentRef.current = getLatestValue(activeTab) || '';
+
+    // Create AbortController for cancellation
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
 
     // Show initial progress message
     updateContent(activeTab, SYNTHESIS_PROGRESS_MESSAGES[0] + '\n\n');
@@ -419,23 +398,26 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
       }
     }, PROGRESS_MESSAGE_INTERVAL_MS);
 
-    try {
-      // Build context and prompts
-      const context = buildContext();
-      const systemPrompt = llmConfig.synthesis.prompt;
-      const userPrompt = buildUserPrompt(context);
+    // Start keepalive to prevent service worker termination during synthesis
+    const stopKeepalive = startKeepalive();
 
-      // Stream the synthesis
-      const result = await llmClient.streamCompletion({
+    try {
+      // Build context
+      const context = buildContext();
+
+      // Run synthesis using runTask()
+      const result = await runTask({
+        config: synthesisConfig,
+        context,
+        llmClient,
         model: selectedModel,
-        systemPrompt,
-        userPrompt,
         maxTokens,
         temperature: savedTemperature,
-        onThinkingUpdate: (_delta: string) => {
+        signal: abortController.signal,
+        onThinking: (_delta: string) => {
           // Optional: could show thinking in a separate panel
         },
-        onDocumentUpdate: (delta: string) => {
+        onChunk: (delta: string) => {
           hasReceivedContentRef.current = true;
           // Clear progress interval when real content arrives
           if (progressIntervalRef.current) {
@@ -460,6 +442,13 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
         progressIntervalRef.current = null;
       }
 
+      // Handle cancellation
+      if (result.cancelled) {
+        console.info('[DraftingView] Synthesis was cancelled');
+        updateContent(activeTab, originalContentRef.current);
+        return;
+      }
+
       // Check for truncation
       if (result.finishReason === 'length') {
         console.warn('[DraftingView] Response truncated due to token limit');
@@ -470,8 +459,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
       }
 
       // Save the final content
-      const finalContent =
-        result.documentContent || getLatestValue(activeTab) || '';
+      const finalContent = result.content || getLatestValue(activeTab) || '';
       updateContent(activeTab, finalContent);
 
       // Trigger save - preserve existing title
@@ -504,7 +492,9 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
       setSynthesisError((error as Error).message);
       showToast(`Synthesis failed: ${(error as Error).message}`, 'error');
     } finally {
+      stopKeepalive();
       setIsSynthesizing(false);
+      abortControllerRef.current = null;
       progressIndexRef.current = 0;
       hasReceivedContentRef.current = false;
     }
@@ -514,7 +504,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     activeTab,
     updateContent,
     buildContext,
-    buildUserPrompt,
     llmClient,
     selectedModel,
     maxTokens,
@@ -526,11 +515,14 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     job.documents,
   ]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount - cancel synthesis and clear interval
   useEffect(() => {
     return () => {
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
     };
   }, []);

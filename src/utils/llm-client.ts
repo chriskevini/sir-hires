@@ -136,24 +136,27 @@ export class LLMClient {
       onDocumentUpdate = null,
     } = options;
 
-    // Test connection first
-    const isConnected = await this.testConnection();
-    if (!isConnected) {
-      throw new Error(
-        'Cannot connect to LM Studio. Please ensure LM Studio is running on http://localhost:1234'
-      );
-    }
-
     // Create abort controller for cancellation
     const abortController = new AbortController();
 
-    // Register this stream for cancellation
+    // Register this stream for cancellation BEFORE any async work
+    // This ensures cancellation works even if user clicks cancel during testConnection()
     this.activeStreams.set(streamId, {
       abortController,
       reader: null,
     });
 
     console.info('[LLMClient] Registered stream for cancellation:', streamId);
+
+    // Test connection first
+    const isConnected = await this.testConnection();
+    if (!isConnected) {
+      // Clean up on connection failure
+      this.activeStreams.delete(streamId);
+      throw new Error(
+        'Cannot connect to LM Studio. Please ensure LM Studio is running on http://localhost:1234'
+      );
+    }
 
     try {
       // Call LM Studio API with streaming enabled

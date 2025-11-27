@@ -60,12 +60,12 @@
 
 ### Business Logic Hooks
 
-| Hook                 | Purpose                        | Returns                                | Location                    |
-| -------------------- | ------------------------------ | -------------------------------------- | --------------------------- |
-| `useJobExtraction`   | Job extraction logic + events  | `{ extracting, extractingJob, error }` | `useJobExtraction.ts:40`    |
-| `useDocumentManager` | Document CRUD operations       | Document handlers                      | `useDocumentManager.ts`     |
-| `useNavigation`      | View navigation logic          | Navigation handlers                    | `useNavigation.ts`          |
-| `useParsedJob`       | Access parsed job from context | `JobTemplateData \| null`              | `ParsedJobProvider.tsx:169` |
+| Hook                 | Purpose                        | Returns                                         | Location                    |
+| -------------------- | ------------------------------ | ----------------------------------------------- | --------------------------- |
+| `useJobExtraction`   | Job extraction with runTask()  | `{ extracting, extractingJob, handleCancel.. }` | `useJobExtraction.ts:40`    |
+| `useDocumentManager` | Document CRUD operations       | Document handlers                               | `useDocumentManager.ts`     |
+| `useNavigation`      | View navigation logic          | Navigation handlers                             | `useNavigation.ts`          |
+| `useParsedJob`       | Access parsed job from context | `JobTemplateData \| null`                       | `ParsedJobProvider.tsx:169` |
 
 ### Utility Hooks
 

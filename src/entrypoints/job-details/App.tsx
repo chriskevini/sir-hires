@@ -107,12 +107,12 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   );
 
   /**
-   * Handle initialize documents (Drafting view)
+   * Handle delete document (Drafting view)
    */
-  const handleInitializeDocuments = useCallback(
-    (jobId: string, documents: Record<string, Document>) => {
-      store.initializeDocuments(jobId, documents);
-      console.info(`[App] Initialized documents for job ${jobId}`);
+  const handleDeleteDocument = useCallback(
+    async (jobId: string, documentKey: string) => {
+      await store.deleteDocument(jobId, documentKey);
+      console.info(`[App] Deleted document ${documentKey} for job ${jobId}`);
     },
     [store]
   );
@@ -418,7 +418,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
         onDeleteJob={handleDeleteJob}
         onSaveField={handleSaveField}
         onSaveDocument={handleSaveDocument}
-        onInitializeDocuments={handleInitializeDocuments}
+        onDeleteDocument={handleDeleteDocument}
         onToggleChecklistExpand={handleChecklistToggleExpand}
         onToggleChecklistItem={handleChecklistToggleItem}
         emptyStateMessage={

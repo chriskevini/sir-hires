@@ -15,19 +15,25 @@ export interface DefaultDocConfig {
  * Can be used to generate initial documents or display metadata
  */
 export const defaultDocuments: Record<string, DefaultDocConfig> = {
+  blank: {
+    label: 'Blank',
+    order: 99, // New docs go at end
+    defaultTitle: () => 'Blank - Untitled',
+    placeholder: 'Start writing...',
+  },
   tailoredResume: {
     label: 'Resume/CV',
     order: 0,
-    defaultTitle: (jobTitle = 'Resume', company = 'Company') =>
-      `${jobTitle} - ${company}`,
+    defaultTitle: (jobTitle = 'Untitled', company = 'Unknown') =>
+      `Resume - ${jobTitle} - ${company}`,
     placeholder:
       'Write your tailored resume here using Markdown formatting...\n\nExample:\n# Your Name\nemail@example.com | linkedin.com/in/yourprofile\n\n## Summary\nExperienced software engineer...',
   },
   coverLetter: {
     label: 'Cover Letter',
     order: 1,
-    defaultTitle: (jobTitle = 'Position', company = 'Company') =>
-      `Cover Letter - ${jobTitle} at ${company}`,
+    defaultTitle: (jobTitle = 'Untitled', company = 'Unknown') =>
+      `Cover Letter - ${jobTitle} - ${company}`,
     placeholder:
       'Write your cover letter here using Markdown formatting...\n\nExample:\nDear Hiring Manager,\n\nI am writing to express my interest...',
   },
@@ -38,6 +44,7 @@ export const defaultDocuments: Record<string, DefaultDocConfig> = {
  * These templates include formatting guidelines and placeholder structure
  */
 export const documentTemplates = {
+  blank: '',
   tailoredResume: `
 # **[Name]**
 [Address]

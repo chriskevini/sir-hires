@@ -183,6 +183,27 @@ export function useImmediateSaveMulti({
     }
   }, [resetKey, initialValues]);
 
+  // Sync NEW keys from initialValues without overwriting existing values
+  // This handles the case where a new document is added (new key appears)
+  // but we don't want to reset the entire state
+  useEffect(() => {
+    const currentKeys = Object.keys(valuesRef.current);
+    const newKeys = Object.keys(initialValues).filter(
+      (key) => !currentKeys.includes(key)
+    );
+
+    if (newKeys.length > 0) {
+      setValuesState((prev) => {
+        const updated = { ...prev };
+        newKeys.forEach((key) => {
+          updated[key] = initialValues[key];
+        });
+        valuesRef.current = updated;
+        return updated;
+      });
+    }
+  }, [initialValues]);
+
   const setValue = useCallback((key: string, newValue: string) => {
     setValuesState((prev) => {
       const updated = { ...prev, [key]: newValue };

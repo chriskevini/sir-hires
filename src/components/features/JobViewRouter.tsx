@@ -43,10 +43,7 @@ export interface JobViewRouterProps {
         documentKey: string,
         documentData: { title: string; text: string }
       ) => void;
-      onInitializeDocuments: (
-        jobId: string,
-        documents: Record<string, Document>
-      ) => void;
+      onDeleteDocument: (jobId: string, documentKey: string) => void;
     }
   >;
   onDeleteJob: (jobId: string) => void;
@@ -56,10 +53,7 @@ export interface JobViewRouterProps {
     documentKey: string,
     documentData: { title: string; text: string }
   ) => void;
-  onInitializeDocuments: (
-    jobId: string,
-    documents: Record<string, Document>
-  ) => void;
+  onDeleteDocument: (jobId: string, documentKey: string) => void;
   onToggleChecklistExpand: (isExpanded: boolean) => void;
   onToggleChecklistItem: (jobId: string, itemId: string) => void;
   emptyStateMessage?: string;
@@ -83,7 +77,7 @@ export function JobViewRouter({
   onDeleteJob,
   onSaveField,
   onSaveDocument,
-  onInitializeDocuments,
+  onDeleteDocument,
   onToggleChecklistExpand,
   onToggleChecklistItem,
   emptyStateMessage = 'No job selected',
@@ -122,7 +116,7 @@ export function JobViewRouter({
           onDeleteJob={onDeleteJob}
           onSaveField={onSaveField}
           onSaveDocument={onSaveDocument}
-          onInitializeDocuments={onInitializeDocuments}
+          onDeleteDocument={onDeleteDocument}
           onToggleChecklistExpand={onToggleChecklistExpand}
           onToggleChecklistItem={onToggleChecklistItem}
           hideOverlay={hideOverlay}

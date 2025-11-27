@@ -6,6 +6,10 @@ import React, {
   useRef,
 } from 'react';
 import { Modal } from '../../../components/ui/Modal';
+import {
+  NewDocumentModal,
+  type DocumentTemplateKey,
+} from '@/components/ui/NewDocumentModal';
 import { EditorToolbar } from '@/components/ui/EditorToolbar';
 import { EditorContentPanel } from '@/components/ui/EditorContentPanel';
 import { EditorFooter } from '@/components/ui/EditorFooter';
@@ -50,10 +54,7 @@ interface DraftingViewProps {
     _documentKey: string,
     _documentData: { title: string; text: string }
   ) => void;
-  onInitializeDocuments: (
-    jobId: string,
-    documents: Record<string, Document>
-  ) => void;
+  onDeleteDocument: (jobId: string, documentKey: string) => void;
   onToggleChecklistExpand: (isExpanded: boolean) => void;
   onToggleChecklistItem: (jobId: string, itemId: string) => void;
   hideOverlay?: boolean;
@@ -95,7 +96,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   onDeleteJob: _onDeleteJob,
   onSaveField,
   onSaveDocument,
-  onInitializeDocuments,
+  onDeleteDocument,
   onToggleChecklistExpand,
   onToggleChecklistItem,
   hideOverlay = false,
@@ -111,6 +112,13 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   const [synthesisError, setSynthesisError] = useState<string | null>(null);
   const [showProfileWarning, setShowProfileWarning] = useState(false);
   const [userProfile, setUserProfile] = useState('');
+
+  // New document modal state
+  const [showNewDocumentModal, setShowNewDocumentModal] = useState(false);
+
+  // Delete document modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
 
   // Refs for synthesis
   const originalContentRef = useRef<string>('');
@@ -178,12 +186,14 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   );
 
   // Use document manager hook
-  const { documentKeys, getDocument } = useDocumentManager({
-    job,
-    jobId: job.id,
-    parsedJob,
-    onInitializeDocuments,
-  });
+  const { documentKeys, getDocument, addDocument, deleteDocument } =
+    useDocumentManager({
+      job,
+      jobId: job.id,
+      parsedJob,
+      onAddDocument: onSaveDocument,
+      onDeleteDocument,
+    });
 
   // Tab state management
   const { activeTab, switchTab, getTabRef } = useTabState({
@@ -285,6 +295,53 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   const handleRefreshTone = useCallback(() => {
     setTone(getRandomTone());
   }, []);
+
+  // Handle adding a new document from template
+  const handleAddDocument = useCallback(
+    (templateKey: DocumentTemplateKey) => {
+      const newKey = addDocument(templateKey);
+      // Switch to the new document tab
+      switchTab(newKey);
+    },
+    [addDocument, switchTab]
+  );
+
+  // Handle delete document request (opens confirmation modal)
+  const handleDeleteRequest = useCallback((documentKey: string) => {
+    setDocumentToDelete(documentKey);
+    setShowDeleteModal(true);
+  }, []);
+
+  // Handle delete confirmation
+  const handleConfirmDelete = useCallback(() => {
+    if (!documentToDelete) return;
+
+    // Find the index of the document being deleted
+    const deleteIndex = documentKeys.indexOf(documentToDelete);
+
+    // Delete the document
+    deleteDocument(documentToDelete);
+
+    // Switch to an adjacent tab
+    if (documentKeys.length > 1) {
+      // If deleting active tab, switch to previous or next
+      if (documentToDelete === activeTab) {
+        // Prefer previous tab, fallback to next
+        const newIndex =
+          deleteIndex > 0
+            ? deleteIndex - 1
+            : Math.min(1, documentKeys.length - 1);
+        const newActiveTab = documentKeys[newIndex];
+        if (newActiveTab && newActiveTab !== documentToDelete) {
+          switchTab(newActiveTab);
+        }
+      }
+    }
+
+    // Close the modal
+    setShowDeleteModal(false);
+    setDocumentToDelete(null);
+  }, [documentToDelete, documentKeys, activeTab, deleteDocument, switchTab]);
 
   // Build context for synthesis - uses raw MarkdownDB content
   const buildContext = useCallback((): Record<string, string> => {
@@ -497,14 +554,19 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           <EditorToolbar
             documentKeys={documentKeys}
             documentLabels={Object.fromEntries(
-              documentKeys.map((key) => [
-                key,
-                defaultDocuments[key]?.label || key,
-              ])
+              documentKeys.map((key) => {
+                const title = job.documents?.[key]?.title || 'Untitled';
+                return [
+                  key,
+                  title.length > 8 ? title.slice(0, 8) + '...' : title,
+                ];
+              })
             )}
             activeTab={activeTab}
             exportDropdownOpen={exportDropdownOpen}
             onTabChange={switchTab}
+            onAddDocument={() => setShowNewDocumentModal(true)}
+            onDeleteDocument={handleDeleteRequest}
             onToggleExportDropdown={toggleExportDropdown}
             onCloseExportDropdown={() => setExportDropdownOpen(false)}
             onExport={handleExport}
@@ -512,27 +574,37 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
           {/* Editor wrapper */}
           <div className="editor-wrapper">
-            {documentKeys.map((key) => {
-              const config = defaultDocuments[key];
-              const isActive = key === activeTab;
-              const placeholder = config
-                ? config.placeholder
-                : 'Write your document here...';
-
-              return (
-                <EditorContentPanel
-                  key={key}
-                  documentKey={key}
-                  isActive={isActive}
-                  value={documentContents[key] || ''}
-                  placeholder={placeholder}
-                  textareaRef={getTabRef(key)}
-                  onChange={(value) => handleTextareaChange(key, value)}
-                  jobId={job.id}
-                  disabled={isSynthesizing}
+            {documentKeys.length === 0 ? (
+              <div className="editor-content active">
+                <textarea
+                  className="document-editor"
+                  placeholder="Click + to create your first document"
+                  disabled
                 />
-              );
-            })}
+              </div>
+            ) : (
+              documentKeys.map((key) => {
+                const config = defaultDocuments[key];
+                const isActive = key === activeTab;
+                const placeholder = config
+                  ? config.placeholder
+                  : 'Write your document here...';
+
+                return (
+                  <EditorContentPanel
+                    key={key}
+                    documentKey={key}
+                    isActive={isActive}
+                    value={documentContents[key] || ''}
+                    placeholder={placeholder}
+                    textareaRef={getTabRef(key)}
+                    onChange={(value) => handleTextareaChange(key, value)}
+                    jobId={job.id}
+                    disabled={isSynthesizing}
+                  />
+                );
+              })
+            )}
           </div>
 
           {/* Synthesis error display */}
@@ -549,6 +621,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
             onRefreshTone={handleRefreshTone}
             onSynthesize={handleSynthesize}
             isSynthesizing={isSynthesizing}
+            disabled={documentKeys.length === 0}
           />
 
           {/* Footer with status and word count */}
@@ -601,6 +674,46 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
               onClick={() => setShowProfileWarning(false)}
             >
               Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* New Document Modal */}
+      <NewDocumentModal
+        isOpen={showNewDocumentModal}
+        onClose={() => setShowNewDocumentModal(false)}
+        onSelectTemplate={handleAddDocument}
+      />
+
+      {/* Delete Document Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDocumentToDelete(null);
+        }}
+        title="Delete Document"
+      >
+        <div className="modal-body">
+          <p>
+            Are you sure you want to delete this document? This action cannot be
+            undone.
+          </p>
+        </div>
+        <div className="modal-footer">
+          <div className="action-buttons-group" style={{ marginLeft: 'auto' }}>
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setDocumentToDelete(null);
+              }}
+            >
+              Cancel
+            </button>
+            <button className="btn-danger" onClick={handleConfirmDelete}>
+              Delete
             </button>
           </div>
         </div>

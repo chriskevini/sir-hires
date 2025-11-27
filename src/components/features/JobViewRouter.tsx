@@ -5,52 +5,63 @@ import type { Job } from '../../entrypoints/job-details/hooks/useJobState';
 import { defaults } from '../../entrypoints/job-details/config';
 import { JobViewOverlay } from './JobViewOverlay';
 
+interface Document {
+  title: string;
+  text: string;
+  lastEdited: string | null;
+  order: number;
+}
+
 /**
- * Common props for view components
+ * Common props for view components (ID-based callbacks)
  */
 interface ViewComponentProps {
   job: Job;
-  index: number;
   isChecklistExpanded: boolean;
-  onDeleteJob: (index: number) => void;
-  onToggleChecklistExpand: (index: number, isExpanded: boolean) => void;
-  onToggleChecklistItem: (index: number, itemId: string) => void;
+  onDeleteJob: (jobId: string) => void;
+  onToggleChecklistExpand: (isExpanded: boolean) => void;
+  onToggleChecklistItem: (jobId: string, itemId: string) => void;
   hideOverlay?: boolean;
 }
 
 /**
- * Props for JobViewRouter component
+ * Props for JobViewRouter component (ID-based callbacks)
  */
 export interface JobViewRouterProps {
   job: Job | null;
-  index: number;
   isChecklistExpanded: boolean;
   ResearchingView: React.ComponentType<
     ViewComponentProps & {
-      onSaveField: (index: number, fieldName: string, value: string) => void;
+      onSaveField: (jobId: string, fieldName: string, value: string) => void;
     }
   >;
   DraftingView: React.ComponentType<
     ViewComponentProps & {
-      onSaveField: (index: number, fieldName: string, value: string) => void;
+      onSaveField: (jobId: string, fieldName: string, value: string) => void;
       onSaveDocument: (
-        index: number,
+        jobId: string,
         documentKey: string,
         documentData: { title: string; text: string }
       ) => void;
-      onInitializeDocuments: (index: number) => void;
+      onInitializeDocuments: (
+        jobId: string,
+        documents: Record<string, Document>
+      ) => void;
     }
   >;
-  onDeleteJob: (index: number) => void;
-  onSaveField: (index: number, fieldName: string, value: string) => void;
+  onDeleteJob: (jobId: string) => void;
+  onSaveField: (jobId: string, fieldName: string, value: string) => void;
   onSaveDocument: (
-    index: number,
+    jobId: string,
     documentKey: string,
     documentData: { title: string; text: string }
   ) => void;
-  onInitializeDocuments: (index: number) => void;
-  onToggleChecklistExpand: (index: number, isExpanded: boolean) => void;
-  onToggleChecklistItem: (index: number, itemId: string) => void;
+  onInitializeDocuments: (
+    jobId: string,
+    documents: Record<string, Document>
+  ) => void;
+  onToggleChecklistExpand: (isExpanded: boolean) => void;
+  onToggleChecklistItem: (jobId: string, itemId: string) => void;
   emptyStateMessage?: string;
   hideOverlay?: boolean;
 }
@@ -66,7 +77,6 @@ export interface JobViewRouterProps {
  */
 export function JobViewRouter({
   job,
-  index,
   isChecklistExpanded,
   ResearchingView,
   DraftingView,
@@ -95,7 +105,6 @@ export function JobViewRouter({
       return (
         <ResearchingView
           job={job}
-          index={index}
           isChecklistExpanded={isChecklistExpanded}
           onDeleteJob={onDeleteJob}
           onSaveField={onSaveField}
@@ -109,7 +118,6 @@ export function JobViewRouter({
       return (
         <DraftingView
           job={job}
-          index={index}
           isChecklistExpanded={isChecklistExpanded}
           onDeleteJob={onDeleteJob}
           onSaveField={onSaveField}
@@ -169,7 +177,7 @@ export function JobViewRouter({
                 </button>
                 <button
                   className="btn btn-delete"
-                  onClick={() => onDeleteJob(index)}
+                  onClick={() => onDeleteJob(job.id)}
                 >
                   Delete
                 </button>
@@ -179,7 +187,6 @@ export function JobViewRouter({
 
           <JobViewOverlay
             job={job}
-            jobIndex={index}
             isChecklistExpanded={isChecklistExpanded}
             onSaveField={onSaveField}
             onToggleChecklistExpand={onToggleChecklistExpand}

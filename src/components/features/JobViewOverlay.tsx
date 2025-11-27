@@ -27,17 +27,15 @@ interface JobViewOverlayProps {
     checklist?: Record<string, ChecklistItem[]>;
     applicationStatus: string;
   };
-  jobIndex: number;
   isChecklistExpanded?: boolean;
-  onSaveField: (index: number, fieldName: string, value: string) => void;
-  onToggleChecklistExpand: (index: number, isExpanded: boolean) => void;
-  onToggleChecklistItem: (index: number, itemId: string) => void;
+  onSaveField: (jobId: string, fieldName: string, value: string) => void;
+  onToggleChecklistExpand: (isExpanded: boolean) => void;
+  onToggleChecklistItem: (jobId: string, itemId: string) => void;
   hidden?: boolean;
 }
 
 export const JobViewOverlay: React.FC<JobViewOverlayProps> = ({
   job,
-  jobIndex,
   isChecklistExpanded = false,
   onSaveField,
   onToggleChecklistExpand,
@@ -49,7 +47,7 @@ export const JobViewOverlay: React.FC<JobViewOverlayProps> = ({
     targetStatus: string,
     _direction: 'backward' | 'forward'
   ) => {
-    onSaveField(jobIndex, 'applicationStatus', targetStatus);
+    onSaveField(job.id, 'applicationStatus', targetStatus);
   };
 
   // Get navigation buttons for current status
@@ -66,7 +64,7 @@ export const JobViewOverlay: React.FC<JobViewOverlayProps> = ({
       <Checklist
         checklist={job.checklist || {}}
         status={job.applicationStatus || 'researching'}
-        jobIndex={jobIndex}
+        jobId={job.id}
         isExpanded={isChecklistExpanded}
         animate={false}
         onToggleExpand={onToggleChecklistExpand}

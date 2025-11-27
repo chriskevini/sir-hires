@@ -19,6 +19,13 @@ import { browser } from 'wxt/browser';
 import type { JobStore } from './hooks/useJobStore';
 import type { Job } from './hooks/useJobState';
 
+interface Document {
+  title: string;
+  text: string;
+  lastEdited: string | null;
+  order: number;
+}
+
 /**
  * Inner component that uses ParsedJobProvider context
  * Must be rendered inside ParsedJobProvider
@@ -37,57 +44,42 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   const [error, _setError] = useState<string | null>(null);
 
   // ============================================================================
-  // Adapter functions: Bridge index-based handlers to ID-based store methods
-  // These maintain backward compatibility with existing view components
+  // ID-based handlers: Pass directly to view components
+  // No more index-to-ID adapter functions needed!
   // ============================================================================
 
   /**
    * Handle save field event (generic field updates)
-   * Adapter: converts index-based call to ID-based store method
    */
   const handleSaveField = useCallback(
-    async (index: number, fieldName: string, value: string) => {
-      const job = store.jobs[index];
-      if (!job) {
-        console.error('[App] handleSaveField: Job not found at index:', index);
-        return;
-      }
-
-      await store.updateJobField(job.id, fieldName, value);
-      console.info(`[App] Updated ${fieldName} for job at index ${index}`);
+    async (jobId: string, fieldName: string, value: string) => {
+      await store.updateJobField(jobId, fieldName, value);
+      console.info(`[App] Updated ${fieldName} for job ${jobId}`);
     },
     [store]
   );
 
   /**
    * Handle delete job event
-   * Adapter: converts index-based call to ID-based store method
    */
   const handleDeleteJob = useCallback(
-    async (index: number) => {
+    async (jobId: string) => {
       // eslint-disable-next-line no-undef
       if (!confirm('Are you sure you want to delete this job?')) {
         return;
       }
 
-      const job = store.jobs[index];
-      if (!job) {
-        console.error('[App] handleDeleteJob: Job not found at index:', index);
-        return;
-      }
-
-      await store.deleteJob(job.id);
-      console.info(`[App] Deleted job at index ${index}`);
+      await store.deleteJob(jobId);
+      console.info(`[App] Deleted job ${jobId}`);
     },
     [store]
   );
 
   /**
-   * Handle checklist toggle expand
-   * Adapter: converts index-based call to store method
+   * Handle checklist toggle expand (global setting)
    */
   const handleChecklistToggleExpand = useCallback(
-    async (_index: number, isExpanded: boolean) => {
+    async (isExpanded: boolean) => {
       await store.setChecklistExpanded(isExpanded);
       console.info(`[App] Toggled checklist expand globally to ${isExpanded}`);
     },
@@ -96,21 +88,20 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
 
   /**
    * Handle checklist toggle item
-   * Adapter: converts index-based call to ID-based store method
    */
   const handleChecklistToggleItem = useCallback(
-    async (index: number, itemId: string) => {
-      const job = store.jobs[index];
+    async (jobId: string, itemId: string) => {
+      const job = store.jobs.find((j: Job) => j.id === jobId);
       if (!job || !job.checklist) {
         console.error(
-          '[App] handleChecklistToggleItem: Job or checklist not found at index:',
-          index
+          '[App] handleChecklistToggleItem: Job or checklist not found:',
+          jobId
         );
         return;
       }
 
       const status = job.applicationStatus || defaults.status;
-      await store.toggleChecklistItem(job.id, status, itemId);
+      await store.toggleChecklistItem(jobId, status, itemId);
       console.info(`[App] Toggled checklist item ${itemId}`);
     },
     [store]
@@ -118,48 +109,26 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
 
   /**
    * Handle initialize documents (Drafting view)
-   * Adapter: converts index-based call to ID-based store method
    */
   const handleInitializeDocuments = useCallback(
-    (index: number) => {
-      const job = store.jobs[index];
-      if (!job) {
-        console.error(
-          '[App] handleInitializeDocuments: Job not found at index:',
-          index
-        );
-        return;
-      }
-
-      store.initializeDocuments(job.id);
-      console.info(`[App] Initialized documents for job at index ${index}`);
+    (jobId: string, documents: Record<string, Document>) => {
+      store.initializeDocuments(jobId, documents);
+      console.info(`[App] Initialized documents for job ${jobId}`);
     },
     [store]
   );
 
   /**
    * Handle save document (auto-save or manual save)
-   * Adapter: converts index-based call to ID-based store method
    */
   const handleSaveDocument = useCallback(
     async (
-      index: number,
+      jobId: string,
       documentKey: string,
       documentData: { title: string; text: string }
     ) => {
-      const job = store.jobs[index];
-      if (!job) {
-        console.error(
-          '[App] handleSaveDocument: Job not found at index:',
-          index
-        );
-        return;
-      }
-
-      await store.saveDocument(job.id, documentKey, documentData);
-      console.info(
-        `[App] Saved document ${documentKey} for job at index ${index}`
-      );
+      await store.saveDocument(jobId, documentKey, documentData);
+      console.info(`[App] Saved document ${documentKey} for job ${jobId}`);
     },
     [store]
   );
@@ -447,7 +416,6 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
     return (
       <JobViewRouter
         job={job}
-        index={index}
         isChecklistExpanded={store.checklistExpanded}
         ResearchingView={ResearchingView}
         DraftingView={DraftingView}
@@ -596,7 +564,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
                         className="btn-delete-card"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteJob(globalIndex);
+                          handleDeleteJob(job.id);
                         }}
                         title="Delete this job"
                       >

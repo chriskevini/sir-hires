@@ -6,7 +6,7 @@ interface ExtractionErrorViewProps {
   jobUrl: string;
   partialContent?: string;
   editorContent: string;
-  index: number;
+  jobId: string;
   onEditorChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onDelete: () => void;
 }
@@ -20,7 +20,7 @@ export function ExtractionErrorView({
   jobUrl,
   partialContent,
   editorContent,
-  index,
+  jobId,
   onEditorChange,
   onDelete,
 }: ExtractionErrorViewProps) {
@@ -46,7 +46,7 @@ export function ExtractionErrorView({
             <textarea
               id="jobEditor"
               className="job-markdown-editor"
-              data-index={index}
+              data-job-id={jobId}
               value={editorContent}
               onChange={onEditorChange}
             />

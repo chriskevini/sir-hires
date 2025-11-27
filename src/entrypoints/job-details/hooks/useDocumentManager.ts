@@ -21,13 +21,13 @@ interface JobWithDocuments {
 
 interface UseDocumentManagerProps {
   job: JobWithDocuments;
-  jobIndex: number;
+  jobId: string;
   parsedJob: {
     jobTitle?: string;
     company?: string;
   };
   onInitializeDocuments: (
-    index: number,
+    jobId: string,
     documents: Record<string, Document>
   ) => void;
 }
@@ -44,7 +44,7 @@ interface UseDocumentManagerReturn {
  */
 export const useDocumentManager = ({
   job,
-  jobIndex,
+  jobId,
   parsedJob,
   onInitializeDocuments,
 }: UseDocumentManagerProps): UseDocumentManagerReturn => {
@@ -137,12 +137,12 @@ export const useDocumentManager = ({
           order: 1,
         },
       };
-      onInitializeDocuments(jobIndex, newDocuments);
+      onInitializeDocuments(jobId, newDocuments);
       hasInitializedRef.current = true;
     }
   }, [
     job.documents,
-    jobIndex,
+    jobId,
     onInitializeDocuments,
     parsedJob.company,
     parsedJob.jobTitle,

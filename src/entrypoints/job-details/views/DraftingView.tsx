@@ -28,27 +28,25 @@ interface Document {
 
 interface DraftingViewProps {
   job: Job;
-  index: number;
   isChecklistExpanded?: boolean;
-  onDeleteJob: (_index: number) => void;
-  onSaveField: (index: number, fieldName: string, value: string) => void;
+  onDeleteJob: (_jobId: string) => void;
+  onSaveField: (jobId: string, fieldName: string, value: string) => void;
   onSaveDocument: (
-    _index: number,
+    _jobId: string,
     _documentKey: string,
     _documentData: { title: string; text: string }
   ) => void;
   onInitializeDocuments: (
-    index: number,
+    jobId: string,
     documents: Record<string, Document>
   ) => void;
-  onToggleChecklistExpand: (index: number, isExpanded: boolean) => void;
-  onToggleChecklistItem: (index: number, itemId: string) => void;
+  onToggleChecklistExpand: (isExpanded: boolean) => void;
+  onToggleChecklistItem: (jobId: string, itemId: string) => void;
   hideOverlay?: boolean;
 }
 
 export const DraftingView: React.FC<DraftingViewProps> = ({
   job,
-  index,
   isChecklistExpanded = false,
   onDeleteJob: _onDeleteJob,
   onSaveField,
@@ -78,7 +76,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   // Use document manager hook
   const { documentKeys, getDocument } = useDocumentManager({
     job,
-    jobIndex: index,
+    jobId: job.id,
     parsedJob,
     onInitializeDocuments,
   });
@@ -115,7 +113,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           parsedJob.jobTitle,
           parsedJob.company
         ) || 'Untitled';
-      onSaveDocument(index, key, {
+      onSaveDocument(job.id, key, {
         title: defaultTitle,
         text: content,
       });
@@ -240,7 +238,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
                   placeholder={placeholder}
                   textareaRef={getTabRef(key)}
                   onChange={(value) => handleTextareaChange(key, value)}
-                  index={index}
+                  jobId={job.id}
                 />
               );
             })}
@@ -254,7 +252,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
       {/* Overlay container for Checklist and Navigation */}
       <JobViewOverlay
         job={job}
-        jobIndex={index}
         isChecklistExpanded={isChecklistExpanded}
         onSaveField={onSaveField}
         onToggleChecklistExpand={onToggleChecklistExpand}
@@ -270,10 +267,10 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
       >
         <SynthesisForm
           job={job}
-          jobIndex={index}
+          jobId={job.id}
           documentKey={activeTab}
           onClose={() => setIsSynthesisModalOpen(false)}
-          onGenerationStart={(jobIdx, docKey) => {
+          onGenerationStart={(jobId, docKey) => {
             // Show thinking panel with loading message
             console.info('Generation started for', docKey);
           }}
@@ -286,7 +283,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
             const currentContent = getLatestValue(docKey);
             updateContent(docKey, currentContent + delta);
           }}
-          onGenerate={(jobIdx, docKey, result) => {
+          onGenerate={(jobId, docKey, result) => {
             // Save generated content
             const generatedContent =
               result.content || documentContents[docKey] || '';
@@ -295,7 +292,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
             // Trigger immediate save
             const defaultTitle =
               defaultDocuments[docKey]?.defaultTitle() || 'Untitled';
-            onSaveDocument(index, docKey, {
+            onSaveDocument(job.id, docKey, {
               title: defaultTitle,
               text: generatedContent,
             });
@@ -303,7 +300,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
             showToast('Document generated successfully!', 'success');
           }}
-          onError={(jobIdx, docKey, error) => {
+          onError={(jobId, docKey, error) => {
             console.error('Generation failed:', error);
             showToast(`Generation failed: ${error.message}`, 'error');
           }}

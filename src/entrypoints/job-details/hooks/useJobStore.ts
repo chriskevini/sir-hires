@@ -92,7 +92,10 @@ export interface JobStoreActions {
   initializeChecklist: (jobId: string) => void;
 
   // Document operations
-  initializeDocuments: (jobId: string) => void;
+  initializeDocuments: (
+    jobId: string,
+    documents?: Record<string, JobDocument>
+  ) => void;
   saveDocument: (
     jobId: string,
     documentKey: string,
@@ -667,9 +670,10 @@ export function useJobStore(): JobStore {
 
   /**
    * Initialize documents for a job if not present
+   * Optionally accepts custom documents, otherwise generates defaults
    */
   const initializeDocuments = useCallback(
-    (jobId: string) => {
+    (jobId: string, documents?: Record<string, JobDocument>) => {
       setState((prev) => {
         const jobIndex = prev.jobs.findIndex((j) => j.id === jobId);
         if (jobIndex === -1) return prev;
@@ -679,7 +683,7 @@ export function useJobStore(): JobStore {
 
         const updatedJob: Job = {
           ...job,
-          documents: createDefaultDocuments(job),
+          documents: documents || createDefaultDocuments(job),
           updatedAt: new Date().toISOString(),
         };
 

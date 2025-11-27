@@ -185,19 +185,31 @@ export function useImmediateSaveMulti({
 
   // Sync NEW keys from initialValues without overwriting existing values
   // This handles the case where a new document is added (new key appears)
-  // but we don't want to reset the entire state
+  // Also removes keys that no longer exist in initialValues (deleted documents)
   useEffect(() => {
     const currentKeys = Object.keys(valuesRef.current);
-    const newKeys = Object.keys(initialValues).filter(
-      (key) => !currentKeys.includes(key)
-    );
+    const initialKeys = Object.keys(initialValues);
 
-    if (newKeys.length > 0) {
+    // Find new keys to add
+    const newKeys = initialKeys.filter((key) => !currentKeys.includes(key));
+
+    // Find deleted keys to remove
+    const deletedKeys = currentKeys.filter((key) => !initialKeys.includes(key));
+
+    if (newKeys.length > 0 || deletedKeys.length > 0) {
       setValuesState((prev) => {
         const updated = { ...prev };
+
+        // Add new keys
         newKeys.forEach((key) => {
           updated[key] = initialValues[key];
         });
+
+        // Remove deleted keys
+        deletedKeys.forEach((key) => {
+          delete updated[key];
+        });
+
         valuesRef.current = updated;
         return updated;
       });

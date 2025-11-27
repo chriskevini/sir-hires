@@ -32,7 +32,7 @@ interface UseDocumentManagerProps {
   onAddDocument?: (
     jobId: string,
     documentKey: string,
-    document: Document
+    document: { title: string; text: string; order: number }
   ) => void;
   onDeleteDocument?: (jobId: string, documentKey: string) => void;
 }
@@ -120,16 +120,13 @@ export const useDocumentManager = ({
 
       // Calculate order (add to end)
       const existingDocs = job.documents || {};
-      const maxOrder = Math.max(
-        ...Object.values(existingDocs).map((d) => d.order),
-        -1
-      );
+      const docOrders = Object.values(existingDocs).map((d) => d.order);
+      const maxOrder = docOrders.length > 0 ? Math.max(...docOrders) : -1;
 
-      // Create new document
-      const newDocument: Document = {
+      // Create new document (only pass fields the save handler expects)
+      const newDocument = {
         title: config.defaultTitle(parsedJob.jobTitle, parsedJob.company),
         text: templateContent,
-        lastEdited: null,
         order: maxOrder + 1,
       };
 

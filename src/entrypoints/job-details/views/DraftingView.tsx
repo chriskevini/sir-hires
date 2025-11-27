@@ -52,7 +52,7 @@ interface DraftingViewProps {
   onSaveDocument: (
     _jobId: string,
     _documentKey: string,
-    _documentData: { title: string; text: string }
+    _documentData: { title: string; text: string; order?: number }
   ) => void;
   onDeleteDocument: (jobId: string, documentKey: string) => void;
   onToggleChecklistExpand: (isExpanded: boolean) => void;
@@ -196,8 +196,9 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     });
 
   // Tab state management
+  // Use first available document key, or empty string if no documents exist
   const { activeTab, switchTab, getTabRef } = useTabState({
-    initialTab: documentKeys[0] || 'tailoredResume',
+    initialTab: documentKeys[0] || '',
   });
 
   // Build initial values for auto-save from job documents
@@ -320,26 +321,27 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   const handleConfirmDelete = useCallback(() => {
     if (!documentToDelete) return;
 
-    // Find the index of the document being deleted
-    const deleteIndex = documentKeys.indexOf(documentToDelete);
+    // Compute the new active tab BEFORE deleting (while documentKeys is still valid)
+    let newActiveTab: string | null = null;
+    if (documentKeys.length > 1 && documentToDelete === activeTab) {
+      const deleteIndex = documentKeys.indexOf(documentToDelete);
+      // Prefer previous tab, fallback to next
+      const newIndex =
+        deleteIndex > 0
+          ? deleteIndex - 1
+          : Math.min(1, documentKeys.length - 1);
+      const candidate = documentKeys[newIndex];
+      if (candidate && candidate !== documentToDelete) {
+        newActiveTab = candidate;
+      }
+    }
 
     // Delete the document
     deleteDocument(documentToDelete);
 
-    // Switch to an adjacent tab
-    if (documentKeys.length > 1) {
-      // If deleting active tab, switch to previous or next
-      if (documentToDelete === activeTab) {
-        // Prefer previous tab, fallback to next
-        const newIndex =
-          deleteIndex > 0
-            ? deleteIndex - 1
-            : Math.min(1, documentKeys.length - 1);
-        const newActiveTab = documentKeys[newIndex];
-        if (newActiveTab && newActiveTab !== documentToDelete) {
-          switchTab(newActiveTab);
-        }
-      }
+    // Switch to the computed tab (if any)
+    if (newActiveTab) {
+      switchTab(newActiveTab);
     }
 
     // Close the modal

@@ -265,6 +265,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
         onSaveField={onSaveField}
         onToggleChecklistExpand={onToggleChecklistExpand}
         onToggleChecklistItem={onToggleChecklistItem}
+        onBeforeNavigate={flush}
         hidden={hideOverlay}
       />
 

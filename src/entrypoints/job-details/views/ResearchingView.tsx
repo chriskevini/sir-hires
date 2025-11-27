@@ -51,7 +51,11 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
 
   // Auto-save hook manages content state and saves automatically
   // Includes save-on-unmount to prevent data loss on navigation
-  const { value: editorContent, setValue: setEditorContent } = useAutoSave({
+  const {
+    value: editorContent,
+    setValue: setEditorContent,
+    flush,
+  } = useAutoSave({
     initialValue: job.content || '',
     onSave: (value) => onSaveField(index, 'content', value),
     disabled: job.isExtracting || !!job.extractionError,
@@ -197,6 +201,7 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
         onSaveField={onSaveField}
         onToggleChecklistExpand={onToggleChecklistExpand}
         onToggleChecklistItem={onToggleChecklistItem}
+        onBeforeNavigate={flush}
         hidden={hideOverlay}
       />
     </>

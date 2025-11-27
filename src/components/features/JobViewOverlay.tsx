@@ -13,8 +13,10 @@ import './JobViewOverlay.css';
  * Provides consistent bottom-aligned UI elements across all job views.
  * Eliminates duplication between ResearchingView, DraftingView, and future views.
  *
- * Note: Save-on-unmount is handled by useAutoSave hook in each view,
- * so no onBeforeNavigate callback is needed.
+ * IMPORTANT: Views using useAutoSave must pass their `flush` function via
+ * `onBeforeNavigate` to ensure pending saves complete before view switches.
+ * React's unmount cleanup doesn't reliably complete async saves when the
+ * view switches (status change triggers re-render before save completes).
  *
  * @param props - Overlay configuration
  * @returns Overlay container with Checklist and NavigationButtons
@@ -32,6 +34,8 @@ interface JobViewOverlayProps {
   onSaveField: (index: number, fieldName: string, value: string) => void;
   onToggleChecklistExpand: (index: number, isExpanded: boolean) => void;
   onToggleChecklistItem: (index: number, itemId: string) => void;
+  /** Called before navigation to flush pending saves (pass useAutoSave's flush) */
+  onBeforeNavigate?: () => void;
   hidden?: boolean;
 }
 
@@ -42,6 +46,7 @@ export const JobViewOverlay: React.FC<JobViewOverlayProps> = ({
   onSaveField,
   onToggleChecklistExpand,
   onToggleChecklistItem,
+  onBeforeNavigate,
   hidden = false,
 }) => {
   // Navigation handler for status progression
@@ -49,6 +54,8 @@ export const JobViewOverlay: React.FC<JobViewOverlayProps> = ({
     targetStatus: string,
     _direction: 'backward' | 'forward'
   ) => {
+    // Flush pending saves before navigation (view will unmount)
+    onBeforeNavigate?.();
     onSaveField(jobIndex, 'applicationStatus', targetStatus);
   };
 

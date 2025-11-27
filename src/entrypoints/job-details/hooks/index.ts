@@ -1,6 +1,7 @@
 // Export all hooks from a single entry point
 export { useJobState } from './useJobState';
 export { useJobStorage } from './useJobStorage';
+export { useJobStore } from './useJobStore';
 export { useJobService } from './useJobService';
 export { useNavigation } from './useNavigation';
 export { useExtractionEvents } from './useExtractionEvents';
@@ -25,6 +26,8 @@ export type {
 } from './useJobState';
 
 export type { StorageChanges, StorageChangeCallback } from './useJobStorage';
+
+export type { JobStoreState, JobStoreActions, JobStore } from './useJobStore';
 
 export type {
   JobServiceConfig,

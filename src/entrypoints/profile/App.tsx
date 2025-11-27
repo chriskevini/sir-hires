@@ -546,9 +546,6 @@ BULLETS:
         llmSettings.tasks?.extraction?.temperature ??
         DEFAULT_TASK_SETTINGS.extraction.temperature;
 
-      // Track accumulated content for final save
-      let accumulatedContent = '';
-
       // Run extraction task
       const result = await runTask({
         config: profileExtractionConfig,
@@ -565,7 +562,7 @@ BULLETS:
             clearInterval(progressIntervalRef.current);
             progressIntervalRef.current = null;
           }
-          accumulatedContent += delta;
+
           setContent((prev) => {
             // Remove progress message if this is the first real chunk
             if (isProgressMessage(prev)) {

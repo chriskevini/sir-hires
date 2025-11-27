@@ -12,7 +12,7 @@ import { ExtractionLoadingView } from '../job-details/components/ExtractionLoadi
 import { ErrorState } from './components/ErrorState';
 import { DuplicateJobModal } from './components/DuplicateJobModal';
 import { parseJobTemplate } from '../../utils/job-parser';
-import { checklistTemplates, defaults } from '../job-details/config';
+import { checklistTemplates, defaults } from '@/config';
 import { jobsStorage, restoreStorageFromBackup } from '../../utils/storage';
 import { generateItemId } from '../../utils/shared-utils';
 

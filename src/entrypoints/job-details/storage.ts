@@ -1,6 +1,6 @@
 // Storage operations module - handles all browser.storage.local interactions
 
-import { checklistTemplates } from './config';
+import { checklistTemplates } from '@/config';
 import type { Job, JobDocument, ChecklistItem, Filters } from './hooks';
 import { generateJobId, generateItemId } from '../../utils/shared-utils';
 

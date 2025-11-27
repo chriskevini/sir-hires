@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { statusOrder, terminalStates } from '../config';
+import { statusOrder, terminalStates } from '@/config';
 import type { Job, Filters } from './types';
 import {
   parseJobTemplate,

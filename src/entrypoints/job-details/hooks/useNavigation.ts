@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { statusOrder, defaults } from '../config';
+import { statusOrder, defaults } from '@/config';
 import type { Job } from './types';
 
 export interface NavigationHookParams {

@@ -32,7 +32,7 @@ import { useImmediateSaveMulti } from '@/hooks/useImmediateSave';
 import { useTabState } from '../hooks/useTabState';
 import { useToggleState } from '../hooks/useToggleState';
 import { useDocumentManager } from '../hooks/useDocumentManager';
-import { llmConfig } from '../config';
+import { llmConfig } from '@/config';
 import { LLMClient } from '@/utils/llm-client';
 import { userProfileStorage } from '@/utils/storage';
 import { useLLMSettings } from '@/hooks/useLLMSettings';
@@ -427,7 +427,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     try {
       // Build context and prompts
       const context = buildContext();
-      const systemPrompt = llmConfig.synthesis.prompts.universal;
+      const systemPrompt = llmConfig.synthesis.prompt;
       const userPrompt = buildUserPrompt(context);
 
       // Stream the synthesis

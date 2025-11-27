@@ -14,7 +14,7 @@ import {
   restoreStorageFromBackup,
   clearAllStorage,
 } from '../../utils/storage';
-import { defaults } from './config';
+import { defaults } from '@/config';
 import { browser } from 'wxt/browser';
 import type { JobStore } from './hooks/useJobStore';
 import type { Job } from './hooks';

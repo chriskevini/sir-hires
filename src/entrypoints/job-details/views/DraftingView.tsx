@@ -15,14 +15,7 @@ import {
 } from '@/components/ui/SynthesisFooter';
 import { JobViewOverlay } from '@/components/features/JobViewOverlay';
 import { useParsedJob } from '@/components/features/ParsedJobProvider';
-import {
-  getJobTitle,
-  getCompanyName,
-  extractDescription,
-  extractAboutCompany,
-  extractRequiredSkills,
-  extractPreferredSkills,
-} from '@/utils/job-parser';
+import { getJobTitle, getCompanyName } from '@/utils/job-parser';
 import { escapeHtml } from '@/utils/shared-utils';
 import { formatSaveTime } from '@/utils/date-utils';
 import { defaultDocuments } from '@/utils/document-templates';
@@ -95,11 +88,6 @@ const PROGRESS_MESSAGE_INTERVAL_MS = 1000;
 // Helper to check if text is a progress message
 const isProgressMessage = (text: string): boolean =>
   SYNTHESIS_PROGRESS_MESSAGES.some((msg) => text.startsWith(msg));
-
-// Helper to convert array to bullet-point string
-const arrayToString = (arr: string[]): string => {
-  return arr.length > 0 ? arr.map((item) => `- ${item}`).join('\n') : '';
-};
 
 export const DraftingView: React.FC<DraftingViewProps> = ({
   job,
@@ -298,88 +286,32 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     setTone(getRandomTone());
   }, []);
 
-  // Build context for synthesis
+  // Build context for synthesis - uses raw MarkdownDB content
   const buildContext = useCallback((): Record<string, string> => {
-    if (!job || !parsed)
-      return {
-        masterResume: 'Not provided',
-        jobTitle: 'Not provided',
-        company: 'Not provided',
-        aboutJob: 'Not provided',
-        aboutCompany: 'Not provided',
-        requirements: 'Not provided',
-        preferredSkills: 'Not provided',
-        template: '',
-        tone: tone,
-      };
-
-    // Extract fields from parsed MarkdownDB template
-    const description = arrayToString(extractDescription(parsed));
-    const aboutCompany = arrayToString(extractAboutCompany(parsed));
-    const requiredSkills = arrayToString(extractRequiredSkills(parsed));
-    const preferredSkills = arrayToString(extractPreferredSkills(parsed));
-
     return {
-      masterResume: userProfile || 'Not provided',
-      jobTitle: getJobTitle(parsed) || 'Not provided',
-      company: getCompanyName(parsed) || 'Not provided',
-      aboutJob: description || 'Not provided',
-      aboutCompany: aboutCompany || 'Not provided',
-      requirements: requiredSkills || 'Not provided',
-      preferredSkills: preferredSkills || 'Not provided',
+      profile: userProfile || '',
+      job: job.content || '',
       template: getLatestValue(activeTab) || '',
       tone: tone,
+      task: 'Follow the template and output only the final document.',
     };
-  }, [job, parsed, userProfile, activeTab, tone, getLatestValue]);
+  }, [job.content, userProfile, activeTab, tone, getLatestValue]);
 
-  // Build user prompt for LLM
+  // Build user prompt for LLM - wraps each context field in chevron tags
+  // Skips wrapping if content already starts with the expected tag
   const buildUserPrompt = useCallback(
     (context: Record<string, string>): string => {
-      const sections = [];
-
-      if (context.masterResume && context.masterResume !== 'Not provided') {
-        sections.push(`[MASTER RESUME]\n${context.masterResume}`);
-      }
-
-      if (context.jobTitle && context.jobTitle !== 'Not provided') {
-        sections.push(`[JOB TITLE]\n${context.jobTitle}`);
-      }
-
-      if (context.company && context.company !== 'Not provided') {
-        sections.push(`[COMPANY]\n${context.company}`);
-      }
-
-      if (context.aboutJob && context.aboutJob !== 'Not provided') {
-        sections.push(`[ABOUT THE JOB]\n${context.aboutJob}`);
-      }
-
-      if (context.aboutCompany && context.aboutCompany !== 'Not provided') {
-        sections.push(`[ABOUT THE COMPANY]\n${context.aboutCompany}`);
-      }
-
-      if (context.requirements && context.requirements !== 'Not provided') {
-        sections.push(`[REQUIRED SKILLS]\n${context.requirements}`);
-      }
-
-      if (
-        context.preferredSkills &&
-        context.preferredSkills !== 'Not provided'
-      ) {
-        sections.push(`[PREFERRED SKILLS]\n${context.preferredSkills}`);
-      }
-
-      if (context.tone && context.tone.trim()) {
-        sections.push(`[TONE]\n${context.tone}`);
-      }
-
-      if (context.template && context.template.trim()) {
-        sections.push(`[TEMPLATE]\n${context.template}`);
-      }
-
-      return (
-        sections.join('\n\n') +
-        '\n\nSynthesize the document now, strictly following the STREAMING PROTOCOL.'
-      );
+      return Object.entries(context)
+        .filter(([_, value]) => value.trim())
+        .map(([key, value]) => {
+          const tag = key.toUpperCase();
+          // Skip wrapping if content already starts with the tag
+          if (value.trimStart().startsWith(`<${tag}>`)) {
+            return value.trim();
+          }
+          return `<${tag}>\n${value}\n</${tag}>`;
+        })
+        .join('\n\n');
     },
     []
   );

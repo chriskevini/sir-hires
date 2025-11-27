@@ -205,26 +205,7 @@ export const llmConfig: LLMConfig = {
   synthesis: {
     temperature: 0.7,
     maxTokens: 2000,
-    // Universal prompt for document generation
-    // LLM determines document type from user instructions in {currentDraft}
-    prompt: `
-You are an expert career counselor specialized in generating highly targeted, impactful job application documents (resumes, cover letters, and professional emails).
-
-Your sole goal is to synthesize one single, polished document by strictly following the instructions, format, and structure found within the [CURRENT DRAFT] input, including the **Document-Specific Generation Rules** explicitly defined within that block.
-
-### STREAMING PROTOCOL (STRICTLY ADHERE)
-
-1. **Thinking Models:** You MUST execute the full Step-by-Step Generation Process (Steps 1-4) and the reasoning MUST be contained ONLY within the tags <thinking> and </thinking>.
-2. **Non-Thinking Models:** If you are unable to perform the multi-step reasoning process, DO NOT output the <thinking> tags or any text other than the final document.
-3. **Final Output:** Output **ONLY** the requested document *after* the </thinking> tag. **DO NOT** include any introductory text, notes, explanatory commentary, or greetings outside of the final generated document.
-
-### STEP-BY-STEP GENERATION PROCESS (MANDATORY FOR THINKING MODELS)
-
-1. Understand & Validate: Determine the document type and **Document-Specific Generation Rules** from the [CURRENT DRAFT] block.
-2. Analyze Context: Critically analyze all job inputs to identify the core requirements and the specific goal (e.g., job requirements for a resume, call-to-action for an email).
-3. Select and Prepare Content: Scan the [MASTER RESUME] to select content that aligns with the job/goal. **Confirm how the selected content will be treated** (verbatim, synthesized, or high-level reference) based on the document's specific rules.
-4. Synthesize Document: Generate the final document. **STRICTLY apply the simple rules and the required structure** defined in the [CURRENT DRAFT] block.
-`,
+    prompt: `You are an expert career counselor. Analyze <PROFILE> and <JOB> to find relevant experiences and skills. Apply the <TONE> and follow the <TEMPLATE> structure exactly. Execute the <TASK> and output only the final document.`,
   },
 };
 

@@ -262,7 +262,7 @@ useSimpleAutoSave({
 
 ### useJobExtraction
 
-**Purpose:** Handle job extraction from active tab with streaming events.
+**Purpose:** Handle job extraction from active tab with streaming LLM responses using `runTask()`.
 
 **Location:** `src/entrypoints/sidepanel/hooks/useJobExtraction.ts`
 
@@ -289,13 +289,14 @@ useJobExtraction(
   extractingJob: ExtractingJob | null;
   error: string | null;
   handleExtractJob: () => Promise<void>;
+  handleCancelExtraction: () => void;
 }
 ```
 
 **Usage Example:**
 
 ```typescript
-// From: src/entrypoints/sidepanel/App.tsx:89
+// From: src/entrypoints/sidepanel/App.tsx
 import { useJobExtraction } from './hooks';
 
 const {
@@ -303,29 +304,37 @@ const {
   extractingJob,
   error,
   handleExtractJob,
+  handleCancelExtraction,
 } = useJobExtraction(storage, loadJobInFocus);
 
-<button onClick={handleExtractJob}>Extract Job</button>
+<button onClick={handleExtractJob} disabled={extracting}>
+  {extracting ? 'Extracting...' : 'Extract Job'}
+</button>
+
+{extracting && (
+  <button onClick={handleCancelExtraction}>Cancel</button>
+)}
 
 {extracting && extractingJob && (
-  <div>Extracting... {extractingJob.chunks.length} chunks</div>
+  <div>Streaming: {extractingJob.content.length} chars</div>
 )}
 ```
 
 **Key Features:**
 
-- ✅ Detects active tab
-- ✅ Coordinates with background script (Rule 1: Multi-step async)
-- ✅ Listens to extraction events (started, chunk, complete, error)
-- ✅ Ephemeral state for live progress (not persisted)
+- ✅ Detects active tab and fetches page content via content script
+- ✅ Uses `runTask()` for component-level LLM streaming (no background coordination)
+- ✅ Supports cancellation via `AbortController`
+- ✅ Keepalive prevents service worker termination during long extractions
+- ✅ Ephemeral state for live progress (not persisted until complete)
 - ✅ Watches for context menu trigger via storage
 - ✅ Sets `jobInFocus` only after extraction completes (prevents race condition)
 
 **Why This Hook Exists:**
 
-Extraction involves multiple async steps (check tab → request extraction → stream chunks → save → set focus). Coordinating this manually is error-prone. This hook encapsulates the entire workflow.
+Extraction involves multiple async steps (check tab → fetch content → stream LLM → save → set focus). This hook encapsulates the entire workflow with proper streaming, cancellation, and error handling.
 
-**Event-Driven Architecture:** This hook follows Rule 1 (Multi-Step Async Operations → Background Coordinates). See `AGENTS.md` for details.
+**Architecture:** This hook follows Rule 1 (LLM Tasks → Component-Level with `runTask()`). See `AGENTS.md` for details.
 
 ---
 
@@ -1018,7 +1027,7 @@ function MyEditor({ content }) {
 - ❗ "I need auto-save" → Use `useSimpleAutoSave`
 - ❗ "I need to manage textarea state" → Use `useEditorState`
 - ❗ "I need to debounce something" → Check if hook already has debouncing, else use `useDebounce`
-- ❗ "I need to extract jobs" → Use `useJobExtraction`
+- ❗ "I need to extract jobs" → Use `useJobExtraction` (supports streaming + cancellation)
 - ❗ "I need backup/restore" → Use `useBackupRestore`
 
 ### When Creating New Hooks:
@@ -1068,4 +1077,4 @@ You're using hooks correctly if:
 
 ---
 
-**Last Updated:** November 2024 (Split from REUSABLE_COMPONENTS.md for better AI agent usability)
+**Last Updated:** November 2024 (Updated useJobExtraction for runTask() pattern)

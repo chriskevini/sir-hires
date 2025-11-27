@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal } from './Modal';
-import { documentTemplates } from '@/utils/document-templates';
+import { documentTemplates } from '@/tasks';
 import './NewDocumentModal.css';
 
 export type DocumentTemplateKey = 'blank' | 'tailoredResume' | 'coverLetter';

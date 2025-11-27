@@ -22,7 +22,7 @@ import { useParsedJob } from '@/components/features/ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '@/utils/job-parser';
 import { escapeHtml } from '@/utils/shared-utils';
 import { formatSaveTime } from '@/utils/date-utils';
-import { defaultDocuments } from '@/utils/document-templates';
+import { defaultDocuments } from '@/tasks';
 import { countWords } from '@/utils/text-utils';
 import { exportMarkdown, exportPDF } from '@/utils/export-utils';
 import { useImmediateSaveMulti } from '@/hooks/useImmediateSave';
@@ -36,13 +36,6 @@ import { useLLMSettings } from '@/hooks/useLLMSettings';
 import { DEFAULT_MODEL, DEFAULT_TASK_SETTINGS } from '@/utils/llm-utils';
 import type { Job } from '../hooks';
 import './DraftingView.css';
-
-interface Document {
-  title: string;
-  text: string;
-  lastEdited: string | null;
-  order: number;
-}
 
 interface DraftingViewProps {
   job: Job;

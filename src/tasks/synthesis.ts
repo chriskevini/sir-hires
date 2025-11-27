@@ -1,8 +1,67 @@
 /**
- * Document templates and configuration for DraftingView
- * Defines document types, labels, ordering, placeholders, and initial content templates
+ * Synthesis Task
+ * SINGLE SOURCE OF TRUTH for document synthesis LLM configuration
+ *
+ * Contains:
+ * - Task configuration (temperature, tokens, context)
+ * - LLM synthesis prompt
+ * - Document templates (resume, cover letter)
+ * - Document configuration (labels, ordering, placeholders)
  */
 
+import type { TaskConfig } from './types';
+
+// =============================================================================
+// TASK CONFIGURATION
+// =============================================================================
+
+/**
+ * Default task instruction for synthesis
+ * Used as the final context item when invoking the LLM
+ */
+export const SYNTHESIS_DEFAULT_TASK =
+  'Follow the TEMPLATE and TONE and output only the final document.';
+
+// =============================================================================
+// LLM PROMPT
+// =============================================================================
+
+/**
+ * Centralized LLM synthesis prompt (system prompt only)
+ * SINGLE SOURCE OF TRUTH for document synthesis rules
+ *
+ * Context items (passed via user prompt):
+ * - profile: User profile content (MarkdownDB format)
+ * - job: Job content (MarkdownDB format)
+ * - task: Instructions
+ * - template: Document template being edited
+ * - tone: Tone modifier for synthesis
+ */
+export const SYNTHESIS_PROMPT =
+  'Analyze the given PROFILE and JOB to find the most relevant experiences and skills.';
+
+// =============================================================================
+// TASK CONFIG
+// =============================================================================
+
+/**
+ * Task configuration for document synthesis
+ * Imported by config.ts and used by llm-client
+ */
+export const synthesisConfig: TaskConfig = {
+  temperature: 0.7,
+  maxTokens: 2000,
+  prompt: SYNTHESIS_PROMPT,
+  context: ['profile', 'job', 'task', 'template', 'tone'],
+};
+
+// =============================================================================
+// DOCUMENT TEMPLATES
+// =============================================================================
+
+/**
+ * Configuration for a default document type
+ */
 export interface DefaultDocConfig {
   label: string;
   order: number;

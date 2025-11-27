@@ -5,13 +5,6 @@ import type { Job } from '../../entrypoints/job-details/hooks';
 import { defaults } from '@/config';
 import { JobViewOverlay } from './JobViewOverlay';
 
-interface Document {
-  title: string;
-  text: string;
-  lastEdited: string | null;
-  order: number;
-}
-
 /**
  * Common props for view components (ID-based callbacks)
  */

@@ -868,9 +868,7 @@ export default defineBackground(() => {
             });
 
             // Import profile template
-            const { PROFILE_EXTRACTION_PROMPT } = await import(
-              '../utils/profile-templates'
-            );
+            const { PROFILE_EXTRACTION_PROMPT } = await import('../tasks');
             const systemPrompt = PROFILE_EXTRACTION_PROMPT;
             const userPrompt = rawText;
 

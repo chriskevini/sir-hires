@@ -19,13 +19,6 @@ import { browser } from 'wxt/browser';
 import type { JobStore } from './hooks/useJobStore';
 import type { Job } from './hooks';
 
-interface Document {
-  title: string;
-  text: string;
-  lastEdited: string | null;
-  order: number;
-}
-
 /**
  * Inner component that uses ParsedJobProvider context
  * Must be rendered inside ParsedJobProvider

@@ -11,6 +11,7 @@ interface EditorContentPanelProps {
   onChange: (value: string) => void;
   onBlur?: () => void;
   jobId: string;
+  disabled?: boolean;
 }
 
 export const EditorContentPanel: React.FC<EditorContentPanelProps> = ({
@@ -22,6 +23,7 @@ export const EditorContentPanel: React.FC<EditorContentPanelProps> = ({
   onChange,
   onBlur,
   jobId,
+  disabled = false,
 }) => {
   return (
     <div
@@ -49,6 +51,7 @@ export const EditorContentPanel: React.FC<EditorContentPanelProps> = ({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}
+        disabled={disabled}
       />
     </div>
   );

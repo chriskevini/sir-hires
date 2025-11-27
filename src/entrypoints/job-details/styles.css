@@ -1317,6 +1317,22 @@ h1 {
   border-color: #bdbdbd;
 }
 
+.btn-danger {
+  background-color: #d93025;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-danger:hover {
+  background-color: #c5221f;
+}
+
 .btn-text {
   background: none;
   border: none;

@@ -9,10 +9,11 @@ interface EditorToolbarProps {
   activeTab: string;
   exportDropdownOpen: boolean;
   onTabChange: (key: string) => void;
+  onAddDocument?: () => void;
+  onDeleteDocument?: (documentKey: string) => void;
   onToggleExportDropdown: () => void;
   onCloseExportDropdown: () => void;
   onExport: (type: 'md' | 'pdf') => void;
-  onSynthesizeClick: () => void;
 }
 
 export const EditorToolbar: React.FC<EditorToolbarProps> = ({
@@ -21,10 +22,11 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   activeTab,
   exportDropdownOpen,
   onTabChange,
+  onAddDocument,
+  onDeleteDocument,
   onToggleExportDropdown,
   onCloseExportDropdown,
   onExport,
-  onSynthesizeClick,
 }) => {
   return (
     <div className="editor-topbar">
@@ -35,15 +37,10 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         }))}
         activeTab={activeTab}
         onTabChange={onTabChange}
+        onAddTab={onAddDocument}
+        onDeleteTab={onDeleteDocument}
       />
       <div className="editor-actions">
-        <button
-          className="btn-synthesize"
-          id="synthesizeBtn"
-          onClick={onSynthesizeClick}
-        >
-          ✨ Synthesize with LLM
-        </button>
         <Dropdown
           isOpen={exportDropdownOpen}
           onToggle={onToggleExportDropdown}

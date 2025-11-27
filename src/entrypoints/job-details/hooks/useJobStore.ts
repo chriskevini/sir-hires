@@ -26,7 +26,7 @@ import {
 } from '../../../utils/storage';
 import { mergeJobs, cleanupRecentSaves } from '../../../utils/job-merge';
 import type { Job, JobDocument, ChecklistItem, Filters } from './types';
-import { checklistTemplates } from '../config';
+import { checklistTemplates } from '@/config';
 import {
   parseJobTemplate,
   getJobTitle,
@@ -102,6 +102,7 @@ export interface JobStoreActions {
     documentKey: string,
     data: Partial<JobDocument>
   ) => Promise<void>;
+  deleteDocument: (jobId: string, documentKey: string) => Promise<void>;
   getDocument: (jobId: string, documentKey: string) => JobDocument | undefined;
   getDocumentKeys: (jobId: string) => string[];
 
@@ -751,6 +752,52 @@ export function useJobStore(): JobStore {
   );
 
   /**
+   * Delete a document from a job
+   */
+  const deleteDocument = useCallback(
+    async (jobId: string, documentKey: string) => {
+      setState((prev) => {
+        const jobIndex = prev.jobs.findIndex((j) => j.id === jobId);
+        if (jobIndex === -1) return prev;
+
+        const job = prev.jobs[jobIndex];
+        if (!job.documents || !job.documents[documentKey]) {
+          console.warn(
+            `[useJobStore] deleteDocument: Document ${documentKey} not found`
+          );
+          return prev;
+        }
+
+        // Create new documents object without the deleted key
+        const { [documentKey]: _deleted, ...remainingDocuments } =
+          job.documents;
+
+        const updatedJob: Job = {
+          ...job,
+          documents: remainingDocuments,
+          updatedAt: new Date().toISOString(),
+        };
+
+        const newJobs = [...prev.jobs];
+        newJobs[jobIndex] = updatedJob;
+
+        // Mark as recently saved
+        recentSavesRef.current.set(jobId, Date.now());
+
+        // Persist
+        persistJob(updatedJob);
+
+        return {
+          ...prev,
+          jobs: newJobs,
+          filteredJobs: applyFilters(newJobs, prev.filters),
+        };
+      });
+    },
+    [persistJob]
+  );
+
+  /**
    * Get a document from a job
    */
   const getDocument = useCallback(
@@ -931,6 +978,7 @@ export function useJobStore(): JobStore {
     // Document operations
     initializeDocuments,
     saveDocument,
+    deleteDocument,
     getDocument,
     getDocumentKeys,
 

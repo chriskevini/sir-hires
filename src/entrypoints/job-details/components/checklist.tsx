@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { statusOrder, progressConfig } from '../config';
+import { statusOrder, progressConfig } from '@/config';
 import type { ChecklistItem } from '../hooks';
 import './checklist.css';
 

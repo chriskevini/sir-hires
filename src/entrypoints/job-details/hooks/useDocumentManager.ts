@@ -3,10 +3,13 @@
  * Extracts document-related logic from DraftingView
  */
 
-import { useEffect, useRef } from 'react';
-import { defaultDocuments } from '@/utils/document-config';
+import { useCallback, useMemo } from 'react';
+import {
+  defaultDocuments,
+  documentTemplates,
+} from '@/utils/document-templates';
 import { formatSaveTime } from '@/utils/date-utils';
-import { documentTemplates } from '../config';
+import type { DocumentTemplateKey } from '@/components/ui/NewDocumentModal';
 
 interface Document {
   title: string;
@@ -26,35 +29,41 @@ interface UseDocumentManagerProps {
     jobTitle?: string;
     company?: string;
   };
-  onInitializeDocuments: (
+  onAddDocument?: (
     jobId: string,
-    documents: Record<string, Document>
+    documentKey: string,
+    document: { title: string; text: string; order: number }
   ) => void;
+  onDeleteDocument?: (jobId: string, documentKey: string) => void;
 }
 
 interface UseDocumentManagerReturn {
   documentKeys: string[];
   getDocument: (key: string) => Document;
   getInitialSaveStatus: (doc: Document) => string;
+  addDocument: (templateKey: DocumentTemplateKey) => string;
+  deleteDocument: (documentKey: string) => void;
 }
 
 /**
  * Custom hook for document management
- * Handles document initialization, sorting, and status formatting
+ * Handles document sorting, status formatting, and CRUD operations
  */
 export const useDocumentManager = ({
   job,
   jobId,
   parsedJob,
-  onInitializeDocuments,
+  onAddDocument,
+  onDeleteDocument,
 }: UseDocumentManagerProps): UseDocumentManagerReturn => {
   /**
    * Get sorted document keys by order
-   * Falls back to default keys if no documents exist
+   * Returns empty array if no documents exist
+   * Memoized to prevent unnecessary re-renders
    */
-  const getDocumentKeys = (): string[] => {
+  const documentKeys = useMemo((): string[] => {
     if (!job.documents) {
-      return ['tailoredResume', 'coverLetter'];
+      return [];
     }
 
     return Object.keys(job.documents).sort((a, b) => {
@@ -62,95 +71,98 @@ export const useDocumentManager = ({
       const orderB = job.documents![b]?.order ?? 999;
       return orderA - orderB;
     });
-  };
+  }, [job.documents]);
 
   /**
    * Get document with fallback to defaults
    * Creates a minimal document structure if not found
+   * Memoized with useCallback to maintain stable reference
    */
-  const getDocument = (documentKey: string): Document => {
-    if (!job.documents) {
+  const getDocument = useCallback(
+    (documentKey: string): Document => {
+      if (job.documents?.[documentKey]) {
+        return job.documents[documentKey];
+      }
+
+      const config = defaultDocuments[documentKey];
       return {
-        title:
-          defaultDocuments[documentKey]?.defaultTitle(
-            parsedJob.jobTitle,
-            parsedJob.company
-          ) || 'Untitled',
+        title: config
+          ? config.defaultTitle(parsedJob.jobTitle, parsedJob.company)
+          : 'Untitled Document',
         text: '',
         lastEdited: null,
-        order: defaultDocuments[documentKey]?.order || 0,
+        order: config ? config.order : 0,
       };
-    }
-
-    if (job.documents[documentKey]) {
-      return job.documents[documentKey];
-    }
-
-    const config = defaultDocuments[documentKey];
-    return {
-      title: config
-        ? config.defaultTitle(parsedJob.jobTitle, parsedJob.company)
-        : 'Untitled Document',
-      text: '',
-      lastEdited: null,
-      order: config ? config.order : 0,
-    };
-  };
+    },
+    [job.documents, parsedJob.jobTitle, parsedJob.company]
+  );
 
   /**
    * Format initial save status from document metadata
    * Returns human-readable last edited time
+   * Memoized with useCallback to maintain stable reference
    */
-  const getInitialSaveStatus = (doc: Document): string => {
+  const getInitialSaveStatus = useCallback((doc: Document): string => {
     if (!doc.lastEdited) {
       return 'No changes yet';
     }
     const lastEditedDate = new Date(doc.lastEdited);
     return `Last saved ${formatSaveTime(lastEditedDate)}`;
-  };
+  }, []);
 
   /**
-   * Initialize documents with templates if they don't exist
-   * Uses ref to track initialization to avoid re-running
+   * Add a new document from a template
+   * Returns the unique key for the new document
    */
-  const hasInitializedRef = useRef(false);
+  const addDocument = useCallback(
+    (templateKey: DocumentTemplateKey): string => {
+      // Generate unique key with timestamp
+      const newKey = `doc_${Date.now()}`;
 
-  useEffect(() => {
-    if (!hasInitializedRef.current && !job.documents) {
-      const newDocuments = {
-        tailoredResume: {
-          title: defaultDocuments.tailoredResume.defaultTitle(
-            parsedJob.jobTitle,
-            parsedJob.company
-          ),
-          text: documentTemplates.tailoredResume,
-          lastEdited: null,
-          order: 0,
-        },
-        coverLetter: {
-          title: defaultDocuments.coverLetter.defaultTitle(
-            parsedJob.jobTitle,
-            parsedJob.company
-          ),
-          text: documentTemplates.coverLetter,
-          lastEdited: null,
-          order: 1,
-        },
+      // Get template config and content
+      const config = defaultDocuments[templateKey] || defaultDocuments.blank;
+      const templateContent =
+        documentTemplates[templateKey as keyof typeof documentTemplates] || '';
+
+      // Calculate order (add to end)
+      const existingDocs = job.documents || {};
+      const docOrders = Object.values(existingDocs).map((d) => d.order);
+      const maxOrder = docOrders.length > 0 ? Math.max(...docOrders) : -1;
+
+      // Create new document (only pass fields the save handler expects)
+      const newDocument = {
+        title: config.defaultTitle(parsedJob.jobTitle, parsedJob.company),
+        text: templateContent,
+        order: maxOrder + 1,
       };
-      onInitializeDocuments(jobId, newDocuments);
-      hasInitializedRef.current = true;
-    }
-  }, [
-    job.documents,
-    jobId,
-    onInitializeDocuments,
-    parsedJob.company,
-    parsedJob.jobTitle,
-  ]);
+
+      // Save the document
+      if (onAddDocument) {
+        onAddDocument(jobId, newKey, newDocument);
+      }
+
+      return newKey;
+    },
+    [job.documents, jobId, onAddDocument, parsedJob.jobTitle, parsedJob.company]
+  );
+
+  /**
+   * Delete a document by key
+   */
+  const deleteDocument = useCallback(
+    (documentKey: string): void => {
+      if (onDeleteDocument) {
+        onDeleteDocument(jobId, documentKey);
+      }
+    },
+    [jobId, onDeleteDocument]
+  );
 
   return {
-    documentKeys: getDocumentKeys(),
+    documentKeys,
     getDocument,
     getInitialSaveStatus,
+    addDocument,
+    deleteDocument,
   };
 };

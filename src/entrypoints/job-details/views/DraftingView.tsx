@@ -1,21 +1,39 @@
-import React, { useEffect, useMemo, useCallback, useState } from 'react';
+import React, {
+  useEffect,
+  useMemo,
+  useCallback,
+  useState,
+  useRef,
+} from 'react';
 import { Modal } from '../../../components/ui/Modal';
-import { SynthesisForm } from '../components/SynthesisForm';
+import {
+  NewDocumentModal,
+  type DocumentTemplateKey,
+} from '@/components/ui/NewDocumentModal';
 import { EditorToolbar } from '@/components/ui/EditorToolbar';
 import { EditorContentPanel } from '@/components/ui/EditorContentPanel';
 import { EditorFooter } from '@/components/ui/EditorFooter';
+import {
+  SynthesisFooter,
+  getRandomTone,
+} from '@/components/ui/SynthesisFooter';
 import { JobViewOverlay } from '@/components/features/JobViewOverlay';
 import { useParsedJob } from '@/components/features/ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '@/utils/job-parser';
 import { escapeHtml } from '@/utils/shared-utils';
 import { formatSaveTime } from '@/utils/date-utils';
-import { defaultDocuments } from '@/utils/document-config';
+import { defaultDocuments } from '@/utils/document-templates';
 import { countWords } from '@/utils/text-utils';
 import { exportMarkdown, exportPDF } from '@/utils/export-utils';
 import { useImmediateSaveMulti } from '@/hooks/useImmediateSave';
 import { useTabState } from '../hooks/useTabState';
 import { useToggleState } from '../hooks/useToggleState';
 import { useDocumentManager } from '../hooks/useDocumentManager';
+import { llmConfig } from '@/config';
+import { LLMClient } from '@/utils/llm-client';
+import { userProfileStorage } from '@/utils/storage';
+import { useLLMSettings } from '@/hooks/useLLMSettings';
+import { DEFAULT_MODEL, DEFAULT_TASK_SETTINGS } from '@/utils/llm-utils';
 import type { Job } from '../hooks';
 import './DraftingView.css';
 
@@ -34,16 +52,57 @@ interface DraftingViewProps {
   onSaveDocument: (
     _jobId: string,
     _documentKey: string,
-    _documentData: { title: string; text: string }
+    _documentData: { title: string; text: string; order?: number }
   ) => void;
-  onInitializeDocuments: (
-    jobId: string,
-    documents: Record<string, Document>
-  ) => void;
+  onDeleteDocument: (jobId: string, documentKey: string) => void;
   onToggleChecklistExpand: (isExpanded: boolean) => void;
   onToggleChecklistItem: (jobId: string, itemId: string) => void;
   hideOverlay?: boolean;
 }
+
+// Progress messages shown sequentially during synthesis
+const SYNTHESIS_PROGRESS_MESSAGES = [
+  'Starting synthesis',
+  'Starting synthesis.',
+  'Starting synthesis..',
+  'Starting synthesis...',
+  'Analyzing job requirements',
+  'Analyzing job requirements.',
+  'Analyzing job requirements..',
+  'Analyzing job requirements...',
+  'Matching profile to job',
+  'Matching profile to job.',
+  'Matching profile to job..',
+  'Matching profile to job...',
+  'Crafting your document',
+  'Crafting your document.',
+  'Crafting your document..',
+  'Crafting your document...',
+  'Almost done',
+  'Almost done.',
+  'Almost done..',
+  'Almost done...',
+];
+
+const PROGRESS_MESSAGE_INTERVAL_MS = 1000;
+
+// Helper to check if text is a progress message
+const isProgressMessage = (text: string): boolean =>
+  SYNTHESIS_PROGRESS_MESSAGES.some((msg) => text.startsWith(msg));
+
+// Show toast notification (moved outside component for stable reference)
+const showToast = (
+  message: string,
+  type: 'success' | 'error' | 'info' = 'info'
+) => {
+  // Toast implementation would go here
+  // For now, just use console
+  if (type === 'error') {
+    console.error(message);
+  } else {
+    console.info(message);
+  }
+};
 
 export const DraftingView: React.FC<DraftingViewProps> = ({
   job,
@@ -51,7 +110,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   onDeleteJob: _onDeleteJob,
   onSaveField,
   onSaveDocument,
-  onInitializeDocuments,
+  onDeleteDocument,
   onToggleChecklistExpand,
   onToggleChecklistItem,
   hideOverlay = false,
@@ -59,9 +118,76 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   // Toggle states
   const [exportDropdownOpen, toggleExportDropdown, setExportDropdownOpen] =
     useToggleState(false);
-  const [isSynthesisModalOpen, _toggleSynthesisModal, setIsSynthesisModalOpen] =
-    useToggleState(false);
   const [wordCount, setWordCount] = React.useState<number>(0);
+
+  // Synthesis state
+  const [tone, setTone] = useState(() => getRandomTone());
+  const [isSynthesizing, setIsSynthesizing] = useState(false);
+  const [synthesisError, setSynthesisError] = useState<string | null>(null);
+  const [showProfileWarning, setShowProfileWarning] = useState(false);
+  const [userProfile, setUserProfile] = useState('');
+
+  // New document modal state
+  const [showNewDocumentModal, setShowNewDocumentModal] = useState(false);
+
+  // Delete document modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
+
+  // Refs for synthesis
+  const originalContentRef = useRef<string>('');
+  const hasReceivedContentRef = useRef<boolean>(false);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIndexRef = useRef<number>(0);
+
+  // LLM settings
+  const {
+    model: savedModel,
+    endpoint,
+    modelsEndpoint,
+    maxTokens: savedMaxTokens,
+    temperature: savedTemperature,
+    isLoading: isLoadingSettings,
+  } = useLLMSettings({ task: 'synthesis' });
+
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
+  const [maxTokens, setMaxTokens] = useState(
+    DEFAULT_TASK_SETTINGS.synthesis.maxTokens
+  );
+
+  // Sync local model state with saved settings when they load
+  useEffect(() => {
+    if (!isLoadingSettings && savedModel) {
+      setSelectedModel(savedModel);
+    }
+  }, [isLoadingSettings, savedModel]);
+
+  // Sync local maxTokens with saved task settings when they load
+  useEffect(() => {
+    if (!isLoadingSettings) {
+      setMaxTokens(savedMaxTokens);
+    }
+  }, [isLoadingSettings, savedMaxTokens]);
+
+  // Create LLM client
+  const llmClient = useMemo(
+    () =>
+      new LLMClient({
+        endpoint,
+        modelsEndpoint,
+      }),
+    [endpoint, modelsEndpoint]
+  );
+
+  // Fetch user profile on mount
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const userProfileData = await userProfileStorage.getValue();
+      const profile = userProfileData?.content || '';
+      setUserProfile(profile);
+    };
+    fetchUserProfile();
+  }, []);
 
   // Parse job content on-read (MarkdownDB pattern) using cached provider
   const parsed = useParsedJob(job.id);
@@ -74,16 +200,19 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   );
 
   // Use document manager hook
-  const { documentKeys, getDocument } = useDocumentManager({
-    job,
-    jobId: job.id,
-    parsedJob,
-    onInitializeDocuments,
-  });
+  const { documentKeys, getDocument, addDocument, deleteDocument } =
+    useDocumentManager({
+      job,
+      jobId: job.id,
+      parsedJob,
+      onAddDocument: onSaveDocument,
+      onDeleteDocument,
+    });
 
   // Tab state management
+  // Use first available document key, or empty string if no documents exist
   const { activeTab, switchTab, getTabRef } = useTabState({
-    initialTab: documentKeys[0] || 'tailoredResume',
+    initialTab: documentKeys[0] || '',
   });
 
   // Build initial values for auto-save from job documents
@@ -108,13 +237,17 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   } = useImmediateSaveMulti({
     initialValues: initialDocumentValues,
     onSave: (key: string, content: string) => {
-      const defaultTitle =
+      // Preserve existing title, fallback to defaultDocuments lookup for known template keys
+      const existingTitle = job.documents?.[key]?.title;
+      const title =
+        existingTitle ||
         defaultDocuments[key]?.defaultTitle(
           parsedJob.jobTitle,
           parsedJob.company
-        ) || 'Untitled';
+        ) ||
+        'Untitled';
       onSaveDocument(job.id, key, {
-        title: defaultTitle,
+        title,
         text: content,
       });
       setSaveStatusText(`Last saved ${formatSaveTime(new Date())}`);
@@ -163,19 +296,244 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     [activeTab, getDocument]
   );
 
-  // Show toast notification
-  const showToast = (
-    message: string,
-    type: 'success' | 'error' | 'info' = 'info'
-  ) => {
-    // Toast implementation would go here
-    // For now, just use console
-    if (type === 'error') {
-      console.error(message);
-    } else {
-      console.info(message);
+  // Handle tone refresh
+  const handleRefreshTone = useCallback(() => {
+    setTone(getRandomTone());
+  }, []);
+
+  // Handle adding a new document from template
+  const handleAddDocument = useCallback(
+    (templateKey: DocumentTemplateKey) => {
+      const newKey = addDocument(templateKey);
+      // Switch to the new document tab
+      switchTab(newKey);
+    },
+    [addDocument, switchTab]
+  );
+
+  // Handle delete document request (opens confirmation modal)
+  const handleDeleteRequest = useCallback((documentKey: string) => {
+    setDocumentToDelete(documentKey);
+    setShowDeleteModal(true);
+  }, []);
+
+  // Handle delete confirmation
+  const handleConfirmDelete = useCallback(() => {
+    if (!documentToDelete) return;
+
+    // Compute the new active tab BEFORE deleting (while documentKeys is still valid)
+    let newActiveTab: string | null = null;
+    if (documentKeys.length > 1 && documentToDelete === activeTab) {
+      const deleteIndex = documentKeys.indexOf(documentToDelete);
+      // Prefer previous tab, fallback to next
+      const newIndex =
+        deleteIndex > 0
+          ? deleteIndex - 1
+          : Math.min(1, documentKeys.length - 1);
+      const candidate = documentKeys[newIndex];
+      if (candidate && candidate !== documentToDelete) {
+        newActiveTab = candidate;
+      }
     }
-  };
+
+    // Delete the document
+    deleteDocument(documentToDelete);
+
+    // Switch to the computed tab (if any)
+    if (newActiveTab) {
+      switchTab(newActiveTab);
+    }
+
+    // Close the modal
+    setShowDeleteModal(false);
+    setDocumentToDelete(null);
+  }, [documentToDelete, documentKeys, activeTab, deleteDocument, switchTab]);
+
+  // Build context for synthesis - uses raw MarkdownDB content
+  const buildContext = useCallback((): Record<string, string> => {
+    return {
+      profile: userProfile || '',
+      job: job.content || '',
+      template: getLatestValue(activeTab) || '',
+      tone: tone,
+      task: 'Follow the TEMPLATE and TONE and output only the final document.',
+    };
+  }, [job.content, userProfile, activeTab, tone, getLatestValue]);
+
+  // Build user prompt for LLM - wraps each context field in chevron tags
+  // Skips wrapping if content already starts with the expected tag
+  const buildUserPrompt = useCallback(
+    (context: Record<string, string>): string => {
+      return Object.entries(context)
+        .filter(([_, value]) => value.trim())
+        .map(([key, value]) => {
+          const tag = key.toUpperCase();
+          // Skip wrapping if content already starts with the tag
+          if (value.trimStart().startsWith(`<${tag}>`)) {
+            return value.trim();
+          }
+          return `<${tag}>\n${value}\n</${tag}>`;
+        })
+        .join('\n\n');
+    },
+    []
+  );
+
+  // Handle synthesis
+  const handleSynthesize = useCallback(async () => {
+    // Check if profile is valid
+    if (!userProfile || userProfile.trim().length === 0) {
+      setShowProfileWarning(true);
+      return;
+    }
+
+    // Start synthesis
+    setIsSynthesizing(true);
+    setSynthesisError(null);
+    progressIndexRef.current = 0;
+    hasReceivedContentRef.current = false;
+
+    // Store original content
+    originalContentRef.current = getLatestValue(activeTab) || '';
+
+    // Show initial progress message
+    updateContent(activeTab, SYNTHESIS_PROGRESS_MESSAGES[0] + '\n\n');
+
+    // Start progress message cycling
+    progressIntervalRef.current = setInterval(() => {
+      if (!hasReceivedContentRef.current) {
+        const lastIndex = SYNTHESIS_PROGRESS_MESSAGES.length - 1;
+        if (progressIndexRef.current < lastIndex) {
+          progressIndexRef.current += 1;
+          updateContent(
+            activeTab,
+            SYNTHESIS_PROGRESS_MESSAGES[progressIndexRef.current] + '\n\n'
+          );
+        } else {
+          // At last message - clear interval to stop cycling
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+          }
+        }
+      }
+    }, PROGRESS_MESSAGE_INTERVAL_MS);
+
+    try {
+      // Build context and prompts
+      const context = buildContext();
+      const systemPrompt = llmConfig.synthesis.prompt;
+      const userPrompt = buildUserPrompt(context);
+
+      // Stream the synthesis
+      const result = await llmClient.streamCompletion({
+        model: selectedModel,
+        systemPrompt,
+        userPrompt,
+        maxTokens,
+        temperature: savedTemperature,
+        onThinkingUpdate: (_delta: string) => {
+          // Optional: could show thinking in a separate panel
+        },
+        onDocumentUpdate: (delta: string) => {
+          hasReceivedContentRef.current = true;
+          // Clear progress interval when real content arrives
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+          }
+
+          // Get current content and append delta
+          const currentContent = getLatestValue(activeTab) || '';
+          // If still showing progress message, replace it
+          if (isProgressMessage(currentContent)) {
+            updateContent(activeTab, delta);
+          } else {
+            updateContent(activeTab, currentContent + delta);
+          }
+        },
+      });
+
+      // Clear progress interval if still running
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+
+      // Check for truncation
+      if (result.finishReason === 'length') {
+        console.warn('[DraftingView] Response truncated due to token limit');
+        showToast(
+          `Warning: Response was truncated due to token limit (${maxTokens} tokens).`,
+          'error'
+        );
+      }
+
+      // Save the final content
+      const finalContent =
+        result.documentContent || getLatestValue(activeTab) || '';
+      updateContent(activeTab, finalContent);
+
+      // Trigger save - preserve existing title
+      const existingTitle = job.documents?.[activeTab]?.title;
+      const title =
+        existingTitle ||
+        defaultDocuments[activeTab]?.defaultTitle(
+          parsedJob.jobTitle,
+          parsedJob.company
+        ) ||
+        'Untitled';
+      onSaveDocument(job.id, activeTab, {
+        title,
+        text: finalContent,
+      });
+      setSaveStatusText(`Last saved ${formatSaveTime(new Date())}`);
+
+      showToast('Document synthesized successfully!', 'success');
+    } catch (error) {
+      console.error('[DraftingView] Synthesis failed:', error);
+
+      // Clear progress interval
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+
+      // Revert to original content
+      updateContent(activeTab, originalContentRef.current);
+      setSynthesisError((error as Error).message);
+      showToast(`Synthesis failed: ${(error as Error).message}`, 'error');
+    } finally {
+      setIsSynthesizing(false);
+      progressIndexRef.current = 0;
+      hasReceivedContentRef.current = false;
+    }
+  }, [
+    userProfile,
+    getLatestValue,
+    activeTab,
+    updateContent,
+    buildContext,
+    buildUserPrompt,
+    llmClient,
+    selectedModel,
+    maxTokens,
+    savedTemperature,
+    parsedJob.jobTitle,
+    parsedJob.company,
+    onSaveDocument,
+    job.id,
+    job.documents,
+  ]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, []);
 
   return (
     <>
@@ -206,43 +564,75 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           <EditorToolbar
             documentKeys={documentKeys}
             documentLabels={Object.fromEntries(
-              documentKeys.map((key) => [
-                key,
-                defaultDocuments[key]?.label || key,
-              ])
+              documentKeys.map((key) => {
+                const title = job.documents?.[key]?.title || 'Untitled';
+                return [
+                  key,
+                  title.length > 8 ? title.slice(0, 8) + '...' : title,
+                ];
+              })
             )}
             activeTab={activeTab}
             exportDropdownOpen={exportDropdownOpen}
             onTabChange={switchTab}
+            onAddDocument={() => setShowNewDocumentModal(true)}
+            onDeleteDocument={handleDeleteRequest}
             onToggleExportDropdown={toggleExportDropdown}
             onCloseExportDropdown={() => setExportDropdownOpen(false)}
             onExport={handleExport}
-            onSynthesizeClick={() => setIsSynthesisModalOpen(true)}
           />
 
           {/* Editor wrapper */}
           <div className="editor-wrapper">
-            {documentKeys.map((key) => {
-              const config = defaultDocuments[key];
-              const isActive = key === activeTab;
-              const placeholder = config
-                ? config.placeholder
-                : 'Write your document here...';
-
-              return (
-                <EditorContentPanel
-                  key={key}
-                  documentKey={key}
-                  isActive={isActive}
-                  value={documentContents[key] || ''}
-                  placeholder={placeholder}
-                  textareaRef={getTabRef(key)}
-                  onChange={(value) => handleTextareaChange(key, value)}
-                  jobId={job.id}
+            {documentKeys.length === 0 ? (
+              <div className="editor-content active">
+                <textarea
+                  className="document-editor"
+                  placeholder="Click + to create your first document"
+                  disabled
                 />
-              );
-            })}
+              </div>
+            ) : (
+              documentKeys.map((key) => {
+                const config = defaultDocuments[key];
+                const isActive = key === activeTab;
+                const placeholder = config
+                  ? config.placeholder
+                  : 'Write your document here...';
+
+                return (
+                  <EditorContentPanel
+                    key={key}
+                    documentKey={key}
+                    isActive={isActive}
+                    value={documentContents[key] || ''}
+                    placeholder={placeholder}
+                    textareaRef={getTabRef(key)}
+                    onChange={(value) => handleTextareaChange(key, value)}
+                    jobId={job.id}
+                    disabled={isSynthesizing}
+                  />
+                );
+              })
+            )}
           </div>
+
+          {/* Synthesis error display */}
+          {synthesisError && (
+            <div className="synthesis-error">
+              <strong>Synthesis Error:</strong> {synthesisError}
+            </div>
+          )}
+
+          {/* Synthesis Footer (above EditorFooter) */}
+          <SynthesisFooter
+            tone={tone}
+            onToneChange={setTone}
+            onRefreshTone={handleRefreshTone}
+            onSynthesize={handleSynthesize}
+            isSynthesizing={isSynthesizing}
+            disabled={documentKeys.length === 0}
+          />
 
           {/* Footer with status and word count */}
           <EditorFooter saveStatus={saveStatusText} wordCount={wordCount} />
@@ -259,52 +649,84 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
         hidden={hideOverlay}
       />
 
-      {/* Synthesis Modal */}
+      {/* Profile Warning Modal */}
       <Modal
-        isOpen={isSynthesisModalOpen}
-        onClose={() => setIsSynthesisModalOpen(false)}
-        title="✨ Synthesize Document with LLM"
+        isOpen={showProfileWarning}
+        onClose={() => setShowProfileWarning(false)}
+        title="Profile Required"
       >
-        <SynthesisForm
-          job={job}
-          jobId={job.id}
-          documentKey={activeTab}
-          onClose={() => setIsSynthesisModalOpen(false)}
-          onGenerationStart={(jobId, docKey) => {
-            // Show thinking panel with loading message
-            console.info('Generation started for', docKey);
-          }}
-          onThinkingUpdate={(docKey, delta) => {
-            // Update thinking panel
-            console.info('Thinking update:', delta);
-          }}
-          onDocumentUpdate={(docKey, delta) => {
-            // Use getLatestValue to avoid stale closure during streaming
-            const currentContent = getLatestValue(docKey);
-            updateContent(docKey, currentContent + delta);
-          }}
-          onGenerate={(jobId, docKey, result) => {
-            // Save generated content
-            const generatedContent =
-              result.content || documentContents[docKey] || '';
-            updateContent(docKey, generatedContent);
+        <div className="modal-body">
+          <div className="error-warning">
+            <p>
+              <strong>
+                Please create a profile before synthesizing documents.
+              </strong>
+            </p>
+            <p>
+              Your profile contains your resume information which is used to
+              generate tailored documents for this job.
+            </p>
+            <button
+              className="btn-primary"
+              onClick={() => {
+                window.location.href = '/profile.html';
+              }}
+            >
+              Create Profile
+            </button>
+          </div>
+        </div>
 
-            // Trigger immediate save
-            const defaultTitle =
-              defaultDocuments[docKey]?.defaultTitle() || 'Untitled';
-            onSaveDocument(job.id, docKey, {
-              title: defaultTitle,
-              text: generatedContent,
-            });
-            setSaveStatusText(`Last saved ${formatSaveTime(new Date())}`);
+        <div className="modal-footer">
+          <div className="action-buttons-group" style={{ marginLeft: 'auto' }}>
+            <button
+              className="btn-secondary"
+              onClick={() => setShowProfileWarning(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
 
-            showToast('Document generated successfully!', 'success');
-          }}
-          onError={(jobId, docKey, error) => {
-            console.error('Generation failed:', error);
-            showToast(`Generation failed: ${error.message}`, 'error');
-          }}
-        />
+      {/* New Document Modal */}
+      <NewDocumentModal
+        isOpen={showNewDocumentModal}
+        onClose={() => setShowNewDocumentModal(false)}
+        onSelectTemplate={handleAddDocument}
+      />
+
+      {/* Delete Document Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDocumentToDelete(null);
+        }}
+        title="Delete Document"
+      >
+        <div className="modal-body">
+          <p>
+            Are you sure you want to delete this document? This action cannot be
+            undone.
+          </p>
+        </div>
+        <div className="modal-footer">
+          <div className="action-buttons-group" style={{ marginLeft: 'auto' }}>
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setDocumentToDelete(null);
+              }}
+            >
+              Cancel
+            </button>
+            <button className="btn-danger" onClick={handleConfirmDelete}>
+              Delete
+            </button>
+          </div>
+        </div>
       </Modal>
     </>
   );

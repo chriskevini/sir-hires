@@ -1,10 +1,7 @@
 import React from 'react';
 import { Checklist } from '../../entrypoints/job-details/components/checklist';
 import { NavigationButtons } from '../ui/NavigationButtons';
-import {
-  getNavigationButtons,
-  progressConfig,
-} from '../../entrypoints/job-details/config';
+import { getNavigationButtons, progressConfig } from '@/config';
 import './JobViewOverlay.css';
 
 /**

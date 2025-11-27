@@ -3,7 +3,7 @@
  * Extracts document-related logic from DraftingView
  */
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   defaultDocuments,
   documentTemplates,
@@ -59,8 +59,9 @@ export const useDocumentManager = ({
   /**
    * Get sorted document keys by order
    * Returns empty array if no documents exist
+   * Memoized to prevent unnecessary re-renders
    */
-  const getDocumentKeys = (): string[] => {
+  const documentKeys = useMemo((): string[] => {
     if (!job.documents) {
       return [];
     }
@@ -70,39 +71,44 @@ export const useDocumentManager = ({
       const orderB = job.documents![b]?.order ?? 999;
       return orderA - orderB;
     });
-  };
+  }, [job.documents]);
 
   /**
    * Get document with fallback to defaults
    * Creates a minimal document structure if not found
+   * Memoized with useCallback to maintain stable reference
    */
-  const getDocument = (documentKey: string): Document => {
-    if (job.documents?.[documentKey]) {
-      return job.documents[documentKey];
-    }
+  const getDocument = useCallback(
+    (documentKey: string): Document => {
+      if (job.documents?.[documentKey]) {
+        return job.documents[documentKey];
+      }
 
-    const config = defaultDocuments[documentKey];
-    return {
-      title: config
-        ? config.defaultTitle(parsedJob.jobTitle, parsedJob.company)
-        : 'Untitled Document',
-      text: '',
-      lastEdited: null,
-      order: config ? config.order : 0,
-    };
-  };
+      const config = defaultDocuments[documentKey];
+      return {
+        title: config
+          ? config.defaultTitle(parsedJob.jobTitle, parsedJob.company)
+          : 'Untitled Document',
+        text: '',
+        lastEdited: null,
+        order: config ? config.order : 0,
+      };
+    },
+    [job.documents, parsedJob.jobTitle, parsedJob.company]
+  );
 
   /**
    * Format initial save status from document metadata
    * Returns human-readable last edited time
+   * Memoized with useCallback to maintain stable reference
    */
-  const getInitialSaveStatus = (doc: Document): string => {
+  const getInitialSaveStatus = useCallback((doc: Document): string => {
     if (!doc.lastEdited) {
       return 'No changes yet';
     }
     const lastEditedDate = new Date(doc.lastEdited);
     return `Last saved ${formatSaveTime(lastEditedDate)}`;
-  };
+  }, []);
 
   /**
    * Add a new document from a template
@@ -153,7 +159,7 @@ export const useDocumentManager = ({
   );
 
   return {
-    documentKeys: getDocumentKeys(),
+    documentKeys,
     getDocument,
     getInitialSaveStatus,
     addDocument,

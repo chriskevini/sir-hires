@@ -90,6 +90,20 @@ const PROGRESS_MESSAGE_INTERVAL_MS = 1000;
 const isProgressMessage = (text: string): boolean =>
   SYNTHESIS_PROGRESS_MESSAGES.some((msg) => text.startsWith(msg));
 
+// Show toast notification (moved outside component for stable reference)
+const showToast = (
+  message: string,
+  type: 'success' | 'error' | 'info' = 'info'
+) => {
+  // Toast implementation would go here
+  // For now, just use console
+  if (type === 'error') {
+    console.error(message);
+  } else {
+    console.info(message);
+  }
+};
+
 export const DraftingView: React.FC<DraftingViewProps> = ({
   job,
   isChecklistExpanded = false,
@@ -281,20 +295,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     },
     [activeTab, getDocument]
   );
-
-  // Show toast notification
-  const showToast = (
-    message: string,
-    type: 'success' | 'error' | 'info' = 'info'
-  ) => {
-    // Toast implementation would go here
-    // For now, just use console
-    if (type === 'error') {
-      console.error(message);
-    } else {
-      console.info(message);
-    }
-  };
 
   // Handle tone refresh
   const handleRefreshTone = useCallback(() => {
@@ -523,6 +523,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     parsedJob.company,
     onSaveDocument,
     job.id,
+    job.documents,
   ]);
 
   // Cleanup on unmount

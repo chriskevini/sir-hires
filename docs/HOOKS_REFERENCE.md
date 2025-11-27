@@ -4,12 +4,14 @@
 
 ## Quick Navigation
 
-- [Simple State Hooks](#simple-state-hooks) - `useToggleState`, `useEditorState`, `useJobState`
+- [Simple State Hooks](#simple-state-hooks) - `useToggleState`, `useEditorState`
 - [Validation Hooks](#validation-hooks) - `useJobValidation`, `useProfileValidation`
 - [Auto-Save Hooks](#auto-save-hooks) - `useSimpleAutoSave`
 - [Business Logic Hooks](#business-logic-hooks) - `useJobExtraction`, `useBackupRestore`, `useParsedJob`
 - [Utility Hooks](#utility-hooks) - `useDebounce`, `useInterval`
-- [Complete State Management](#complete-state-management) - `useJobService`, `useJobHandlers`, `useDocumentManager`, `useNavigation`, `useJobStorage`
+- [Unified Job Store](#unified-job-store) - `useJobStore` (replaces useJobState, useJobStorage, useJobHandlers)
+- [Supporting Hooks](#supporting-hooks) - `useJobService`, `useDocumentManager`, `useNavigation`
+- [Job Merge Utilities](#job-merge-utilities) - `mergeJobs`, `isJobEqual`, `cleanupRecentSaves`
 - [Anti-Patterns](#-anti-patterns-what-not-to-do)
 
 ---
@@ -106,18 +108,6 @@ const { content: editorContent, handleChange: handleEditorChange } =
 **Anti-Pattern:** Manual textarea state management with debouncing (see [Anti-Pattern 4](#-anti-pattern-4-manual-textarea-state-management))
 
 ---
-
-### useJobState
-
-**Purpose:** Complete job state management (jobs list, filters, current job).
-
-**Location:** `src/entrypoints/job-details/hooks/useJobState.ts`
-
-**Returns:** Full job state object with jobs array, current job, and filter settings.
-
-**When to Use:** Building full job management interfaces (like `job-details` entrypoint).
-
-**See Also:** [Complete State Management](#complete-state-management) section.
 
 ---
 
@@ -515,45 +505,270 @@ useInterval(
 
 ---
 
-## Complete State Management
+## Unified Job Store
 
-These hooks provide full state management for complex features. They combine multiple concerns (storage, business logic, UI state) into cohesive state management solutions.
+### useJobStore
+
+**Purpose:** Unified job state management combining state, storage synchronization, and mutations with optimistic updates and echo cancellation.
+
+**Location:** `src/entrypoints/job-details/hooks/useJobStore.ts`
+
+**This hook replaces the deprecated `useJobState`, `useJobStorage`, and `useJobHandlers` hooks.**
+
+**Returns:** `JobStore` (combines `JobStoreState` and `JobStoreActions`)
+
+```typescript
+interface JobStoreState {
+  // Core data
+  jobs: Job[];
+  jobInFocusId: string | null;
+
+  // Derived/filtered data
+  filteredJobs: Job[];
+  selectedJobIndex: number;
+
+  // UI state
+  isLoading: boolean;
+  checklistExpanded: boolean;
+
+  // Filter state
+  filters: Filters;
+}
+
+interface JobStoreActions {
+  // Job mutations
+  updateJob: (jobId: string, changes: Partial<Job>) => void;
+  updateJobField: (
+    jobId: string,
+    fieldName: string,
+    value: unknown
+  ) => Promise<void>;
+  deleteJob: (jobId: string) => Promise<void>;
+  addJob: (job: Job) => void;
+
+  // Job queries
+  getJobById: (jobId: string) => Job | undefined;
+  getJobByIndex: (index: number) => Job | undefined;
+  findJobIndex: (jobId: string) => number;
+
+  // Focus management
+  setJobInFocus: (jobId: string | null) => Promise<void>;
+
+  // Selection management
+  setSelectedIndex: (index: number) => void;
+
+  // Filter management
+  updateFilters: (filters: Partial<Filters>) => void;
+  resetFilters: () => void;
+
+  // UI state
+  setChecklistExpanded: (expanded: boolean) => Promise<void>;
+
+  // Checklist operations
+  toggleChecklistItem: (
+    jobId: string,
+    status: string,
+    itemId: string
+  ) => Promise<void>;
+  initializeChecklist: (jobId: string) => void;
+
+  // Document operations
+  initializeDocuments: (
+    jobId: string,
+    documents?: Record<string, JobDocument>
+  ) => void;
+  saveDocument: (
+    jobId: string,
+    documentKey: string,
+    data: Partial<JobDocument>
+  ) => Promise<void>;
+  getDocument: (jobId: string, documentKey: string) => JobDocument | undefined;
+  getDocumentKeys: (jobId: string) => string[];
+
+  // Reload (for manual refresh)
+  reload: () => Promise<void>;
+}
+```
+
+**Usage Example:**
+
+```typescript
+// From: src/entrypoints/job-details/App.tsx
+import { useJobStore } from './hooks';
+
+function App() {
+  const {
+    // State
+    jobs,
+    filteredJobs,
+    jobInFocusId,
+    isLoading,
+    filters,
+
+    // Actions
+    updateJob,
+    deleteJob,
+    setJobInFocus,
+    updateFilters,
+    toggleChecklistItem,
+    saveDocument,
+  } = useJobStore();
+
+  // Get current job
+  const currentJob = jobs.find(j => j.id === jobInFocusId);
+
+  // Update job content (optimistic update)
+  const handleContentChange = (content: string) => {
+    if (currentJob) {
+      updateJob(currentJob.id, { content });
+    }
+  };
+
+  // Toggle checklist item
+  const handleChecklistToggle = (status: string, itemId: string) => {
+    if (currentJob) {
+      toggleChecklistItem(currentJob.id, status, itemId);
+    }
+  };
+
+  return (
+    // ... JSX using the state and actions
+  );
+}
+```
+
+**Key Features:**
+
+- ✅ **Single source of truth** - All job state in one hook
+- ✅ **Optimistic updates** - UI updates instantly, storage syncs in background
+- ✅ **Echo cancellation** - Ignores storage events from own saves (prevents flicker)
+- ✅ **ID-based updates** - Immune to array reordering issues
+- ✅ **Functional state updates** - Avoids stale closure issues
+- ✅ **Cross-tab sync** - Listens to storage changes from other tabs
+- ✅ **Automatic filtering** - `filteredJobs` auto-updates when filters change
+
+**Architecture:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        useJobStore                              │
+├─────────────────────────────────────────────────────────────────┤
+│  Local State (React useState)                                   │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ jobs[], jobInFocusId, filters, selectedJobIndex, etc.   │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                              │                                  │
+│  ┌──────────────┐   ┌───────▼────────┐   ┌────────────────┐    │
+│  │  Mutations   │   │ Echo Cancel.   │   │  Storage Sync  │    │
+│  │  updateJob() │   │ recentSavesRef │   │  onChanged()   │    │
+│  │  deleteJob() │   │ ECHO_WINDOW_MS │   │  mergeJobs()   │    │
+│  └──────────────┘   └────────────────┘   └────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**When to Use:**
+
+- Any component that needs to read or write job data
+- Managing job list, filtering, selection
+- Checklist operations
+- Document management within jobs
+
+**Migration from Deprecated Hooks:**
+
+| Old Hook                              | New Equivalent in `useJobStore`                      |
+| ------------------------------------- | ---------------------------------------------------- |
+| `useJobState().jobs`                  | `useJobStore().jobs`                                 |
+| `useJobState().currentJob`            | `useJobStore().getJobById(jobInFocusId)`             |
+| `useJobStorage().saveJob(job)`        | `useJobStore().updateJob(job.id, changes)`           |
+| `useJobStorage().deleteJob(id)`       | `useJobStore().deleteJob(id)`                        |
+| `useJobHandlers().handleJobClick`     | `useJobStore().setJobInFocus(id)`                    |
+| `useJobHandlers().handleStatusChange` | `useJobStore().updateJob(id, { applicationStatus })` |
+
+---
+
+## Job Merge Utilities
+
+**Location:** `src/utils/job-merge.ts`
+
+These utilities handle intelligent merging of local and remote job state with echo cancellation. Used internally by `useJobStore`.
+
+### mergeJobs
+
+**Purpose:** Merge remote jobs with local state, preserving local changes and ignoring "echoes" from recent saves.
+
+```typescript
+function mergeJobs(
+  localJobs: Job[],
+  remoteJobs: Job[],
+  recentSaves: Map<string, number>,
+  echoWindowMs: number
+): Job[];
+```
+
+**Parameters:**
+
+- `localJobs` - Current local state
+- `remoteJobs` - Jobs fetched from storage
+- `recentSaves` - Map of jobId → timestamp for recently saved jobs
+- `echoWindowMs` - Time window (ms) to consider a storage event an "echo"
+
+**Example:**
+
+```typescript
+const merged = mergeJobs(
+  currentState.jobs,
+  remoteJobs,
+  recentSavesRef.current,
+  2000 // 2 second echo window
+);
+```
+
+### isJobEqual
+
+**Purpose:** Check if two jobs are equal (for referential identity preservation).
+
+```typescript
+function isJobEqual(a: Job, b: Job): boolean;
+```
+
+Uses fast path comparing `updatedAt` timestamps, with fallback to deep comparison.
+
+### isDeepEqual
+
+**Purpose:** Deep equality check for jobs using JSON serialization.
+
+```typescript
+function isDeepEqual(a: Job, b: Job): boolean;
+```
+
+Excludes transient fields (`isExtracting`, `extractionError`) from comparison.
+
+### cleanupRecentSaves
+
+**Purpose:** Clean up old entries from the recent saves map to prevent memory growth.
+
+```typescript
+function cleanupRecentSaves(
+  recentSaves: Map<string, number>,
+  maxAgeMs: number
+): void;
+```
+
+---
+
+## Supporting Hooks
+
+These hooks provide additional functionality on top of or alongside `useJobStore`.
 
 **Location:** `src/entrypoints/job-details/hooks/`
-
-**Documentation:** See `src/entrypoints/job-details/hooks/index.ts` for exported types and detailed usage.
 
 ### Overview
 
 | Hook                 | Purpose                                    | Use Case                                    |
 | -------------------- | ------------------------------------------ | ------------------------------------------- |
-| `useJobState`        | Complete job state (list, filters, focus)  | Managing jobs array and current selection   |
-| `useJobStorage`      | Job storage CRUD operations                | Save/load/delete jobs from storage          |
 | `useJobService`      | Business logic (validation, backup, stats) | Higher-level job operations                 |
 | `useNavigation`      | View navigation logic                      | Switching between views (sidebar, statuses) |
 | `useDocumentManager` | Document CRUD operations                   | Managing sub-documents within jobs          |
-| `useJobHandlers`     | Event handlers for job operations          | Click handlers, form submissions            |
-
-### useJobStorage
-
-**Purpose:** Job storage CRUD operations.
-
-**Returns:**
-
-```typescript
-{
-  getAllJobs: () => Promise<Job[]>;
-  saveAllJobs: (jobs: Job[]) => Promise<void>;
-  saveJob: (job: Job) => Promise<void>;
-  deleteJob: (jobId: string) => Promise<void>;
-  updateJobField: (jobId: string, field: string, value: any) => Promise<void>;
-  // ... and more
-}
-```
-
-**When to Use:** When you need direct storage operations without higher-level business logic.
-
----
 
 ### useJobService
 
@@ -621,24 +836,6 @@ These hooks provide full state management for complex features. They combine mul
 **When to Use:** Managing multiple documents/files within a job (e.g., cover letter, resume versions).
 
 ---
-
-### useJobHandlers
-
-**Purpose:** Event handlers for job operations (click, edit, delete).
-
-**Returns:**
-
-```typescript
-{
-  handleJobClick: (jobId: string) => void;
-  handleJobEdit: (jobId: string, field: string, value: any) => void;
-  handleJobDelete: (jobId: string) => void;
-  handleStatusChange: (jobId: string, status: string) => void;
-  // ... and more
-}
-```
-
-**When to Use:** Building job management UIs with consistent event handling patterns.
 
 ---
 
@@ -827,6 +1024,8 @@ function MyEditor({ content }) {
 ### Red Flags That Should Trigger This Document:
 
 - ❗ "I need to toggle something" → Use `useToggleState`
+- ❗ "I need to manage job state" → Use `useJobStore`
+- ❗ "I need to save/update a job" → Use `useJobStore().updateJob()`
 - ❗ "I need to parse job data" → Use `useParsedJob` (wrap tree with `ParsedJobProvider`)
 - ❗ "I need validation" → Use `useJobValidation` or `useProfileValidation`
 - ❗ "I need auto-save" → Use `useSimpleAutoSave`

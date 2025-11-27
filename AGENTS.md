@@ -333,12 +333,12 @@ await browser.runtime.sendMessage({
 - `setJobInFocus` - Update focused job across all tabs (Rule 3)
 - `deleteJob` - Delete job and update all tabs (Rule 3)
 
-**Direct storage (no message needed):**
+**Direct storage via `useJobStore` (no message needed):**
 
-- `saveJob` - Update single job (Rule 2)
-- `updateJobField` - Edit single field (Rule 2)
-- `toggleChecklistItem` - Toggle checklist (Rule 2)
-- `saveDocuments` - Save document content (Rule 2)
+- `updateJob()` - Update single job with optimistic updates (Rule 2)
+- `updateJobField()` - Edit single field (Rule 2)
+- `toggleChecklistItem()` - Toggle checklist (Rule 2)
+- `saveDocument()` - Save document content (Rule 2)
 
 ### Content Script UIs (React)
 

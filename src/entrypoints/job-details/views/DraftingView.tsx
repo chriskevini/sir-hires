@@ -89,35 +89,38 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   });
 
   // Build initial values for auto-save from job documents
+  // Depend on job.documents directly to avoid unstable getDocument reference
   const initialDocumentValues = useMemo(() => {
     const contents: Record<string, string> = {};
     documentKeys.forEach((key) => {
-      const doc = getDocument(key);
-      contents[key] = doc.text;
+      contents[key] = job.documents?.[key]?.text || '';
     });
     return contents;
-  }, [documentKeys, getDocument]);
+  }, [documentKeys, job.documents]);
 
   // Track save status display text
   const [saveStatusText, setSaveStatusText] = useState('');
 
   // Auto-save hook (multi-value mode)
-  const { values: documentContents, setValue: updateContent } =
-    useAutoSaveMulti({
-      initialValues: initialDocumentValues,
-      onSave: (key: string, content: string) => {
-        const defaultTitle =
-          defaultDocuments[key]?.defaultTitle(
-            parsedJob.jobTitle,
-            parsedJob.company
-          ) || 'Untitled';
-        onSaveDocument(index, key, {
-          title: defaultTitle,
-          text: content,
-        });
-        setSaveStatusText(`Last saved ${formatSaveTime(new Date())}`);
-      },
-    });
+  const {
+    values: documentContents,
+    setValue: updateContent,
+    flush,
+  } = useAutoSaveMulti({
+    initialValues: initialDocumentValues,
+    onSave: (key: string, content: string) => {
+      const defaultTitle =
+        defaultDocuments[key]?.defaultTitle(
+          parsedJob.jobTitle,
+          parsedJob.company
+        ) || 'Untitled';
+      onSaveDocument(index, key, {
+        title: defaultTitle,
+        text: content,
+      });
+      setSaveStatusText(`Last saved ${formatSaveTime(new Date())}`);
+    },
+  });
 
   // Update word count when active tab changes or content changes
   useEffect(() => {
@@ -146,24 +149,11 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     [updateContent]
   );
 
-  // Handle textarea blur (immediate save)
-  const handleTextareaBlur = useCallback(
-    (documentKey: string) => {
-      const currentText = documentContents[documentKey] || '';
-      const defaultTitle =
-        defaultDocuments[documentKey]?.defaultTitle() || 'Untitled';
-
-      onSaveDocument(index, documentKey, {
-        title: defaultTitle,
-        text: currentText,
-      });
-
-      setSaveStatusText(`Last saved ${formatSaveTime(new Date())}`);
-    },
-    [documentContents, index, onSaveDocument]
-  );
-
-  // Note: flushPendingSaves is no longer needed - useAutoSave handles save-on-unmount automatically
+  // Handle textarea blur (immediate save via flush)
+  // Uses the hook's flush() to avoid double-saving
+  const handleTextareaBlur = useCallback(() => {
+    flush();
+  }, [flush]);
 
   // Handle export
   const handleExport = useCallback(
@@ -254,7 +244,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
                   placeholder={placeholder}
                   textareaRef={getTabRef(key)}
                   onChange={(value) => handleTextareaChange(key, value)}
-                  onBlur={() => handleTextareaBlur(key)}
+                  onBlur={handleTextareaBlur}
                   index={index}
                 />
               );

@@ -86,6 +86,7 @@ export function useAutoSave({
   const onSaveRef = useRef(onSave);
   const disabledRef = useRef(disabled);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevInitialValueRef = useRef(initialValue);
 
   // Keep refs updated
   useEffect(() => {
@@ -105,9 +106,18 @@ export function useAutoSave({
   }, [disabled]);
 
   // Sync with external initialValue changes (e.g., job content updated from extraction)
+  // Only update if user hasn't made local changes (prevents overwriting unsaved edits)
   useEffect(() => {
-    setValueState(initialValue);
-    setSavedValue(initialValue);
+    if (initialValue !== prevInitialValueRef.current) {
+      // Only sync if current value matches previous initial (no user edits)
+      if (valueRef.current === prevInitialValueRef.current) {
+        setValueState(initialValue);
+        setSavedValue(initialValue);
+        valueRef.current = initialValue;
+        savedValueRef.current = initialValue;
+      }
+      prevInitialValueRef.current = initialValue;
+    }
   }, [initialValue]);
 
   // Debounced save effect
@@ -220,7 +230,8 @@ export function useAutoSaveMulti({
 
   // Debounced save effect - runs when any value changes
   useEffect(() => {
-    if (disabled) return;
+    // Skip if disabled or no values
+    if (disabled || Object.keys(values).length === 0) return;
 
     // Check each key for changes
     Object.keys(values).forEach((key) => {
@@ -250,11 +261,8 @@ export function useAutoSaveMulti({
       }, debounceMs);
     });
 
-    return () => {
-      // Cleanup all timeouts on deps change
-      Object.values(timeoutRefs.current).forEach(clearTimeout);
-      timeoutRefs.current = {};
-    };
+    // Note: No cleanup here - timeouts are managed per-key above and on unmount.
+    // Cleanup on every deps change would cause race conditions.
   }, [values, savedValues, disabled, debounceMs]);
 
   // Save on unmount if any values are dirty

@@ -47,7 +47,6 @@ export function useBackupRestore(storage: BackupStorage) {
           : 'unknown date';
         const confirmMsg = `This will overwrite all your current data with the backup from ${backupDate}.\n\nBackup contains ${jobCount} job(s).\n\nThis cannot be undone. Continue?`;
 
-        // eslint-disable-next-line no-undef
         if (!confirm(confirmMsg)) {
           return;
         }

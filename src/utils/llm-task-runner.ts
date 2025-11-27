@@ -198,6 +198,11 @@ export async function runTask(options: RunTaskOptions): Promise<TaskResult> {
     signal,
   } = options;
 
+  // Validate required context (if config specifies requirements)
+  if (config.context && config.context.length > 0) {
+    validateContext(config, context);
+  }
+
   // Build prompts
   const systemPrompt = config.prompt;
   const userPrompt = buildUserPrompt(context);
@@ -207,9 +212,13 @@ export async function runTask(options: RunTaskOptions): Promise<TaskResult> {
 
   // Set up abort handling
   if (signal) {
-    signal.addEventListener('abort', () => {
-      llmClient.cancelStream(streamId);
-    });
+    signal.addEventListener(
+      'abort',
+      () => {
+        llmClient.cancelStream(streamId);
+      },
+      { once: true }
+    );
   }
 
   // Call LLM with streaming

@@ -33,7 +33,7 @@ import { LLMClient } from '@/utils/llm-client';
 import { userProfileStorage } from '@/utils/storage';
 import { useLLMSettings } from '@/hooks/useLLMSettings';
 import { DEFAULT_MODEL, DEFAULT_TASK_SETTINGS } from '@/utils/llm-utils';
-import { runTask } from '@/utils/llm-task-runner';
+import { runTask, startKeepalive } from '@/utils/llm-task-runner';
 import type { Job } from '../hooks';
 import './DraftingView.css';
 
@@ -398,6 +398,9 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
       }
     }, PROGRESS_MESSAGE_INTERVAL_MS);
 
+    // Start keepalive to prevent service worker termination during synthesis
+    const stopKeepalive = startKeepalive();
+
     try {
       // Build context
       const context = buildContext();
@@ -489,6 +492,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
       setSynthesisError((error as Error).message);
       showToast(`Synthesis failed: ${(error as Error).message}`, 'error');
     } finally {
+      stopKeepalive();
       setIsSynthesizing(false);
       abortControllerRef.current = null;
       progressIndexRef.current = 0;

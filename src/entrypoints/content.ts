@@ -662,52 +662,6 @@ function setupMessageListener() {
         }
         return true; // Keep message channel open for async response
       }
-
-      if (request.action === 'streamExtractJobData') {
-        (async () => {
-          try {
-            const llmSettings = request.llmSettings;
-            const jobId = request.jobId;
-
-            // Check if LLM endpoint is configured (enabled field is optional)
-            if (!llmSettings?.endpoint) {
-              throw new Error(
-                'LLM endpoint not configured. Streaming extraction requires LLM.'
-              );
-            }
-
-            console.info(
-              '[Content] Starting streaming extraction for job:',
-              jobId
-            );
-
-            // Extract basic metadata and raw text
-            const url = window.location.href;
-            const source = extractSource();
-            const rawText = extractRawJobText();
-
-            console.info(
-              '[Content] Extracted raw text length:',
-              rawText.length
-            );
-
-            // Send extraction request to background which has access to LLMClient
-            sendResponse({
-              success: true,
-              url,
-              source,
-              rawText,
-              jobId,
-            });
-          } catch (error) {
-            console.error('[Content] Streaming extraction error:', error);
-            const errorMessage =
-              error instanceof Error ? error.message : 'Unknown error';
-            sendResponse({ success: false, error: errorMessage });
-          }
-        })();
-        return true; // Keep message channel open for async response
-      }
     }
   );
 }

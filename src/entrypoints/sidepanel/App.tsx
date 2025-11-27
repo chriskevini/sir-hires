@@ -231,14 +231,10 @@ export const App: React.FC = () => {
   );
 
   // Handler to cancel extraction
-  const handleCancelExtraction = useCallback(async () => {
+  const handleCancelExtraction = useCallback(() => {
     if (!extraction.extractingJob) return;
-
-    await browser.runtime.sendMessage({
-      action: 'cancelExtraction',
-      jobId: extraction.extractingJob.id,
-    });
-  }, [extraction.extractingJob]);
+    extraction.cancelExtraction();
+  }, [extraction]);
 
   // Determine loading state
   const isLoading = store.isLoading && isInitialLoad;

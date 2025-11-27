@@ -29,15 +29,28 @@ export interface UserProfile {
 }
 
 /**
+ * Per-task LLM settings (maxTokens, temperature)
+ */
+export interface TaskSettings {
+  maxTokens: number;
+  temperature: number;
+}
+
+/**
  * LLM configuration settings
+ * - Shared settings: endpoint, model, apiKey (same for all tasks)
+ * - Per-task settings: maxTokens, temperature (vary by task type)
  */
 export interface LLMSettings {
   endpoint: string;
   modelsEndpoint: string;
   model: string;
   apiKey?: string;
-  maxTokens: number;
-  temperature: number;
+  // Per-task settings
+  tasks: {
+    synthesis: TaskSettings;
+    extraction: TaskSettings;
+  };
 }
 
 /**

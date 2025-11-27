@@ -26,6 +26,7 @@ import {
   keepaliveStorage,
   extractionTriggerStorage,
 } from '../utils/storage';
+import { DEFAULT_TASK_SETTINGS } from '../utils/llm-utils';
 
 // Message Type Definitions
 // These types define the contract between components and the background script
@@ -77,8 +78,14 @@ interface LLMSettings {
   apiEndpoint: string;
   endpoint: string;
   modelsEndpoint?: string;
+  // Legacy flat settings (for backward compatibility)
   maxTokens?: number;
   temperature?: number;
+  // Per-task settings (new structure)
+  tasks?: {
+    synthesis: { maxTokens: number; temperature: number };
+    extraction: { maxTokens: number; temperature: number };
+  };
 }
 
 interface StreamExtractJobMessage extends BaseMessage {
@@ -602,9 +609,23 @@ export default defineBackground(() => {
           model: llmConfig.jobExtraction.model || llmConfig.model,
           apiEndpoint: llmConfig.endpoint,
           endpoint: llmConfig.endpoint,
-          maxTokens: 2000,
-          temperature: 0.3,
+          tasks: {
+            synthesis: DEFAULT_TASK_SETTINGS.synthesis,
+            extraction: DEFAULT_TASK_SETTINGS.extraction,
+          },
         };
+
+        // Extract extraction-specific settings (prefer tasks.extraction, fallback to legacy flat settings)
+        // maxTokens: || is acceptable since 0 is invalid (min 100)
+        // temperature: ?? required since 0 is a valid value (deterministic)
+        const extractionMaxTokens =
+          llmSettings.tasks?.extraction?.maxTokens ||
+          llmSettings.maxTokens ||
+          DEFAULT_TASK_SETTINGS.extraction.maxTokens;
+        const extractionTemperature =
+          llmSettings.tasks?.extraction?.temperature ??
+          llmSettings.temperature ??
+          DEFAULT_TASK_SETTINGS.extraction.temperature;
 
         // Start global keepalive BEFORE responding to ensure worker stays alive
         startGlobalKeepAlive();
@@ -660,8 +681,8 @@ export default defineBackground(() => {
               model: modelToUse,
               systemPrompt: systemPrompt,
               userPrompt: userPrompt,
-              maxTokens: llmSettings.maxTokens || 2000,
-              temperature: llmSettings.temperature || 0.3,
+              maxTokens: extractionMaxTokens,
+              temperature: extractionTemperature,
               onThinkingUpdate: (delta: string) => {
                 // Ignore thinking stream (we only care about the document)
                 console.info(
@@ -797,9 +818,23 @@ export default defineBackground(() => {
           model: llmConfig.profileExtraction.model || llmConfig.model,
           apiEndpoint: llmConfig.endpoint,
           endpoint: llmConfig.endpoint,
-          maxTokens: dynamicMaxTokens || llmConfig.profileExtraction.maxTokens, // Use dynamic value if provided, else config default
-          temperature: llmConfig.profileExtraction.temperature,
+          tasks: {
+            synthesis: DEFAULT_TASK_SETTINGS.synthesis,
+            extraction: DEFAULT_TASK_SETTINGS.extraction,
+          },
         };
+
+        // Extract extraction-specific settings (prefer tasks.extraction, fallback to legacy flat settings)
+        // Profile extraction uses extraction settings (deterministic parsing task)
+        const extractionMaxTokens =
+          dynamicMaxTokens || // Dynamic value takes priority
+          llmSettings.tasks?.extraction?.maxTokens ||
+          llmSettings.maxTokens ||
+          DEFAULT_TASK_SETTINGS.extraction.maxTokens;
+        const extractionTemperature =
+          llmSettings.tasks?.extraction?.temperature ??
+          llmSettings.temperature ??
+          DEFAULT_TASK_SETTINGS.extraction.temperature;
 
         // Start global keepalive BEFORE responding to ensure worker stays alive
         startGlobalKeepAlive();
@@ -856,8 +891,8 @@ export default defineBackground(() => {
               model: modelToUse,
               systemPrompt: systemPrompt,
               userPrompt: userPrompt,
-              maxTokens: llmSettings.maxTokens || 2000,
-              temperature: llmSettings.temperature || 0.3,
+              maxTokens: extractionMaxTokens,
+              temperature: extractionTemperature,
               onThinkingUpdate: (delta: string) => {
                 console.info(
                   '[Background] Profile thinking:',

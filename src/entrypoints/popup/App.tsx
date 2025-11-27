@@ -1,175 +1,39 @@
-import { useState, useEffect, useCallback } from 'react';
-import { browser } from 'wxt/browser';
-import { llmSettingsStorage, LLMSettings } from '../../utils/storage';
+import { useState } from 'react';
+import { useLLMSettings } from '../../hooks/useLLMSettings';
+import { DEFAULT_ENDPOINT } from '../../utils/llm-utils';
 import './styles.css';
 
-type ProviderType = 'local' | 'cloud';
-type ConnectionStatus = 'idle' | 'loading' | 'connected' | 'error';
-
-const DEFAULT_ENDPOINT = 'http://localhost:1234';
-const DEFAULT_MODEL = 'qwen/qwen3-4b-2507';
-
-/**
- * Detects if the URL points to a local server or cloud provider
- */
-function detectProvider(endpoint: string): ProviderType {
-  try {
-    // Handle URLs without protocol
-    const urlString = endpoint.includes('://')
-      ? endpoint
-      : `http://${endpoint}`;
-    const hostname = new URL(urlString).hostname.toLowerCase();
-
-    // Local indicators
-    if (
-      hostname === 'localhost' ||
-      hostname === '127.0.0.1' ||
-      hostname === '0.0.0.0' ||
-      hostname.startsWith('192.168.') ||
-      hostname.startsWith('10.') ||
-      !hostname.includes('.') // e.g., "charlie:1234" or just "myserver"
-    ) {
-      return 'local';
-    }
-
-    // Check 172.16.0.0 - 172.31.255.255 (RFC 1918 private range)
-    if (hostname.startsWith('172.')) {
-      const parts = hostname.split('.');
-      const second = parseInt(parts[1], 10);
-      if (second >= 16 && second <= 31) {
-        return 'local';
-      }
-    }
-
-    return 'cloud';
-  } catch {
-    return 'local'; // Default to local if URL parsing fails
-  }
-}
-
-/**
- * Normalizes an endpoint URL by ensuring it has a protocol prefix
- * and the correct path for chat completions.
- */
-function normalizeEndpoint(endpoint: string): string {
-  let normalized = endpoint.trim();
-
-  // Add http:// if no protocol specified
-  if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
-    normalized = 'http://' + normalized;
-  }
-
-  // Add /v1/chat/completions if not present
-  if (!normalized.includes('/v1/chat/completions')) {
-    normalized = normalized.replace(/\/+$/, '');
-    normalized += '/v1/chat/completions';
-  }
-
-  return normalized;
-}
-
-/**
- * Derives the models endpoint from a chat completions endpoint.
- */
-function getModelsEndpoint(chatEndpoint: string): string {
-  return chatEndpoint.replace('/v1/chat/completions', '/v1/models');
-}
-
 export function App() {
-  // Connection state
-  const [status, setStatus] = useState<ConnectionStatus>('idle');
-  const [errorMessage, setErrorMessage] = useState('');
+  // Use shared LLM settings hook (no task = UI management mode)
+  const {
+    status,
+    errorMessage,
+    isConnected,
+    serverUrl,
+    setServerUrl,
+    apiKey,
+    setApiKey,
+    model,
+    setModel,
+    provider,
+    availableModels,
+    taskSettings,
+    setTaskSettings,
+    resetTaskSettings,
+    fetchModels,
+    saveSettings,
+  } = useLLMSettings();
+
+  // Local UI state
   const [saveMessage, setSaveMessage] = useState('');
-
-  // Settings state
-  const [serverUrl, setServerUrl] = useState(DEFAULT_ENDPOINT);
-  const [apiKey, setApiKey] = useState('');
-  const [model, setModel] = useState(DEFAULT_MODEL);
-  const [availableModels, setAvailableModels] = useState<string[]>([]);
-
-  // Derived state
-  const provider = detectProvider(serverUrl);
-  const isConnected = status === 'connected';
-
-  // Load settings on mount
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const settings = await llmSettingsStorage.getValue();
-        if (settings) {
-          // Extract base URL from endpoint (remove /v1/chat/completions)
-          const baseUrl = settings.endpoint
-            .replace('/v1/chat/completions', '')
-            .replace(/\/+$/, '');
-          setServerUrl(baseUrl || DEFAULT_ENDPOINT);
-          setModel(settings.model || DEFAULT_MODEL);
-          setApiKey(settings.apiKey || '');
-        }
-      } catch (error) {
-        console.error('Error loading settings:', error);
-      }
-    };
-    loadSettings();
-  }, []);
-
-  const fetchModels = useCallback(async () => {
-    setStatus('loading');
-    setErrorMessage('');
-
-    try {
-      const endpoint = normalizeEndpoint(serverUrl || DEFAULT_ENDPOINT);
-      const modelsEndpoint = getModelsEndpoint(endpoint);
-
-      const response = await browser.runtime.sendMessage({
-        action: 'fetchModels',
-        endpoint: modelsEndpoint,
-        apiKey: apiKey || undefined,
-      });
-
-      if (response.success && response.models) {
-        setAvailableModels(response.models);
-        setStatus('connected');
-      } else {
-        setAvailableModels([]);
-        setStatus('error');
-        setErrorMessage(response.error || 'Failed to connect');
-      }
-    } catch (error) {
-      console.error('Error fetching models:', error);
-      setAvailableModels([]);
-      setStatus('error');
-      setErrorMessage((error as Error).message);
-    }
-  }, [serverUrl, apiKey]);
-
-  // Auto-fetch models when server URL or API key changes (debounced)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (serverUrl.trim()) {
-        fetchModels();
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [serverUrl, apiKey, fetchModels]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleSave = async () => {
-    try {
-      const endpoint = normalizeEndpoint(serverUrl || DEFAULT_ENDPOINT);
-      const settings: LLMSettings = {
-        endpoint,
-        modelsEndpoint: getModelsEndpoint(endpoint),
-        model: model.trim() || DEFAULT_MODEL,
-        maxTokens: 2000,
-        temperature: 0.3,
-        ...(apiKey.trim() && { apiKey: apiKey.trim() }),
-      };
-
-      await llmSettingsStorage.setValue(settings);
+    const success = await saveSettings();
+    if (success) {
       setSaveMessage('Saved');
       setTimeout(() => setSaveMessage(''), 2000);
-    } catch (error) {
-      console.error('Error saving settings:', error);
+    } else {
       setSaveMessage('Error saving');
       setTimeout(() => setSaveMessage(''), 3000);
     }
@@ -177,6 +41,10 @@ export function App() {
 
   const handleRefresh = () => {
     fetchModels();
+  };
+
+  const handleResetDefaults = () => {
+    resetTaskSettings();
   };
 
   return (
@@ -250,6 +118,114 @@ export function App() {
                 )}
               </select>
             </div>
+
+            {/* Advanced Settings Toggle */}
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              style={{ marginTop: '4px' }}
+            >
+              {showAdvanced ? 'Hide' : 'Show'} Advanced Settings
+            </button>
+
+            {/* Per-Task Settings (collapsible) */}
+            {showAdvanced && (
+              <div className="task-settings-section">
+                {/* Synthesis Settings */}
+                <div className="task-settings-group">
+                  <h4>Synthesis (Resume/Cover Letter)</h4>
+                  <p className="task-description">
+                    Higher creativity for document generation
+                  </p>
+                  <div className="task-settings-row">
+                    <div className="form-row">
+                      <label htmlFor="synthesis-tokens">Max Tokens</label>
+                      <input
+                        type="number"
+                        id="synthesis-tokens"
+                        value={taskSettings.synthesis.maxTokens}
+                        onChange={(e) =>
+                          setTaskSettings('synthesis', {
+                            maxTokens: parseInt(e.target.value) || 4000,
+                          })
+                        }
+                        min={100}
+                        max={32000}
+                        step={100}
+                      />
+                    </div>
+                    <div className="form-row">
+                      <label htmlFor="synthesis-temp">Temperature</label>
+                      <input
+                        type="number"
+                        id="synthesis-temp"
+                        value={taskSettings.synthesis.temperature}
+                        onChange={(e) =>
+                          setTaskSettings('synthesis', {
+                            temperature: parseFloat(e.target.value) || 0.7,
+                          })
+                        }
+                        min={0}
+                        max={2}
+                        step={0.1}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Extraction Settings */}
+                <div className="task-settings-group">
+                  <h4>Extraction (Job Parsing)</h4>
+                  <p className="task-description">
+                    Low creativity for consistent parsing
+                  </p>
+                  <div className="task-settings-row">
+                    <div className="form-row">
+                      <label htmlFor="extraction-tokens">Max Tokens</label>
+                      <input
+                        type="number"
+                        id="extraction-tokens"
+                        value={taskSettings.extraction.maxTokens}
+                        onChange={(e) =>
+                          setTaskSettings('extraction', {
+                            maxTokens: parseInt(e.target.value) || 2000,
+                          })
+                        }
+                        min={100}
+                        max={32000}
+                        step={100}
+                      />
+                    </div>
+                    <div className="form-row">
+                      <label htmlFor="extraction-temp">Temperature</label>
+                      <input
+                        type="number"
+                        id="extraction-temp"
+                        value={taskSettings.extraction.temperature}
+                        onChange={(e) =>
+                          setTaskSettings('extraction', {
+                            temperature: parseFloat(e.target.value) || 0,
+                          })
+                        }
+                        min={0}
+                        max={2}
+                        step={0.1}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reset to Defaults */}
+                <button
+                  type="button"
+                  className="btn-link"
+                  onClick={handleResetDefaults}
+                >
+                  Reset to defaults
+                </button>
+              </div>
+            )}
 
             {/* Save Button */}
             <button className="btn btn-primary" onClick={handleSave}>

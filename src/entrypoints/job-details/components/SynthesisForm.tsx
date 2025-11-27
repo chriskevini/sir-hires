@@ -1,10 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { llmConfig } from '../config';
 import { LLMClient } from '../../../utils/llm-client';
 import type { Job } from '../hooks';
 import { useParsedJob } from '../../../components/features/ParsedJobProvider';
-import { getJobTitle, getCompanyName } from '../../../utils/job-parser';
+import {
+  getJobTitle,
+  getCompanyName,
+  extractDescription,
+  extractAboutCompany,
+  extractRequiredSkills,
+  extractPreferredSkills,
+} from '../../../utils/job-parser';
 import { userProfileStorage } from '../../../utils/storage';
+import { useLLMSettings } from '../../../hooks/useLLMSettings';
+import { DEFAULT_MODEL, DEFAULT_TASK_SETTINGS } from '../../../utils/llm-utils';
+
+// Helper to convert array to bullet-point string
+const arrayToString = (arr: string[]): string => {
+  return arr.length > 0 ? arr.map((item) => `- ${item}`).join('\n') : '';
+};
 
 interface SynthesisFormProps {
   job: Job | null;
@@ -27,10 +41,6 @@ interface SynthesisFormProps {
   onClose: () => void;
 }
 
-interface Model {
-  id: string;
-}
-
 export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   job,
   jobIndex,
@@ -42,45 +52,60 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   onError,
   onClose,
 }) => {
-  const [availableModels, setAvailableModels] = useState<Model[]>([]);
-  const [selectedModel, setSelectedModel] = useState(
-    llmConfig.synthesis.model || llmConfig.model
+  // Use shared LLM settings hook with synthesis task
+  const {
+    availableModels,
+    model: savedModel,
+    endpoint,
+    modelsEndpoint,
+    maxTokens: savedMaxTokens,
+    temperature: savedTemperature,
+    isLoading: isLoadingSettings,
+    isConnected,
+  } = useLLMSettings({ task: 'synthesis' });
+
+  // Local state for form controls (initialized from saved settings)
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
+  const [maxTokens, setMaxTokens] = useState(
+    DEFAULT_TASK_SETTINGS.synthesis.maxTokens
   );
-  const [maxTokens, setMaxTokens] = useState(2000);
   const [isGenerating, setIsGenerating] = useState(false);
   const [userProfile, setUserProfile] = useState('');
   const [_hasExistingContent, setHasExistingContent] = useState(false);
-  const [llmClient] = useState(
+
+  // Sync local model state with saved settings when they load
+  useEffect(() => {
+    if (!isLoadingSettings && savedModel) {
+      setSelectedModel(savedModel);
+    }
+  }, [isLoadingSettings, savedModel]);
+
+  // Sync local maxTokens with saved task settings when they load
+  useEffect(() => {
+    if (!isLoadingSettings) {
+      setMaxTokens(savedMaxTokens);
+    }
+  }, [isLoadingSettings, savedMaxTokens]);
+
+  // Create LLM client with current settings (memoized to avoid recreating on every render)
+  const llmClient = useMemo(
     () =>
       new LLMClient({
-        endpoint: llmConfig.endpoint,
-        modelsEndpoint: llmConfig.modelsEndpoint,
-      })
+        endpoint,
+        modelsEndpoint,
+      }),
+    [endpoint, modelsEndpoint]
   );
 
-  // Fetch available models when component mounts
+  // Fetch user profile on mount
   useEffect(() => {
     const init = async () => {
-      await fetchAvailableModels();
       await fetchUserProfile();
       checkExistingContent();
     };
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job, documentKey]);
-
-  const fetchAvailableModels = async () => {
-    const models = await llmClient.fetchModels();
-    setAvailableModels(models);
-
-    // Set default model if available
-    if (
-      models.length > 0 &&
-      !models.find((m: { id: string }) => m.id === selectedModel)
-    ) {
-      setSelectedModel(models[0].id);
-    }
-  };
 
   const fetchUserProfile = async () => {
     const userProfileData = await userProfileStorage.getValue();
@@ -99,40 +124,32 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   const parsed = useParsedJob(job?.id || '');
 
   const buildContext = async (): Promise<Record<string, string>> => {
-    if (!job)
+    if (!job || !parsed)
       return {
         masterResume: 'Not provided',
         jobTitle: 'Not provided',
         company: 'Not provided',
         aboutJob: 'Not provided',
         aboutCompany: 'Not provided',
-        responsibilities: 'Not provided',
         requirements: 'Not provided',
-        narrativeStrategy: 'Not provided',
+        preferredSkills: 'Not provided',
         currentDraft: '',
       };
 
+    // Extract fields from parsed MarkdownDB template
+    const description = arrayToString(extractDescription(parsed));
+    const aboutCompany = arrayToString(extractAboutCompany(parsed));
+    const requiredSkills = arrayToString(extractRequiredSkills(parsed));
+    const preferredSkills = arrayToString(extractPreferredSkills(parsed));
+
     return {
       masterResume: userProfile || 'Not provided',
-      jobTitle: parsed ? getJobTitle(parsed) || 'Not provided' : 'Not provided',
-      company: parsed
-        ? getCompanyName(parsed) || 'Not provided'
-        : 'Not provided',
-      aboutJob:
-        ((job as unknown as Record<string, unknown>).aboutJob as string) ||
-        'Not provided',
-      aboutCompany:
-        ((job as unknown as Record<string, unknown>).aboutCompany as string) ||
-        'Not provided',
-      responsibilities:
-        ((job as unknown as Record<string, unknown>)
-          .responsibilities as string) || 'Not provided',
-      requirements:
-        ((job as unknown as Record<string, unknown>).requirements as string) ||
-        'Not provided',
-      narrativeStrategy:
-        ((job as unknown as Record<string, unknown>)
-          .narrativeStrategy as string) || 'Not provided',
+      jobTitle: getJobTitle(parsed) || 'Not provided',
+      company: getCompanyName(parsed) || 'Not provided',
+      aboutJob: description || 'Not provided',
+      aboutCompany: aboutCompany || 'Not provided',
+      requirements: requiredSkills || 'Not provided',
+      preferredSkills: preferredSkills || 'Not provided',
       currentDraft: job.documents?.[documentKey || '']?.text || '',
     };
   };
@@ -160,22 +177,12 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
       sections.push(`[ABOUT THE COMPANY]\n${context.aboutCompany}`);
     }
 
-    if (
-      context.responsibilities &&
-      context.responsibilities !== 'Not provided'
-    ) {
-      sections.push(`[RESPONSIBILITIES]\n${context.responsibilities}`);
-    }
-
     if (context.requirements && context.requirements !== 'Not provided') {
-      sections.push(`[REQUIREMENTS]\n${context.requirements}`);
+      sections.push(`[REQUIRED SKILLS]\n${context.requirements}`);
     }
 
-    if (
-      context.narrativeStrategy &&
-      context.narrativeStrategy !== 'Not provided'
-    ) {
-      sections.push(`[NARRATIVE STRATEGY]\n${context.narrativeStrategy}`);
+    if (context.preferredSkills && context.preferredSkills !== 'Not provided') {
+      sections.push(`[PREFERRED SKILLS]\n${context.preferredSkills}`);
     }
 
     if (context.currentDraft && context.currentDraft !== 'Not provided') {
@@ -197,7 +204,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
       systemPrompt,
       userPrompt,
       maxTokens,
-      temperature: llmConfig.synthesis.temperature,
+      temperature: savedTemperature,
       onThinkingUpdate: onThinkingUpdate
         ? (delta: string) => onThinkingUpdate(documentKey!, delta)
         : undefined,
@@ -231,7 +238,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
       const context = await buildContext();
 
       // Build system prompt (from config) and user prompt (JIT)
-      const systemPrompt = llmConfig.synthesis.prompt;
+      const systemPrompt = llmConfig.synthesis.prompts.universal;
       const userPrompt = buildUserPrompt(context);
 
       // Capture these values before closing modal
@@ -255,7 +262,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
 
         // Show alert to user
         alert(
-          `⚠️ Response was truncated due to token limit (${result.currentTokens} tokens).\n\n` +
+          `Warning: Response was truncated due to token limit (${result.currentTokens} tokens).\n\n` +
             `This often happens with thinking models that use reasoning before output.\n\n` +
             `Please reopen the synthesis modal, increase "Max Tokens", and try again.`
         );
@@ -290,7 +297,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
         <div className="modal-body">
           <div className="error-warning">
             <p>
-              ℹ️ <strong>Please create a profile before continuing.</strong>
+              <strong>Please create a profile before continuing.</strong>
             </p>
             <button
               className="btn-primary"
@@ -317,19 +324,22 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   // User profile exists - show full form UI
   const modelOptions =
     availableModels.length > 0
-      ? availableModels.map((model) => (
-          <option key={model.id} value={model.id}>
-            {model.id}
+      ? availableModels.map((m) => (
+          <option key={m} value={m}>
+            {m}
           </option>
         ))
       : [
-          <option
-            key="default"
-            value={llmConfig.synthesis.model || llmConfig.model}
-          >
-            {llmConfig.synthesis.model || llmConfig.model} (not loaded)
+          <option key="default" value={selectedModel}>
+            {selectedModel} (not loaded)
           </option>,
         ];
+
+  // Extract parsed data for display in checklist
+  const description = parsed ? extractDescription(parsed) : [];
+  const aboutCompanyData = parsed ? extractAboutCompany(parsed) : [];
+  const requiredSkillsData = parsed ? extractRequiredSkills(parsed) : [];
+  const preferredSkillsData = parsed ? extractPreferredSkills(parsed) : [];
 
   const dataFields = [
     { key: 'masterResume', label: 'Profile', value: userProfile },
@@ -345,28 +355,30 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
     },
     {
       key: 'aboutJob',
-      label: 'About Job',
-      value: (job as unknown as Record<string, unknown>)?.aboutJob,
+      label: 'Description',
+      value: description.length > 0 ? description.join('\n') : undefined,
     },
     {
       key: 'aboutCompany',
       label: 'About Company',
-      value: (job as unknown as Record<string, unknown>)?.aboutCompany,
-    },
-    {
-      key: 'responsibilities',
-      label: 'Responsibilities',
-      value: (job as unknown as Record<string, unknown>)?.responsibilities,
+      value:
+        aboutCompanyData.length > 0 ? aboutCompanyData.join('\n') : undefined,
     },
     {
       key: 'requirements',
-      label: 'Requirements',
-      value: (job as unknown as Record<string, unknown>)?.requirements,
+      label: 'Required Skills',
+      value:
+        requiredSkillsData.length > 0
+          ? requiredSkillsData.join('\n')
+          : undefined,
     },
     {
-      key: 'narrativeStrategy',
-      label: 'Narrative Strategy',
-      value: (job as unknown as Record<string, unknown>)?.narrativeStrategy,
+      key: 'preferredSkills',
+      label: 'Preferred Skills',
+      value:
+        preferredSkillsData.length > 0
+          ? preferredSkillsData.join('\n')
+          : undefined,
     },
     {
       key: 'currentDraft',
@@ -376,10 +388,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
   ];
 
   const missingFields = dataFields.filter(
-    (f) =>
-      !f.value ||
-      (typeof f.value === 'string' && f.value.trim() === '') ||
-      typeof f.value !== 'string'
+    (f) => !f.value || (typeof f.value === 'string' && f.value.trim() === '')
   );
 
   return (
@@ -409,15 +418,14 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
 
         <div className="existing-content-info">
           <p>
-            💡 <strong>Tip:</strong> You can paste your own document to be used
-            as a template during synthesis.
+            <strong>Tip:</strong> You can paste your own document to be used as
+            a template during synthesis.
           </p>
         </div>
 
         {missingFields.length > 0 && (
           <div className="missing-fields-warning">
             <p>
-              ⚠️{' '}
               <strong>
                 {missingFields.length} field
                 {missingFields.length === 1 ? ' is' : 's are'} missing.
@@ -438,8 +446,8 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
           >
             {modelOptions}
           </select>
-          {availableModels.length === 0 && (
-            <span className="model-warning">⚠️ No models loaded</span>
+          {!isConnected && !isLoadingSettings && (
+            <span className="model-warning">No models loaded</span>
           )}
         </div>
         <div className="max-tokens-group">
@@ -463,7 +471,7 @@ export const SynthesisForm: React.FC<SynthesisFormProps> = ({
             onClick={handleGenerate}
             disabled={isGenerating}
           >
-            {isGenerating ? '⏳ Generating...' : 'Generate'}
+            {isGenerating ? 'Generating...' : 'Generate'}
           </button>
         </div>
       </div>

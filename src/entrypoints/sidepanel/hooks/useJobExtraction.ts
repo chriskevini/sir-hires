@@ -5,6 +5,7 @@ import {
   extractionTriggerStorage,
   type LLMSettings,
 } from '../../../utils/storage';
+import { DEFAULT_TASK_SETTINGS } from '../../../utils/llm-utils';
 import { useExtractionEvents } from '../../job-details/hooks';
 import type { Job } from '../../job-details/hooks';
 import type {
@@ -86,8 +87,10 @@ export function useJobExtraction(
           endpoint: 'http://localhost:1234/v1/chat/completions',
           modelsEndpoint: 'http://localhost:1234/v1/models',
           model: '',
-          maxTokens: 2000,
-          temperature: 0.3,
+          tasks: {
+            synthesis: DEFAULT_TASK_SETTINGS.synthesis,
+            extraction: DEFAULT_TASK_SETTINGS.extraction,
+          },
         };
 
       if (!llmSettings.endpoint || llmSettings.endpoint.trim() === '') {

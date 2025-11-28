@@ -11,23 +11,45 @@
   position: relative;
 }
 
-/* Checklist drawer - expands upward from footer */
+/* Checklist drawer - floating popover above footer */
 .job-footer-checklist-drawer {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
   background-color: #fff;
-  border-bottom: 1px solid #e0e0e0;
-  max-height: 250px;
-  overflow-y: auto;
-  animation: slideUp 0.2s ease-out;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
+  max-width: 400px;
+  min-width: 280px;
+  width: max-content;
+  margin-bottom: 8px;
+  overflow: visible;
+  animation: popoverIn 0.2s ease-out;
 }
 
-@keyframes slideUp {
+/* Small arrow pointing to toggle button */
+.job-footer-checklist-drawer::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid #fff;
+  filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.06));
+}
+
+@keyframes popoverIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateX(-50%) translateY(8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(-50%) translateY(0);
   }
 }
 

@@ -32,8 +32,8 @@ import {
 // Import components
 import {
   ValidationPanel,
-  useValidationEditorClass,
-} from './components/ValidationPanel';
+  getValidationEditorClass,
+} from '@/components/features/ValidationPanel';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { X } from 'lucide-react';
@@ -645,7 +645,41 @@ BULLETS:
   };
 
   // Compute editor className based on validation state
-  const editorClassName = useValidationEditorClass(validation, content);
+  const hasErrors = validation.errors.length > 0;
+  const hasWarnings = validation.warnings.length > 0;
+  const hasContent = content.trim().length > 0;
+  const editorClassName = getValidationEditorClass(
+    hasErrors,
+    hasWarnings,
+    hasContent
+  );
+
+  // Build messages array for ValidationPanel
+  const validationMessages = [
+    ...validation.errors.map((error, index) => ({
+      type: 'error' as const,
+      message: error.message,
+      fix: validationFixes[index],
+    })),
+    ...validation.warnings.map((warning, index) => ({
+      type: 'warning' as const,
+      message: warning.message,
+      fix: warningFixes[index],
+    })),
+    ...validation.info.map((info) => ({
+      type: 'info' as const,
+      message: info.message,
+    })),
+  ];
+
+  // Compute counts
+  const errorCount = validation.errors.length;
+  const warningCount = validation.warnings.length;
+  const customCount =
+    validation.customFields.length + validation.customSections.length;
+
+  // Compute validity
+  const isValid = hasContent && !hasErrors;
 
   return (
     <div className="flex h-screen w-full flex-col bg-white">
@@ -757,13 +791,27 @@ BULLETS:
 
       {/* Validation Panel */}
       <ValidationPanel
-        validation={validation}
-        validationFixes={validationFixes}
-        warningFixes={warningFixes}
+        initialCollapsed={true}
+        isValid={isValid}
+        errorCount={errorCount}
+        warningCount={warningCount}
+        infoCount={customCount}
+        messages={validationMessages}
         onApplyFix={applyFix}
-        onInsertEducation={insertEducationTemplate}
-        onInsertExperience={insertExperienceTemplate}
-        showQuickActions={true}
+        validLabel="Valid Profile"
+        invalidLabel="Validation Errors"
+        quickActions={[
+          {
+            label: '+ Education',
+            onClick: insertEducationTemplate,
+            title: 'Insert education entry template',
+          },
+          {
+            label: '+ Experience',
+            onClick: insertExperienceTemplate,
+            title: 'Insert experience entry template',
+          },
+        ]}
       />
 
       <footer className="flex shrink-0 items-center justify-between border-t border-gray-200 bg-gray-50 px-6 py-4">

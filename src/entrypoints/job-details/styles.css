@@ -563,6 +563,7 @@ h1 {
 
 .job-count-row .job-count {
   font-size: 12px;
+  font-style: italic;
   color: #5f6368;
 }
 

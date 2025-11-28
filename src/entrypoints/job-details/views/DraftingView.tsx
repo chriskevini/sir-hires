@@ -343,14 +343,26 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
   // Build context for synthesis - uses raw MarkdownDB content
   const buildContext = useCallback((): Record<string, string> => {
+    // Use getLatestValue first, fallback to job.documents for race condition
+    // when a new document is created but useImmediateSaveMulti hasn't synced yet
+    const latestTemplate = getLatestValue(activeTab) || '';
+    const template = latestTemplate || job.documents?.[activeTab]?.text || '';
+
     return {
       profile: userProfile || '',
       job: job.content || '',
-      template: getLatestValue(activeTab) || '',
+      template,
       tone: tone,
       task: 'Follow the TEMPLATE and TONE and output only the final document.',
     };
-  }, [job.content, userProfile, activeTab, tone, getLatestValue]);
+  }, [
+    job.content,
+    job.documents,
+    userProfile,
+    activeTab,
+    tone,
+    getLatestValue,
+  ]);
 
   // Handle synthesis using runTask()
   const handleSynthesize = useCallback(async () => {
@@ -359,6 +371,9 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
       setShowProfileWarning(true);
       return;
     }
+
+    // Build context BEFORE showing progress message (otherwise getLatestValue returns progress text)
+    const context = buildContext();
 
     // Start synthesis
     setIsSynthesizing(true);
@@ -400,8 +415,17 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     const stopKeepalive = startKeepalive();
 
     try {
-      // Build context
-      const context = buildContext();
+      // DEBUG: Log entire API call context
+      console.info('[DraftingView] Synthesis API call:', {
+        config: synthesisConfig,
+        context,
+        model: selectedModel,
+        maxTokens,
+        temperature: savedTemperature,
+        activeTab,
+        jobDocuments: job.documents,
+        getLatestValueResult: getLatestValue(activeTab),
+      });
 
       // Run synthesis using runTask()
       const result = await runTask({

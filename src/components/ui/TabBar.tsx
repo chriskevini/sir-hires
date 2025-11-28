@@ -40,8 +40,8 @@ export const TabBar: React.FC<TabBarProps> = ({
               'text-sm font-medium transition-all duration-150',
               'min-w-30 -mb-px',
               isActive
-                ? 'bg-white text-[#202124] border-[#d0d0d0] z-[1] shadow-[0_-2px_4px_rgba(0,0,0,0.05)]'
-                : 'bg-[#e8e8e8] text-[#5f6368] border-[#d0d0d0] hover:bg-[#f1f3f4] hover:text-[#202124]'
+                ? 'bg-white text-foreground border-border z-[1] shadow-[0_-2px_4px_rgba(0,0,0,0.05)]'
+                : 'bg-muted text-muted-foreground border-border hover:bg-muted/80 hover:text-foreground'
             )}
             onClick={() => onTabChange(tab.key)}
           >
@@ -52,7 +52,7 @@ export const TabBar: React.FC<TabBarProps> = ({
                   'absolute right-1.5 top-1/2 -translate-y-1/2',
                   'inline-flex items-center justify-center',
                   'w-4 h-4 rounded-full text-sm leading-none',
-                  'text-[#5f6368] bg-transparent cursor-pointer',
+                  'text-muted-foreground bg-transparent cursor-pointer',
                   'transition-all duration-150',
                   'hover:bg-black/10 hover:text-[#d93025]'
                 )}
@@ -72,10 +72,10 @@ export const TabBar: React.FC<TabBarProps> = ({
         <button
           className={cn(
             'relative flex items-center justify-center px-3.5 py-2',
-            'border border-dashed border-[#d0d0d0] rounded-t-lg cursor-pointer',
-            'text-lg font-normal leading-none text-[#5f6368]',
+            'border border-dashed border-border rounded-t-lg cursor-pointer',
+            'text-lg font-normal leading-none text-muted-foreground',
             'bg-transparent transition-all duration-150',
-            'hover:bg-[#f1f3f4] hover:border-[#2196f3] hover:text-[#2196f3]'
+            'hover:bg-muted hover:border-primary hover:text-primary'
           )}
           onClick={onAddTab}
           title="Add new document"

@@ -51,7 +51,7 @@ const DialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      'flex items-center justify-between px-6 py-5 border-b border-[#e0e0e0]',
+      'flex items-center justify-between px-6 py-5 border-b border-border',
       className
     )}
     {...props}
@@ -65,7 +65,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn('text-xl font-semibold text-[#333]', className)}
+    className={cn('text-xl font-semibold text-foreground', className)}
     {...props}
   />
 ));
@@ -77,7 +77,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
-    className={cn('text-sm text-[#666]', className)}
+    className={cn('text-sm text-muted-foreground', className)}
     {...props}
   />
 ));
@@ -89,7 +89,7 @@ const DialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      'flex items-center justify-between gap-3 px-6 py-4 border-t border-[#e0e0e0]',
+      'flex items-center justify-between gap-3 px-6 py-4 border-t border-border',
       className
     )}
     {...props}
@@ -121,7 +121,7 @@ const Modal: React.FC<ModalProps> = ({
             <DialogTitle>{title}</DialogTitle>
             <DialogClose asChild>
               <button
-                className="w-8 h-8 flex items-center justify-center rounded text-[#666] hover:bg-[#f5f5f5] hover:text-[#333] transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 aria-label="Close modal"
               >
                 <X className="h-5 w-5" />

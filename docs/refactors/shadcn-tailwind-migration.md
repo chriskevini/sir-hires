@@ -646,6 +646,7 @@ rm src/components/ui/icons.tsx       # replaced by lucide-react
 - [x] Delete `src/components/ui/icons.tsx` (replaced by Lucide)
 - [x] Delete `src/components/ui/ProgressBar.tsx` (deprecated, removed)
 - [x] Keep Button/Modal/Dropdown/TabBar (converted to Tailwind/Radix, not deleted)
+- [x] Replace hardcoded colors with shadcn theme tokens
 - [ ] Update AGENTS.md
 - [ ] Update docs/COMPONENTS_REFERENCE.md
 - [ ] Update docs/STYLE_GUIDE.md

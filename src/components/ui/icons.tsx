@@ -84,6 +84,41 @@ export const ArrowDownIcon = (
 );
 
 // Action icons
+export const ExtractIcon = (
+  <svg viewBox="0 0 16 16" fill="currentColor" className="icon-svg">
+    {/* Download tray */}
+    <path
+      d="M3 10 L3 13 L13 13 L13 10"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    {/* Arrow down */}
+    <path
+      d="M8 2 L8 9 M5 6 L8 9 L11 6"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export const SpinnerIcon = (
+  <svg viewBox="0 0 16 16" fill="currentColor" className="icon-svg">
+    <path
+      d="M8 2 A6 6 0 1 1 2 8"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
 export const CloseIcon = (
   <svg viewBox="0 0 16 16" fill="currentColor" className="icon-svg">
     <path
@@ -120,6 +155,31 @@ export const TrashIcon = (
       stroke="currentColor"
       strokeWidth="1.5"
       strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export const MaximizeIcon = (
+  <svg viewBox="0 0 16 16" fill="currentColor" className="icon-svg">
+    {/* Arrow pointing to top-right corner */}
+    <path
+      d="M5 11 L11 5 M7 5 L11 5 L11 9"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    {/* Window frame */}
+    <rect
+      x="2"
+      y="2"
+      width="12"
+      height="12"
+      rx="1.5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
     />
   </svg>
 );

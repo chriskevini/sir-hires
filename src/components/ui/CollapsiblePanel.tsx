@@ -1,5 +1,4 @@
 import React from 'react';
-import { ChevronDownIcon, ChevronUpIcon } from './icons';
 
 interface CollapsiblePanelProps {
   isCollapsed: boolean;
@@ -12,6 +11,7 @@ interface CollapsiblePanelProps {
 /**
  * Generic collapsible panel component with toggle functionality.
  * Used for validation panels, template panels, and other collapsible sections.
+ * Click the header to toggle collapsed state.
  */
 export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
   isCollapsed,
@@ -26,9 +26,6 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
     >
       <div className="collapsible-header" onClick={onToggle}>
         {header}
-        <span className="collapsible-toggle">
-          {isCollapsed ? ChevronDownIcon : ChevronUpIcon}
-        </span>
       </div>
       <div className="collapsible-content">{children}</div>
     </div>

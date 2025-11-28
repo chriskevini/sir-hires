@@ -4,7 +4,12 @@ import { ResearchingView } from '../job-details/views/ResearchingView';
 import { DraftingView } from '../job-details/views/DraftingView';
 import { useJobStore } from '../job-details/hooks/useJobStore';
 import { JobViewRouter } from '../../components/features/JobViewRouter';
-import { ParsedJobProvider } from '../../components/features/ParsedJobProvider';
+import {
+  ParsedJobProvider,
+  useGetParsedJob,
+} from '../../components/features/ParsedJobProvider';
+import { JobSelector } from '../../components/features/JobSelector';
+import { SidepanelHeader } from '../../components/ui/SidepanelHeader';
 import type { Job, ChecklistItem } from '../job-details/hooks';
 import { useJobExtraction, useBackupRestore } from './hooks';
 import { EmptyState } from './components/EmptyState';
@@ -37,6 +42,105 @@ function createDefaultChecklist(): Record<string, ChecklistItem[]> {
 }
 
 /**
+ * Props for SidepanelContent inner component
+ */
+interface SidepanelContentProps {
+  mainContent: React.ReactNode;
+  jobs: Job[];
+  selectedJobId: string | null;
+  selectorOpen: boolean;
+  extracting: boolean;
+  hasJob: boolean;
+  onToggleSelector: () => void;
+  onExtract: () => void;
+  onDelete: () => void;
+  onMaximize: () => void;
+  onSelectJob: (jobId: string) => void;
+  onDeleteJobFromSelector: (jobId: string) => void;
+  pendingExtraction: { url: string } | null;
+  showDuplicateModal: boolean;
+  onRefresh: () => void;
+  onExtractNew: () => void;
+  onCancelDuplicate: () => void;
+}
+
+/**
+ * Inner component that uses ParsedJobProvider context
+ * Must be rendered inside ParsedJobProvider to access useGetParsedJob
+ */
+function SidepanelContent({
+  mainContent,
+  jobs,
+  selectedJobId,
+  selectorOpen,
+  extracting,
+  hasJob,
+  onToggleSelector,
+  onExtract,
+  onDelete,
+  onMaximize,
+  onSelectJob,
+  onDeleteJobFromSelector,
+  pendingExtraction,
+  showDuplicateModal,
+  onRefresh,
+  onExtractNew,
+  onCancelDuplicate,
+}: SidepanelContentProps) {
+  // Get parsed job accessor from context (must be inside ParsedJobProvider)
+  const getParsedJob = useGetParsedJob();
+
+  // Get parsed job info for the header
+  const parsedJob = selectedJobId ? getParsedJob(selectedJobId) : null;
+  const jobTitle = parsedJob?.topLevelFields['TITLE'];
+  const company = parsedJob?.topLevelFields['COMPANY'];
+
+  return (
+    <div className="container">
+      {/* Header with toggle and action buttons */}
+      <SidepanelHeader
+        onToggleSelector={onToggleSelector}
+        onExtract={onExtract}
+        onDelete={onDelete}
+        onMaximize={onMaximize}
+        extracting={extracting}
+        hasJob={hasJob}
+        selectorOpen={selectorOpen}
+        jobTitle={jobTitle}
+        company={company}
+      />
+
+      {/* Main content area with JobSelector overlay */}
+      <div className="sidepanel-content-area">
+        {mainContent}
+
+        {/* Job selector overlay - positioned relative to content area */}
+        <JobSelector
+          jobs={jobs}
+          selectedJobId={selectedJobId}
+          onSelectJob={onSelectJob}
+          onDeleteJob={onDeleteJobFromSelector}
+          isOpen={selectorOpen}
+          onClose={onToggleSelector}
+          getParsedJob={getParsedJob}
+        />
+      </div>
+
+      {/* Duplicate Job Modal */}
+      {pendingExtraction && (
+        <DuplicateJobModal
+          isOpen={showDuplicateModal}
+          jobUrl={pendingExtraction.url}
+          onRefresh={onRefresh}
+          onExtractNew={onExtractNew}
+          onCancel={onCancelDuplicate}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
  * Sidepanel App - Shows the "job in focus" for quick editing
  * Reuses all React components from job-details entrypoint
  *
@@ -49,6 +153,7 @@ export const App: React.FC = () => {
 
   // Local UI state
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [selectorOpen, setSelectorOpen] = useState(false);
 
   // Derive current job from store
   const currentJob = useMemo(() => {
@@ -132,6 +237,7 @@ export const App: React.FC = () => {
    */
   const handleDeleteJob = useCallback(async () => {
     if (!currentJob) return;
+    if (!confirm('Are you sure you want to delete this job?')) return;
     await store.deleteJob(currentJob.id);
   }, [currentJob, store]);
 
@@ -191,6 +297,31 @@ export const App: React.FC = () => {
   );
 
   /**
+   * Handle selecting a job from the JobSelector
+   */
+  const handleSelectJob = useCallback(async (jobId: string) => {
+    await browser.runtime.sendMessage({ action: 'setJobInFocus', jobId });
+  }, []);
+
+  /**
+   * Handle deleting a job from the JobSelector
+   */
+  const handleDeleteJobFromSelector = useCallback(
+    async (jobId: string) => {
+      if (!confirm('Are you sure you want to delete this job?')) return;
+      await store.deleteJob(jobId);
+    },
+    [store]
+  );
+
+  /**
+   * Toggle the job selector panel
+   */
+  const handleToggleSelector = useCallback(() => {
+    setSelectorOpen((prev) => !prev);
+  }, []);
+
+  /**
    * Mark initial load as complete when store finishes loading
    */
   useEffect(() => {
@@ -216,7 +347,8 @@ export const App: React.FC = () => {
         onToggleChecklistExpand={handleChecklistToggleExpand}
         onToggleChecklistItem={handleChecklistToggleItem}
         emptyStateMessage="No job selected"
-        hideChrome={true}
+        showHeader={false}
+        showFooter={true}
       />
     );
   };
@@ -244,11 +376,7 @@ export const App: React.FC = () => {
 
   // Loading state
   if (isLoading) {
-    mainContent = (
-      <div className="container">
-        <div className="loading">Loading job details...</div>
-      </div>
-    );
+    mainContent = <div className="loading">Loading job details...</div>;
   }
   // Extracting state (ephemeral - not yet saved to storage)
   else if (extraction.extractingJob) {
@@ -286,57 +414,32 @@ export const App: React.FC = () => {
   }
   // Main job view
   else {
-    mainContent = (
-      <>
-        {renderJobView()}
-        <footer id="footer" className="footer">
-          <button
-            id="deleteJobBtn"
-            className="btn btn-delete"
-            onClick={handleDeleteJob}
-            title="Delete this job"
-          >
-            Delete Job
-          </button>
-          <button
-            id="extractJobBtn"
-            className="btn btn-secondary"
-            onClick={extraction.handleExtractJob}
-            disabled={extraction.extracting}
-            title="Extract job data from the current tab"
-          >
-            {extraction.extracting ? 'Extracting...' : 'Extract Job Data'}
-          </button>
-          <button
-            id="viewAllJobsBtn"
-            className="btn btn-primary"
-            onClick={handleOpenJobDetails}
-          >
-            Manage
-          </button>
-        </footer>
-      </>
-    );
+    mainContent = renderJobView();
   }
 
   // Render main content + modal (modal should always be available)
   // Wrap entire app in ParsedJobProvider to avoid conditional hook rendering
   return (
     <ParsedJobProvider jobs={store.jobs}>
-      <div className="container">
-        {mainContent}
-
-        {/* Duplicate Job Modal - Render outside main content so it works in all states */}
-        {extraction.pendingExtraction && (
-          <DuplicateJobModal
-            isOpen={extraction.showDuplicateModal}
-            jobUrl={extraction.pendingExtraction.url}
-            onRefresh={extraction.handleRefreshJob}
-            onExtractNew={extraction.handleExtractNew}
-            onCancel={extraction.handleCancelDuplicate}
-          />
-        )}
-      </div>
+      <SidepanelContent
+        mainContent={mainContent}
+        jobs={store.jobs}
+        selectedJobId={store.jobInFocusId}
+        selectorOpen={selectorOpen}
+        extracting={extraction.extracting}
+        hasJob={!!currentJob}
+        onToggleSelector={handleToggleSelector}
+        onExtract={extraction.handleExtractJob}
+        onDelete={handleDeleteJob}
+        onMaximize={handleOpenJobDetails}
+        onSelectJob={handleSelectJob}
+        onDeleteJobFromSelector={handleDeleteJobFromSelector}
+        pendingExtraction={extraction.pendingExtraction}
+        showDuplicateModal={extraction.showDuplicateModal}
+        onRefresh={extraction.handleRefreshJob}
+        onExtractNew={extraction.handleExtractNew}
+        onCancelDuplicate={extraction.handleCancelDuplicate}
+      />
     </ParsedJobProvider>
   );
 };

@@ -29,7 +29,6 @@ import {
   sidebarCollapsedStorage,
 } from '../../utils/storage';
 import { defaults, statusStyles } from '@/config';
-import { browser } from 'wxt/browser';
 import type { JobStore } from './hooks/useJobStore';
 import type { Job } from './hooks';
 

@@ -13,11 +13,7 @@ import { initDevModeValidation } from '../../utils/dev-validators';
 import { StatusFilterDots } from '../../components/features/StatusFilterDots';
 import { SortIconButtons } from '../../components/features/SortIconButtons';
 import { Dropdown } from '../../components/ui/Dropdown';
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ProfileIcon,
-} from '../../components/ui/icons';
+import { ChevronLeft, ChevronRight, User } from 'lucide-react';
 import {
   getAllStorageData,
   restoreStorageFromBackup,
@@ -431,23 +427,27 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
         <div className="flex items-baseline gap-3">
           <Button
             variant="ghost"
-            className="p-2 min-w-9 min-h-9 text-gray-500 hover:bg-gray-100 flex items-center justify-center [&_svg]:w-4 [&_svg]:h-4 [&_svg]:shrink-0"
+            className="p-2 min-w-9 min-h-9 text-gray-500 hover:bg-gray-100 flex items-center justify-center"
             onClick={handleSidebarToggle}
             title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
             aria-label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
           >
-            {sidebarCollapsed ? ChevronRightIcon : ChevronLeftIcon}
+            {sidebarCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
           </Button>
           <h1 className="text-lg font-semibold text-gray-800">Sir Hires</h1>
         </div>
         <div className="flex gap-1 items-center">
           <Button
             variant="ghost"
-            className="p-2 min-w-9 min-h-9 text-gray-500 hover:bg-gray-100 flex items-center justify-center [&_svg]:w-[18px] [&_svg]:h-[18px]"
+            className="p-2 min-w-9 min-h-9 text-gray-500 hover:bg-gray-100 flex items-center justify-center"
             onClick={handleProfileClick}
             title="Profile"
           >
-            {ProfileIcon}
+            <User className="h-[18px] w-[18px]" />
           </Button>
           <Dropdown
             buttonLabel="More options"

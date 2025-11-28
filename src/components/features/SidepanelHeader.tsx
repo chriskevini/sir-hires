@@ -1,11 +1,11 @@
 import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ExtractIcon,
-  SpinnerIcon,
-  TrashIcon,
-  MaximizeIcon,
-} from '../ui/icons';
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Loader2,
+  Trash2,
+  Maximize2,
+} from 'lucide-react';
 import { Button } from '../ui/Button';
 
 interface SidepanelHeaderProps {
@@ -56,12 +56,16 @@ export function SidepanelHeader({
       {/* Left: Toggle button */}
       <Button
         variant="ghost"
-        className="border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-500 hover:bg-gray-100 hover:border-gray-400 hover:text-gray-700 active:bg-gray-200 flex items-center justify-center min-w-[36px] min-h-[32px] shrink-0 transition-all duration-200 [&_.icon-svg]:w-4 [&_.icon-svg]:h-4"
+        className="border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-500 hover:bg-gray-100 hover:border-gray-400 hover:text-gray-700 active:bg-gray-200 flex items-center justify-center min-w-[36px] min-h-[32px] shrink-0 transition-all duration-200"
         onClick={onToggleSelector}
         title={selectorOpen ? 'Close job list' : 'Open job list'}
         aria-label={selectorOpen ? 'Close job list' : 'Open job list'}
       >
-        {selectorOpen ? ChevronLeftIcon : ChevronRightIcon}
+        {selectorOpen ? (
+          <ChevronLeft className="h-4 w-4" />
+        ) : (
+          <ChevronRight className="h-4 w-4" />
+        )}
       </Button>
 
       {/* Center: Job info */}
@@ -94,11 +98,9 @@ export function SidepanelHeader({
           aria-label="Extract job"
         >
           {extracting ? (
-            <span className="inline-flex items-center justify-center animate-spin">
-              {SpinnerIcon}
-            </span>
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            ExtractIcon
+            <Download className="h-4 w-4" />
           )}
         </Button>
 
@@ -110,7 +112,7 @@ export function SidepanelHeader({
           title={hasJob ? 'Delete this job' : 'No job to delete'}
           aria-label="Delete job"
         >
-          {TrashIcon}
+          <Trash2 className="h-4 w-4" />
         </Button>
 
         <Button
@@ -120,7 +122,7 @@ export function SidepanelHeader({
           title="Open full job details"
           aria-label="Open full view"
         >
-          {MaximizeIcon}
+          <Maximize2 className="h-4 w-4" />
         </Button>
       </div>
     </header>

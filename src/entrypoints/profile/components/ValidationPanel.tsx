@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDownIcon, ChevronUpIcon } from '@/components/ui/icons';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import type {
   ValidationResult,
@@ -97,7 +97,11 @@ export function ValidationPanel({
           </div>
         </div>
         <span className="text-xs text-gray-500">
-          {isCollapsed ? ChevronDownIcon : ChevronUpIcon}
+          {isCollapsed ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronUp className="h-4 w-4" />
+          )}
         </span>
       </div>
 

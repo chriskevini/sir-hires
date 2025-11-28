@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import './styles.css';
 import { browser } from 'wxt/browser';
 
 // Import WXT storage
@@ -37,7 +36,7 @@ import {
 } from './components/ValidationPanel';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { CloseIcon } from '@/components/ui/icons';
+import { X } from 'lucide-react';
 
 // Constants
 const PROGRESS_MESSAGE_INTERVAL_MS = 1000; // Cycle progress messages every 1 second
@@ -684,7 +683,7 @@ BULLETS:
               onClick={() => toggleTemplatePanel(false)}
               title="Hide template"
             >
-              {CloseIcon}
+              <X className="h-4 w-4" />
             </Button>
           </div>
           <div className="flex-1 overflow-y-auto whitespace-pre-wrap break-words p-4 font-mono text-[13px] leading-relaxed text-gray-700">

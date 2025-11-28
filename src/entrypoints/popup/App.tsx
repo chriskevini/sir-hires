@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useLLMSettings } from '@/hooks/useLLMSettings';
 import { DEFAULT_ENDPOINT } from '@/utils/llm-utils';
 import { Button } from '@/components/ui/Button';
-import './styles.css';
 
 export function App() {
   // Use shared LLM settings hook (no task = UI management mode)
@@ -49,7 +48,7 @@ export function App() {
   };
 
   return (
-    <div className="p-4">
+    <div className="p-4" style={{ width: '380px', minHeight: '250px' }}>
       {/* Header */}
       <header className="flex justify-between items-center mb-4 pb-3 border-b-2 border-gray-200">
         <h1 className="text-lg font-semibold text-blue-600">

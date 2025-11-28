@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 import {
-  ArrowUpIcon,
-  ArrowDownIcon,
-  CalendarIcon,
-  BuildingIcon,
-  DocumentIcon,
-} from '../ui/icons';
+  ArrowUp,
+  ArrowDown,
+  Calendar,
+  Building2,
+  FileText,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type SortField = 'date' | 'company' | 'title';
@@ -21,9 +21,9 @@ interface SortIconButtonsProps {
 }
 
 const icons: Record<SortField, ReactNode> = {
-  date: CalendarIcon,
-  company: BuildingIcon,
-  title: DocumentIcon,
+  date: <Calendar className="h-[18px] w-[18px]" />,
+  company: <Building2 className="h-[18px] w-[18px]" />,
+  title: <FileText className="h-[18px] w-[18px]" />,
 };
 
 const tooltips: Record<SortField, string> = {
@@ -74,7 +74,6 @@ export function SortIconButtons({
               'bg-transparent cursor-pointer',
               'transition-colors duration-150',
               'active:scale-95',
-              '[&_.icon-svg]:w-[18px] [&_.icon-svg]:h-[18px] [&_.icon-svg]:shrink-0',
               isActive
                 ? 'text-blue-600 hover:text-blue-700'
                 : 'text-neutral-500 hover:text-neutral-700'
@@ -86,8 +85,12 @@ export function SortIconButtons({
           >
             {icons[field]}
             {isActive && (
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 [&_.icon-svg]:w-2.5 [&_.icon-svg]:h-2.5">
-                {sortDirection === 'asc' ? ArrowUpIcon : ArrowDownIcon}
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5">
+                {sortDirection === 'asc' ? (
+                  <ArrowUp className="h-2.5 w-2.5" />
+                ) : (
+                  <ArrowDown className="h-2.5 w-2.5" />
+                )}
               </span>
             )}
           </button>

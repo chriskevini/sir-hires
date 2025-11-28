@@ -86,4 +86,13 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 262 83% 58%;
   }
+
+  /* Common body styles for all entrypoints */
+  body {
+    font-family:
+      -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+      Cantarell, sans-serif;
+    font-size: 14px;
+    color: #333;
+  }
 }

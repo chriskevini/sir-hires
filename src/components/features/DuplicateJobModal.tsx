@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/Button';
-import { Modal } from '../../../components/ui/Modal';
+import { Modal } from '@/components/ui/Modal';
 
 interface DuplicateJobModalProps {
   isOpen: boolean;

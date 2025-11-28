@@ -1,6 +1,6 @@
 import React from 'react';
 import { escapeHtml } from '@/utils/shared-utils';
-import { ChevronDownIcon } from '../ui/icons';
+import { ChevronDown } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 interface EditorContentPanelProps {
@@ -42,7 +42,7 @@ export const EditorContentPanel: React.FC<EditorContentPanelProps> = ({
             className="bg-transparent border-none text-blue-600 text-sm cursor-pointer px-1.5 py-0.5 leading-none hover:bg-blue-600/10 hover:rounded transition-transform duration-200"
             title="Collapse"
           >
-            {ChevronDownIcon}
+            <ChevronDown className="h-4 w-4" />
           </Button>
         </div>
         <textarea

@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/Button';
 import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel';
-import { CloseIcon } from '@/components/ui/icons';
+import { X } from 'lucide-react';
 import { escapeHtml } from '@/utils/shared-utils';
 import { JOB_TEMPLATE } from '@/tasks';
 
@@ -33,7 +33,7 @@ export function JobTemplatePanel({
             className="p-1 text-gray-500 hover:text-gray-700"
             onClick={onClose}
           >
-            {CloseIcon}
+            <X className="h-4 w-4" />
           </Button>
         </>
       }

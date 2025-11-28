@@ -15,7 +15,7 @@ import { useJobExtraction, useBackupRestore } from './hooks';
 import { EmptyState } from '@/components/features/EmptyState';
 import { ExtractionLoadingView } from '../job-details/components/ExtractionLoadingView';
 import { ErrorState } from '@/components/features/ErrorState';
-import { DuplicateJobModal } from './components/DuplicateJobModal';
+import { DuplicateJobModal } from '@/components/features/DuplicateJobModal';
 import { checklistTemplates, defaults } from '@/config';
 import { jobsStorage, restoreStorageFromBackup } from '../../utils/storage';
 import { generateItemId } from '../../utils/shared-utils';

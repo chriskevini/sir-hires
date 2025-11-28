@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/Button';
-import { ArrowUpLeftIcon } from '../ui/icons';
+import { ArrowUpLeft } from 'lucide-react';
 
 interface EmptyStateProps {
   onRestoreBackup: () => void;
@@ -14,8 +14,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ onRestoreBackup }) => {
   return (
     <div className="flex flex-1 flex-col items-center justify-center p-4 relative">
       {/* Bouncing arrow pointing to Extract button */}
-      <div className="absolute top-4 right-12 text-gray-500 animate-bounce-diagonal [&_.icon-svg]:w-8 [&_.icon-svg]:h-8">
-        {ArrowUpLeftIcon}
+      <div className="absolute top-4 right-12 text-gray-500 animate-bounce-diagonal">
+        <ArrowUpLeft className="h-8 w-8" />
       </div>
 
       <p className="text-sm text-gray-500 text-center leading-relaxed">

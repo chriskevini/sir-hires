@@ -579,17 +579,17 @@ rm src/components/ui/icons.tsx       # replaced by lucide-react
 
 ### Phase 0: Pre-Migration Cleanup
 
-- [ ] Move domain components from `ui/` to `features/` (13 components)
-- [ ] Update imports for moved components
+- [x] Move domain components from `ui/` to `features/` (13 components)
+- [x] Update imports for moved components
 
 ### Setup
 
-- [ ] Install Tailwind + shadcn dependencies
-- [ ] Configure wxt.config.ts with Tailwind plugin
-- [ ] Create src/styles/globals.css with CSS variables (light + dark)
-- [ ] Create src/lib/utils.ts with cn()
-- [ ] Run `npx shadcn@latest init`
-- [ ] Update all entrypoint main.tsx files
+- [x] Install Tailwind + shadcn dependencies
+- [x] Configure wxt.config.ts with Tailwind plugin
+- [x] Create src/styles/globals.css with CSS variables (light + dark)
+- [x] Create src/lib/utils.ts with cn()
+- [x] Run `npx shadcn@latest init`
+- [x] Update all entrypoint main.tsx files
 
 ### shadcn Components
 
@@ -604,37 +604,37 @@ rm src/components/ui/icons.tsx       # replaced by lucide-react
 
 ### Domain Components (CSS → Tailwind)
 
-- [ ] JobSelector
-- [ ] JobViewRouter
-- [ ] JobViewOverlay
-- [ ] JobHeader
-- [ ] JobFooter
-- [ ] EditorHeader
-- [ ] EditorFooter
-- [ ] EditorContentPanel
-- [ ] EditorToolbar
-- [ ] SidepanelHeader
-- [ ] NavigationButtons
-- [ ] StatusFilterDots
-- [ ] SortIconButtons
-- [ ] SynthesisFooter
-- [ ] ValidationPanel
-- [ ] NewDocumentModal
-- [ ] DuplicateJobModal
-- [ ] TabBar
+- [x] JobSelector
+- [x] JobViewRouter
+- [x] JobViewOverlay
+- [x] JobHeader
+- [x] JobFooter
+- [x] EditorHeader
+- [x] EditorFooter
+- [x] EditorContentPanel
+- [x] EditorToolbar
+- [x] SidepanelHeader
+- [x] NavigationButtons
+- [x] StatusFilterDots
+- [x] SortIconButtons
+- [x] SynthesisFooter
+- [x] ValidationPanel
+- [x] NewDocumentModal
+- [x] DuplicateJobModal
+- [x] TabBar
 
 ### Views (CSS → Tailwind)
 
-- [ ] DraftingView
-- [ ] ResearchingView
-- [ ] checklist
+- [x] DraftingView
+- [x] ResearchingView
+- [x] checklist
 
 ### Entrypoints (CSS → Tailwind)
 
-- [ ] job-details App + styles
-- [ ] sidepanel App + styles
-- [ ] popup App + styles
-- [ ] profile App + styles
+- [x] job-details App + styles
+- [x] sidepanel App + styles
+- [x] popup App + styles
+- [x] profile App + styles
 
 ### Custom Components
 

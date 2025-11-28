@@ -4,7 +4,7 @@ import {
   getCompanyName,
   type JobTemplateData,
 } from '@/utils/job-parser';
-import { CloseIcon } from '../ui/icons';
+import { X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { cn } from '@/lib/utils';
 
@@ -95,7 +95,7 @@ export function JobCard({
             }}
             title="Delete this job"
           >
-            {CloseIcon}
+            <X className="h-3 w-3" />
           </Button>
         )}
       </div>

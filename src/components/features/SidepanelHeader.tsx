@@ -56,7 +56,7 @@ export function SidepanelHeader({
       {/* Left: Toggle button */}
       <Button
         variant="ghost"
-        className="border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-500 hover:bg-gray-100 hover:border-gray-400 hover:text-gray-700 active:bg-gray-200 flex items-center justify-center min-w-[36px] min-h-8 shrink-0 transition-all duration-200"
+        className="border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-500 hover:bg-gray-100 hover:border-gray-400 hover:text-gray-700 active:bg-gray-200 flex items-center justify-center min-w-9 min-h-8 shrink-0 transition-all duration-200"
         onClick={onToggleSelector}
         title={selectorOpen ? 'Close job list' : 'Open job list'}
         aria-label={selectorOpen ? 'Close job list' : 'Open job list'}

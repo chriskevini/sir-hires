@@ -38,7 +38,7 @@ export const TabBar: React.FC<TabBarProps> = ({
               'relative flex items-center justify-center px-5 py-2.5',
               'border border-b-0 rounded-t-lg cursor-pointer',
               'text-sm font-medium transition-all duration-150',
-              'min-w-[120px] -mb-px',
+              'min-w-30 -mb-px',
               isActive
                 ? 'bg-white text-[#202124] border-[#d0d0d0] z-[1] shadow-[0_-2px_4px_rgba(0,0,0,0.05)]'
                 : 'bg-[#e8e8e8] text-[#5f6368] border-[#d0d0d0] hover:bg-[#f1f3f4] hover:text-[#202124]'

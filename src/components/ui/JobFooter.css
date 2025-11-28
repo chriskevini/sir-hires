@@ -202,21 +202,22 @@
   color: #1a73e8;
 }
 
-.job-footer-checklist-icon {
-  font-size: 14px;
+.job-footer-checklist-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.job-footer-checklist-count {
-  font-variant-numeric: tabular-nums;
+.job-footer-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #ccc;
+  transition: background-color 0.15s;
 }
 
-.job-footer-checklist-arrow {
-  font-size: 10px;
-  transition: transform 0.2s;
-}
-
-.job-footer-checklist-arrow.up {
-  transform: rotate(180deg);
+.job-footer-dot.filled {
+  /* backgroundColor set inline via style prop */
 }
 
 /* Responsive adjustments */

@@ -38,8 +38,6 @@ export const JobFooter: React.FC<JobFooterProps> = ({
 
   // Get checklist items for current status
   const items = checklist?.[status] || [];
-  const completedCount = items.filter((item) => item.checked).length;
-  const totalCount = items.length;
   const sortedItems = [...items].sort((a, b) => a.order - b.order);
 
   // Get colors for current and next status
@@ -118,16 +116,16 @@ export const JobFooter: React.FC<JobFooterProps> = ({
             onClick={handleChecklistToggle}
             title={isChecklistExpanded ? 'Hide checklist' : 'Show checklist'}
           >
-            <span className="job-footer-checklist-icon">
-              {completedCount === totalCount && totalCount > 0 ? '☑' : '☐'}
-            </span>
-            <span className="job-footer-checklist-count">
-              {completedCount}/{totalCount}
-            </span>
-            <span
-              className={`job-footer-checklist-arrow ${isChecklistExpanded ? 'up' : 'down'}`}
-            >
-              ▾
+            <span className="job-footer-checklist-dots">
+              {sortedItems.map((item, index) => (
+                <span
+                  key={index}
+                  className={`job-footer-dot ${item.checked ? 'filled' : ''}`}
+                  style={
+                    item.checked ? { backgroundColor: currentColor } : undefined
+                  }
+                />
+              ))}
             </span>
           </button>
         </div>

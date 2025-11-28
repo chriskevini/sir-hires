@@ -181,8 +181,15 @@ export function JobViewRouter({
         />
       )}
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4">
-        {renderViewContent()}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div
+          className={cn(
+            'flex-1 flex flex-col overflow-hidden',
+            isCompact ? 'p-4' : 'px-6 py-4 max-w-4xl mx-auto w-full'
+          )}
+        >
+          {renderViewContent()}
+        </div>
       </div>
 
       {showFooter && (

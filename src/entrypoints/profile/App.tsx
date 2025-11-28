@@ -649,19 +649,17 @@ BULLETS:
   const editorClassName = useValidationEditorClass(validation, content);
 
   return (
-    <div className="container">
-      <header>
-        <div className="header-left">
+    <div className="flex h-screen w-full flex-col bg-white">
+      <header className="flex shrink-0 items-center justify-between border-b-2 border-gray-200 bg-white px-6 py-4">
+        <div className="flex items-center gap-4">
           <Button variant="secondary" size="sm" onClick={goBack}>
             ← Back to Jobs
           </Button>
-          <h1>Profile</h1>
+          <h1 className="text-xl text-blue-600">Profile</h1>
         </div>
-        <div className="header-right">
+        <div className="flex items-center gap-3">
           <span
-            className={
-              statusMessage ? 'last-saved unsaved-indicator' : 'last-saved'
-            }
+            className={`text-[13px] ${statusMessage ? 'font-semibold text-amber-600' : 'text-gray-500'}`}
           >
             {statusMessage ||
               (lastSavedTime
@@ -671,14 +669,16 @@ BULLETS:
         </div>
       </header>
 
-      <div className="editor-container">
+      <div className="flex flex-1 flex-row overflow-hidden">
         {/* Left Panel: Template Guide */}
         <div
           id="templatePanel"
-          className={`template-panel ${isTemplatePanelVisible ? '' : 'hidden'}`}
+          className={`flex w-2/5 flex-col overflow-hidden border-r-2 border-gray-200 bg-gray-50 ${isTemplatePanelVisible ? '' : 'hidden'}`}
         >
-          <div className="template-panel-header">
-            <h3>Profile Template</h3>
+          <div className="flex shrink-0 items-center justify-between border-b border-blue-200 bg-blue-50 px-4 py-3">
+            <h3 className="text-sm font-medium text-blue-700">
+              Profile Template
+            </h3>
             <Button
               variant="ghost"
               onClick={() => toggleTemplatePanel(false)}
@@ -687,16 +687,18 @@ BULLETS:
               {CloseIcon}
             </Button>
           </div>
-          <div className="template-content">{PROFILE_TEMPLATE}</div>
+          <div className="flex-1 overflow-y-auto whitespace-pre-wrap break-words p-4 font-mono text-[13px] leading-relaxed text-gray-700">
+            {PROFILE_TEMPLATE}
+          </div>
         </div>
 
         {/* Right Panel: Editor */}
-        <div className="editor-panel">
-          <div className="editor-wrapper">
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex flex-1 overflow-hidden p-4">
             <textarea
               ref={editorRef}
               id="profileEditor"
-              className={editorClassName}
+              className={`flex-1 w-full resize-none rounded border border-gray-300 bg-white p-4 font-mono text-sm leading-relaxed focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:opacity-70 ${editorClassName}`}
               placeholder="Follow the template on the left or paste your resume here and click extract with LLM."
               value={content}
               onChange={(e) => handleContentChange(e.target.value)}
@@ -704,8 +706,11 @@ BULLETS:
             />
           </div>
           {extractionError && (
-            <div className="extraction-error">
-              <strong>❌ Extraction Error:</strong> {extractionError}
+            <div className="mx-4 mb-3 rounded border border-red-600 bg-red-50 px-4 py-3 text-[13px] leading-normal text-red-900">
+              <strong className="mb-1 block font-semibold">
+                ❌ Extraction Error:
+              </strong>{' '}
+              {extractionError}
             </div>
           )}
         </div>
@@ -717,27 +722,27 @@ BULLETS:
         onClose={() => setShowConfirmDialog(false)}
         title="Confirm Extraction"
       >
-        <div className="modal-body">
-          <div className="modal-warning">
-            <span className="modal-warning-icon">⚠️</span>
-            <div className="modal-warning-content">
-              <p>
+        <div className="p-6">
+          <div className="my-4 flex items-start gap-3 rounded-md border border-amber-400 bg-amber-50 p-4">
+            <span className="shrink-0 text-2xl">⚠️</span>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-900">
                 LLM extraction may have errors. The current content will be
                 replaced. Save a backup first if needed.
               </p>
             </div>
           </div>
-          <div className="modal-hint">
-            <span className="modal-hint-icon">💡</span>
-            <div className="modal-hint-content">
-              <p>
+          <div className="my-4 flex items-start gap-3 rounded-md border border-blue-600 bg-blue-50 p-4">
+            <span className="shrink-0 text-2xl">💡</span>
+            <div className="flex-1">
+              <p className="text-sm text-blue-900">
                 <strong>Tip:</strong> Label your projects clearly in your resume
                 (e.g., &quot;Project: MyApp&quot;) - the LLM may not recognize
                 unlabeled projects.
               </p>
             </div>
           </div>
-          <div className="modal-actions">
+          <div className="mt-6 flex justify-end gap-3 border-t border-gray-200 pt-5">
             <Button
               variant="secondary"
               onClick={() => setShowConfirmDialog(false)}
@@ -762,7 +767,7 @@ BULLETS:
         showQuickActions={true}
       />
 
-      <footer>
+      <footer className="flex shrink-0 items-center justify-between border-t border-gray-200 bg-gray-50 px-6 py-4">
         <Button
           variant="secondary"
           size="sm"
@@ -777,7 +782,7 @@ BULLETS:
         >
           {isExtracting ? 'Cancel Extraction' : 'Extract with LLM'}
         </Button>
-        <div className="export-buttons">
+        <div className="flex gap-2">
           <Button variant="secondary" size="sm" onClick={formatProfile}>
             Fix Formatting
           </Button>

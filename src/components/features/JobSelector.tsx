@@ -1,20 +1,12 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import { StatusFilterDots } from './StatusFilterDots';
-import {
-  SortIconButtons,
-  type SortField,
-  type SortDirection,
-} from './SortIconButtons';
-import { statusStyles, defaults } from '@/config';
-import {
-  getJobTitle,
-  getCompanyName,
-  type JobTemplateData,
-} from '@/utils/job-parser';
+import { SortIconButtons } from './SortIconButtons';
+import { defaults } from '@/config';
+import type { JobTemplateData } from '@/utils/job-parser';
 import type { Job } from '@/entrypoints/job-details/hooks';
-import { CloseIcon } from '../ui/icons';
-import { Button } from '../ui/Button';
+import { JobCard } from './JobCard';
 import { cn } from '@/lib/utils';
+import { useJobFilters } from '@/hooks/useJobFilters';
 
 interface JobSelectorProps {
   /** All jobs to display */
@@ -52,70 +44,19 @@ export function JobSelector({
   onClose,
   getParsedJob,
 }: JobSelectorProps) {
-  // Filter state
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilters, setStatusFilters] = useState<string[]>([]);
-  const [sortField, setSortField] = useState<SortField>('date');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-
-  /**
-   * Filter and sort jobs based on current filter settings
-   */
-  const filteredJobs = useMemo(() => {
-    let filtered = jobs.filter((job: Job) => {
-      const parsed = getParsedJob(job.id);
-      if (!parsed) return true; // Include jobs with no content
-
-      // Search filter
-      if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase();
-        const jobTitle = getJobTitle(parsed);
-        const company = getCompanyName(parsed);
-        const matchesSearch =
-          jobTitle?.toLowerCase().includes(searchLower) ||
-          company?.toLowerCase().includes(searchLower);
-        if (!matchesSearch) return false;
-      }
-
-      // Status filter (multi-select: empty array = show all)
-      if (statusFilters.length > 0) {
-        const jobStatus = job.applicationStatus || defaults.status;
-        if (!statusFilters.includes(jobStatus)) return false;
-      }
-
-      return true;
-    });
-
-    // Sort jobs
-    const dirMult = sortDirection === 'asc' ? 1 : -1;
-
-    if (sortField === 'date') {
-      filtered = filtered.sort(
-        (a: Job, b: Job) =>
-          dirMult *
-          (new Date(a.updatedAt || 0).getTime() -
-            new Date(b.updatedAt || 0).getTime())
-      );
-    } else if (sortField === 'company') {
-      filtered = filtered.sort((a: Job, b: Job) => {
-        const parsedA = getParsedJob(a.id);
-        const parsedB = getParsedJob(b.id);
-        const companyA = parsedA ? getCompanyName(parsedA) || '' : '';
-        const companyB = parsedB ? getCompanyName(parsedB) || '' : '';
-        return dirMult * companyA.localeCompare(companyB);
-      });
-    } else if (sortField === 'title') {
-      filtered = filtered.sort((a: Job, b: Job) => {
-        const parsedA = getParsedJob(a.id);
-        const parsedB = getParsedJob(b.id);
-        const titleA = parsedA ? getJobTitle(parsedA) || '' : '';
-        const titleB = parsedB ? getJobTitle(parsedB) || '' : '';
-        return dirMult * titleA.localeCompare(titleB);
-      });
-    }
-
-    return filtered;
-  }, [jobs, searchTerm, statusFilters, sortField, sortDirection, getParsedJob]);
+  // Use shared job filtering hook
+  const {
+    searchTerm,
+    setSearchTerm,
+    statusFilters,
+    setStatusFilters,
+    sortField,
+    sortDirection,
+    handleSortChange,
+    filteredJobs,
+    totalCount,
+    filteredCount,
+  } = useJobFilters({ jobs, getParsedJob });
 
   /**
    * Handle job selection - select and close panel
@@ -126,17 +67,6 @@ export function JobSelector({
       onClose();
     },
     [onSelectJob, onClose]
-  );
-
-  /**
-   * Handle sort change
-   */
-  const handleSortChange = useCallback(
-    (field: SortField, direction: SortDirection) => {
-      setSortField(field);
-      setSortDirection(direction);
-    },
-    []
   );
 
   /**
@@ -199,7 +129,7 @@ export function JobSelector({
             />
           </div>
           <div className="text-xs text-neutral-500 italic">
-            {filteredJobs.length} of {jobs.length} jobs
+            {filteredCount} of {totalCount} jobs
           </div>
         </div>
       </div>
@@ -210,58 +140,17 @@ export function JobSelector({
           const isSelected = job.id === selectedJobId;
           const parsed = getParsedJob(job.id);
           const status = job.applicationStatus || defaults.status;
-          const styles = statusStyles[status] || statusStyles['Researching'];
 
           return (
-            <div
+            <JobCard
               key={job.id}
-              className={cn(
-                'border border-neutral-200 rounded-md p-3 mb-2 cursor-pointer',
-                'transition-all duration-200',
-                'hover:bg-blue-50 hover:border-blue-600',
-                isSelected &&
-                  'bg-blue-100 border-blue-600 border-2 shadow-md shadow-blue-600/20'
-              )}
-              style={{
-                backgroundColor: isSelected ? undefined : styles.cardBg,
-              }}
+              jobId={job.id}
+              parsed={parsed}
+              status={status}
+              isSelected={isSelected}
               onClick={() => handleSelectJob(job.id)}
-            >
-              <div className="flex flex-col gap-1 relative">
-                <div className="text-sm font-semibold text-neutral-800 overflow-hidden text-ellipsis line-clamp-2 pr-6">
-                  {parsed ? getJobTitle(parsed) || 'Untitled' : 'Untitled'}
-                </div>
-                <div className="text-xs text-neutral-600 mb-1">
-                  {parsed ? getCompanyName(parsed) || 'Unknown' : 'Unknown'}
-                </div>
-                <span
-                  className="inline-block px-2 py-0.5 rounded-xl text-[10px] font-medium w-fit text-white"
-                  style={{ backgroundColor: styles.color }}
-                >
-                  {status}
-                </span>
-                {isSelected && (
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      'absolute -top-1 -right-1 w-5 h-5 rounded-full',
-                      'bg-neutral-400 text-white text-xs leading-none',
-                      'flex items-center justify-center opacity-70',
-                      'hover:bg-red-600 hover:opacity-100',
-                      'active:scale-90',
-                      'transition-all duration-200'
-                    )}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteJob(job.id);
-                    }}
-                    title="Delete this job"
-                  >
-                    {CloseIcon}
-                  </Button>
-                )}
-              </div>
-            </div>
+              onDelete={() => onDeleteJob(job.id)}
+            />
           );
         })}
 

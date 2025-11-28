@@ -23,6 +23,23 @@
   }
 }
 
+@keyframes bounce-diagonal {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-4px, -4px);
+  }
+}
+
+/* Utility class for diagonal bounce animation */
+@layer utilities {
+  .animate-bounce-diagonal {
+    animation: bounce-diagonal 1.5s ease-in-out infinite;
+  }
+}
+
 /* shadcn/ui CSS variables for theming */
 @layer base {
   :root {

@@ -8,20 +8,15 @@ import {
   ParsedJobProvider,
   useGetParsedJob,
 } from '../../components/features/ParsedJobProvider';
-import { getJobTitle, getCompanyName } from '../../utils/job-parser';
+import { JobCard } from '../../components/features/JobCard';
 import { initDevModeValidation } from '../../utils/dev-validators';
 import { StatusFilterDots } from '../../components/features/StatusFilterDots';
-import {
-  SortIconButtons,
-  type SortField,
-  type SortDirection,
-} from '../../components/features/SortIconButtons';
+import { SortIconButtons } from '../../components/features/SortIconButtons';
 import { Dropdown } from '../../components/ui/Dropdown';
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
   ProfileIcon,
-  CloseIcon,
 } from '../../components/ui/icons';
 import {
   getAllStorageData,
@@ -29,7 +24,8 @@ import {
   clearAllStorage,
   sidebarCollapsedStorage,
 } from '../../utils/storage';
-import { defaults, statusStyles } from '@/config';
+import { defaults } from '@/config';
+import { useJobFilters } from '@/hooks/useJobFilters';
 import type { JobStore } from './hooks/useJobStore';
 import type { Job } from './hooks';
 
@@ -44,11 +40,20 @@ interface AppContentProps {
 const AppContent: React.FC<AppContentProps> = ({ store }) => {
   const getParsedJob = useGetParsedJob();
 
-  // Local state for UI controls (will be migrated to store.updateFilters in future)
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilters, setStatusFilters] = useState<string[]>([]);
-  const [sortField, setSortField] = useState<SortField>('date');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  // Use shared job filtering hook
+  const {
+    searchTerm,
+    setSearchTerm,
+    statusFilters,
+    setStatusFilters,
+    sortField,
+    sortDirection,
+    handleSortChange,
+    filteredJobs,
+    totalCount,
+    filteredCount,
+  } = useJobFilters({ jobs: store.jobs, getParsedJob });
+
   const [error, _setError] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -154,89 +159,6 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
     },
     [store]
   );
-
-  // ============================================================================
-  // Filter jobs based on current filter settings
-  // TODO: Migrate to store.updateFilters() in a future iteration
-  // ============================================================================
-
-  const filterJobs = useCallback(() => {
-    const allJobs = store.jobs;
-    console.info(`[filterJobs] Starting filter with ${allJobs.length} jobs`);
-
-    // Filter jobs using provider's cached parsing
-    let filtered = allJobs.filter((job: Job) => {
-      const parsed = getParsedJob(job.id);
-      if (!parsed) return true; // Include jobs with no content
-
-      // Search filter
-      if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase();
-        const jobTitle = getJobTitle(parsed);
-        const company = getCompanyName(parsed);
-        const matchesSearch =
-          jobTitle?.toLowerCase().includes(searchLower) ||
-          company?.toLowerCase().includes(searchLower);
-        if (!matchesSearch) return false;
-      }
-
-      // Status filter (multi-select: empty array = show all)
-      if (statusFilters.length > 0) {
-        const jobStatus = job.applicationStatus || defaults.status;
-        if (!statusFilters.includes(jobStatus)) return false;
-      }
-
-      return true;
-    });
-
-    // Sort jobs using provider's cached parsing
-    // Direction multiplier: 1 for ascending, -1 for descending
-    const dirMult = sortDirection === 'asc' ? 1 : -1;
-
-    if (sortField === 'date') {
-      filtered = filtered.sort(
-        (a: Job, b: Job) =>
-          dirMult *
-          (new Date(a.updatedAt || 0).getTime() -
-            new Date(b.updatedAt || 0).getTime())
-      );
-    } else if (sortField === 'company') {
-      filtered = filtered.sort((a: Job, b: Job) => {
-        const parsedA = getParsedJob(a.id) || null;
-        const parsedB = getParsedJob(b.id) || null;
-        const companyA = parsedA ? getCompanyName(parsedA) || '' : '';
-        const companyB = parsedB ? getCompanyName(parsedB) || '' : '';
-        return dirMult * companyA.localeCompare(companyB);
-      });
-    } else if (sortField === 'title') {
-      filtered = filtered.sort((a: Job, b: Job) => {
-        const parsedA = getParsedJob(a.id) || null;
-        const parsedB = getParsedJob(b.id) || null;
-        const titleA = parsedA ? getJobTitle(parsedA) || '' : '';
-        const titleB = parsedB ? getJobTitle(parsedB) || '' : '';
-        return dirMult * titleA.localeCompare(titleB);
-      });
-    }
-
-    console.info(`[filterJobs] Filtered to ${filtered.length} jobs`, {
-      searchTerm,
-      statusFilters,
-      sortField,
-      sortDirection,
-    });
-
-    return filtered;
-  }, [
-    store.jobs,
-    searchTerm,
-    statusFilters,
-    sortField,
-    sortDirection,
-    getParsedJob,
-  ]);
-
-  // Calculate filtered jobs (memoized via filterJobs callback)
-  const filteredJobs = filterJobs();
 
   /**
    * Select a job by index in filtered list
@@ -462,8 +384,8 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   // Loading state
   if (store.isLoading) {
     return (
-      <div className="app-loading">
-        <p>Loading jobs...</p>
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-gray-600">Loading jobs...</p>
       </div>
     );
   }
@@ -471,8 +393,8 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   // Error state
   if (error) {
     return (
-      <div className="app-error">
-        <p style={{ color: 'red' }}>{error}</p>
+      <div className="flex flex-col items-center justify-center h-screen gap-4">
+        <p className="text-red-600">{error}</p>
         <Button variant="primary" onClick={() => window.location.reload()}>
           Retry
         </Button>
@@ -483,9 +405,9 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   // Empty state
   if (store.jobs.length === 0) {
     return (
-      <div className="container">
-        <div id="emptyState" className="empty-state">
-          <h2>No Jobs Yet</h2>
+      <div className="max-w-full h-screen m-0 bg-white flex flex-col">
+        <div id="emptyState" className="text-center py-16 px-5 text-gray-600">
+          <h2 className="text-xl mb-3">No Jobs Yet</h2>
           <p>
             Use the browser extension to save jobs from LinkedIn, Indeed, or
             other job sites.
@@ -503,25 +425,25 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   });
 
   return (
-    <div className="container">
+    <div className="max-w-full h-screen m-0 bg-white flex flex-col">
       {/* Header with branding and action buttons */}
-      <header>
-        <div className="header-title">
+      <header className="flex justify-between items-center py-3 px-6 border-b border-gray-200 bg-white shrink-0">
+        <div className="flex items-baseline gap-3">
           <Button
             variant="ghost"
-            className="sidebar-toggle-btn"
+            className="p-2 min-w-9 min-h-9 text-gray-500 hover:bg-gray-100 flex items-center justify-center [&_svg]:w-4 [&_svg]:h-4 [&_svg]:shrink-0"
             onClick={handleSidebarToggle}
             title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
             aria-label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
           >
             {sidebarCollapsed ? ChevronRightIcon : ChevronLeftIcon}
           </Button>
-          <h1>Sir Hires</h1>
+          <h1 className="text-lg font-semibold text-gray-800">Sir Hires</h1>
         </div>
-        <div className="header-actions">
+        <div className="flex gap-1 items-center">
           <Button
             variant="ghost"
-            className="header-icon-btn"
+            className="p-2 min-w-9 min-h-9 text-gray-500 hover:bg-gray-100 flex items-center justify-center [&_svg]:w-[18px] [&_svg]:h-[18px]"
             onClick={handleProfileClick}
             title="Profile"
           >
@@ -551,43 +473,42 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
       </header>
 
       {/* Main content area */}
-      <div className="main-content">
+      <div className="flex flex-1 overflow-hidden">
         {/* Sidebar with filters and job list */}
-        <div className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
-          <div className="sidebar-header">
-            <div className="filters">
+        <div
+          className={`${sidebarCollapsed ? 'w-0' : 'w-80'} border-r border-gray-200 flex flex-col bg-gray-50 shrink-0 transition-[width] duration-200 ease-in-out overflow-hidden ${sidebarCollapsed ? 'border-r-0' : ''}`}
+        >
+          <div className="p-4 border-b border-gray-200 bg-white">
+            <div className="flex flex-col gap-3">
               <input
                 type="text"
                 id="searchInput"
-                className="filter-input"
+                className="py-2 px-3 border border-gray-300 rounded text-sm w-full focus:outline-none focus:border-blue-500"
                 placeholder="Search jobs..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <div className="filter-row">
+              <div className="flex items-center justify-center">
                 <StatusFilterDots
                   selectedStatuses={statusFilters}
                   onChange={setStatusFilters}
                 />
               </div>
-              <div className="filter-row">
+              <div className="flex items-center justify-center">
                 <SortIconButtons
                   sortField={sortField}
                   sortDirection={sortDirection}
-                  onChange={(field, direction) => {
-                    setSortField(field);
-                    setSortDirection(direction);
-                  }}
+                  onChange={handleSortChange}
                 />
               </div>
-              <div className="filter-row job-count-row">
-                <span className="job-count">
-                  {filteredJobs.length} of {store.jobs.length} jobs
+              <div className="flex items-center justify-start">
+                <span className="text-xs italic text-gray-500">
+                  {filteredCount} of {totalCount} jobs
                 </span>
               </div>
             </div>
           </div>
-          <div className="jobs-list-sidebar" id="jobsList">
+          <div className="flex-1 overflow-y-auto p-2" id="jobsList">
             {filteredJobs.map((job: Job, filteredIndex: number) => {
               const globalIndex = store.jobs.findIndex(
                 (j: Job) => j.id === job.id
@@ -596,58 +517,27 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
               const parsed = getParsedJob(job.id);
               const status = job.applicationStatus || defaults.status;
 
-              // Get the styles for the status
-              const styles =
-                statusStyles[status] || statusStyles['Researching'];
-
               return (
-                <div
+                <JobCard
                   key={job.id}
-                  className={`job-card ${isSelected ? 'selected' : ''}`}
-                  style={{
-                    backgroundColor: styles.cardBg,
-                  }}
+                  jobId={job.id}
+                  parsed={parsed}
+                  status={status}
+                  isSelected={isSelected}
                   onClick={() => selectJob(filteredIndex)}
-                >
-                  <div className="job-card-header">
-                    <div className="job-title">
-                      {parsed ? getJobTitle(parsed) || 'Untitled' : 'Untitled'}
-                    </div>
-                    <div className="company">
-                      {parsed ? getCompanyName(parsed) || 'Unknown' : 'Unknown'}
-                    </div>
-                    <span
-                      className="job-card-status-badge"
-                      style={{
-                        backgroundColor: styles.color,
-                        color: '#fff',
-                      }}
-                    >
-                      {status}
-                    </span>
-                    {isSelected && (
-                      <Button
-                        variant="ghost"
-                        className="btn-delete-card"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteJob(job.id);
-                        }}
-                        title="Delete this job"
-                      >
-                        {CloseIcon}
-                      </Button>
-                    )}
-                  </div>
-                </div>
+                  onDelete={() => handleDeleteJob(job.id)}
+                />
               );
             })}
           </div>
         </div>
 
         {/* Detail panel */}
-        <div className="detail-panel-wrapper">
-          <div className="detail-panel" id="detailPanel">
+        <div className="relative flex-1 overflow-hidden">
+          <div
+            className="absolute inset-0 overflow-hidden bg-white"
+            id="detailPanel"
+          >
             {renderJobView()}
           </div>
         </div>

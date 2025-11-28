@@ -28,25 +28,29 @@ export function ExtractionErrorView({
   const hasPartialContent = partialContent && partialContent.trim().length > 0;
 
   return (
-    <div className="job-card researching-editor">
-      <div className="extraction-error-state">
-        <div className="extraction-error-header">
-          <div className="extraction-error-icon">⚠️</div>
-          <h3>Extraction Failed</h3>
-          <p className="error-message">{escapeHtml(errorMessage)}</p>
+    <div className="bg-white border border-gray-200 rounded-md p-6">
+      <div className="flex flex-col items-center text-center">
+        <div className="mb-4">
+          <div className="text-4xl mb-3">⚠️</div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">
+            Extraction Failed
+          </h3>
+          <p className="text-red-600 text-sm">{escapeHtml(errorMessage)}</p>
         </div>
 
         {hasPartialContent && (
-          <div className="extraction-partial">
-            <div className="extraction-partial-header">
-              <strong>📄 Partial Content</strong>
-              <span className="extraction-partial-hint">
+          <div className="w-full mt-4 text-left">
+            <div className="flex items-center gap-2 mb-2">
+              <strong className="text-sm text-gray-700">
+                📄 Partial Content
+              </strong>
+              <span className="text-xs text-gray-500">
                 (You can edit this or re-extract)
               </span>
             </div>
             <textarea
               id="jobEditor"
-              className="job-markdown-editor"
+              className="w-full min-h-[200px] p-3 font-mono text-sm border border-gray-300 rounded resize-y focus:outline-none focus:border-blue-500"
               data-job-id={jobId}
               value={editorContent}
               onChange={onEditorChange}
@@ -54,10 +58,10 @@ export function ExtractionErrorView({
           </div>
         )}
 
-        <div className="job-actions" style={{ marginTop: '24px' }}>
+        <div className="flex gap-3 mt-6">
           <a
             href={escapeHtml(jobUrl)}
-            className="btn btn-primary"
+            className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded font-semibold text-sm hover:bg-purple-700 transition-colors"
             target="_blank"
             rel="noopener noreferrer"
           >

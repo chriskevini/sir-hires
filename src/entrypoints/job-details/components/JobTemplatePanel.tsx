@@ -25,19 +25,23 @@ export function JobTemplatePanel({
       onToggle={onClose}
       header={
         <>
-          <h3>📖 Job Template</h3>
+          <h3 className="text-sm font-semibold text-gray-700">
+            📖 Job Template
+          </h3>
           <Button
             variant="ghost"
-            className="template-panel-close"
+            className="p-1 text-gray-500 hover:text-gray-700"
             onClick={onClose}
           >
             {CloseIcon}
           </Button>
         </>
       }
-      className="template-panel"
+      className="w-72 border-l border-gray-200 bg-gray-50 flex-shrink-0 overflow-y-auto"
     >
-      <div className="template-content">{escapeHtml(JOB_TEMPLATE)}</div>
+      <div className="p-3 font-mono text-xs text-gray-600 whitespace-pre-wrap leading-relaxed">
+        {escapeHtml(JOB_TEMPLATE)}
+      </div>
     </CollapsiblePanel>
   );
 }

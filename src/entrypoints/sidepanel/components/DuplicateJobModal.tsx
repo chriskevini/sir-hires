@@ -27,44 +27,25 @@ export const DuplicateJobModal: React.FC<DuplicateJobModalProps> = ({
     jobUrl.length > 60 ? jobUrl.substring(0, 57) + '...' : jobUrl;
 
   return (
-    <Modal isOpen={isOpen} onClose={onCancel} title="⚠️ Duplicate Job Detected">
-      <div className="modal-body" style={{ padding: '20px' }}>
-        <p style={{ marginBottom: '16px', color: '#333' }}>
+    <Modal isOpen={isOpen} onClose={onCancel} title="Duplicate Job Detected">
+      <div className="p-5">
+        <p className="mb-4 text-gray-700">
           You already have a job from this URL:
         </p>
-        <p
-          style={{
-            marginBottom: '24px',
-            padding: '12px',
-            backgroundColor: '#f5f5f5',
-            borderRadius: '4px',
-            fontFamily: 'monospace',
-            fontSize: '12px',
-            wordBreak: 'break-all',
-          }}
-        >
+        <p className="mb-6 p-3 bg-gray-100 rounded font-mono text-xs break-all">
           {displayUrl}
         </p>
 
-        <p style={{ marginBottom: '20px', color: '#666', fontSize: '14px' }}>
-          What would you like to do?
-        </p>
+        <p className="mb-5 text-gray-500 text-sm">What would you like to do?</p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div className="flex flex-col gap-3">
           <Button
             variant="primary"
             onClick={onRefresh}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              textAlign: 'left',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px',
-            }}
+            className="w-full p-3 text-left flex flex-col gap-1"
           >
-            <strong>🔄 Refresh Job Data</strong>
-            <span style={{ fontSize: '12px', opacity: 0.9 }}>
+            <strong>Refresh Job Data</strong>
+            <span className="text-xs opacity-90">
               Update job description only. Preserves your checklist, documents,
               and status.
             </span>
@@ -73,30 +54,16 @@ export const DuplicateJobModal: React.FC<DuplicateJobModalProps> = ({
           <Button
             variant="secondary"
             onClick={onExtractNew}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-              textAlign: 'left',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '4px',
-            }}
+            className="w-full p-3 text-left flex flex-col gap-1"
           >
-            <strong>➕ Extract as New Job</strong>
-            <span style={{ fontSize: '12px', opacity: 0.9 }}>
+            <strong>Extract as New Job</strong>
+            <span className="text-xs opacity-90">
               Create a separate job entry with a new ID.
             </span>
           </Button>
 
-          <Button
-            variant="secondary"
-            onClick={onCancel}
-            style={{
-              width: '100%',
-              padding: '12px 16px',
-            }}
-          >
-            ✖️ Cancel
+          <Button variant="secondary" onClick={onCancel} className="w-full p-3">
+            Cancel
           </Button>
         </div>
       </div>

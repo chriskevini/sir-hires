@@ -41,71 +41,71 @@ export function ValidationPanel({
 
   // Compute status icon and text
   let statusIcon = '○';
-  let statusIconColor = '#666';
+  let statusIconColor = 'text-gray-500';
   let statusText = 'No Content';
-  let statusTextColor = '#666';
+  let statusTextColor = 'text-gray-500';
 
   if (hasErrors) {
     statusIcon = '✗';
-    statusIconColor = '#d93025';
+    statusIconColor = 'text-red-600';
     statusText = 'Validation Errors';
-    statusTextColor = '#d93025';
+    statusTextColor = 'text-red-600';
   } else if (hasWarnings) {
     statusIcon = '⚠';
-    statusIconColor = '#ea8600';
+    statusIconColor = 'text-amber-600';
     statusText = 'Validation Warnings';
-    statusTextColor = '#ea8600';
+    statusTextColor = 'text-amber-600';
   } else if (
     validation.errors.length === 0 &&
     validation.warnings.length === 0
   ) {
     statusIcon = '✓';
-    statusIconColor = '#0f9d58';
+    statusIconColor = 'text-green-600';
     statusText = 'Valid Profile';
-    statusTextColor = '#0f9d58';
+    statusTextColor = 'text-green-600';
   }
 
   return (
-    <div className={`validation-panel ${isCollapsed ? 'collapsed' : ''}`}>
+    <div
+      className={`shrink-0 overflow-y-auto border-t-2 border-gray-200 bg-white transition-[max-height] duration-300 ${isCollapsed ? 'max-h-11 overflow-hidden' : 'max-h-[250px]'}`}
+    >
       <div
-        className="validation-header"
+        className="flex cursor-pointer select-none items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3 hover:bg-gray-100"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
-        <div className="validation-header-left">
-          <div className="validation-status">
-            <span className="status-icon" style={{ color: statusIconColor }}>
-              {statusIcon}
-            </span>
-            <span style={{ color: statusTextColor }}>{statusText}</span>
+        <div className="flex items-center gap-2 text-[13px] font-semibold">
+          <div className="flex items-center gap-1.5">
+            <span className={`text-base ${statusIconColor}`}>{statusIcon}</span>
+            <span className={statusTextColor}>{statusText}</span>
           </div>
-          <div className="validation-counts">
+          <div className="flex gap-3 text-xs font-medium">
             {hasErrors && (
-              <span className="count-errors" style={{ display: 'block' }}>
+              <span className="text-red-600">
                 {validation.errors.length} error
                 {validation.errors.length > 1 ? 's' : ''}
               </span>
             )}
             {hasWarnings && (
-              <span className="count-warnings" style={{ display: 'block' }}>
+              <span className="text-amber-600">
                 {validation.warnings.length} warning
                 {validation.warnings.length > 1 ? 's' : ''}
               </span>
             )}
             {customCount > 0 && (
-              <span className="count-info" style={{ display: 'block' }}>
-                {customCount} custom
-              </span>
+              <span className="text-blue-700">{customCount} custom</span>
             )}
           </div>
         </div>
-        <span className="validation-toggle">
+        <span className="text-xs text-gray-500">
           {isCollapsed ? ChevronDownIcon : ChevronUpIcon}
         </span>
       </div>
 
       {showQuickActions && (onInsertEducation || onInsertExperience) && (
-        <div className="quick-actions">
-          <span className="quick-actions-label">Quick Actions:</span>
+        <div className="flex gap-2 border-b border-gray-300 bg-gray-100 px-3 py-2 text-xs">
+          <span className="self-center font-semibold text-gray-600">
+            Quick Actions:
+          </span>
           {onInsertEducation && (
             <Button
               variant="link"
@@ -127,11 +127,13 @@ export function ValidationPanel({
         </div>
       )}
 
-      <div className="validation-content">
+      <div className="max-h-[200px] overflow-y-auto px-4 py-3">
         {validation.errors.length === 0 &&
         validation.warnings.length === 0 &&
         validation.info.length === 0 ? (
-          <div className="validation-empty">No validation messages</div>
+          <div className="p-4 text-center text-[13px] text-gray-500">
+            No validation messages
+          </div>
         ) : (
           <>
             {validation.errors.map((error, index) => {
@@ -141,7 +143,7 @@ export function ValidationPanel({
                 return (
                   <div
                     key={`error-${index}`}
-                    className="validation-message validation-error"
+                    className="mb-2 rounded border-l-[3px] border-l-red-600 bg-red-50 px-3 py-2 text-[13px] leading-normal text-red-900 last:mb-0"
                   >
                     {error.message}. Allowed:
                     {fix.allowedValues?.map((value) => (
@@ -161,7 +163,7 @@ export function ValidationPanel({
               return (
                 <div
                   key={`error-${index}`}
-                  className="validation-message validation-error"
+                  className="mb-2 rounded border-l-[3px] border-l-red-600 bg-red-50 px-3 py-2 text-[13px] leading-normal text-red-900 last:mb-0"
                 >
                   {error.message}
                   {fix && (
@@ -182,7 +184,7 @@ export function ValidationPanel({
               return (
                 <div
                   key={`warning-${index}`}
-                  className="validation-message validation-warning"
+                  className="mb-2 rounded border-l-[3px] border-l-amber-500 bg-amber-50 px-3 py-2 text-[13px] leading-normal text-amber-900 last:mb-0"
                 >
                   {warning.message}
                   {fix && (
@@ -201,7 +203,7 @@ export function ValidationPanel({
             {validation.info.map((info, index) => (
               <div
                 key={`info-${index}`}
-                className="validation-message validation-info"
+                className="mb-2 rounded border-l-[3px] border-l-blue-700 bg-blue-50 px-3 py-2 text-[13px] leading-normal text-blue-900 last:mb-0"
               >
                 {info.message}
               </div>
@@ -215,7 +217,7 @@ export function ValidationPanel({
 
 /**
  * Utility hook to compute editor className based on validation state.
- * Returns 'has-errors', 'has-warnings', 'is-valid', or empty string.
+ * Returns Tailwind classes for left border coloring.
  */
 // eslint-disable-next-line react-refresh/only-export-components
 export function useValidationEditorClass(
@@ -226,11 +228,11 @@ export function useValidationEditorClass(
   const hasWarnings = validation.warnings.length > 0;
 
   if (hasErrors) {
-    return 'has-errors';
+    return 'border-l-4 border-l-red-600';
   } else if (hasWarnings) {
-    return 'has-warnings';
+    return 'border-l-4 border-l-amber-500';
   } else if (content.trim().length > 0) {
-    return 'is-valid';
+    return 'border-l-4 border-l-green-600';
   }
   return '';
 }

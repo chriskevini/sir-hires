@@ -15,25 +15,25 @@ export function MigrationPromptView({
   onDelete,
 }: MigrationPromptViewProps) {
   return (
-    <div className="job-card">
-      <div className="migration-prompt">
-        <div className="migration-icon">⚠️</div>
-        <h3>Job Needs Re-Extraction</h3>
-        <p>
+    <div className="bg-white border border-gray-200 rounded-md p-6">
+      <div className="flex flex-col items-center text-center">
+        <div className="text-4xl mb-3">⚠️</div>
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+          Job Needs Re-Extraction
+        </h3>
+        <p className="text-gray-600 text-sm mb-6">
           This job was saved in an old format and needs to be re-extracted from
           the job posting.
         </p>
-        <div className="migration-actions">
+        <div className="flex flex-col gap-4">
           <a
             href={escapeHtml(jobUrl)}
-            className="btn btn-primary"
+            className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded font-semibold text-sm hover:bg-purple-700 transition-colors"
             target="_blank"
             rel="noopener noreferrer"
           >
             Re-Extract from Original Posting ↗
           </a>
-        </div>
-        <div className="job-actions" style={{ marginTop: '24px' }}>
           <Button variant="danger" onClick={onDelete}>
             Delete This Job
           </Button>

@@ -49,22 +49,31 @@ export function App() {
   };
 
   return (
-    <div className="container">
-      <header>
-        <h1>Sir Hires - LLM Settings</h1>
+    <div className="p-4">
+      {/* Header */}
+      <header className="flex justify-between items-center mb-4 pb-3 border-b-2 border-gray-200">
+        <h1 className="text-lg font-semibold text-blue-600">
+          Sir Hires - LLM Settings
+        </h1>
       </header>
 
-      <div className="settings-form">
+      <div className="flex flex-col gap-3">
         {/* Server URL */}
-        <div className="form-row">
-          <label htmlFor="serverUrl">Server</label>
-          <div className="input-with-button">
+        <div className="flex flex-col gap-1">
+          <label
+            htmlFor="serverUrl"
+            className="font-medium text-[13px] text-gray-600"
+          >
+            Server
+          </label>
+          <div className="flex gap-2 items-stretch">
             <input
               type="text"
               id="serverUrl"
               value={serverUrl}
               onChange={(e) => setServerUrl(e.target.value)}
               placeholder="http://localhost:1234"
+              className="flex-1 px-2 py-2 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
             />
             <Button
               variant="ghost"
@@ -82,25 +91,37 @@ export function App() {
           <>
             {/* API Key - Only show for cloud providers */}
             {provider === 'cloud' && (
-              <div className="form-row">
-                <label htmlFor="apiKey-connected">API Key</label>
+              <div className="flex flex-col gap-1">
+                <label
+                  htmlFor="apiKey-connected"
+                  className="font-medium text-[13px] text-gray-600"
+                >
+                  API Key
+                </label>
                 <input
                   type="password"
                   id="apiKey-connected"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder="sk-..."
+                  className="w-full px-2 py-2 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
                 />
               </div>
             )}
 
             {/* Model Selector */}
-            <div className="form-row">
-              <label htmlFor="model">Model</label>
+            <div className="flex flex-col gap-1">
+              <label
+                htmlFor="model"
+                className="font-medium text-[13px] text-gray-600"
+              >
+                Model
+              </label>
               <select
                 id="model"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
+                className="w-full px-2 py-2 border border-gray-300 rounded text-[13px] bg-white cursor-pointer focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
               >
                 {availableModels.length === 0 ? (
                   <option value={model}>{model}</option>
@@ -123,23 +144,30 @@ export function App() {
             <Button
               variant="secondary"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              style={{ marginTop: '4px' }}
+              className="mt-1"
             >
               {showAdvanced ? 'Hide' : 'Show'} Advanced Settings
             </Button>
 
             {/* Per-Task Settings (collapsible) */}
             {showAdvanced && (
-              <div className="task-settings-section">
+              <div className="bg-gray-50 border border-gray-300 rounded p-3 mt-1">
                 {/* Synthesis Settings */}
-                <div className="task-settings-group">
-                  <h4>Synthesis (Resume/Cover Letter)</h4>
-                  <p className="task-description">
+                <div className="mb-4">
+                  <h4 className="text-[13px] font-semibold text-gray-700 mb-1">
+                    Synthesis (Resume/Cover Letter)
+                  </h4>
+                  <p className="text-[11px] text-gray-500 mb-2">
                     Higher creativity for document generation
                   </p>
-                  <div className="task-settings-row">
-                    <div className="form-row">
-                      <label htmlFor="synthesis-tokens">Max Tokens</label>
+                  <div className="flex gap-3">
+                    <div className="flex-1 flex flex-col gap-1">
+                      <label
+                        htmlFor="synthesis-tokens"
+                        className="font-medium text-[13px] text-gray-600"
+                      >
+                        Max Tokens
+                      </label>
                       <input
                         type="number"
                         id="synthesis-tokens"
@@ -152,10 +180,16 @@ export function App() {
                         min={100}
                         max={32000}
                         step={100}
+                        className="w-full px-2 py-2 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
                       />
                     </div>
-                    <div className="form-row">
-                      <label htmlFor="synthesis-temp">Temperature</label>
+                    <div className="flex-1 flex flex-col gap-1">
+                      <label
+                        htmlFor="synthesis-temp"
+                        className="font-medium text-[13px] text-gray-600"
+                      >
+                        Temperature
+                      </label>
                       <input
                         type="number"
                         id="synthesis-temp"
@@ -168,20 +202,28 @@ export function App() {
                         min={0}
                         max={2}
                         step={0.1}
+                        className="w-full px-2 py-2 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Extraction Settings */}
-                <div className="task-settings-group">
-                  <h4>Extraction (Job Parsing)</h4>
-                  <p className="task-description">
+                <div className="mb-2">
+                  <h4 className="text-[13px] font-semibold text-gray-700 mb-1">
+                    Extraction (Job Parsing)
+                  </h4>
+                  <p className="text-[11px] text-gray-500 mb-2">
                     Low creativity for consistent parsing
                   </p>
-                  <div className="task-settings-row">
-                    <div className="form-row">
-                      <label htmlFor="extraction-tokens">Max Tokens</label>
+                  <div className="flex gap-3">
+                    <div className="flex-1 flex flex-col gap-1">
+                      <label
+                        htmlFor="extraction-tokens"
+                        className="font-medium text-[13px] text-gray-600"
+                      >
+                        Max Tokens
+                      </label>
                       <input
                         type="number"
                         id="extraction-tokens"
@@ -194,10 +236,16 @@ export function App() {
                         min={100}
                         max={32000}
                         step={100}
+                        className="w-full px-2 py-2 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
                       />
                     </div>
-                    <div className="form-row">
-                      <label htmlFor="extraction-temp">Temperature</label>
+                    <div className="flex-1 flex flex-col gap-1">
+                      <label
+                        htmlFor="extraction-temp"
+                        className="font-medium text-[13px] text-gray-600"
+                      >
+                        Temperature
+                      </label>
                       <input
                         type="number"
                         id="extraction-temp"
@@ -210,6 +258,7 @@ export function App() {
                         min={0}
                         max={2}
                         step={0.1}
+                        className="w-full px-2 py-2 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
                       />
                     </div>
                   </div>
@@ -231,34 +280,42 @@ export function App() {
 
         {/* Error State - Show setup guide or API key prompt */}
         {status === 'error' && (
-          <div className="setup-guide">
+          <div className="bg-gray-50 border border-gray-300 rounded p-4">
             {provider === 'local' ? (
               <>
-                <h3>Getting Started with LM Studio</h3>
-                <ol>
-                  <li>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                  Getting Started with LM Studio
+                </h3>
+                <ol className="list-decimal pl-5 mb-3 space-y-2">
+                  <li className="text-[13px] text-gray-600 leading-relaxed">
                     Download from{' '}
                     <a
                       href="https://lmstudio.ai"
                       target="_blank"
                       rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
                     >
                       lmstudio.ai
                     </a>
                   </li>
-                  <li>Load a model (e.g., Qwen 2.5 7B)</li>
-                  <li>
+                  <li className="text-[13px] text-gray-600 leading-relaxed">
+                    Load a model (e.g., Qwen 2.5 7B)
+                  </li>
+                  <li className="text-[13px] text-gray-600 leading-relaxed">
                     Start the server: <strong>Developer → Start Server</strong>
                   </li>
-                  <li>Click refresh above</li>
+                  <li className="text-[13px] text-gray-600 leading-relaxed">
+                    Click refresh above
+                  </li>
                 </ol>
-                <p className="alt-provider">
+                <p className="text-xs text-gray-500 mt-3">
                   <a
                     href="#"
                     onClick={(e) => {
                       e.preventDefault();
                       setServerUrl('https://api.openai.com');
                     }}
+                    className="text-blue-600 hover:underline"
                   >
                     Using OpenAI or another provider?
                   </a>
@@ -266,19 +323,27 @@ export function App() {
               </>
             ) : (
               <>
-                <h3>API Key Required</h3>
-                <div className="form-row">
-                  <label htmlFor="apiKey-error">API Key</label>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                  API Key Required
+                </h3>
+                <div className="flex flex-col gap-1 mb-2">
+                  <label
+                    htmlFor="apiKey-error"
+                    className="font-medium text-[13px] text-gray-600"
+                  >
+                    API Key
+                  </label>
                   <input
                     type="password"
                     id="apiKey-error"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder="sk-..."
+                    className="w-full px-2 py-2 border border-gray-300 rounded text-[13px] focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
                   />
                 </div>
-                <p className="error-hint">{errorMessage}</p>
-                <p className="alt-provider">
+                <p className="text-xs text-red-600 my-2">{errorMessage}</p>
+                <p className="text-xs text-gray-500 mt-3">
                   <a
                     href="#"
                     onClick={(e) => {
@@ -286,6 +351,7 @@ export function App() {
                       setServerUrl(DEFAULT_ENDPOINT);
                       setApiKey('');
                     }}
+                    className="text-blue-600 hover:underline"
                   >
                     Using LM Studio instead?
                   </a>
@@ -297,12 +363,16 @@ export function App() {
 
         {/* Loading State */}
         {status === 'loading' && (
-          <div className="loading-state">Connecting...</div>
+          <div className="text-center py-4 text-gray-500 text-[13px]">
+            Connecting...
+          </div>
         )}
 
         {/* Idle State - Initial load */}
         {status === 'idle' && (
-          <div className="loading-state">Loading settings...</div>
+          <div className="text-center py-4 text-gray-500 text-[13px]">
+            Loading settings...
+          </div>
         )}
       </div>
     </div>

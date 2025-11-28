@@ -12,9 +12,9 @@ import { JobSelector } from '../../components/features/JobSelector';
 import { SidepanelHeader } from '../../components/features/SidepanelHeader';
 import type { Job, ChecklistItem } from '../job-details/hooks';
 import { useJobExtraction, useBackupRestore } from './hooks';
-import { EmptyState } from './components/EmptyState';
+import { EmptyState } from '@/components/features/EmptyState';
 import { ExtractionLoadingView } from '../job-details/components/ExtractionLoadingView';
-import { ErrorState } from './components/ErrorState';
+import { ErrorState } from '@/components/features/ErrorState';
 import { DuplicateJobModal } from './components/DuplicateJobModal';
 import { checklistTemplates, defaults } from '@/config';
 import { jobsStorage, restoreStorageFromBackup } from '../../utils/storage';
@@ -95,7 +95,7 @@ function SidepanelContent({
   const company = parsedJob?.topLevelFields['COMPANY'];
 
   return (
-    <div className="container">
+    <div className="flex flex-col h-screen">
       {/* Header with toggle and action buttons */}
       <SidepanelHeader
         onToggleSelector={onToggleSelector}
@@ -110,7 +110,7 @@ function SidepanelContent({
       />
 
       {/* Main content area with JobSelector overlay */}
-      <div className="sidepanel-content-area">
+      <div className="flex-1 relative overflow-hidden flex flex-col">
         {mainContent}
 
         {/* Job selector overlay - positioned relative to content area */}
@@ -371,7 +371,11 @@ export const App: React.FC = () => {
 
   // Loading state
   if (isLoading) {
-    mainContent = <div className="loading">Loading job details...</div>;
+    mainContent = (
+      <div className="text-center py-10 px-5 text-gray-500 italic">
+        Loading job details...
+      </div>
+    );
   }
   // Extracting state (ephemeral - not yet saved to storage)
   else if (extraction.extractingJob) {

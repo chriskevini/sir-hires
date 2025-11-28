@@ -534,17 +534,14 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
             items={[
               {
                 label: 'Create Backup',
-                icon: '💾',
                 onClick: handleCreateBackup,
               },
               {
                 label: 'Restore Backup',
-                icon: '📂',
                 onClick: handleRestoreBackup,
               },
               {
                 label: 'Delete All',
-                icon: '🗑️',
                 onClick: handleDeleteAll,
                 variant: 'danger',
               },

@@ -91,7 +91,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         {items.map((item) => (
           <Button
             key={item.label}
-            variant={item.variant === 'danger' ? 'danger' : 'ghost'}
+            variant="ghost"
             className={`dropdown-item ${item.variant === 'danger' ? 'dropdown-item-danger' : ''}`}
             onClick={() => handleItemClick(item.onClick)}
           >

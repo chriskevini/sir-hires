@@ -14,7 +14,7 @@ import {
   restoreStorageFromBackup,
   clearAllStorage,
 } from '../../utils/storage';
-import { defaults, statusColors } from '@/config';
+import { defaults, statusColors, progressConfig } from '@/config';
 import { browser } from 'wxt/browser';
 import type { JobStore } from './hooks/useJobStore';
 import type { Job } from './hooks';
@@ -539,10 +539,18 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
                 statusColors[status as keyof typeof statusColors] ||
                 statusColors['Researching'];
 
+              // Get the progress color for the status
+              const progress =
+                progressConfig[status as keyof typeof progressConfig] ||
+                progressConfig['Researching'];
+
               return (
                 <div
                   key={job.id}
                   className={`job-card ${isSelected ? 'selected' : ''}`}
+                  style={{
+                    backgroundColor: `color-mix(in srgb, ${progress.color} 20%, transparent)`,
+                  }}
                   onClick={() => selectJob(filteredIndex)}
                 >
                   <div className="job-card-header">

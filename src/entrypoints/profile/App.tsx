@@ -36,6 +36,7 @@ import {
   useValidationEditorClass,
 } from './components/ValidationPanel';
 import { Modal } from '@/components/ui/Modal';
+import { CloseIcon } from '@/components/ui/icons';
 
 // Constants
 const PROGRESS_MESSAGE_INTERVAL_MS = 1000; // Cycle progress messages every 1 second
@@ -682,7 +683,7 @@ BULLETS:
               className="template-panel-close"
               title="Hide template"
             >
-              ✕
+              {CloseIcon}
             </button>
           </div>
           <div className="template-content">{PROFILE_TEMPLATE}</div>

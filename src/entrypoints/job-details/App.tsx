@@ -17,6 +17,12 @@ import {
 } from '../../components/ui/SortIconButtons';
 import { Dropdown } from '../../components/ui/Dropdown';
 import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ProfileIcon,
+  CloseIcon,
+} from '../../components/ui/icons';
+import {
   getAllStorageData,
   restoreStorageFromBackup,
   clearAllStorage,
@@ -509,7 +515,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
             title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
             aria-label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
           >
-            {sidebarCollapsed ? '▶' : '◀'}
+            {sidebarCollapsed ? ChevronRightIcon : ChevronLeftIcon}
           </button>
           <h1>Sir Hires</h1>
         </div>
@@ -519,7 +525,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
             onClick={handleProfileClick}
             title="Profile"
           >
-            👤
+            {ProfileIcon}
           </button>
           <Dropdown
             isOpen={isMenuOpen}
@@ -634,7 +640,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
                         }}
                         title="Delete this job"
                       >
-                        ✕
+                        {CloseIcon}
                       </button>
                     )}
                   </div>

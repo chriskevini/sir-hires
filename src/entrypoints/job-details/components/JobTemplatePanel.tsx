@@ -1,4 +1,5 @@
 import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel';
+import { CloseIcon } from '@/components/ui/icons';
 import { escapeHtml } from '@/utils/shared-utils';
 import { JOB_TEMPLATE } from '@/tasks';
 
@@ -25,7 +26,7 @@ export function JobTemplatePanel({
         <>
           <h3>📖 Job Template</h3>
           <button className="template-panel-close" onClick={onClose}>
-            ✕
+            {CloseIcon}
           </button>
         </>
       }

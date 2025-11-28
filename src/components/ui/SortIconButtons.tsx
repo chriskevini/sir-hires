@@ -1,3 +1,11 @@
+import type { ReactNode } from 'react';
+import {
+  ArrowUpIcon,
+  ArrowDownIcon,
+  CalendarIcon,
+  BuildingIcon,
+  DocumentIcon,
+} from './icons';
 import './SortIconButtons.css';
 
 export type SortField = 'date' | 'company' | 'title';
@@ -12,145 +20,10 @@ interface SortIconButtonsProps {
   onChange: (field: SortField, direction: SortDirection) => void;
 }
 
-// Simple inline SVG icons (lightweight, consistent rendering)
-const icons = {
-  date: (
-    <svg viewBox="0 0 16 16" fill="currentColor" className="sort-icon-svg">
-      <rect
-        x="2"
-        y="3"
-        width="12"
-        height="11"
-        rx="1"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-      <line
-        x1="2"
-        y1="6"
-        x2="14"
-        y2="6"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-      <line
-        x1="5"
-        y1="1"
-        x2="5"
-        y2="4"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <line
-        x1="11"
-        y1="1"
-        x2="11"
-        y2="4"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  ),
-  company: (
-    <svg viewBox="0 0 16 16" fill="currentColor" className="sort-icon-svg">
-      <rect
-        x="3"
-        y="4"
-        width="10"
-        height="11"
-        rx="1"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-      <line
-        x1="6"
-        y1="7"
-        x2="6"
-        y2="7.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <line
-        x1="10"
-        y1="7"
-        x2="10"
-        y2="7.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <line
-        x1="6"
-        y1="10"
-        x2="6"
-        y2="10.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <line
-        x1="10"
-        y1="10"
-        x2="10"
-        y2="10.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <path
-        d="M6 15 L6 12 L10 12 L10 15"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-    </svg>
-  ),
-  title: (
-    <svg viewBox="0 0 16 16" fill="currentColor" className="sort-icon-svg">
-      <rect
-        x="2"
-        y="2"
-        width="12"
-        height="12"
-        rx="1"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      />
-      <line
-        x1="4"
-        y1="5"
-        x2="12"
-        y2="5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <line
-        x1="4"
-        y1="8"
-        x2="10"
-        y2="8"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-      <line
-        x1="4"
-        y1="11"
-        x2="8"
-        y2="11"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  ),
+const icons: Record<SortField, ReactNode> = {
+  date: CalendarIcon,
+  company: BuildingIcon,
+  title: DocumentIcon,
 };
 
 const tooltips: Record<SortField, string> = {
@@ -163,7 +36,7 @@ const tooltips: Record<SortField, string> = {
  * Icon-based sort selector.
  * - Click an icon to sort by that field
  * - Click the same icon again to reverse direction
- * - Active sort shows direction arrow (▲/▼)
+ * - Active sort shows direction arrow
  */
 export function SortIconButtons({
   sortField,
@@ -200,7 +73,7 @@ export function SortIconButtons({
             {icons[field]}
             {isActive && (
               <span className="sort-direction-arrow">
-                {sortDirection === 'asc' ? '▲' : '▼'}
+                {sortDirection === 'asc' ? ArrowUpIcon : ArrowDownIcon}
               </span>
             )}
           </button>

@@ -47,7 +47,7 @@
 }
 
 /* SVG icon sizing */
-.sort-icon-svg {
+.sort-icon-btn .icon-svg {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
@@ -56,8 +56,13 @@
 /* Direction arrow - positioned absolutely so it doesn't shift the icon */
 .sort-direction-arrow {
   position: absolute;
-  bottom: 1px;
-  right: 1px;
-  font-size: 7px;
-  line-height: 1;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+}
+
+.sort-direction-arrow .icon-svg {
+  width: 10px;
+  height: 10px;
 }

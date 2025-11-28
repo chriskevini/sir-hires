@@ -5,6 +5,7 @@ import type { Job } from '../../entrypoints/job-details/hooks';
 import { defaults } from '@/config';
 import { JobHeader } from '../ui/JobHeader';
 import { JobFooter } from '../ui/JobFooter';
+import { Button } from '../ui/Button';
 import './JobViewRouter.css';
 
 /**
@@ -143,18 +144,15 @@ export function JobViewRouter({
               This panel is coming soon!
             </div>
             <div className="job-view-wip-actions">
-              <button
-                className="btn btn-link"
+              <Button
+                variant="link"
                 onClick={() => window.open(job.url, '_blank')}
               >
                 View Job Posting
-              </button>
-              <button
-                className="btn btn-delete"
-                onClick={() => onDeleteJob(job.id)}
-              >
+              </Button>
+              <Button variant="danger" onClick={() => onDeleteJob(job.id)}>
                 Delete
-              </button>
+              </Button>
             </div>
           </div>
         );

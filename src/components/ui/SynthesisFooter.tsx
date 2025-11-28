@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from './Button';
 import './SynthesisFooter.css';
 
 // 20 hardcoded tones for document synthesis
@@ -57,7 +58,8 @@ export const SynthesisFooter: React.FC<SynthesisFooterProps> = ({
   return (
     <div className="synthesis-footer">
       <div className="synthesis-tone-group">
-        <button
+        <Button
+          variant="ghost"
           className="btn-refresh-tone"
           onClick={onRefreshTone}
           disabled={disabled || isSynthesizing}
@@ -65,7 +67,7 @@ export const SynthesisFooter: React.FC<SynthesisFooterProps> = ({
           aria-label="Random tone"
         >
           <span className="refresh-icon">&#x21bb;</span>
-        </button>
+        </Button>
         <label htmlFor="synthesisFooterTone" className="tone-label">
           Tone:
         </label>
@@ -80,17 +82,22 @@ export const SynthesisFooter: React.FC<SynthesisFooterProps> = ({
         />
       </div>
       {isSynthesizing ? (
-        <button className="btn-cancel-synthesis" onClick={onCancel}>
+        <Button
+          variant="secondary"
+          className="btn-cancel-synthesis"
+          onClick={onCancel}
+        >
           Cancel
-        </button>
+        </Button>
       ) : (
-        <button
+        <Button
+          variant="primary"
           className="btn-synthesize-footer"
           onClick={onSynthesize}
           disabled={disabled}
         >
           Synthesize
-        </button>
+        </Button>
       )}
     </div>
   );

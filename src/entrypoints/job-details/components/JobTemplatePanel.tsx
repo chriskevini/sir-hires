@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/Button';
 import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel';
 import { CloseIcon } from '@/components/ui/icons';
 import { escapeHtml } from '@/utils/shared-utils';
@@ -25,9 +26,13 @@ export function JobTemplatePanel({
       header={
         <>
           <h3>📖 Job Template</h3>
-          <button className="template-panel-close" onClick={onClose}>
+          <Button
+            variant="ghost"
+            className="template-panel-close"
+            onClick={onClose}
+          >
             {CloseIcon}
-          </button>
+          </Button>
         </>
       }
       className="template-panel"

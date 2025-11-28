@@ -13,6 +13,7 @@ import {
 } from '@/utils/job-parser';
 import type { Job } from '@/entrypoints/job-details/hooks';
 import { CloseIcon } from '../ui/icons';
+import { Button } from '../ui/Button';
 import './JobSelector.css';
 
 interface JobSelectorProps {
@@ -234,7 +235,8 @@ export function JobSelector({
                   {status}
                 </span>
                 {isSelected && (
-                  <button
+                  <Button
+                    variant="danger"
                     className="job-selector-delete-btn"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -243,7 +245,7 @@ export function JobSelector({
                     title="Delete this job"
                   >
                     {CloseIcon}
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>

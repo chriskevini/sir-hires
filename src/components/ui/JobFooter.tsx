@@ -1,5 +1,6 @@
 import React from 'react';
 import { getNavigationButtons, statusStyles } from '@/config';
+import { Button } from './Button';
 import type { ChecklistItem } from '@/entrypoints/job-details/hooks';
 import './JobFooter.css';
 
@@ -91,7 +92,8 @@ export const JobFooter: React.FC<JobFooterProps> = ({
         {/* Left: Back button */}
         <div className="job-footer-left">
           {navButtons.left && (
-            <button
+            <Button
+              variant="ghost"
               className="job-footer-nav-btn back"
               onClick={() => onNavigate(navButtons.left!.target)}
               style={{ '--nav-color': leftTargetColor } as React.CSSProperties}
@@ -101,13 +103,14 @@ export const JobFooter: React.FC<JobFooterProps> = ({
               <span className="job-footer-nav-label">
                 {navButtons.left.label}
               </span>
-            </button>
+            </Button>
           )}
         </div>
 
         {/* Center: Checklist toggle */}
         <div className="job-footer-center">
-          <button
+          <Button
+            variant="ghost"
             className={`job-footer-checklist-toggle ${isChecklistExpanded ? 'expanded' : ''}`}
             onClick={handleChecklistToggle}
             title={isChecklistExpanded ? 'Hide checklist' : 'Show checklist'}
@@ -123,7 +126,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
                 />
               ))}
             </span>
-          </button>
+          </Button>
         </div>
 
         {/* Right: Forward button(s) */}
@@ -131,8 +134,9 @@ export const JobFooter: React.FC<JobFooterProps> = ({
           {navButtons.right.map((button, index) => {
             const targetColor = statusStyles[button.target]?.color || '#757575';
             return (
-              <button
+              <Button
                 key={index}
+                variant="ghost"
                 className="job-footer-nav-btn forward"
                 onClick={() => onNavigate(button.target)}
                 style={{ '--nav-color': targetColor } as React.CSSProperties}
@@ -140,7 +144,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
               >
                 <span className="job-footer-nav-label">{button.label}</span>
                 <span className="job-footer-nav-arrow">→</span>
-              </button>
+              </Button>
             );
           })}
         </div>

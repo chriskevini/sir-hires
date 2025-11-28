@@ -36,6 +36,7 @@ import {
   useValidationEditorClass,
 } from './components/ValidationPanel';
 import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
 import { CloseIcon } from '@/components/ui/icons';
 
 // Constants
@@ -651,9 +652,9 @@ BULLETS:
     <div className="container">
       <header>
         <div className="header-left">
-          <button onClick={goBack} className="btn-back">
+          <Button variant="secondary" size="sm" onClick={goBack}>
             ← Back to Jobs
-          </button>
+          </Button>
           <h1>Profile</h1>
         </div>
         <div className="header-right">
@@ -677,14 +678,14 @@ BULLETS:
           className={`template-panel ${isTemplatePanelVisible ? '' : 'hidden'}`}
         >
           <div className="template-panel-header">
-            <h3>📖 Profile Template</h3>
-            <button
+            <h3>Profile Template</h3>
+            <Button
+              variant="ghost"
               onClick={() => toggleTemplatePanel(false)}
-              className="template-panel-close"
               title="Hide template"
             >
               {CloseIcon}
-            </button>
+            </Button>
           </div>
           <div className="template-content">{PROFILE_TEMPLATE}</div>
         </div>
@@ -737,18 +738,15 @@ BULLETS:
             </div>
           </div>
           <div className="modal-actions">
-            <button
+            <Button
+              variant="secondary"
               onClick={() => setShowConfirmDialog(false)}
-              className="modal-btn-secondary"
             >
               Cancel
-            </button>
-            <button
-              onClick={handleConfirmExtraction}
-              className="modal-btn-primary"
-            >
+            </Button>
+            <Button variant="primary" onClick={handleConfirmExtraction}>
               Continue with Extraction
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>
@@ -765,29 +763,30 @@ BULLETS:
       />
 
       <footer>
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => toggleTemplatePanel(!isTemplatePanelVisible)}
-          className="template-guide-show"
         >
-          📖 Toggle Template
-        </button>
-        <button
+          Toggle Template
+        </Button>
+        <Button
+          variant={isExtracting ? 'danger' : 'primary'}
           onClick={handleExtractClick}
-          className={isExtracting ? 'btn-cancel-extraction' : 'btn-extract'}
           disabled={isExtracting && !content.trim()}
         >
-          {isExtracting ? '❌ Cancel Extraction' : '✨ Extract with LLM'}
-        </button>
+          {isExtracting ? 'Cancel Extraction' : 'Extract with LLM'}
+        </Button>
         <div className="export-buttons">
-          <button onClick={formatProfile} className="btn-export">
+          <Button variant="secondary" size="sm" onClick={formatProfile}>
             Fix Formatting
-          </button>
-          <button onClick={exportMarkdown} className="btn-export">
+          </Button>
+          <Button variant="secondary" size="sm" onClick={exportMarkdown}>
             Export .md
-          </button>
-          <button onClick={exportText} className="btn-export">
+          </Button>
+          <Button variant="secondary" size="sm" onClick={exportText}>
             Export .txt
-          </button>
+          </Button>
         </div>
       </footer>
     </div>

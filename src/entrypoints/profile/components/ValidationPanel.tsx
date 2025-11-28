@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDownIcon, ChevronUpIcon } from '@/components/ui/icons';
+import { Button } from '@/components/ui/Button';
 import type {
   ValidationResult,
   ValidationFix,
@@ -106,22 +107,22 @@ export function ValidationPanel({
         <div className="quick-actions">
           <span className="quick-actions-label">Quick Actions:</span>
           {onInsertEducation && (
-            <button
+            <Button
+              variant="link"
               onClick={onInsertEducation}
-              className="quick-action-btn"
               title="Insert a new education entry"
             >
               + Education
-            </button>
+            </Button>
           )}
           {onInsertExperience && (
-            <button
+            <Button
+              variant="link"
               onClick={onInsertExperience}
-              className="quick-action-btn"
               title="Insert a new experience entry"
             >
               + Experience
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -144,14 +145,14 @@ export function ValidationPanel({
                   >
                     {error.message}. Allowed:
                     {fix.allowedValues?.map((value) => (
-                      <button
+                      <Button
                         key={value}
-                        className="fix-button"
+                        variant="link"
                         onClick={() => onApplyFix(fix, value)}
                         title={`Replace with ${value}`}
                       >
                         {value}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 );
@@ -164,13 +165,13 @@ export function ValidationPanel({
                 >
                   {error.message}
                   {fix && (
-                    <button
-                      className="fix-button"
+                    <Button
+                      variant="link"
                       onClick={() => onApplyFix(fix)}
                       title={fix.description}
                     >
                       {fix.buttonLabel}
-                    </button>
+                    </Button>
                   )}
                 </div>
               );
@@ -185,13 +186,13 @@ export function ValidationPanel({
                 >
                   {warning.message}
                   {fix && (
-                    <button
-                      className="fix-button"
+                    <Button
+                      variant="link"
                       onClick={() => onApplyFix(fix)}
                       title={fix.description}
                     >
                       {fix.buttonLabel}
-                    </button>
+                    </Button>
                   )}
                 </div>
               );

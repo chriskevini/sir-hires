@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from '@/components/ui/Button';
 import { getCompleteLines } from '@/utils/text-utils';
 import '@/components/features/JobViewRouter.css';
 import '../views/ResearchingView.css';
@@ -44,9 +45,9 @@ export const ExtractionLoadingView: React.FC<ExtractionLoadingViewProps> = ({
         </div>
       </div>
       <div className="extraction-actions">
-        <button className="btn btn-cancel" onClick={onDelete}>
+        <Button variant="secondary" onClick={onDelete}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );

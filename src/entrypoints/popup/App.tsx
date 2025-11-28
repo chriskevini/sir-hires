@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useLLMSettings } from '../../hooks/useLLMSettings';
-import { DEFAULT_ENDPOINT } from '../../utils/llm-utils';
+import { useLLMSettings } from '@/hooks/useLLMSettings';
+import { DEFAULT_ENDPOINT } from '@/utils/llm-utils';
+import { Button } from '@/components/ui/Button';
 import './styles.css';
 
 export function App() {
@@ -65,15 +66,14 @@ export function App() {
               onChange={(e) => setServerUrl(e.target.value)}
               placeholder="http://localhost:1234"
             />
-            <button
-              type="button"
-              className="btn-icon-only"
+            <Button
+              variant="ghost"
               onClick={handleRefresh}
               disabled={status === 'loading'}
               title="Refresh connection"
             >
               {status === 'loading' ? '...' : '↻'}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -120,14 +120,13 @@ export function App() {
             </div>
 
             {/* Advanced Settings Toggle */}
-            <button
-              type="button"
-              className="btn btn-secondary"
+            <Button
+              variant="secondary"
               onClick={() => setShowAdvanced(!showAdvanced)}
               style={{ marginTop: '4px' }}
             >
               {showAdvanced ? 'Hide' : 'Show'} Advanced Settings
-            </button>
+            </Button>
 
             {/* Per-Task Settings (collapsible) */}
             {showAdvanced && (
@@ -217,20 +216,16 @@ export function App() {
                 </div>
 
                 {/* Reset to Defaults */}
-                <button
-                  type="button"
-                  className="btn-link"
-                  onClick={handleResetDefaults}
-                >
+                <Button variant="link" onClick={handleResetDefaults}>
                   Reset to defaults
-                </button>
+                </Button>
               </div>
             )}
 
             {/* Save Button */}
-            <button className="btn btn-primary" onClick={handleSave}>
+            <Button variant="primary" onClick={handleSave}>
               {saveMessage || 'Save'}
-            </button>
+            </Button>
           </>
         )}
 

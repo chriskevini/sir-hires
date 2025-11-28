@@ -7,12 +7,9 @@ interface EditorToolbarProps {
   documentKeys: string[];
   documentLabels: Record<string, string>;
   activeTab: string;
-  exportDropdownOpen: boolean;
   onTabChange: (key: string) => void;
   onAddDocument?: () => void;
   onDeleteDocument?: (documentKey: string) => void;
-  onToggleExportDropdown: () => void;
-  onCloseExportDropdown: () => void;
   onExport: (type: 'md' | 'pdf') => void;
 }
 
@@ -20,12 +17,9 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   documentKeys,
   documentLabels,
   activeTab,
-  exportDropdownOpen,
   onTabChange,
   onAddDocument,
   onDeleteDocument,
-  onToggleExportDropdown,
-  onCloseExportDropdown,
   onExport,
 }) => {
   return (
@@ -42,20 +36,14 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
       />
       <div className="editor-actions">
         <Dropdown
-          isOpen={exportDropdownOpen}
-          onToggle={onToggleExportDropdown}
-          onClose={onCloseExportDropdown}
           buttonLabel="Export"
-          buttonIcon="📥"
           items={[
             {
               label: 'Export as Markdown (.md)',
-              icon: '📄',
               onClick: () => onExport('md'),
             },
             {
               label: 'Export as PDF (.pdf)',
-              icon: '📑',
               onClick: () => onExport('pdf'),
             },
           ]}

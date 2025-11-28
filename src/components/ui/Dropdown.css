@@ -1,6 +1,6 @@
 /* ===================================================================
    Dropdown Component Styles
-   Generic dropdown menu with toggle button
+   Generic dropdown menu using native HTML Popover API
    =================================================================== */
 
 .dropdown-container {
@@ -8,23 +8,8 @@
 }
 
 .btn-dropdown {
-  background-color: #1a73e8;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
   font-size: 13px;
-  font-weight: 500;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.btn-dropdown:hover {
-  background-color: #1765cc;
-  box-shadow: 0 2px 4px rgba(26, 115, 232, 0.3);
+  padding: 8px 16px;
 }
 
 /* Icon-only button variant (e.g., overflow menu ⋮) */
@@ -43,16 +28,19 @@
   box-shadow: none;
 }
 
+/* Popover menu - positioned in top layer by browser */
 .dropdown-menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
+  /* Reset popover defaults */
+  margin: 0;
+  padding: 0;
+  border: none;
+
+  /* Visual styling */
   background-color: white;
   border: 1px solid #e0e0e0;
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 200px;
-  z-index: 100;
   overflow: hidden;
 }
 
@@ -77,9 +65,9 @@
 
 /* Danger variant for destructive actions */
 .dropdown-item.dropdown-item-danger {
-  color: #d93025;
+  color: #c5221f;
 }
 
 .dropdown-item.dropdown-item-danger:hover {
-  background-color: #fce8e6;
+  background-color: #f5f5f5;
 }

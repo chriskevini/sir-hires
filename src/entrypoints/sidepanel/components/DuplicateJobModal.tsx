@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from '@/components/ui/Button';
 import { Modal } from '../../../components/ui/Modal';
 
 interface DuplicateJobModalProps {
@@ -50,8 +51,8 @@ export const DuplicateJobModal: React.FC<DuplicateJobModalProps> = ({
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <button
-            className="btn btn-primary"
+          <Button
+            variant="primary"
             onClick={onRefresh}
             style={{
               width: '100%',
@@ -67,10 +68,10 @@ export const DuplicateJobModal: React.FC<DuplicateJobModalProps> = ({
               Update job description only. Preserves your checklist, documents,
               and status.
             </span>
-          </button>
+          </Button>
 
-          <button
-            className="btn btn-secondary"
+          <Button
+            variant="secondary"
             onClick={onExtractNew}
             style={{
               width: '100%',
@@ -85,10 +86,10 @@ export const DuplicateJobModal: React.FC<DuplicateJobModalProps> = ({
             <span style={{ fontSize: '12px', opacity: 0.9 }}>
               Create a separate job entry with a new ID.
             </span>
-          </button>
+          </Button>
 
-          <button
-            className="btn btn-tertiary"
+          <Button
+            variant="secondary"
             onClick={onCancel}
             style={{
               width: '100%',
@@ -96,7 +97,7 @@ export const DuplicateJobModal: React.FC<DuplicateJobModalProps> = ({
             }}
           >
             ✖️ Cancel
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>

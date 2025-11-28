@@ -6,7 +6,86 @@ Complete reference for all reusable components in the project. For quick lookup,
 
 ## 🎨 UI Components (`src/components/ui/`)
 
-### 1. Modal
+### 1. Button
+
+**File:** `src/components/ui/Button.tsx:17`
+
+**Purpose:** Unified button component with consistent styling across all variants.
+
+**When to Use:**
+
+- **ALWAYS** use this for any clickable button in the app
+- Replaces all ad-hoc button styling
+- Supports ref forwarding for positioning (e.g., dropdowns)
+
+**Props:**
+
+```typescript
+type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'danger'
+  | 'subtle'
+  | 'link'
+  | 'ghost';
+type ButtonSize = 'sm' | 'md' | 'lg';
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant; // Default: 'primary'
+  size?: ButtonSize; // Default: 'md'
+  children: React.ReactNode;
+}
+```
+
+**Variants:**
+
+| Variant     | Use Case                        | Appearance                    |
+| ----------- | ------------------------------- | ----------------------------- |
+| `primary`   | Main CTA (Save, Submit)         | Purple background, white text |
+| `secondary` | Cancel, Back                    | Grey outline                  |
+| `danger`    | Delete, destructive actions     | Red background, white text    |
+| `subtle`    | Dismiss, close                  | No background, grey text      |
+| `link`      | Inline actions                  | Blue text, underline on hover |
+| `ghost`     | Custom styling (dropdown items) | Transparent, no base styles   |
+
+**Real Usage Examples:**
+
+```typescript
+// Primary CTA
+<Button variant="primary" onClick={handleSave}>Save Changes</Button>
+
+// Secondary action
+<Button variant="secondary" onClick={handleCancel}>Cancel</Button>
+
+// Danger action
+<Button variant="danger" onClick={handleDelete}>Delete</Button>
+
+// Small size
+<Button variant="primary" size="sm">Small Button</Button>
+
+// With ref (for positioning)
+const buttonRef = useRef<HTMLButtonElement>(null);
+<Button ref={buttonRef} onClick={handleClick}>Anchored</Button>
+
+// Ghost variant for custom styling
+<Button variant="ghost" className="my-custom-button">Custom</Button>
+```
+
+**Key Features:**
+
+- ✅ Supports `forwardRef` for ref-based positioning
+- ✅ All standard button attributes (`disabled`, `type`, `onClick`, etc.)
+- ✅ Ghost variant skips `.btn` base class for full CSS control
+- ✅ Size variants only apply to solid buttons (not subtle/link/ghost)
+
+**Anti-Pattern:**
+
+❌ Using raw `<button>` with inline styles or ad-hoc classes  
+✅ Always use `<Button variant="...">` for consistency
+
+---
+
+### 2. Modal
 
 **File:** `src/components/ui/Modal.tsx:12`
 
@@ -349,9 +428,9 @@ import { TabBar } from '@/components/ui/TabBar';
 
 ### 7. Dropdown
 
-**File:** `src/components/ui/Dropdown.tsx:23`
+**File:** `src/components/ui/Dropdown.tsx:26`
 
-**Purpose:** Dropdown menu with toggle button, outside-click detection, and keyboard handling.
+**Purpose:** Dropdown menu using **native HTML Popover API**. Browser handles click-outside, Escape key, and focus management automatically.
 
 **When to Use:**
 
@@ -371,9 +450,6 @@ interface DropdownItem {
 }
 
 interface DropdownProps {
-  isOpen: boolean;
-  onToggle: () => void;
-  onClose: () => void;
   buttonLabel: string;
   buttonIcon?: string;
   iconOnly?: boolean; // When true, only shows icon (no label or caret)
@@ -385,52 +461,63 @@ interface DropdownProps {
 **Real Usage Example:**
 
 ```typescript
-// From: src/components/ui/EditorToolbar.tsx:46
+// From: src/components/ui/EditorToolbar.tsx
 import { Dropdown } from '@/components/ui/Dropdown';
 
+// Standard dropdown with label
 <Dropdown
-  isOpen={exportDropdownOpen}
-  onToggle={onToggleExportDropdown}
-  onClose={onCloseExportDropdown}
   buttonLabel="Export"
   buttonIcon="📥"
   items={[
     {
       label: 'Export as Markdown (.md)',
-      icon: '📄',
       onClick: () => onExport('md'),
     },
     {
       label: 'Export as PDF (.pdf)',
-      icon: '📑',
       onClick: () => onExport('pdf'),
     },
   ]}
   className="export-dropdown"
 />
 
-// Icon-only overflow menu example (from job-details App.tsx)
+// Icon-only overflow menu (from job-details App.tsx)
 <Dropdown
-  isOpen={isMenuOpen}
-  onToggle={toggleMenu}
-  onClose={closeMenu}
   buttonLabel="More options"
   buttonIcon="⋮"
   iconOnly={true}
   items={[
-    { label: 'Create Backup', icon: '💾', onClick: handleCreateBackup },
-    { label: 'Restore Backup', icon: '📂', onClick: handleRestoreBackup },
-    { label: 'Delete All', icon: '🗑️', onClick: handleDeleteAll, variant: 'danger' },
+    { label: 'Create Backup', onClick: handleCreateBackup },
+    { label: 'Restore Backup', onClick: handleRestoreBackup },
+    { label: 'Delete All', onClick: handleDeleteAll, variant: 'danger' },
   ]}
 />
 ```
 
 **Key Features:**
 
-- ✅ Outside-click detection with `useRef`
-- ✅ Controlled open/close state
-- ✅ Automatic menu positioning (CSS)
+- ✅ **Native Popover API** - No manual state management needed
+- ✅ Browser handles click-outside and Escape key automatically
+- ✅ Automatic menu positioning (fixed, aligned to button)
 - ✅ Icon support for button and items
+- ✅ Danger variant for destructive actions (red text)
+
+**Migration Note (v1.1):**
+
+The Dropdown component was refactored from manual state management to native HTML Popover API:
+
+| Before (v1.0)             | After (v1.1)            |
+| ------------------------- | ----------------------- |
+| `isOpen` prop required    | No state props needed   |
+| `onToggle` prop required  | Browser handles toggle  |
+| `onClose` prop required   | Browser handles close   |
+| Manual click-outside code | Native `popover="auto"` |
+| Manual Escape handling    | Native browser behavior |
+
+**Anti-Pattern:**
+
+❌ Passing `isOpen`, `onToggle`, `onClose` props (no longer supported)  
+✅ Just pass `buttonLabel` and `items` - component is self-contained
 
 ---
 

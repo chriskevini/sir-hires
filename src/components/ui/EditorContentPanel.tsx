@@ -1,6 +1,7 @@
 import React from 'react';
 import { escapeHtml } from '@/utils/shared-utils';
 import { ChevronDownIcon } from './icons';
+import { Button } from './Button';
 import './EditorContentPanel.css';
 
 interface EditorContentPanelProps {
@@ -35,9 +36,13 @@ export const EditorContentPanel: React.FC<EditorContentPanelProps> = ({
       <div className="thinking-stream-panel hidden">
         <div className="thinking-header">
           <span className="thinking-title">🤔 AI Thinking Process</span>
-          <button className="thinking-toggle-btn" title="Collapse">
+          <Button
+            variant="ghost"
+            className="thinking-toggle-btn"
+            title="Collapse"
+          >
             {ChevronDownIcon}
-          </button>
+          </Button>
         </div>
         <textarea className="thinking-content" readOnly />
       </div>

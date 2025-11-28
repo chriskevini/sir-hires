@@ -367,3 +367,33 @@
   text-align: center;
   padding: 16px;
 }
+
+/* ===================================================================
+   Extraction Actions (matches JobFooter height: 56px)
+   =================================================================== */
+.extraction-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 12px 16px;
+  border-top: 1px solid #e0e0e0;
+  background-color: #fff;
+  flex-shrink: 0;
+  min-height: 56px;
+  box-sizing: border-box;
+}
+
+.extraction-actions .btn-cancel {
+  background-color: #d32f2f;
+  color: #fff;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color 0.2s;
+}
+
+.extraction-actions .btn-cancel:hover {
+  background-color: #b71c1c;
+}

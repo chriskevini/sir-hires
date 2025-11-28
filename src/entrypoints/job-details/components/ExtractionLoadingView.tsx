@@ -1,13 +1,10 @@
 import React from 'react';
-import { EditorHeader } from '@/components/ui/EditorHeader';
-import { escapeHtml } from '@/utils/shared-utils';
 import { getCompleteLines } from '@/utils/text-utils';
+import '@/components/features/JobViewRouter.css';
 import '../views/ResearchingView.css';
 
 interface ExtractionLoadingViewProps {
   content: string;
-  jobTitle: string;
-  company: string;
   jobId: string;
   onDelete: () => void;
 }
@@ -15,42 +12,40 @@ interface ExtractionLoadingViewProps {
 /**
  * ExtractionLoadingView - Displays streaming extraction state
  * Shows partial content while LLM is extracting job details
+ *
+ * Structure matches JobViewRouter for seamless transitions:
+ * - .job-view-container wrapper (same as JobViewRouter)
+ * - .job-view-content with 16px padding (scrollable content area)
+ * - .extraction-actions footer (matches JobFooter height: 56px)
  */
 export const ExtractionLoadingView: React.FC<ExtractionLoadingViewProps> = ({
   content,
-  jobTitle,
-  company,
   jobId,
   onDelete,
 }) => {
   const partialContent = getCompleteLines(content);
 
   return (
-    <div className="job-card researching-editor">
-      <div className="editor-layout">
-        <div className="editor-panel">
-          <EditorHeader
-            title={escapeHtml(jobTitle || 'Untitled Position')}
-            subtitle={`at ${escapeHtml(company || 'Unknown Company')}`}
-            actions={
-              <div className="editor-status">
-                <span className="status-badge extracting">Extracting...</span>
-              </div>
-            }
-          />
-          <textarea
-            id="jobEditor"
-            className="job-markdown-editor extracting"
-            readOnly
-            data-job-id={jobId}
-            placeholder="Waiting for LLM response..."
-            value={partialContent}
-          />
+    <div className="job-view-container compact">
+      <div className="job-view-content">
+        <div className="researching-editor">
+          <div className="editor-layout">
+            <div className="editor-panel">
+              <textarea
+                id="jobEditor"
+                className="job-markdown-editor extracting"
+                readOnly
+                data-job-id={jobId}
+                placeholder="Waiting for LLM response..."
+                value={partialContent}
+              />
+            </div>
+          </div>
         </div>
       </div>
-      <div className="job-actions">
-        <button className="btn btn-delete" onClick={onDelete}>
-          Cancel & Delete
+      <div className="extraction-actions">
+        <button className="btn btn-cancel" onClick={onDelete}>
+          Cancel
         </button>
       </div>
     </div>

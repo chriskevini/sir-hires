@@ -1,4 +1,4 @@
-import { statusStyles, defaults } from '@/config';
+import { defaults } from '@/config';
 import {
   getJobTitle,
   getCompanyName,
@@ -6,6 +6,7 @@ import {
 } from '@/utils/job-parser';
 import { X } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { StatusBadge, getStatusBackground } from '../ui/StatusBadge';
 import { cn } from '@/lib/utils';
 
 interface JobCardProps {
@@ -48,7 +49,7 @@ export function JobCard({
   showDeleteButton = isSelected,
 }: JobCardProps) {
   const normalizedStatus = status || defaults.status;
-  const styles = statusStyles[normalizedStatus] || statusStyles['Researching'];
+  const cardBackground = getStatusBackground(normalizedStatus);
 
   const title = parsed ? getJobTitle(parsed) || 'Untitled' : 'Untitled';
   const company = parsed ? getCompanyName(parsed) || 'Unknown' : 'Unknown';
@@ -63,7 +64,7 @@ export function JobCard({
         isSelected && 'border-blue-600 border-2'
       )}
       style={{
-        backgroundColor: styles.cardBg,
+        backgroundColor: cardBackground,
       }}
       onClick={onClick}
     >
@@ -72,12 +73,7 @@ export function JobCard({
           {title}
         </div>
         <div className="text-xs text-neutral-600 mb-1">{company}</div>
-        <span
-          className="inline-block px-2 py-0.5 rounded-xl text-[10px] font-medium w-fit text-white"
-          style={{ backgroundColor: styles.color }}
-        >
-          {normalizedStatus}
-        </span>
+        <StatusBadge status={normalizedStatus} size="sm" className="w-fit" />
         {showDeleteButton && (
           <Button
             variant="ghost"

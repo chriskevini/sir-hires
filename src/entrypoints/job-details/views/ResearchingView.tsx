@@ -3,6 +3,7 @@ import { escapeHtml } from '@/utils/shared-utils';
 import { useToggleState, useJobValidation, ChecklistItem } from '../hooks';
 import { useImmediateSave } from '@/hooks/useImmediateSave';
 import { ValidationPanel } from '@/components/features/ValidationPanel';
+import { StreamingTextarea } from '@/components/ui/StreamingTextarea';
 import { ExtractionLoadingView } from '../components/ExtractionLoadingView';
 import { ExtractionErrorView } from '../components/ExtractionErrorView';
 import { MigrationPromptView } from '../components/MigrationPromptView';
@@ -49,7 +50,7 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
     }
   );
 
-  // Handle textarea change
+  // Handler for ExtractionErrorView (event-based onChange)
   const handleEditorChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setEditorContent(e.target.value);
@@ -101,22 +102,17 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   }
 
   // Render normal editing state
-  // Tailwind equivalent of .job-markdown-editor validation states:
-  // Base: flex-1 w-full p-4 border-l-4 border-gray-200 text-[13px] font-mono leading-relaxed resize-none bg-white overflow-y-auto transition-all
-  // Focus: focus:outline-none focus:border-l-blue-500
-  // has-errors: border-l-red-600
-  // has-warnings: border-l-amber-500
-  // is-valid: border-l-green-600
-  const editorClass = cn(
-    'flex-1 w-full p-4 border-l-4 text-[13px] font-mono leading-relaxed resize-none bg-white overflow-y-auto transition-all',
-    'focus:outline-none focus:border-l-blue-500',
-    'scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100',
-    validation?.valid
-      ? 'border-l-green-600'
-      : validation?.errors?.length
-        ? 'border-l-red-600'
-        : 'border-l-gray-200'
-  );
+  // Build validation messages for StreamingTextarea
+  const validationMessages = [
+    ...(validation?.errors.map((e) => ({
+      type: 'error' as const,
+      message: e.message,
+    })) || []),
+    ...(validation?.warnings.map((w) => ({
+      type: 'warning' as const,
+      message: w.message,
+    })) || []),
+  ];
 
   const errorCount = validation?.errors.length || 0;
   const warningCount = validation?.warnings.length || 0;
@@ -141,13 +137,22 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
     <div className="flex flex-col h-full">
       <div className="flex flex-row flex-1 overflow-hidden">
         {/* Editor Panel */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-white">
-          <textarea
+        <div className="flex-1 flex flex-col overflow-hidden bg-white p-4">
+          <StreamingTextarea
             id="jobEditor"
-            className={editorClass}
             data-job-id={job.id}
             value={editorContent}
-            onChange={handleEditorChange}
+            onChange={setEditorContent}
+            validationMessages={validationMessages}
+            minHeight="100%"
+            className={cn(
+              'flex-1 border-l-4',
+              validation?.valid
+                ? 'border-l-green-600'
+                : validation?.errors?.length
+                  ? 'border-l-red-600'
+                  : 'border-l-gray-200'
+            )}
           />
         </div>
       </div>

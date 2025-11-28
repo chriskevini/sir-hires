@@ -2,6 +2,7 @@ import React from 'react';
 import { escapeHtml } from '@/utils/shared-utils';
 import { ChevronDown } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { StreamingTextarea } from '../ui/StreamingTextarea';
 
 interface EditorContentPanelProps {
   documentKey: string;
@@ -13,6 +14,8 @@ interface EditorContentPanelProps {
   onBlur?: () => void;
   jobId: string;
   disabled?: boolean;
+  /** Whether content is actively streaming from LLM */
+  isStreaming?: boolean;
 }
 
 export const EditorContentPanel: React.FC<EditorContentPanelProps> = ({
@@ -25,6 +28,7 @@ export const EditorContentPanel: React.FC<EditorContentPanelProps> = ({
   onBlur,
   jobId,
   disabled = false,
+  isStreaming = false,
 }) => {
   return (
     <div
@@ -45,23 +49,23 @@ export const EditorContentPanel: React.FC<EditorContentPanelProps> = ({
             <ChevronDown className="h-4 w-4" />
           </Button>
         </div>
-        <textarea
-          className="w-[calc(100%-24px)] min-h-[450px] p-4 font-mono text-[13px] leading-relaxed text-gray-700 bg-white border border-gray-200 rounded m-3 box-border overflow-y-auto whitespace-pre-wrap break-words resize-y focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400"
+        <StreamingTextarea
+          className="w-[calc(100%-24px)] m-3 text-gray-700 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400"
           readOnly
         />
       </div>
 
       {/* Document editor */}
-      <textarea
+      <StreamingTextarea
         ref={textareaRef}
-        className="w-full min-h-[450px] p-4 font-mono text-[13px] leading-relaxed border border-gray-200 rounded resize-y bg-white transition-all duration-200 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
         data-field={`${documentKey}-text`}
         placeholder={escapeHtml(placeholder)}
         data-job-id={jobId}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={onChange}
         onBlur={onBlur}
         disabled={disabled}
+        isStreaming={isStreaming}
       />
     </div>
   );

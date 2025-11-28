@@ -1,5 +1,6 @@
 import React from 'react';
 import { statusStyles } from '@/config';
+import { StatusBadge, getStatusColor } from '@/components/ui/StatusBadge';
 import { cn } from '@/lib/utils';
 
 interface JobHeaderProps {
@@ -55,15 +56,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
           <p className="text-sm text-neutral-500 m-0 leading-tight overflow-hidden text-ellipsis whitespace-nowrap">
             {company || 'Unknown Company'}
           </p>
-          <span
-            className="inline-block py-1 px-2.5 rounded-xl text-xs font-medium mt-1.5 w-fit"
-            style={{
-              backgroundColor: styles.color,
-              color: '#fff',
-            }}
-          >
-            {status}
-          </span>
+          <StatusBadge status={status} className="mt-1.5 w-fit" />
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0 max-[480px]:w-full max-[480px]:justify-start">

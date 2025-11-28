@@ -1,4 +1,5 @@
-import { statusOrder, statusStyles } from '@/config';
+import { statusOrder } from '@/config';
+import { getStatusColor } from '@/components/ui/StatusBadge';
 import { cn } from '@/lib/utils';
 
 interface StatusFilterDotsProps {
@@ -44,7 +45,7 @@ export function StatusFilterDots({
       aria-label="Filter by status"
     >
       {statusOrder.map((status) => {
-        const styles = statusStyles[status] || statusStyles['Researching'];
+        const color = getStatusColor(status);
         const isFilled = isAllSelected || selectedStatuses.includes(status);
 
         return (
@@ -58,9 +59,7 @@ export function StatusFilterDots({
               isFilled ? 'border-transparent' : 'bg-transparent'
             )}
             style={
-              isFilled
-                ? { backgroundColor: styles.color }
-                : { borderColor: styles.color }
+              isFilled ? { backgroundColor: color } : { borderColor: color }
             }
             onClick={() => handleDotClick(status)}
             title={status}

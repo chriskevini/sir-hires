@@ -13,6 +13,7 @@ import {
 } from '@/components/features/NewDocumentModal';
 import { EditorToolbar } from '@/components/features/EditorToolbar';
 import { EditorContentPanel } from '@/components/features/EditorContentPanel';
+import { StreamingTextarea } from '@/components/ui/StreamingTextarea';
 import { EditorFooter } from '@/components/features/EditorFooter';
 import {
   SynthesisFooter,
@@ -577,10 +578,13 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           <div className="relative min-h-[500px]">
             {documentKeys.length === 0 ? (
               <div className="flex flex-col p-5 gap-3">
-                <textarea
-                  className="w-full min-h-[450px] p-4 font-mono text-[13px] leading-relaxed border border-gray-200 rounded resize-y bg-gray-100 text-gray-500"
+                <StreamingTextarea
+                  value=""
+                  onChange={() => {}}
                   placeholder="Click + to create your first document"
                   disabled
+                  minHeight="450px"
+                  className="bg-gray-100 text-gray-500"
                 />
               </div>
             ) : (

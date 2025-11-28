@@ -36,6 +36,7 @@ import {
 } from '@/components/features/ValidationPanel';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { StreamingTextarea } from '@/components/ui/StreamingTextarea';
 import { X } from 'lucide-react';
 
 // Constants
@@ -728,20 +729,22 @@ BULLETS:
         {/* Right Panel: Editor */}
         <div className="flex flex-1 flex-col overflow-hidden">
           <div className="flex flex-1 overflow-hidden p-4">
-            <textarea
+            <StreamingTextarea
               ref={editorRef}
               id="profileEditor"
-              className={`flex-1 w-full resize-none rounded border border-gray-300 bg-white p-4 font-mono text-sm leading-relaxed focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/10 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:opacity-70 ${editorClassName}`}
-              placeholder="Follow the template on the left or paste your resume here and click extract with LLM."
               value={content}
-              onChange={(e) => handleContentChange(e.target.value)}
+              onChange={handleContentChange}
+              placeholder="Follow the template on the left or paste your resume here and click extract with LLM."
               disabled={isExtracting}
+              isStreaming={isExtracting}
+              minHeight="100%"
+              className={`flex-1 w-full resize-none ${editorClassName}`}
             />
           </div>
           {extractionError && (
             <div className="mx-4 mb-3 rounded border border-red-600 bg-red-50 px-4 py-3 text-[13px] leading-normal text-red-900">
               <strong className="mb-1 block font-semibold">
-                ❌ Extraction Error:
+                Extraction Error:
               </strong>{' '}
               {extractionError}
             </div>

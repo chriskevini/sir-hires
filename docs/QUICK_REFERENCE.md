@@ -12,6 +12,7 @@
 
 | Component            | Purpose                              | Key Props                                                | Location                    |
 | -------------------- | ------------------------------------ | -------------------------------------------------------- | --------------------------- |
+| `Button`             | Unified button with variants         | `variant`, `size`, `children`, `ref`                     | `Button.tsx:17`             |
 | `Modal`              | Portal-based modal with overlay      | `isOpen`, `onClose`, `title`, `children`                 | `Modal.tsx:12`              |
 | `CollapsiblePanel`   | Generic collapsible section          | `isCollapsed`, `onToggle`, `header`, `children`          | `CollapsiblePanel.tsx:15`   |
 | `EditorHeader`       | Header with title + action buttons   | `title`, `subtitle`, `actions`                           | `EditorHeader.tsx:14`       |
@@ -19,7 +20,7 @@
 | `EditorContentPanel` | Textarea with LLM thinking panel     | `documentKey`, `value`, `onChange`, `onBlur`             | `EditorContentPanel.tsx:15` |
 | `EditorFooter`       | Footer with save status + word count | `saveStatus`, `wordCount`                                | `EditorFooter.tsx:8`        |
 | `TabBar`             | Tab navigation                       | `tabs`, `activeTab`, `onTabChange`                       | `TabBar.tsx:19`             |
-| `Dropdown`           | Dropdown menu with outside-click     | `isOpen`, `onToggle`, `items`                            | `Dropdown.tsx:23`           |
+| `Dropdown`           | Dropdown menu (native Popover API)   | `buttonLabel`, `buttonIcon`, `items`                     | `Dropdown.tsx:26`           |
 | `StatusSelector`     | Status dropdown with color coding    | `currentStatus`, `onStatusChange`                        | `StatusSelector.tsx:17`     |
 | `ValidationPanel`    | Validation messages (collapsible)    | `isValid`, `errorCount`, `messages`                      | `ValidationPanel.tsx:24`    |
 | `JobHeader`          | Job title + company + link           | `jobTitle`, `company`, `url`                             | `JobHeader.tsx:15`          |
@@ -84,11 +85,12 @@
 ### "I Need to Show..."
 
 ```
+❓ Button → ✅ Button.tsx (never use raw <button>)
 ❓ Modal/Dialog → ✅ Modal.tsx
 ❓ Validation Messages → ✅ ValidationPanel.tsx
 ❓ Collapsible Section → ✅ CollapsiblePanel.tsx
 ❓ Tab Navigation → ✅ TabBar.tsx
-❓ Dropdown Menu → ✅ Dropdown.tsx
+❓ Dropdown Menu → ✅ Dropdown.tsx (no state props needed)
 ❓ Status Selector → ✅ StatusSelector.tsx
 ❓ Status Filter (compact) → ✅ StatusFilterDots.tsx
 ❓ Sort Controls (compact) → ✅ SortIconButtons.tsx
@@ -176,9 +178,11 @@ For complete usage examples, props, and implementation details:
 
 ### Red Flags That Trigger Reuse:
 
+- ❗ "I need a button" → `Button` component (not raw `<button>`)
 - ❗ "I need a modal" → `Modal` component
 - ❗ "I need validation UI" → `ValidationPanel` + `useJobValidation`
 - ❗ "I need collapsible section" → `CollapsiblePanel`
+- ❗ "I need a dropdown menu" → `Dropdown` component (self-contained, no state props)
 - ❗ "I need to toggle something" → `useToggleState`
 - ❗ "I need to manage job state" → `useJobStore`
 - ❗ "I need to parse job data" → `useParsedJob` (wrap with `ParsedJobProvider`)

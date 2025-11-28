@@ -11,6 +11,11 @@ import { getJobTitle, getCompanyName } from '../../utils/job-parser';
 import { initDevModeValidation } from '../../utils/dev-validators';
 import { StatusFilterDots } from '../../components/ui/StatusFilterDots';
 import {
+  SortIconButtons,
+  type SortField,
+  type SortDirection,
+} from '../../components/ui/SortIconButtons';
+import {
   getAllStorageData,
   restoreStorageFromBackup,
   clearAllStorage,
@@ -34,7 +39,8 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   // Local state for UI controls (will be migrated to store.updateFilters in future)
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
-  const [sortOrder, setSortOrder] = useState('newest');
+  const [sortField, setSortField] = useState<SortField>('date');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [error, _setError] = useState<string | null>(null);
 
   // ============================================================================
@@ -161,44 +167,50 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
     });
 
     // Sort jobs using provider's cached parsing
-    if (sortOrder === 'newest') {
+    // Direction multiplier: 1 for ascending, -1 for descending
+    const dirMult = sortDirection === 'asc' ? 1 : -1;
+
+    if (sortField === 'date') {
       filtered = filtered.sort(
         (a: Job, b: Job) =>
-          new Date(b.updatedAt || 0).getTime() -
-          new Date(a.updatedAt || 0).getTime()
+          dirMult *
+          (new Date(a.updatedAt || 0).getTime() -
+            new Date(b.updatedAt || 0).getTime())
       );
-    } else if (sortOrder === 'oldest') {
-      filtered = filtered.sort(
-        (a: Job, b: Job) =>
-          new Date(a.updatedAt || 0).getTime() -
-          new Date(b.updatedAt || 0).getTime()
-      );
-    } else if (sortOrder === 'company') {
+    } else if (sortField === 'company') {
       filtered = filtered.sort((a: Job, b: Job) => {
         const parsedA = getParsedJob(a.id) || null;
         const parsedB = getParsedJob(b.id) || null;
         const companyA = parsedA ? getCompanyName(parsedA) || '' : '';
         const companyB = parsedB ? getCompanyName(parsedB) || '' : '';
-        return companyA.localeCompare(companyB);
+        return dirMult * companyA.localeCompare(companyB);
       });
-    } else if (sortOrder === 'title') {
+    } else if (sortField === 'title') {
       filtered = filtered.sort((a: Job, b: Job) => {
         const parsedA = getParsedJob(a.id) || null;
         const parsedB = getParsedJob(b.id) || null;
         const titleA = parsedA ? getJobTitle(parsedA) || '' : '';
         const titleB = parsedB ? getJobTitle(parsedB) || '' : '';
-        return titleA.localeCompare(titleB);
+        return dirMult * titleA.localeCompare(titleB);
       });
     }
 
     console.info(`[filterJobs] Filtered to ${filtered.length} jobs`, {
       searchTerm,
       statusFilters,
-      sortOrder,
+      sortField,
+      sortDirection,
     });
 
     return filtered;
-  }, [store.jobs, searchTerm, statusFilters, sortOrder, getParsedJob]);
+  }, [
+    store.jobs,
+    searchTerm,
+    statusFilters,
+    sortField,
+    sortDirection,
+    getParsedJob,
+  ]);
 
   // Calculate filtered jobs (memoized via filterJobs callback)
   const filteredJobs = filterJobs();
@@ -503,17 +515,14 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
                 selectedStatuses={statusFilters}
                 onChange={setStatusFilters}
               />
-              <select
-                id="sortFilter"
-                className="filter-input"
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-              >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="company">Company (A-Z)</option>
-                <option value="title">Title (A-Z)</option>
-              </select>
+              <SortIconButtons
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onChange={(field, direction) => {
+                  setSortField(field);
+                  setSortDirection(direction);
+                }}
+              />
             </div>
           </div>
           <div className="jobs-list-sidebar" id="jobsList">

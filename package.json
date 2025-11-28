@@ -36,6 +36,7 @@
     "wxt": "^0.20.11"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-slot": "^1.2.4",
     "@tailwindcss/vite": "^4.1.17",
     "@wxt-dev/module-react": "^1.1.5",

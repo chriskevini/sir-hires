@@ -16,7 +16,6 @@ import {
   type SortDirection,
 } from '../../components/ui/SortIconButtons';
 import { Dropdown } from '../../components/ui/Dropdown';
-import { ChevronLeftIcon, ChevronRightIcon } from '../../components/ui/icons';
 import {
   ChevronLeftIcon,
   ChevronRightIcon,

@@ -73,9 +73,9 @@ export const Dropdown: React.FC<DropdownProps> = ({
         )}
       </button>
       <div className={`dropdown-menu ${isOpen ? '' : 'hidden'}`}>
-        {items.map((item, index) => (
+        {items.map((item) => (
           <button
-            key={index}
+            key={item.label}
             className={`dropdown-item ${item.variant === 'danger' ? 'dropdown-item-danger' : ''}`}
             onClick={() => {
               item.onClick();

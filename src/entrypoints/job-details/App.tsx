@@ -491,7 +491,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
         </div>
         <div className="header-actions">
           <button
-            className="btn-icon"
+            className="header-icon-btn"
             onClick={handleProfileClick}
             title="Profile"
           >
@@ -557,7 +557,9 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
                 />
               </div>
               <div className="filter-row job-count-row">
-                <span className="job-count">{filteredJobs.length} jobs</span>
+                <span className="job-count">
+                  {filteredJobs.length} of {store.jobs.length} jobs
+                </span>
               </div>
             </div>
           </div>

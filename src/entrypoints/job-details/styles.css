@@ -65,7 +65,7 @@ h1 {
 }
 
 /* Icon button for header actions (Profile) */
-.btn-icon {
+.header-icon-btn {
   background-color: transparent;
   color: #5f6368;
   padding: 8px;
@@ -81,16 +81,8 @@ h1 {
   transition: background-color 0.2s;
 }
 
-.btn-icon:hover {
+.header-icon-btn:hover {
   background-color: #f1f3f4;
-}
-
-.header-actions button.danger {
-  background-color: #d93025;
-}
-
-.header-actions button.danger:hover {
-  background-color: #c5221f;
 }
 
 .btn-export {

@@ -237,6 +237,7 @@ export const App: React.FC = () => {
    */
   const handleDeleteJob = useCallback(async () => {
     if (!currentJob) return;
+    if (!confirm('Are you sure you want to delete this job?')) return;
     await store.deleteJob(currentJob.id);
   }, [currentJob, store]);
 
@@ -307,6 +308,7 @@ export const App: React.FC = () => {
    */
   const handleDeleteJobFromSelector = useCallback(
     async (jobId: string) => {
+      if (!confirm('Are you sure you want to delete this job?')) return;
       await store.deleteJob(jobId);
     },
     [store]

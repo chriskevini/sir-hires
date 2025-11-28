@@ -238,6 +238,17 @@ h1 {
   color: #666;
 }
 
+/* Status badge in job cards */
+.job-card-status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  margin-top: 6px;
+  width: fit-content;
+}
+
 .job-header {
   display: flex;
   justify-content: space-between;

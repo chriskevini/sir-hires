@@ -23,8 +23,10 @@ export function Button({
   children,
   ...props
 }: ButtonProps) {
+  // Ghost variant skips .btn base class to avoid overriding component CSS
+  const isGhost = variant === 'ghost';
   const classes = [
-    'btn',
+    isGhost ? '' : 'btn',
     `btn-${variant}`,
     !['subtle', 'link', 'ghost'].includes(variant) ? `btn-${size}` : '',
     className,

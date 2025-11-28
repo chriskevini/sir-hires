@@ -102,13 +102,10 @@
   text-decoration: underline;
 }
 
-/* Ghost - Transparent with hover background (icon buttons, toolbar actions) */
-/* Minimal styles - component CSS should override sizing/padding */
+/* Ghost - No base styles, fully controlled by component CSS */
+/* Only applies .btn-ghost class, not .btn base */
 .btn-ghost {
   background: transparent;
   border: none;
-  color: inherit;
-  padding: 0;
-  font-weight: inherit;
-  font-size: inherit;
+  cursor: pointer;
 }

@@ -9,6 +9,7 @@ import {
 } from '../../components/features/ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '../../utils/job-parser';
 import { initDevModeValidation } from '../../utils/dev-validators';
+import { StatusFilterDots } from '../../components/ui/StatusFilterDots';
 import {
   getAllStorageData,
   restoreStorageFromBackup,
@@ -32,7 +33,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
 
   // Local state for UI controls (will be migrated to store.updateFilters in future)
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [sortOrder, setSortOrder] = useState('newest');
   const [error, _setError] = useState<string | null>(null);
 
@@ -150,10 +151,10 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
         if (!matchesSearch) return false;
       }
 
-      // Status filter
-      if (statusFilter && statusFilter !== '') {
+      // Status filter (multi-select: empty array = show all)
+      if (statusFilters.length > 0) {
         const jobStatus = job.applicationStatus || defaults.status;
-        if (jobStatus !== statusFilter) return false;
+        if (!statusFilters.includes(jobStatus)) return false;
       }
 
       return true;
@@ -192,12 +193,12 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
 
     console.info(`[filterJobs] Filtered to ${filtered.length} jobs`, {
       searchTerm,
-      statusFilter,
+      statusFilters,
       sortOrder,
     });
 
     return filtered;
-  }, [store.jobs, searchTerm, statusFilter, sortOrder, getParsedJob]);
+  }, [store.jobs, searchTerm, statusFilters, sortOrder, getParsedJob]);
 
   // Calculate filtered jobs (memoized via filterJobs callback)
   const filteredJobs = filterJobs();
@@ -498,22 +499,10 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <select
-                id="statusFilter"
-                className="filter-input"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="">All Statuses</option>
-                <option value="Researching">Researching</option>
-                <option value="Drafting">Drafting</option>
-                <option value="Awaiting Review">Awaiting Review</option>
-                <option value="Interviewing">Interviewing</option>
-                <option value="Deciding">Deciding</option>
-                <option value="Accepted">Accepted</option>
-                <option value="Rejected">Rejected</option>
-                <option value="Withdrawn">Withdrawn</option>
-              </select>
+              <StatusFilterDots
+                selectedStatuses={statusFilters}
+                onChange={setStatusFilters}
+              />
               <select
                 id="sortFilter"
                 className="filter-input"

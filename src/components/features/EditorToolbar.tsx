@@ -36,6 +36,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
       <div className="flex gap-2 items-center">
         <Dropdown
           buttonLabel="Export"
+          className="border-none"
           items={[
             {
               label: 'Export as Markdown (.md)',

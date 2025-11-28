@@ -13,7 +13,7 @@ const buttonVariants = cva(
         primary: 'bg-[#9c27b0] text-white hover:bg-[#7b1fa2] border-none',
         // Secondary - Grey outline (cancel, back)
         secondary:
-          'bg-transparent text-muted-foreground border border-border hover:bg-muted hover:border-border',
+          'bg-transparent text-muted-foreground border border-border hover:bg-muted hover:border-border cursor-pointer',
         // Danger - Red (delete, destructive actions)
         danger: 'bg-[#d93025] text-white hover:bg-[#c5221f] border-none',
         // Subtle - No background, grey text (dismiss, close)

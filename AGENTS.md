@@ -2,759 +2,190 @@
 
 ## 1. Introduction
 
-**WXT** (Web Extension Tools) is a next-generation framework for building cross-browser web extensions. This project utilizes **React** for all UI elements.
+**WXT** (Web Extension Tools) framework for cross-browser web extensions with **React** UI.
 
 **Core Philosophy:**
 
-- **Write Once, Run Everywhere:** Use the `browser` global (polyfill) instead of `chrome`.
-- **File-System Routing:** The `entrypoints/` directory dictates the extension structure.
-- **React-First:** All UI logic resides in React Functional Components (`.tsx`).
-- **Manifest V3 Default:** The project targets MV3 by default.
+- Use `browser` global (not `chrome.*`) for cross-browser compatibility
+- File-system routing via `entrypoints/` directory
+- React Functional Components (`.tsx`) for all UI
+- Manifest V3 by default
 
 ## 2. Project Structure
 
-The project follows the standard WXT directory layout. We use the **"Folder per Entrypoint"** pattern for UI pages to keep React files organized.
-
 ```text
-my-extension/
-├── .wxt/                   # [DO NOT TOUCH] Generated types and config
-├── .output/                # [DO NOT TOUCH] Build artifacts
-├── public/                 # Public assets (copied as-is)
-├── src/                    # Source code root (configure in wxt.config.ts)
-│   ├── components/         # Shared React Components
-│   │   ├── ui/             # Generic UI kit (buttons, inputs)
-│   │   └── features/       # Feature-specific components
-│   ├── hooks/              # Custom React Hooks
-│   ├── utils/              # Shared utility functions
-│   ├── entrypoints/        # VITAL: Maps directly to manifest.json
-│   │   ├── background.ts   # Background script (Service Worker)
-│   │   ├── content.ts      # Content scripts (Headless)
-│   │   ├── popup/          # Popup UI Entrypoint
-│   │   │   ├── index.html  # Entry HTML
-│   │   │   ├── main.tsx    # Mounts React Root
-│   │   │   └── App.tsx     # Main Popup Component
-│   │   ├── sidepanel/      # Sidepanel UI Entrypoint
-│   │   │   ├── index.html
-│   │   │   ├── main.tsx
-│   │   │   └── App.tsx
-│   │   ├── job-details/    # Job Details UI Entrypoint
-│   │   │   ├── index.html
-│   │   │   ├── main.tsx
-│   │   │   ├── App.tsx
-│   │   │   ├── views/      # View components
-│   │   │   ├── components/ # Page-specific components
-│   │   │   └── hooks/      # Page-specific hooks
-│   │   └── profile/        # Profile UI Entrypoint
-│   │       ├── index.html
-│   │       ├── main.tsx
-│   │       └── App.tsx
-├── wxt.config.ts           # WXT Configuration
-├── package.json
-├── tsconfig.json
-└── .gitignore
+src/
+├── components/           # Shared React Components
+│   ├── ui/               # Generic UI (Button, Modal, Dropdown)
+│   └── features/         # Feature components (JobCard, ValidationPanel)
+├── hooks/                # Custom React Hooks
+├── utils/                # Shared utilities
+├── lib/                  # Third-party utilities (cn())
+├── tasks/                # LLM task definitions
+├── styles/               # Global CSS (globals.css)
+└── entrypoints/          # Maps to manifest.json
+    ├── background.ts     # Service Worker
+    ├── content.ts        # Content scripts
+    ├── popup/            # Popup UI (index.html + main.tsx + App.tsx)
+    ├── sidepanel/        # Sidepanel UI
+    ├── job-details/      # Job Details page
+    └── profile/          # Profile page
 ```
 
-### Critical Rules for `entrypoints/`
+**Critical Rules:**
 
-- **UI Entrypoints:** For React pages (Popup, Options), always use a directory: `entrypoints/<name>/`.
-  - Must contain an `index.html` (the entrypoint).
-  - Must contain a `main.tsx` (to mount the React app).
-- **No Shared Code:** **NEVER** put shared components, utils, or styles inside `entrypoints/`. WXT treats _every_ file in this directory as a separate entrypoint. Move shared code to `src/components/` or `src/hooks/`.
+- UI entrypoints use folder pattern: `entrypoints/<name>/index.html` + `main.tsx`
+- **NEVER** put shared code in `entrypoints/` - WXT treats every file as a separate entrypoint
+- Shared components go in `src/components/`, hooks in `src/hooks/`
 
-### Component & Hook Reuse
+## 3. Reference Documentation
 
-This project has **extensive reusable UI/feature components and custom hooks** to accelerate development and maintain consistency. Before creating new components or state management logic, consult these references:
+Before creating new components or hooks, **always check existing patterns:**
 
-- **[docs/QUICK_REFERENCE.md](./docs/QUICK_REFERENCE.md)** - Quick lookup tables and decision trees
-- **[docs/COMPONENTS_REFERENCE.md](./docs/COMPONENTS_REFERENCE.md)** - Detailed component documentation (Modal, ValidationPanel, CollapsiblePanel, etc.)
-- **[docs/HOOKS_REFERENCE.md](./docs/HOOKS_REFERENCE.md)** - Detailed hooks documentation (useToggleState, useJobValidation, useParsedJob, etc.)
-- **[docs/MARKDOWN_DB_REFERENCE.md](./docs/MARKDOWN_DB_REFERENCE.md)** - MarkdownDB template syntax, storage patterns, and parsing strategies
+| Document                                                         | Purpose                                                  |
+| ---------------------------------------------------------------- | -------------------------------------------------------- |
+| [docs/QUICK_REFERENCE.md](./docs/QUICK_REFERENCE.md)             | Decision trees, quick lookups                            |
+| [docs/COMPONENTS_REFERENCE.md](./docs/COMPONENTS_REFERENCE.md)   | UI components (Modal, Button, Dropdown, ValidationPanel) |
+| [docs/HOOKS_REFERENCE.md](./docs/HOOKS_REFERENCE.md)             | Custom hooks (useJobStore, useToggleState, useParsedJob) |
+| [docs/MARKDOWN_DB_REFERENCE.md](./docs/MARKDOWN_DB_REFERENCE.md) | MarkdownDB templates, storage patterns                   |
+| [docs/STYLE_GUIDE.md](./docs/STYLE_GUIDE.md)                     | Code conventions, formatting rules                       |
 
-**Key Rule:** Always search existing components/hooks before building new ones. Reusing existing patterns prevents code duplication and ensures consistent UX.
+## 4. Key Patterns
 
-## 3. Best Practices & Conventions
-
-### React & Coding Style
-
-- **Language:** TypeScript (`.ts`, `.tsx`) is mandatory.
-- **Components:** Use Functional Components with Hooks.
-- **Styling:** Use Tailwind CSS classes with the `cn()` utility for conditional styling.
-- **Browser API:** Always use the `browser` global (e.g., `browser.runtime.sendMessage`). **Do not use `chrome.*`.**
-
-### Styling with Tailwind CSS + shadcn/ui
-
-This project uses **Tailwind CSS v4** with **shadcn/ui** components and **CVA** (class-variance-authority) for variant-based styling.
-
-#### Core Tools
-
-- **Tailwind CSS v4:** Utility-first CSS framework
-- **shadcn/ui:** Radix-based accessible component primitives
-- **CVA:** Type-safe component variants
-- **`cn()` utility:** Merges Tailwind classes with proper precedence
-
-#### The `cn()` Utility
-
-Located in `src/lib/utils.ts`, combines `clsx` + `tailwind-merge`:
+### Styling: Tailwind CSS + shadcn/ui
 
 ```typescript
 import { cn } from '@/lib/utils';
 
-// Merge conditional classes with proper Tailwind precedence
+// Always use cn() for combining classes
 <div className={cn(
-  'flex items-center gap-2',           // Base classes
+  'flex items-center gap-2',           // Base
   isActive && 'bg-primary text-white', // Conditional
-  className                             // Props override
+  className                            // Props override
 )} />
 ```
 
-**Always use `cn()` when:**
+- Use semantic colors: `bg-primary`, `text-muted-foreground`, `bg-destructive`
+- Use CVA for component variants (see `src/components/ui/Button.tsx`)
+- Import `@/styles/globals.css` once per entrypoint in `main.tsx`
 
-- Combining multiple class sources
-- Accepting `className` prop from parent
-- Applying conditional styles
+### MarkdownDB Storage
 
-#### Component Variants with CVA
-
-UI components use CVA for type-safe variants:
+Store raw templates, parse on-read:
 
 ```typescript
-import { cva, type VariantProps } from 'class-variance-authority';
-
-const buttonVariants = cva(
-  'inline-flex items-center justify-center rounded-md font-medium transition-colors',
-  {
-    variants: {
-      variant: {
-        primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
-        secondary:
-          'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        danger:
-          'bg-destructive text-destructive-foreground hover:bg-destructive/90',
-        ghost: 'hover:bg-accent hover:text-accent-foreground',
-      },
-      size: {
-        sm: 'h-8 px-3 text-xs',
-        md: 'h-9 px-4 text-sm',
-        lg: 'h-10 px-6 text-base',
-      },
-    },
-    defaultVariants: {
-      variant: 'primary',
-      size: 'md',
-    },
-  }
-);
-```
-
-#### CSS Variables (Theming)
-
-CSS variables are defined in `src/styles/globals.css`:
-
-```css
-:root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --primary: oklch(0.546 0.245 275.75);
-  --destructive: oklch(0.577 0.245 27.325);
-  /* ... */
-}
-```
-
-Use semantic color classes:
-
-- `bg-primary`, `text-primary-foreground`
-- `bg-destructive`, `text-destructive-foreground`
-- `bg-muted`, `text-muted-foreground`
-
-#### Global Styles Import
-
-Each entrypoint imports global styles in `main.tsx`:
-
-```typescript
-// src/entrypoints/popup/main.tsx
-import '@/styles/globals.css'; // Tailwind + CSS variables
-```
-
-**Anti-pattern:**
-
-- Creating separate CSS files for components
-- Using arbitrary color values instead of CSS variables
-
-**Correct pattern:**
-
-- Use Tailwind utilities + semantic color classes
-- Extend variants via CVA for component-specific needs
-
-### State Management
-
-- **Persistence:** Use **`@wxt-dev/storage`** for persisting data.
-- **React Integration:** Create a hook to consume storage reactively if needed, or use `useEffect` to sync state on mount.
-
-  ```typescript
-  // src/utils/storage.ts
-  import { storage } from 'wxt/utils/storage';
-
-  export const themeItem = storage.defineItem<string>('local:theme', {
-    defaultValue: 'light',
-  });
-
-  // Example usage in React component
-  // const theme = await themeItem.getValue();
-  ```
-
-  **Note:** WXT has auto-imports enabled, so `storage` is available globally without explicit import in most files. However, for explicit imports, use `'wxt/utils/storage'`.
-
-### MarkdownDB Storage Pattern
-
-This project uses **MarkdownDB** templates for structured data storage. Store raw templates in a `content` field, parse on-read in components.
-
-**Key Rules:**
-
-- ✅ Store only raw MarkdownDB in `content` field (single source of truth)
-- ✅ Parse in components with `useMemo` or `ParsedJobProvider`
-- ❌ Never store parsed fields like `jobTitle`, `company` alongside `content`
-- ❌ Never parse without memoization (causes infinite re-renders)
-
-**Example:**
-
-```typescript
-// ✅ CORRECT - Store raw MarkdownDB, parse on-read
+// ✅ Store raw MarkdownDB in content field
 interface Job {
   id: string;
-  content?: string; // Raw MarkdownDB template
+  content?: string; // Raw template (single source of truth)
   url: string;
-  applicationStatus: string;
 }
 
+// ✅ Parse with memoization
 const parsed = useMemo(
   () => parseJobTemplate(job.content || ''),
   [job.content]
 );
 ```
 
-**Why:** LLM-streamable, human-editable, no sync issues, single source of truth.
+**See:** [docs/MARKDOWN_DB_REFERENCE.md](./docs/MARKDOWN_DB_REFERENCE.md)
 
-**Reference:** See **[docs/MARKDOWN_DB_REFERENCE.md](./docs/MARKDOWN_DB_REFERENCE.md)** for complete syntax, templates, and patterns.
+### State Management Decision Tree
 
-### Event-Driven Architecture (Hybrid Approach)
-
-This project uses a **hybrid event-driven architecture** to prevent race conditions while avoiding over-engineering. Follow these two rules when implementing state changes:
-
-#### Rule 1: LLM Tasks → Component-Level with `runTask()`
-
-**When:** Any LLM-powered operation (extraction, synthesis, etc.)
+```
+Is this an LLM operation?
+├─ YES → Use runTask() in component (src/utils/llm-task-runner.ts)
+└─ NO → Is state shared across tabs/components?
+    ├─ YES → Send message to background.ts
+    └─ NO → Direct storage write
+```
 
 **Examples:**
 
-- Job extraction from page content
-- Profile extraction
-- Resume/cover letter synthesis
+- LLM extraction → `runTask()` with streaming
+- Edit job field → Direct `storage.saveJob()`
+- Change jobInFocus → `browser.runtime.sendMessage({ action: 'setJobInFocus' })`
 
-**Pattern:**
+### LLM Tasks
+
+Tasks defined in `src/tasks/`, executed via `runTask()`:
 
 ```typescript
-// In component - use runTask() directly
 import { runTask, startKeepalive } from '@/utils/llm-task-runner';
 import { jobExtractionConfig } from '@/tasks';
 
-const handleExtract = async () => {
-  const stopKeepalive = startKeepalive(); // Prevent service worker termination
-  try {
-    const result = await runTask({
-      config: jobExtractionConfig,
-      context: { rawText: pageContent },
-      llmClient,
-      model: settings.model,
-      onChunk: (delta) => setContent((prev) => prev + delta),
-    });
-    // Handle result in component
-    await saveJob({ ...job, content: result.content });
-  } finally {
-    stopKeepalive();
-  }
-};
-```
-
-**Why:** Components have direct access to LLMClient, can stream to UI in real-time, and handle their own lifecycle. No background message passing needed for LLM operations.
-
-**Reference:** See `src/utils/llm-task-runner.ts` and `src/tasks/` for full implementation.
-
-#### Rule 2: Simple Mutations → Direct Storage
-
-**When:** Single-field updates or simple CRUD operations without cross-component dependencies
-
-**Examples:**
-
-- Edit job title or description
-- Toggle checklist item
-- Update document content
-- Save LLM settings
-
-**Pattern:**
-
-```typescript
-// Direct storage write + local state update
-const updatedJob = { ...job, content: newContent };
-await storage.saveJob(updatedJob);
-setCurrentJob(updatedJob); // Update local React state
-```
-
-**Why:** Direct storage is simpler and more performant for isolated updates. No message passing overhead needed.
-
-#### Rule 3: Cross-Component State → Background Manages
-
-**When:** State changes that affect multiple components, tabs, or entrypoints
-
-**Examples:**
-
-- `jobInFocus` changes (affects sidepanel + job-details + all tabs)
-- Job deletion (must update all open tabs)
-- Navigation state (sidebar → job-details page)
-
-**Pattern:**
-
-```typescript
-// Component sends message to background
-await browser.runtime.sendMessage({
-  action: 'setJobInFocus',
-  jobId: targetJobId,
-});
-
-// Background updates storage (triggers storage.onChanged in all tabs)
-// background.ts
-if (request.action === 'setJobInFocus') {
-  await jobInFocusStorage.setValue(request.jobId);
-  sendResponse({ success: true });
-  return true;
-}
-
-// All components listen to storage changes
-storage.onStorageChange((changes) => {
-  if (changes.jobInFocus) {
-    loadJobInFocus(changes.jobInFocus.newValue);
-  }
-});
-```
-
-**Why:** Background acts as single source of truth, ensuring all tabs/components stay in sync via native storage change events.
-
-#### Decision Flowchart
-
-```
-Is this an LLM-powered operation?
-├─ YES → Rule 1: Component-level runTask()
-└─ NO → Is this state shared across components/tabs?
-    ├─ YES → Rule 3: Background manages
-    └─ NO → Rule 2: Direct storage write
-```
-
-#### Anti-Patterns to Avoid
-
-**❌ Setting cross-component state before dependent data exists:**
-
-```typescript
-// BAD: Race condition
-await jobInFocusStorage.setValue(jobId); // Job doesn't exist yet!
-await extractAndSaveJob(jobId); // Extraction might fail
-// loadJobInFocus() runs, finds no job, clears jobInFocus
-```
-
-**✅ Complete extraction before setting focus:**
-
-```typescript
-// GOOD: Component handles extraction, then updates focus
-const result = await runTask({ config, context, llmClient, onChunk });
-await saveJob({ id: jobId, content: result.content });
-await browser.runtime.sendMessage({ action: 'setJobInFocus', jobId });
-```
-
-**❌ Direct storage writes for cross-component state:**
-
-```typescript
-// BAD: Other tabs don't know about deletion
-await storage.deleteJob(jobId);
-if (jobInFocus === jobId) {
-  await jobInFocusStorage.setValue(null); // Only updates this tab!
-}
-```
-
-**✅ Use background message:**
-
-```typescript
-// GOOD: Background notifies all tabs
-await browser.runtime.sendMessage({
-  action: 'deleteJob',
-  jobId,
-});
-// Background deletes job + clears jobInFocus → all tabs receive storage change event
-```
-
-#### Background Message Handlers Reference
-
-**Implemented:**
-
-- `setJobInFocus` - Update focused job across all tabs (Rule 3)
-- `deleteJob` - Delete job and update all tabs (Rule 3)
-- `callLLM` - Proxy LLM calls for content scripts (no direct fetch access)
-- `fetchModels` - Fetch available models from LLM server
-
-**Direct storage via `useJobStore` (no message needed):**
-
-- `updateJob()` - Update single job with optimistic updates (Rule 2)
-- `updateJobField()` - Edit single field (Rule 2)
-- `toggleChecklistItem()` - Toggle checklist (Rule 2)
-- `saveDocument()` - Save document content (Rule 2)
-
-### LLM Task System
-
-This project uses a **unified task-based pattern** for all LLM operations. Tasks are defined declaratively in `src/tasks/` and executed via `runTask()` from components.
-
-#### Architecture Overview
-
-```
-src/tasks/                     # Task definitions (single source of truth)
-├── index.ts                   # Re-exports all tasks
-├── types.ts                   # TaskConfig type definitions
-├── job-extraction.ts          # Job extraction task config + prompt
-├── profile-extraction.ts      # Profile extraction task config + prompt
-└── synthesis.ts               # Synthesis task config + prompt
-
-src/utils/
-├── llm-client.ts              # LLMClient class (streaming, cancellation)
-└── llm-task-runner.ts         # runTask() helper + buildUserPrompt()
-```
-
-#### Creating a New Task
-
-1. **Define task config in `src/tasks/`:**
-
-```typescript
-// src/tasks/my-task.ts
-import type { TaskConfig } from './types';
-
-export const MY_TASK_PROMPT = `
-You are an expert at doing X...
-Rules:
-1. ...
-`;
-
-export const myTaskConfig: TaskConfig = {
-  temperature: 0.3, // 0 = deterministic, 1 = creative
-  maxTokens: 2000, // Output limit
-  prompt: MY_TASK_PROMPT, // System prompt
-  context: ['rawText'], // Required context keys
-};
-```
-
-2. **Export from `src/tasks/index.ts`:**
-
-```typescript
-export { myTaskConfig, MY_TASK_PROMPT } from './my-task';
-```
-
-3. **Use in component with `runTask()`:**
-
-```typescript
-import { runTask, startKeepalive } from '@/utils/llm-task-runner';
-import { myTaskConfig } from '@/tasks';
-
-const result = await runTask({
-  config: myTaskConfig,
-  context: { rawText: pageContent },
-  llmClient,
-  model: settings.model,
-  onChunk: (delta) => setContent((prev) => prev + delta),
-});
-```
-
-#### Context Types
-
-Tasks declare which context they need via the `context` array:
-
-**Storage-backed (fetched automatically):**
-
-- `profile` - User profile content from storage
-- `job` - Job content from jobInFocus
-- `jobTemplate` - Empty job template for extraction
-- `profileTemplate` - Empty profile template for extraction
-
-**Runtime (passed directly):**
-
-- `rawText` - Raw page content for extraction
-- `template` - Document template being edited
-- `tone` - Tone modifier for synthesis
-- `task` - Task instruction (last item for quick switching)
-
-#### `runTask()` API
-
-```typescript
-interface RunTaskOptions {
-  config: TaskConfig; // From src/tasks/
-  context: Record<string, string>; // Context values
-  llmClient: LLMClient; // Client instance
-  model?: string; // Override config model
-  maxTokens?: number; // Override config tokens
-  temperature?: number; // Override config temp
-  onChunk?: (delta: string) => void; // Document stream
-  onThinking?: (delta: string) => void; // Thinking stream
-  signal?: AbortSignal; // Cancellation
-}
-
-interface TaskResult {
-  content: string; // Final document content
-  thinking: string; // Thinking content (if model supports)
-  finishReason: string; // 'stop', 'length', 'cancelled'
-  cancelled: boolean;
-}
-```
-
-#### Keepalive for Long Tasks
-
-Extension pages must prevent service worker termination during streaming:
-
-```typescript
-const handleExtract = async () => {
-  const stopKeepalive = startKeepalive(); // Start pinging storage
-  try {
-    const result = await runTask({ ... });
-  } finally {
-    stopKeepalive(); // Always clean up
-  }
-};
-```
-
-#### Cancellation Pattern
-
-```typescript
-const [controller, setController] = useState<AbortController | null>(null);
-
-const handleStart = async () => {
-  const ctrl = new AbortController();
-  setController(ctrl);
-
-  try {
-    await runTask({ ..., signal: ctrl.signal });
-  } catch (e) {
-    if (e.name === 'AbortError') return; // Expected
-    throw e;
-  } finally {
-    setController(null);
-  }
-};
-
-const handleCancel = () => controller?.abort();
-```
-
-### Content Script UIs (React)
-
-To inject a React App into a webpage using Shadow DOM (isolated styles):
-
-1.  Define the content script with `export default defineContentScript`.
-2.  Set `cssInjectionMode: 'ui'` (Crucial for Shadow DOM).
-3.  Use `createShadowRootUi`.
-4.  Mount the React root inside the `onMount` callback.
-
-```typescript
-// src/entrypoints/overlay.content.tsx
-import ReactDOM from 'react-dom/client';
-import OverlayApp from '@/components/features/OverlayApp';
-// Import styles so WXT bundles them for injection
-import './overlay.css';
-
-export default defineContentScript({
-  matches: ['<all_urls>'],
-  cssInjectionMode: 'ui', // REQUIRED for Shadow Root
-  async main(ctx) {
-    const ui = await createShadowRootUi(ctx, {
-      name: 'react-overlay',
-      position: 'inline',
-      onMount: (container) => {
-        const root = ReactDOM.createRoot(container);
-        root.render(<OverlayApp />);
-        return root;
-      },
-      onRemove: (root) => {
-        root?.unmount();
-      },
-    });
-    ui.mount();
-  },
-});
-```
-
-### Configuration (`wxt.config.ts`)
-
-- **Modules:** Use `@wxt-dev/module-react` for auto-configuration.
-- **Manifest:** Define permissions and other manifest settings here. MV3 is the default target.
-
-  ```typescript
-  // wxt.config.ts
-  import { defineConfig } from 'wxt';
-
-  export default defineConfig({
-    srcDir: 'src',
-    modules: ['@wxt-dev/module-react'],
-    manifest: {
-      permissions: ['storage', 'tabs'],
-      action: {
-        default_title: 'My Extension',
-      },
-    },
+const stopKeepalive = startKeepalive(); // Prevent service worker termination
+try {
+  const result = await runTask({
+    config: jobExtractionConfig,
+    context: { rawText: pageContent },
+    llmClient,
+    onChunk: (delta) => setContent((prev) => prev + delta),
   });
-  ```
-
-### Code Quality & Linting
-
-This project uses **ESLint** and **Prettier** to enforce code quality and consistent formatting, with **automated enforcement via pre-commit hooks**.
-
-#### Automated Code Quality (Pre-Commit Hooks)
-
-- **Husky + lint-staged:** Automatically runs on every commit
-  - **Fast:** Only checks staged files (not entire codebase)
-  - **Auto-fix:** Runs `eslint --fix` and `prettier --write` automatically
-  - **Blocks bad commits:** Prevents commits with linting errors
-  - **Zero config:** Installs automatically with `npm install`
-
-- **What happens on commit:**
-  1. Stage files: `git add src/myfile.ts`
-  2. Commit: `git commit -m "feat: new feature"`
-  3. Husky intercepts → lint-staged runs ESLint + Prettier
-  4. If errors: commit blocked with error messages
-  5. If warnings: auto-formats and commits successfully
-
-- **Bypass (emergency only):** `git commit --no-verify`
-  - Local hook bypassed, but CI/CD will still validate
-
-#### Configuration Details
-
-- **ESLint Configuration:** `eslint.config.js` (Flat config format)
-  - Enforces TypeScript best practices
-  - React hooks rules (rules-of-hooks, exhaustive-deps)
-  - Warns on unused variables (prefix with `_` to ignore)
-  - Warns on `any` types
-  - Console statements allowed: `console.warn`, `console.error`, `console.info`
-
-- **Prettier Configuration:** `.prettierrc`
-  - Semicolons: required
-  - Quotes: single quotes
-  - Tab width: 2 spaces
-  - Trailing commas: ES5
-  - Print width: 80 characters
-  - Arrow function parens: always
-
-- **lint-staged Configuration:** `package.json`
-  - `*.{ts,tsx}` → ESLint + Prettier
-  - `*.{json,css,scss,md}` → Prettier only
-
-#### Manual Scripts (Optional)
-
-- `npm run lint` - Check for linting errors
-- `npm run lint:fix` - Auto-fix linting errors
-- `npm run format` - Format all code with Prettier
-- `npm run format:check` - Check if code is formatted
-- `npm run validate` - Run both lint and format checks
-
-**Note:** Manual scripts are optional since pre-commit hooks handle this automatically. Use them for bulk fixes or CI/CD validation.
-
-## 4. Workflow & CI/CD
-
-### Development
-
-- **Start Dev Server:** `wxt` (or `npm run dev`).
-- **Target Browsers:** `wxt -b firefox` or `wxt -b chrome`.
-- **Mocking:** Use `@webext-core/fake-browser` for logic testing.
-
-### Testing (Vitest + React Testing Library)
-
-1.  **Unit Tests:** Use `vitest` for logic/utils.
-2.  **Component Tests:** Use `@testing-library/react` for UI components.
-
-    ```typescript
-    // Example Component Test
-    import { render, screen } from '@testing-library/react';
-    import MyComponent from './MyComponent';
-
-    test('renders button', () => {
-      render(<MyComponent />);
-      expect(screen.getByRole('button')).toBeInTheDocument();
-    });
-    ```
-
-### CI/CD (GitHub Actions)
-
-#### Lint Validation Workflow
-
-**File:** `.github/workflows/lint.yml`
-
-Automatically validates code quality on every push/PR:
-
-- **Triggers:** Push to `main`, `develop`, `migrate/*` branches; PRs to `main`/`develop`
-- **Checks:** Runs `npm run lint` and `npm run format:check`
-- **Purpose:** Safety net for bypassed pre-commit hooks (`--no-verify`)
-
-#### Deployment
-
-Use `wxt submit` for automated publishing.
-
-**`.github/workflows/publish.yml` Snippet:**
-
-```yaml
-- run: pnpm install
-- run: pnpm build
-- name: Submit
-  run: pnpm wxt submit --chrome-zip .output/*-chrome.zip --firefox-zip .output/*-firefox.zip
-  env:
-    # Secrets configuration...
+} finally {
+  stopKeepalive();
+}
 ```
 
-## 5. Agent Guidelines (Instructions for AI)
+## 5. Code Quality
 
-When generating code for this project, strictly adhere to these rules:
+### Automated (Pre-Commit Hooks)
 
-1.  **Component & Hook Reuse (CRITICAL):**
-    - **BEFORE creating any new component or hook**, you MUST consult the reference guides:
-      - `docs/QUICK_REFERENCE.md` - Quick lookup tables and decision trees
-      - `docs/COMPONENTS_REFERENCE.md` - Reusable UI/feature components
-      - `docs/HOOKS_REFERENCE.md` - Custom hooks for state management
-      - `docs/MARKDOWN_DB_REFERENCE.md` - MarkdownDB templates and patterns
-    - **Search existing components/hooks first** - This project has extensive reusable patterns.
-    - **Reuse existing code** whenever possible to maintain consistency and avoid duplication.
-    - Only create new components/hooks if no suitable existing one exists.
+Husky + lint-staged runs automatically on commit:
 
-2.  **React Structure:**
-    - UI Entrypoints must use the folder pattern: `entrypoints/<name>/index.html` + `main.tsx`.
-    - Mounting logic goes in `main.tsx`. Component logic goes in `App.tsx`.
-    - Reusable UI goes in `src/components/`.
+- ESLint + Prettier on staged files
+- Blocks commits with errors
+- Bypass: `git commit --no-verify` (emergency only)
 
-3.  **File Placement:**
-    - **Background:** `src/entrypoints/background.ts`
-    - **Content Script:** `src/entrypoints/<name>.content.ts` (or `.tsx` if it has UI).
-    - **Utils:** `src/utils/`.
+### Manual Scripts
 
-4.  **Code Patterns:**
-    - **WRAP** background script logic in `defineBackground`.
-    - **WRAP** content script logic in `defineContentScript`.
-    - **ALWAYS** use `export default` for entrypoint definitions.
-    - **ALWAYS** use `browser.*` API, never `chrome.*`.
-    - **USE** React Functional Components.
-    - **USE** ES modules (`export`/`import`) instead of CommonJS (`module.exports`/`require`).
+```bash
+npm run lint        # Check errors
+npm run lint:fix    # Auto-fix
+npm run format      # Format all
+npm run validate    # Lint + format check
+```
 
-5.  **Code Quality:**
-    - Follow the Prettier formatting rules (2 spaces, single quotes, semicolons, 80 char width).
-    - Avoid `any` types where possible - use proper TypeScript types.
-    - Prefix unused variables with `_` if they're intentionally unused.
-    - Use `console.warn`, `console.error`, or `console.info` for logging (not `console.log`).
-    - **Pre-commit hooks handle linting/formatting automatically** - no manual action needed.
-    - If you need to fix issues in bulk: `npm run lint:fix && npm run format`.
+### Rules
 
-6.  **GitHub Templates:**
-    - **Pull Requests:** ALWAYS read and follow `.github/PULL_REQUEST_TEMPLATE.md`. Use `gh pr create` and structure the body to match all required sections.
-    - **Issues:** ALWAYS read and follow the appropriate YAML template:
-      - `.github/ISSUE_TEMPLATE/bug_report.yml` - For bugs
-      - `.github/ISSUE_TEMPLATE/feature_request.yml` - For features
-    - Use `gh issue create` and structure the body to match the YAML template fields.
+- TypeScript required (`.ts`, `.tsx`)
+- Use `browser.*` API, never `chrome.*`
+- Avoid `any` - use proper types
+- Use `console.warn/error/info`, not `console.log`
+- Prefix unused variables with `_`
 
-7.  **Debugging:**
-    - If "RollupError" occurs, check if shared React components were accidentally placed inside `entrypoints/`. Move them to `components/`.
-    - Ensure `cssInjectionMode: 'ui'` is set if using `createShadowRootUi`.
-    - If you see "is not exported by" errors, verify the file uses ES module exports, not CommonJS.
+## 6. Agent Guidelines
+
+**Before writing code:**
+
+1. **Check reference docs** for existing components/hooks
+2. **Follow file placement** rules (no shared code in `entrypoints/`)
+3. **Use existing patterns** - don't reinvent
+
+**Code patterns:**
+
+- Wrap background scripts in `defineBackground`
+- Wrap content scripts in `defineContentScript`
+- Use `export default` for entrypoints
+- Use ES modules (`import`/`export`)
+
+**GitHub templates:**
+
+- PRs: Follow `.github/PULL_REQUEST_TEMPLATE.md`
+- Issues: Use `.github/ISSUE_TEMPLATE/*.yml`
+
+**Common errors:**
+
+| Error                     | Fix                                                         |
+| ------------------------- | ----------------------------------------------------------- |
+| RollupError               | Move shared components from `entrypoints/` to `components/` |
+| "is not exported by"      | Use ES module exports, not CommonJS                         |
+| Shadow DOM styles missing | Set `cssInjectionMode: 'ui'`                                |
+
+## 7. Development
+
+```bash
+npm run dev          # Start dev server (Chrome)
+wxt -b firefox       # Target Firefox
+npm run build        # Production build
+```

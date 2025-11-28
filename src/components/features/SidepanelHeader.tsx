@@ -5,8 +5,8 @@ import {
   SpinnerIcon,
   TrashIcon,
   MaximizeIcon,
-} from './icons';
-import { Button } from './Button';
+} from '../ui/icons';
+import { Button } from '../ui/Button';
 import './SidepanelHeader.css';
 
 interface SidepanelHeaderProps {

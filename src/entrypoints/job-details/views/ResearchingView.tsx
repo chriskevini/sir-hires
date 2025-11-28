@@ -1,9 +1,8 @@
-import React, { useMemo, useCallback } from 'react';
-import { useParsedJob } from '@/components/features/ParsedJobProvider';
+import React, { useCallback } from 'react';
 import { escapeHtml } from '@/utils/shared-utils';
 import { useToggleState, useJobValidation, ChecklistItem } from '../hooks';
 import { useImmediateSave } from '@/hooks/useImmediateSave';
-import { ValidationPanel } from '@/components/ui/ValidationPanel';
+import { ValidationPanel } from '@/components/features/ValidationPanel';
 import { ExtractionLoadingView } from '../components/ExtractionLoadingView';
 import { ExtractionErrorView } from '../components/ExtractionErrorView';
 import { MigrationPromptView } from '../components/MigrationPromptView';
@@ -58,16 +57,6 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
     [setEditorContent]
   );
 
-  // Parse job content on-read (MarkdownDB pattern) using cached provider
-  const parsed = useParsedJob(job.id);
-  const parsedJob = useMemo(() => {
-    const fields = (parsed?.topLevelFields as Record<string, string>) || {};
-    return {
-      jobTitle: fields.TITLE || '',
-      company: fields.COMPANY || '',
-    };
-  }, [parsed]);
-
   // Use validation hook
   const validation = useJobValidation({
     content: editorContent,
@@ -84,8 +73,6 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
     return (
       <ExtractionLoadingView
         content={job.content || ''}
-        jobTitle={parsedJob.jobTitle || 'Untitled Position'}
-        company={parsedJob.company || 'Unknown Company'}
         jobId={job.id}
         onDelete={handleDelete}
       />

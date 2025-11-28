@@ -1,6 +1,6 @@
 import React from 'react';
 import { getNavigationButtons, statusStyles } from '@/config';
-import { Button } from './Button';
+import { Button } from '../ui/Button';
 import type { ChecklistItem } from '@/entrypoints/job-details/hooks';
 import './JobFooter.css';
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { CollapsiblePanel } from './CollapsiblePanel';
+import { CollapsiblePanel } from '../ui/CollapsiblePanel';
 import './ValidationPanel.css';
 
 interface ValidationMessage {

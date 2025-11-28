@@ -1,6 +1,6 @@
 import React from 'react';
-import { TabBar } from './TabBar';
-import { Dropdown } from './Dropdown';
+import { TabBar } from '../ui/TabBar';
+import { Dropdown } from '../ui/Dropdown';
 import './EditorToolbar.css';
 
 interface EditorToolbarProps {

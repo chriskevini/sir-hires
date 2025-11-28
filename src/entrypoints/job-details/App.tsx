@@ -10,12 +10,12 @@ import {
 } from '../../components/features/ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '../../utils/job-parser';
 import { initDevModeValidation } from '../../utils/dev-validators';
-import { StatusFilterDots } from '../../components/ui/StatusFilterDots';
+import { StatusFilterDots } from '../../components/features/StatusFilterDots';
 import {
   SortIconButtons,
   type SortField,
   type SortDirection,
-} from '../../components/ui/SortIconButtons';
+} from '../../components/features/SortIconButtons';
 import { Dropdown } from '../../components/ui/Dropdown';
 import {
   ChevronLeftIcon,

@@ -5,7 +5,7 @@ import {
   CalendarIcon,
   BuildingIcon,
   DocumentIcon,
-} from './icons';
+} from '../ui/icons';
 import './SortIconButtons.css';
 
 export type SortField = 'date' | 'company' | 'title';

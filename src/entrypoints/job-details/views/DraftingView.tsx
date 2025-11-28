@@ -10,14 +10,14 @@ import { Button } from '@/components/ui/Button';
 import {
   NewDocumentModal,
   type DocumentTemplateKey,
-} from '@/components/ui/NewDocumentModal';
-import { EditorToolbar } from '@/components/ui/EditorToolbar';
-import { EditorContentPanel } from '@/components/ui/EditorContentPanel';
-import { EditorFooter } from '@/components/ui/EditorFooter';
+} from '@/components/features/NewDocumentModal';
+import { EditorToolbar } from '@/components/features/EditorToolbar';
+import { EditorContentPanel } from '@/components/features/EditorContentPanel';
+import { EditorFooter } from '@/components/features/EditorFooter';
 import {
   SynthesisFooter,
   getRandomTone,
-} from '@/components/ui/SynthesisFooter';
+} from '@/components/features/SynthesisFooter';
 import { useParsedJob } from '@/components/features/ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '@/utils/job-parser';
 import { formatSaveTime } from '@/utils/date-utils';

@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { StatusFilterDots } from '../ui/StatusFilterDots';
+import { StatusFilterDots } from './StatusFilterDots';
 import {
   SortIconButtons,
   type SortField,
   type SortDirection,
-} from '../ui/SortIconButtons';
+} from './SortIconButtons';
 import { statusStyles, defaults } from '@/config';
 import {
   getJobTitle,

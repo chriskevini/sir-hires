@@ -1,7 +1,7 @@
 import React from 'react';
 import { escapeHtml } from '@/utils/shared-utils';
-import { ChevronDownIcon } from './icons';
-import { Button } from './Button';
+import { ChevronDownIcon } from '../ui/icons';
+import { Button } from '../ui/Button';
 import './EditorContentPanel.css';
 
 interface EditorContentPanelProps {

@@ -3,8 +3,8 @@ import { useParsedJob } from './ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '../../utils/job-parser';
 import type { Job } from '../../entrypoints/job-details/hooks';
 import { defaults } from '@/config';
-import { JobHeader } from '../ui/JobHeader';
-import { JobFooter } from '../ui/JobFooter';
+import { JobHeader } from './JobHeader';
+import { JobFooter } from './JobFooter';
 import { Button } from '../ui/Button';
 import './JobViewRouter.css';
 

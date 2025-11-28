@@ -9,7 +9,7 @@ import {
   useGetParsedJob,
 } from '../../components/features/ParsedJobProvider';
 import { JobSelector } from '../../components/features/JobSelector';
-import { SidepanelHeader } from '../../components/ui/SidepanelHeader';
+import { SidepanelHeader } from '../../components/features/SidepanelHeader';
 import type { Job, ChecklistItem } from '../job-details/hooks';
 import { useJobExtraction, useBackupRestore } from './hooks';
 import { EmptyState } from './components/EmptyState';

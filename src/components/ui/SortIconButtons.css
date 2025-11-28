@@ -1,0 +1,63 @@
+/* ===================================================================
+   SortIconButtons Component Styles
+   Row of icon buttons for sorting options
+   =================================================================== */
+
+.sort-icon-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.sort-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 32px;
+  height: 28px;
+  padding: 4px;
+  border: none;
+  border-radius: 4px;
+  background-color: transparent;
+  color: #757575;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    transform 0.1s;
+}
+
+.sort-icon-btn:hover {
+  color: #333;
+}
+
+.sort-icon-btn:active {
+  transform: scale(0.95);
+}
+
+/* Active state - highlighted with brand color */
+.sort-icon-btn.active {
+  color: #1a73e8;
+}
+
+.sort-icon-btn.active:hover {
+  color: #1557b0;
+}
+
+/* SVG icon sizing */
+.sort-icon-svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Direction arrow - positioned absolutely so it doesn't shift the icon */
+.sort-direction-arrow {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  font-size: 7px;
+  line-height: 1;
+}

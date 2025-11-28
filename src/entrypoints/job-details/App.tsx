@@ -9,12 +9,18 @@ import {
 } from '../../components/features/ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '../../utils/job-parser';
 import { initDevModeValidation } from '../../utils/dev-validators';
+import { StatusFilterDots } from '../../components/ui/StatusFilterDots';
+import {
+  SortIconButtons,
+  type SortField,
+  type SortDirection,
+} from '../../components/ui/SortIconButtons';
 import {
   getAllStorageData,
   restoreStorageFromBackup,
   clearAllStorage,
 } from '../../utils/storage';
-import { defaults, statusColors } from '@/config';
+import { defaults, progressConfig } from '@/config';
 import { browser } from 'wxt/browser';
 import type { JobStore } from './hooks/useJobStore';
 import type { Job } from './hooks';
@@ -32,8 +38,9 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
 
   // Local state for UI controls (will be migrated to store.updateFilters in future)
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [sortOrder, setSortOrder] = useState('newest');
+  const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const [sortField, setSortField] = useState<SortField>('date');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [error, _setError] = useState<string | null>(null);
 
   // ============================================================================
@@ -150,54 +157,60 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
         if (!matchesSearch) return false;
       }
 
-      // Status filter
-      if (statusFilter && statusFilter !== '') {
+      // Status filter (multi-select: empty array = show all)
+      if (statusFilters.length > 0) {
         const jobStatus = job.applicationStatus || defaults.status;
-        if (jobStatus !== statusFilter) return false;
+        if (!statusFilters.includes(jobStatus)) return false;
       }
 
       return true;
     });
 
     // Sort jobs using provider's cached parsing
-    if (sortOrder === 'newest') {
+    // Direction multiplier: 1 for ascending, -1 for descending
+    const dirMult = sortDirection === 'asc' ? 1 : -1;
+
+    if (sortField === 'date') {
       filtered = filtered.sort(
         (a: Job, b: Job) =>
-          new Date(b.updatedAt || 0).getTime() -
-          new Date(a.updatedAt || 0).getTime()
+          dirMult *
+          (new Date(a.updatedAt || 0).getTime() -
+            new Date(b.updatedAt || 0).getTime())
       );
-    } else if (sortOrder === 'oldest') {
-      filtered = filtered.sort(
-        (a: Job, b: Job) =>
-          new Date(a.updatedAt || 0).getTime() -
-          new Date(b.updatedAt || 0).getTime()
-      );
-    } else if (sortOrder === 'company') {
+    } else if (sortField === 'company') {
       filtered = filtered.sort((a: Job, b: Job) => {
         const parsedA = getParsedJob(a.id) || null;
         const parsedB = getParsedJob(b.id) || null;
         const companyA = parsedA ? getCompanyName(parsedA) || '' : '';
         const companyB = parsedB ? getCompanyName(parsedB) || '' : '';
-        return companyA.localeCompare(companyB);
+        return dirMult * companyA.localeCompare(companyB);
       });
-    } else if (sortOrder === 'title') {
+    } else if (sortField === 'title') {
       filtered = filtered.sort((a: Job, b: Job) => {
         const parsedA = getParsedJob(a.id) || null;
         const parsedB = getParsedJob(b.id) || null;
         const titleA = parsedA ? getJobTitle(parsedA) || '' : '';
         const titleB = parsedB ? getJobTitle(parsedB) || '' : '';
-        return titleA.localeCompare(titleB);
+        return dirMult * titleA.localeCompare(titleB);
       });
     }
 
     console.info(`[filterJobs] Filtered to ${filtered.length} jobs`, {
       searchTerm,
-      statusFilter,
-      sortOrder,
+      statusFilters,
+      sortField,
+      sortDirection,
     });
 
     return filtered;
-  }, [store.jobs, searchTerm, statusFilter, sortOrder, getParsedJob]);
+  }, [
+    store.jobs,
+    searchTerm,
+    statusFilters,
+    sortField,
+    sortDirection,
+    getParsedJob,
+  ]);
 
   // Calculate filtered jobs (memoized via filterJobs callback)
   const filteredJobs = filterJobs();
@@ -498,33 +511,18 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <select
-                id="statusFilter"
-                className="filter-input"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="">All Statuses</option>
-                <option value="Researching">Researching</option>
-                <option value="Drafting">Drafting</option>
-                <option value="Awaiting Review">Awaiting Review</option>
-                <option value="Interviewing">Interviewing</option>
-                <option value="Deciding">Deciding</option>
-                <option value="Accepted">Accepted</option>
-                <option value="Rejected">Rejected</option>
-                <option value="Withdrawn">Withdrawn</option>
-              </select>
-              <select
-                id="sortFilter"
-                className="filter-input"
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-              >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="company">Company (A-Z)</option>
-                <option value="title">Title (A-Z)</option>
-              </select>
+              <StatusFilterDots
+                selectedStatuses={statusFilters}
+                onChange={setStatusFilters}
+              />
+              <SortIconButtons
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onChange={(field, direction) => {
+                  setSortField(field);
+                  setSortDirection(direction);
+                }}
+              />
             </div>
           </div>
           <div className="jobs-list-sidebar" id="jobsList">
@@ -535,14 +533,19 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
               const isSelected = globalIndex === store.selectedJobIndex;
               const parsed = getParsedJob(job.id);
               const status = job.applicationStatus || defaults.status;
-              const statusColor =
-                statusColors[status as keyof typeof statusColors] ||
-                statusColors['Researching'];
+
+              // Get the progress color for the status
+              const progress =
+                progressConfig[status as keyof typeof progressConfig] ||
+                progressConfig['Researching'];
 
               return (
                 <div
                   key={job.id}
                   className={`job-card ${isSelected ? 'selected' : ''}`}
+                  style={{
+                    backgroundColor: `color-mix(in srgb, ${progress.color} 20%, transparent)`,
+                  }}
                   onClick={() => selectJob(filteredIndex)}
                 >
                   <div className="job-card-header">
@@ -555,8 +558,8 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
                     <span
                       className="job-card-status-badge"
                       style={{
-                        backgroundColor: statusColor.bg,
-                        color: statusColor.text,
+                        backgroundColor: progress.color,
+                        color: progress.textColor,
                       }}
                     >
                       {status}

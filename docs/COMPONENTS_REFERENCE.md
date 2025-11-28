@@ -501,7 +501,186 @@ import { JobHeader } from '@/components/ui/JobHeader';
 
 ---
 
-### 10. EditorContentPanel
+### 10. JobFooter
+
+**File:** `src/components/ui/JobFooter.tsx:27`
+
+**Purpose:** Compact footer with status navigation buttons and expandable checklist drawer.
+
+**When to Use:**
+
+- Bottom of job views (ResearchingView, DraftingView)
+- When you need navigation between statuses with checklist access
+
+**Props:**
+
+```typescript
+interface JobFooterProps {
+  status: string;
+  checklist?: Record<string, ChecklistItem[]>;
+  jobId: string;
+  isChecklistExpanded: boolean;
+  onNavigate: (targetStatus: string) => void;
+  onToggleChecklist: (isExpanded: boolean) => void;
+  onToggleChecklistItem: (jobId: string, itemId: string) => void;
+  className?: string;
+}
+```
+
+**Real Usage Example:**
+
+```typescript
+// From: src/components/features/JobViewRouter.tsx
+import { JobFooter } from '@/components/ui/JobFooter';
+
+<JobFooter
+  status={job.applicationStatus}
+  checklist={job.checklist}
+  jobId={job.id}
+  isChecklistExpanded={isChecklistExpanded}
+  onNavigate={(targetStatus) => onSaveField(index, 'applicationStatus', targetStatus)}
+  onToggleChecklist={(expanded) => onToggleChecklistExpand(index, expanded)}
+  onToggleChecklistItem={(_, itemId) => onToggleChecklistItem(index, itemId)}
+/>
+```
+
+**Key Features:**
+
+- ✅ Back/Forward navigation buttons with status colors
+- ✅ Expandable checklist drawer (expands upward)
+- ✅ Dot indicators showing checklist progress
+- ✅ Uses `progressConfig` for consistent status colors
+
+**Layout:**
+
+```
+┌─────────────────────────────────────────┐
+│  [← Back]     ○ ● ● ○ ○     [Forward →] │
+└─────────────────────────────────────────┘
+      ↑              ↑              ↑
+   Left nav    Checklist dots   Right nav
+```
+
+---
+
+### 11. StatusFilterDots
+
+**File:** `src/components/ui/StatusFilterDots.tsx:19`
+
+**Purpose:** Row of colored dots for filtering jobs by application status.
+
+**When to Use:**
+
+- Job list filtering controls
+- Anywhere you need compact status filtering
+
+**Props:**
+
+```typescript
+interface StatusFilterDotsProps {
+  /** Array of selected statuses. Empty array = all statuses shown */
+  selectedStatuses: string[];
+  /** Callback when selection changes */
+  onChange: (statuses: string[]) => void;
+}
+```
+
+**Real Usage Example:**
+
+```typescript
+// From: src/entrypoints/job-details/App.tsx
+import { StatusFilterDots } from '@/components/ui/StatusFilterDots';
+
+const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+
+<StatusFilterDots
+  selectedStatuses={selectedStatuses}
+  onChange={setSelectedStatuses}
+/>
+```
+
+**Key Features:**
+
+- ✅ All dots filled = show all (no filter)
+- ✅ Click dot to filter to that status only
+- ✅ Click more dots to add to selection
+- ✅ Click selected dot to deselect
+- ✅ Uses `statusOrder` and `progressConfig` for colors
+- ✅ Accessible with ARIA attributes
+
+**Behavior:**
+
+| State                     | Visual               | Meaning            |
+| ------------------------- | -------------------- | ------------------ |
+| Empty array               | All filled           | Show all jobs      |
+| `['Drafting']`            | Only Drafting filled | Show only Drafting |
+| `['Drafting', 'Applied']` | Two filled           | Show both statuses |
+
+---
+
+### 12. SortIconButtons
+
+**File:** `src/components/ui/SortIconButtons.tsx:168`
+
+**Purpose:** Icon-based sort controls for date, company, and title sorting.
+
+**When to Use:**
+
+- Job list sorting controls
+- Compact sort UI without dropdown
+
+**Props:**
+
+```typescript
+type SortField = 'date' | 'company' | 'title';
+type SortDirection = 'asc' | 'desc';
+
+interface SortIconButtonsProps {
+  sortField: SortField;
+  sortDirection: SortDirection;
+  onChange: (field: SortField, direction: SortDirection) => void;
+}
+```
+
+**Real Usage Example:**
+
+```typescript
+// From: src/entrypoints/job-details/App.tsx
+import { SortIconButtons, SortField, SortDirection } from '@/components/ui/SortIconButtons';
+
+const [sortField, setSortField] = useState<SortField>('date');
+const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+<SortIconButtons
+  sortField={sortField}
+  sortDirection={sortDirection}
+  onChange={(field, direction) => {
+    setSortField(field);
+    setSortDirection(direction);
+  }}
+/>
+```
+
+**Key Features:**
+
+- ✅ Click icon to sort by that field
+- ✅ Click same icon again to reverse direction
+- ✅ Active sort shows direction arrow (▲/▼)
+- ✅ Smart defaults: date → descending, text → ascending
+- ✅ Inline SVG icons for consistent rendering
+- ✅ Accessible with ARIA attributes
+
+**Icons:**
+
+| Field     | Icon | Description   |
+| --------- | ---- | ------------- |
+| `date`    | 📅   | Calendar icon |
+| `company` | 🏢   | Building icon |
+| `title`   | 📄   | Document icon |
+
+---
+
+### 13. EditorContentPanel
 
 **File:** `src/components/ui/EditorContentPanel.tsx:15`
 
@@ -562,7 +741,7 @@ import { EditorContentPanel } from '@/components/ui/EditorContentPanel';
 
 ---
 
-### 11. EditorFooter
+### 14. EditorFooter
 
 **File:** `src/components/ui/EditorFooter.tsx:8`
 

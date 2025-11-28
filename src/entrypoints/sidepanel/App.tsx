@@ -16,7 +16,6 @@ import { EmptyState } from './components/EmptyState';
 import { ExtractionLoadingView } from '../job-details/components/ExtractionLoadingView';
 import { ErrorState } from './components/ErrorState';
 import { DuplicateJobModal } from './components/DuplicateJobModal';
-import { parseJobTemplate } from '../../utils/job-parser';
 import { checklistTemplates, defaults } from '@/config';
 import { jobsStorage, restoreStorageFromBackup } from '../../utils/storage';
 import { generateItemId } from '../../utils/shared-utils';
@@ -357,10 +356,6 @@ export const App: React.FC = () => {
   const ephemeralContent = extraction.extractingJob
     ? extraction.extractingJob.chunks.join('')
     : '';
-  const parsedEphemeral = useMemo(
-    () => parseJobTemplate(ephemeralContent),
-    [ephemeralContent]
-  );
 
   // Handler to cancel extraction
   const handleCancelExtraction = useCallback(() => {
@@ -383,11 +378,6 @@ export const App: React.FC = () => {
     mainContent = (
       <ExtractionLoadingView
         content={ephemeralContent}
-        jobTitle={parsedEphemeral.topLevelFields['TITLE'] || 'Extracting...'}
-        company={
-          parsedEphemeral.topLevelFields['COMPANY'] ||
-          extraction.extractingJob.source
-        }
         jobId={extraction.extractingJob.id}
         onDelete={handleCancelExtraction}
       />
@@ -404,13 +394,7 @@ export const App: React.FC = () => {
   }
   // Empty state
   else if (!currentJob) {
-    mainContent = (
-      <EmptyState
-        extracting={extraction.extracting}
-        onExtractJob={extraction.handleExtractJob}
-        onRestoreBackup={backup.handleRestoreBackup}
-      />
-    );
+    mainContent = <EmptyState onRestoreBackup={backup.handleRestoreBackup} />;
   }
   // Main job view
   else {

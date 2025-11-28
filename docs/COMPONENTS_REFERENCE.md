@@ -8,14 +8,14 @@ Complete reference for all reusable components in the project. For quick lookup,
 
 ### 1. Button
 
-**File:** `src/components/ui/Button.tsx:17`
+**File:** `src/components/ui/Button.tsx`
 
-**Purpose:** Unified button component with consistent styling across all variants.
+**Purpose:** Unified button component using CVA (class-variance-authority) and Radix Slot for composability.
 
 **When to Use:**
 
 - **ALWAYS** use this for any clickable button in the app
-- Replaces all ad-hoc button styling
+- Supports `asChild` prop to render as a different element (e.g., link)
 - Supports ref forwarding for positioning (e.g., dropdowns)
 
 **Props:**
@@ -33,24 +33,27 @@ type ButtonSize = 'sm' | 'md' | 'lg';
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant; // Default: 'primary'
   size?: ButtonSize; // Default: 'md'
+  asChild?: boolean; // Use Radix Slot to render as child element
   children: React.ReactNode;
 }
 ```
 
-**Variants:**
+**Variants (Tailwind classes via CVA):**
 
-| Variant     | Use Case                        | Appearance                    |
-| ----------- | ------------------------------- | ----------------------------- |
-| `primary`   | Main CTA (Save, Submit)         | Purple background, white text |
-| `secondary` | Cancel, Back                    | Grey outline                  |
-| `danger`    | Delete, destructive actions     | Red background, white text    |
-| `subtle`    | Dismiss, close                  | No background, grey text      |
-| `link`      | Inline actions                  | Blue text, underline on hover |
-| `ghost`     | Custom styling (dropdown items) | Transparent, no base styles   |
+| Variant     | Use Case                      | Tailwind Classes                                                     |
+| ----------- | ----------------------------- | -------------------------------------------------------------------- |
+| `primary`   | Main CTA (Save, Submit)       | `bg-primary text-primary-foreground hover:bg-primary/90`             |
+| `secondary` | Cancel, Back                  | `bg-secondary text-secondary-foreground hover:bg-secondary/80`       |
+| `danger`    | Delete, destructive actions   | `bg-destructive text-destructive-foreground hover:bg-destructive/90` |
+| `subtle`    | Dismiss, close                | `bg-muted text-muted-foreground hover:bg-muted/80`                   |
+| `link`      | Inline actions                | `text-primary underline-offset-4 hover:underline`                    |
+| `ghost`     | Toolbar buttons, icon buttons | `hover:bg-accent hover:text-accent-foreground`                       |
 
 **Real Usage Examples:**
 
 ```typescript
+import { Button } from '@/components/ui/Button';
+
 // Primary CTA
 <Button variant="primary" onClick={handleSave}>Save Changes</Button>
 
@@ -63,20 +66,28 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 // Small size
 <Button variant="primary" size="sm">Small Button</Button>
 
-// With ref (for positioning)
-const buttonRef = useRef<HTMLButtonElement>(null);
-<Button ref={buttonRef} onClick={handleClick}>Anchored</Button>
+// Ghost variant for toolbar buttons
+<Button variant="ghost" size="sm">
+  <Settings className="h-4 w-4" />
+</Button>
 
-// Ghost variant for custom styling
-<Button variant="ghost" className="my-custom-button">Custom</Button>
+// As link using Radix Slot
+<Button variant="link" asChild>
+  <a href="/docs">Read Documentation</a>
+</Button>
+
+// With additional Tailwind classes
+<Button variant="primary" className="w-full">Full Width</Button>
 ```
 
 **Key Features:**
 
+- ✅ Built with CVA for type-safe variants
+- ✅ Uses `cn()` utility for class merging
+- ✅ `asChild` prop via Radix Slot for polymorphism
 - ✅ Supports `forwardRef` for ref-based positioning
 - ✅ All standard button attributes (`disabled`, `type`, `onClick`, etc.)
-- ✅ Ghost variant skips `.btn` base class for full CSS control
-- ✅ Size variants only apply to solid buttons (not subtle/link/ghost)
+- ✅ Accepts additional `className` for custom Tailwind utilities
 
 **Anti-Pattern:**
 
@@ -87,17 +98,38 @@ const buttonRef = useRef<HTMLButtonElement>(null);
 
 ### 2. Modal
 
-**File:** `src/components/ui/Modal.tsx:12`
+**File:** `src/components/ui/Modal.tsx`
 
-**Purpose:** Display content in a portal-based modal overlay with escape key and outside-click handling.
+**Purpose:** Accessible modal dialog built on **Radix Dialog** primitives with Tailwind styling.
 
 **When to Use:**
 
 - Confirmation dialogs
 - Forms that need focus (synthesis settings, export options)
-- Content that should overlay everything (z-index issues)
+- Content that should overlay everything
 
-**Props:**
+**Exports:**
+
+The Modal component exports both a simple wrapper and Radix primitives:
+
+```typescript
+// Simple wrapper (recommended for most cases)
+import { Modal } from '@/components/ui/Modal';
+
+// Radix primitives (for advanced customization)
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/Modal';
+```
+
+**Simple Wrapper Props:**
 
 ```typescript
 interface ModalProps {
@@ -105,14 +137,13 @@ interface ModalProps {
   onClose: () => void; // Called on escape/overlay click
   title?: string; // Optional header title
   children: React.ReactNode; // Modal content
-  className?: string; // Custom styling
+  className?: string; // Additional Tailwind classes
 }
 ```
 
-**Real Usage Example:**
+**Real Usage Example (Simple Wrapper):**
 
 ```typescript
-// From: src/entrypoints/job-details/views/DraftingView.tsx:293
 import { Modal } from '@/components/ui/Modal';
 
 const [isSynthesisModalOpen, setIsSynthesisModalOpen] = useState(false);
@@ -120,7 +151,7 @@ const [isSynthesisModalOpen, setIsSynthesisModalOpen] = useState(false);
 <Modal
   isOpen={isSynthesisModalOpen}
   onClose={() => setIsSynthesisModalOpen(false)}
-  title="✨ Synthesize with LLM"
+  title="Synthesize with LLM"
 >
   <SynthesisForm
     documents={documents}
@@ -130,17 +161,57 @@ const [isSynthesisModalOpen, setIsSynthesisModalOpen] = useState(false);
 </Modal>
 ```
 
+**Real Usage Example (Radix Primitives):**
+
+```typescript
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
+
+<Dialog>
+  <DialogTrigger asChild>
+    <Button>Open Dialog</Button>
+  </DialogTrigger>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Confirm Action</DialogTitle>
+      <DialogDescription>
+        This action cannot be undone.
+      </DialogDescription>
+    </DialogHeader>
+    <DialogFooter>
+      <DialogClose asChild>
+        <Button variant="secondary">Cancel</Button>
+      </DialogClose>
+      <Button variant="danger" onClick={handleConfirm}>
+        Confirm
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+```
+
 **Key Features:**
 
-- ✅ React Portal (renders to `document.body`)
-- ✅ Escape key handling
-- ✅ Outside-click closes modal
-- ✅ Prevents z-index issues with parent containers
+- ✅ Built on Radix Dialog (accessible, focus-trapped)
+- ✅ Escape key closes modal
+- ✅ Click outside closes modal
+- ✅ Styled with Tailwind CSS
+- ✅ Supports both controlled (simple wrapper) and uncontrolled (primitives) usage
+- ✅ Animations via Tailwind `animate-in`/`animate-out`
 
 **Anti-Pattern:**
 
-❌ Rendering modals in parent DOM tree → overflow/z-index issues  
-✅ Always use `Modal` component with React Portal
+❌ Building custom modal with manual focus management  
+✅ Use `Modal` component or Radix Dialog primitives
 
 ---
 
@@ -428,96 +499,149 @@ import { TabBar } from '@/components/ui/TabBar';
 
 ### 7. Dropdown
 
-**File:** `src/components/ui/Dropdown.tsx:26`
+**File:** `src/components/ui/Dropdown.tsx`
 
-**Purpose:** Dropdown menu using **native HTML Popover API**. Browser handles click-outside, Escape key, and focus management automatically.
+**Purpose:** Accessible dropdown menu built on **Radix DropdownMenu** with Tailwind styling and **Lucide** icons.
 
 **When to Use:**
 
 - Export menus
 - Action menus
 - Overflow menus (icon-only trigger)
-- Status selectors (though `StatusSelector` is more specialized)
+- Settings menus
 
-**Props:**
+**Exports:**
+
+The Dropdown component exports both a simple wrapper and Radix primitives:
+
+```typescript
+// Simple wrapper (recommended for most cases)
+import { Dropdown } from '@/components/ui/Dropdown';
+
+// Radix primitives (for advanced customization)
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from '@/components/ui/Dropdown';
+```
+
+**Simple Wrapper Props:**
 
 ```typescript
 interface DropdownItem {
   label: string;
-  icon?: string;
+  icon?: LucideIcon; // Lucide icon component
   onClick: () => void;
-  variant?: 'default' | 'danger'; // Use 'danger' for destructive actions
+  variant?: 'default' | 'danger';
 }
 
 interface DropdownProps {
   buttonLabel: string;
-  buttonIcon?: string;
-  iconOnly?: boolean; // When true, only shows icon (no label or caret)
+  buttonIcon?: LucideIcon; // Lucide icon component
+  iconOnly?: boolean; // When true, only shows icon (no label)
   items: DropdownItem[];
   className?: string;
 }
 ```
 
-**Real Usage Example:**
+**Real Usage Example (Simple Wrapper):**
 
 ```typescript
-// From: src/components/ui/EditorToolbar.tsx
 import { Dropdown } from '@/components/ui/Dropdown';
+import { Download, FileText, FileImage } from 'lucide-react';
 
-// Standard dropdown with label
 <Dropdown
   buttonLabel="Export"
-  buttonIcon="📥"
+  buttonIcon={Download}
   items={[
     {
-      label: 'Export as Markdown (.md)',
-      onClick: () => onExport('md'),
+      label: 'Export as Markdown',
+      icon: FileText,
+      onClick: () => handleExport('md'),
     },
     {
-      label: 'Export as PDF (.pdf)',
-      onClick: () => onExport('pdf'),
+      label: 'Export as PDF',
+      icon: FileImage,
+      onClick: () => handleExport('pdf'),
     },
   ]}
-  className="export-dropdown"
 />
 
-// Icon-only overflow menu (from job-details App.tsx)
+// Icon-only overflow menu
+import { MoreVertical, Trash2 } from 'lucide-react';
+
 <Dropdown
   buttonLabel="More options"
-  buttonIcon="⋮"
+  buttonIcon={MoreVertical}
   iconOnly={true}
   items={[
     { label: 'Create Backup', onClick: handleCreateBackup },
     { label: 'Restore Backup', onClick: handleRestoreBackup },
-    { label: 'Delete All', onClick: handleDeleteAll, variant: 'danger' },
+    { label: 'Delete All', icon: Trash2, onClick: handleDeleteAll, variant: 'danger' },
   ]}
 />
 ```
 
+**Real Usage Example (Radix Primitives):**
+
+```typescript
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from '@/components/ui/Dropdown';
+import { Button } from '@/components/ui/Button';
+import { Settings, LogOut, User } from 'lucide-react';
+
+<DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button variant="ghost" size="sm">
+      <Settings className="h-4 w-4" />
+    </Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent align="end">
+    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+    <DropdownMenuSeparator />
+    <DropdownMenuItem>
+      <User className="mr-2 h-4 w-4" />
+      Profile
+    </DropdownMenuItem>
+    <DropdownMenuItem className="text-destructive">
+      <LogOut className="mr-2 h-4 w-4" />
+      Log out
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
+```
+
 **Key Features:**
 
-- ✅ **Native Popover API** - No manual state management needed
-- ✅ Browser handles click-outside and Escape key automatically
-- ✅ Automatic menu positioning (fixed, aligned to button)
-- ✅ Icon support for button and items
+- ✅ Built on Radix DropdownMenu (accessible, keyboard navigable)
+- ✅ Styled with Tailwind CSS
+- ✅ Lucide icons integration
+- ✅ Automatic positioning and collision detection
 - ✅ Danger variant for destructive actions (red text)
+- ✅ Animations via Tailwind `animate-in`/`animate-out`
 
-**Migration Note (v1.1):**
+**Icons:**
 
-The Dropdown component was refactored from manual state management to native HTML Popover API:
+This component uses **Lucide React** icons. Import icons from `lucide-react`:
 
-| Before (v1.0)             | After (v1.1)            |
-| ------------------------- | ----------------------- |
-| `isOpen` prop required    | No state props needed   |
-| `onToggle` prop required  | Browser handles toggle  |
-| `onClose` prop required   | Browser handles close   |
-| Manual click-outside code | Native `popover="auto"` |
-| Manual Escape handling    | Native browser behavior |
+```typescript
+import { Download, Trash2, MoreVertical, Settings } from 'lucide-react';
+```
 
 **Anti-Pattern:**
 
-❌ Passing `isOpen`, `onToggle`, `onClose` props (no longer supported)  
-✅ Just pass `buttonLabel` and `items` - component is self-contained
+❌ Building custom dropdown with manual positioning  
+✅ Use `Dropdown` component or Radix DropdownMenu primitives
 
 ---
 
@@ -1061,51 +1185,9 @@ import { JobViewChecklist } from '@/components/features/JobViewChecklist';
 
 ---
 
-## 📐 Component CSS Architecture
-
-**Critical Rule:** Shared components must import their own CSS.
-
-### File Structure
-
-- **Page-level CSS** (e.g., `entrypoints/popup/styles.css`):
-  - Layout, typography, global variables
-  - Page-specific classes (not used by shared components)
-  - Imported in `main.tsx` or `App.tsx`
-
-- **Component-level CSS** (e.g., `components/MyButton.css` or `views/my-view.css`):
-  - Component-specific classes
-  - Imported directly in component file: `import './MyButton.css'`
-  - Ensures component works across all entrypoints
-
-### Anti-pattern
-
-❌ Shared component relies on page-level CSS → Missing styles when reused
-
-### Correct pattern
-
-✅ Shared component imports own CSS → Works everywhere
-
-### Example
-
-```typescript
-// src/entrypoints/job-details/views/ResearchingView.tsx
-import './ResearchingView.css'; // ✅ Component imports its own styles
-
-export function ResearchingView({ job }: Props) {
-  return <div className="researching-editor">...</div>;
-}
-```
-
-**Why:** When components are shared across multiple entrypoints (e.g., sidepanel and job-details), they must bring their styles with them. Page-level CSS only affects that specific entrypoint.
-
-**Reference:** `docs/refactors/component-css-architecture.md`
-
----
-
 ## 🔗 Related Documentation
 
 - **📘 Quick Reference:** `docs/QUICK_REFERENCE.md`
 - **📗 Hooks Reference:** `docs/HOOKS_REFERENCE.md`
 - **📕 MarkdownDB Reference:** `docs/MARKDOWN_DB_REFERENCE.md`
 - **📙 Architecture Guide:** `AGENTS.md`
-- **📚 Component CSS:** `docs/refactors/component-css-architecture.md`

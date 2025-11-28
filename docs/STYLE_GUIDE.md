@@ -7,21 +7,25 @@ This style guide establishes coding conventions for the Sir Hires WXT + React mi
 ## 1. File Naming Conventions
 
 ### React Components
+
 - **Format:** `PascalCase.tsx`
 - **Examples:** `EditableField.tsx`, `SynthesisModal.tsx`, `JobDetailsView.tsx`
 - **Rule:** All React component files must use `.tsx` extension and PascalCase naming
 
 ### Custom Hooks
+
 - **Format:** `use[Name].ts`
 - **Examples:** `useJobStorage.ts`, `useNavigation.ts`, `useTheme.ts`
 - **Rule:** All hooks start with `use` prefix and use camelCase
 
 ### Utilities & Services
+
 - **Format:** `kebab-case.ts`
 - **Examples:** `job-parser.ts`, `llm-client.ts`, `profile-validator.ts`
 - **Rule:** Non-component, non-hook files use kebab-case
 
 ### Type Definitions
+
 - **Format:** `types.ts` or `[domain].types.ts`
 - **Examples:** `types.ts`, `job.types.ts`, `navigation.types.ts`
 - **Rule:** Place shared types in dedicated files, not inline in components
@@ -31,6 +35,7 @@ This style guide establishes coding conventions for the Sir Hires WXT + React mi
 ## 2. Component Structure
 
 ### Functional Components
+
 All components must be functional components using React Hooks. **No class components.**
 
 ```tsx
@@ -63,6 +68,7 @@ class JobCard extends React.Component {
 ```
 
 ### Component File Organization
+
 ```tsx
 // 1. Imports (external, then internal)
 import { useState, useEffect } from 'react';
@@ -114,15 +120,15 @@ import { useJobStorage } from '@/hooks/useJobStorage';
 
 // 5. Utils and services
 import { parseJob } from '@/utils/job-parser';
+import { cn } from '@/lib/utils';
 
 // 6. Types
 import type { Job } from '@/types';
-
-// 7. Styles
-import './MyComponent.css';
 ```
 
 **Use `@/` path alias** for absolute imports (configured in `tsconfig.json`).
+
+**Note:** With Tailwind CSS, styles are applied via className attributes rather than imported CSS files.
 
 ---
 
@@ -148,6 +154,7 @@ chrome.storage.local.get('key');
 ## 5. TypeScript Best Practices
 
 ### Avoid `any`
+
 ```tsx
 // ✅ GOOD: Typed properly
 interface MessagePayload {
@@ -162,6 +169,7 @@ function handleMessage(message: any) {}
 ```
 
 ### Use Type Inference
+
 ```tsx
 // ✅ GOOD: Let TypeScript infer
 const [count, setCount] = useState(0); // Inferred as number
@@ -171,6 +179,7 @@ const [count, setCount] = useState<number>(0);
 ```
 
 ### Prefer `interface` over `type` for objects
+
 ```tsx
 // ✅ GOOD: Interface for object shapes
 interface User {
@@ -193,6 +202,7 @@ type User = {
 ## 6. State Management
 
 ### WXT Storage for Persistence
+
 Use `@wxt-dev/storage` for all persistent state (replaces `browser.storage` directly):
 
 ```tsx
@@ -222,6 +232,7 @@ function MyComponent() {
 ```
 
 ### React State for UI-Only State
+
 ```tsx
 // ✅ GOOD: Use useState for local UI state
 const [isOpen, setIsOpen] = useState(false);
@@ -236,6 +247,7 @@ await storage.setValue('isModalOpen', true); // Unnecessary
 ## 7. Event Handlers
 
 ### Naming Convention
+
 - **Pattern:** `handle[Event]` or `on[Event]`
 - **Examples:** `handleClick`, `handleSubmit`, `onClose`, `onSelectJob`
 
@@ -257,6 +269,7 @@ function JobCard() {
 ```
 
 ### Inline vs. Extracted Handlers
+
 ```tsx
 // ✅ GOOD: Extract complex logic
 const handleSubmit = (e: React.FormEvent) => {
@@ -279,6 +292,7 @@ const handleSubmit = (e: React.FormEvent) => {
 ## 8. WXT Entrypoint Patterns
 
 ### Background Scripts
+
 ```tsx
 // src/entrypoints/background.ts
 export default defineBackground(() => {
@@ -290,6 +304,7 @@ export default defineBackground(() => {
 ```
 
 ### Content Scripts (Headless)
+
 ```tsx
 // src/entrypoints/content.ts
 export default defineContentScript({
@@ -302,6 +317,7 @@ export default defineContentScript({
 ```
 
 ### Content Scripts (React UI)
+
 ```tsx
 // src/entrypoints/overlay.content.tsx
 import ReactDOM from 'react-dom/client';
@@ -330,6 +346,7 @@ export default defineContentScript({
 ```
 
 ### UI Entrypoints (Popup, Options, etc.)
+
 ```tsx
 // src/entrypoints/popup/index.html
 <!DOCTYPE html>
@@ -385,6 +402,7 @@ console.log('Debug:', data); // Use browser DevTools or remove before commit
 ## 10. Formatting Rules
 
 Prettier enforces these automatically:
+
 - **Semicolons:** Always use `;`
 - **Quotes:** Single quotes `'` for strings (except JSX attributes use `"`)
 - **Indent:** 2 spaces
@@ -396,34 +414,128 @@ Prettier enforces these automatically:
 
 ---
 
-## 11. Testing Conventions
+## 11. Styling with Tailwind CSS
 
-### Component Tests
+This project uses **Tailwind CSS v4** with **shadcn/ui** components for styling.
+
+### Core Tools
+
+- **Tailwind CSS v4:** Utility-first CSS framework
+- **shadcn/ui:** Radix UI primitives with Tailwind styling
+- **CVA (class-variance-authority):** Type-safe component variants
+- **cn() utility:** Merge Tailwind classes with conflict resolution
+
+### The `cn()` Utility
+
+Always use `cn()` from `@/lib/utils` to combine classes:
+
 ```tsx
-// src/components/JobCard.test.tsx
-import { render, screen } from '@testing-library/react';
-import { JobCard } from './JobCard';
+import { cn } from '@/lib/utils';
 
-describe('JobCard', () => {
-  it('renders job title', () => {
-    render(<JobCard title="Software Engineer" jobId="123" onSelect={jest.fn()} />);
-    expect(screen.getByText('Software Engineer')).toBeInTheDocument();
-  });
+// Merge base + conditional + prop classes
+<div
+  className={cn(
+    'flex items-center gap-2', // Base classes
+    isActive && 'bg-primary text-white', // Conditional
+    className // Allow override from props
+  )}
+/>;
+```
 
-  it('calls onSelect when clicked', () => {
-    const handleSelect = jest.fn();
-    render(<JobCard title="Software Engineer" jobId="123" onSelect={handleSelect} />);
-    screen.getByRole('button').click();
-    expect(handleSelect).toHaveBeenCalledWith('123');
-  });
-});
+**Why `cn()`?** It uses `tailwind-merge` to resolve conflicts:
+
+```tsx
+cn('px-4', 'px-2'); // → 'px-2' (last wins, no duplicates)
+```
+
+### Component Variants with CVA
+
+Use CVA for components with multiple variants:
+
+```tsx
+import { cva, type VariantProps } from 'class-variance-authority';
+
+const buttonVariants = cva(
+  'inline-flex items-center rounded-md font-medium transition-colors',
+  {
+    variants: {
+      variant: {
+        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        destructive: 'bg-destructive text-destructive-foreground',
+        ghost: 'hover:bg-accent hover:text-accent-foreground',
+      },
+      size: {
+        default: 'h-10 px-4 py-2',
+        sm: 'h-9 px-3',
+        lg: 'h-11 px-8',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'default',
+    },
+  }
+);
+
+interface ButtonProps extends VariantProps<typeof buttonVariants> {
+  className?: string;
+}
+
+export function Button({ variant, size, className, ...props }: ButtonProps) {
+  return (
+    <button
+      className={cn(buttonVariants({ variant, size }), className)}
+      {...props}
+    />
+  );
+}
+```
+
+### CSS Variables for Theming
+
+Define theme colors as CSS variables in `globals.css`:
+
+```css
+@theme {
+  --color-background: oklch(1 0 0);
+  --color-foreground: oklch(0.145 0 0);
+  --color-primary: oklch(0.205 0 0);
+  --color-primary-foreground: oklch(0.985 0 0);
+}
+```
+
+Use in Tailwind classes:
+
+```tsx
+<div className="bg-background text-foreground" />
+<button className="bg-primary text-primary-foreground" />
+```
+
+### Best Practices
+
+1. **Use semantic color names:** `bg-primary` not `bg-blue-500`
+2. **Always accept className prop:** Allow consumers to override styles
+3. **Use CVA for variants:** Don't write manual conditional class logic
+4. **Prefer Tailwind over custom CSS:** Only use custom CSS for complex animations
+5. **Import globals.css once:** In each entrypoint's `main.tsx`
+
+```tsx
+// src/entrypoints/popup/main.tsx
+import '@/styles/globals.css'; // Import once per entrypoint
 ```
 
 ---
 
-## 12. Migration-Specific Guidelines
+## 12. Testing Conventions (PLACEHOLDER)
+
+_Testing setup is pending. This section will be updated when testing infrastructure is added._
+
+---
+
+## 13. Migration-Specific Guidelines
 
 ### During Conversion from Vanilla to React
+
 1. **Keep legacy code for reference:** The `chrome-extension/` directory stays until all features are converted
 2. **Convert incrementally:** One entrypoint at a time (e.g., popup, then sidepanel, then job-details)
 3. **Extract reusable components:** Move shared logic to `src/components/`
@@ -431,16 +543,19 @@ describe('JobCard', () => {
 5. **Test as you go:** Ensure each converted feature works before moving to the next
 
 ### Deleting Legacy Code
+
 Once a feature is fully converted and tested:
+
 - Remove corresponding files from `chrome-extension/`
 - Update PR description with migration status
 - Final commit: Delete entire `chrome-extension/` directory
 
 ---
 
-## 13. Common Pitfalls
+## 14. Common Pitfalls
 
 ### ❌ Don't Put Shared Code in `entrypoints/`
+
 ```
 src/
   entrypoints/
@@ -452,6 +567,7 @@ src/
 WXT treats every file in `entrypoints/` as a separate entrypoint. Shared components cause build errors.
 
 ### ❌ Don't Mix React and DOM Manipulation
+
 ```tsx
 // ❌ BAD: Direct DOM manipulation in React
 function MyComponent() {
@@ -468,7 +584,9 @@ function MyComponent() {
 ```
 
 ### ❌ Don't Forget `cssInjectionMode: 'ui'`
+
 When using Shadow DOM in content scripts, always set this option:
+
 ```tsx
 export default defineContentScript({
   cssInjectionMode: 'ui', // REQUIRED
@@ -478,9 +596,10 @@ export default defineContentScript({
 
 ---
 
-## 14. Pre-Commit Checklist
+## 15. Pre-Commit Checklist
 
 Before committing:
+
 - [ ] Run `npm run lint` (fix critical errors)
 - [ ] Run `npm run format` (auto-format code)
 - [ ] Remove `console.log` statements (keep `error`, `warn`, `info` if needed)
@@ -490,313 +609,102 @@ Before committing:
 
 ---
 
-## 15. Modal & Overlay Patterns
+## 16. Modal & Overlay Patterns (Radix UI + Tailwind)
 
-### Understanding React Portals
+This project uses **Radix UI primitives** with **Tailwind CSS** for modals and overlays. See `docs/COMPONENTS_REFERENCE.md` for the full `Modal` component API.
 
-**Portals are NOT a UI element type** - they're a **rendering technique** that allows components to render outside their parent's DOM hierarchy while staying in the React component tree.
-
-```tsx
-// Component stays in React tree (props/state flow normally)
-<Sidebar>
-  <Modal />  
-</Sidebar>
-
-// But DOM renders at document.body (escapes parent constraints)
-ReactDOM.createPortal(<div>Modal</div>, document.body)
-```
-
-**When to Use Portals:**
-- Modals and dialogs
-- Tooltips and popovers
-- Toast notifications
-- Dropdown menus
-- Context menus
-- Any UI that needs to "break out" of parent container constraints
-
-**Benefits:**
-- Escape parent CSS constraints (overflow: hidden, z-index, position)
-- Always render on top without z-index wars
-- Event bubbling still works through React tree (not DOM tree)
-- Maintains proper component communication via props/callbacks
-
----
-
-### Pattern 1: Generic Modal Wrapper with Portal
-
-Create a reusable `Modal` component that handles common modal concerns:
+### Quick Usage
 
 ```tsx
-// src/components/ui/Modal.tsx
-import React, { useEffect } from 'react';
-import ReactDOM from 'react-dom';
-
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title?: string;
-  children: React.ReactNode;
-  className?: string;
-}
-
-export function Modal({ isOpen, onClose, title, children, className = '' }: ModalProps) {
-  // Handle Escape key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
-  // Render modal at document.body using Portal
-  return ReactDOM.createPortal(
-    <div 
-      className={`modal-overlay ${isOpen ? 'visible' : ''}`}
-      onClick={(e) => {
-        // Close on overlay click (not content click)
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
-    >
-      <div className={`modal-content ${className}`}>
-        {title && (
-          <div className="modal-header">
-            <h2>{title}</h2>
-            <button className="modal-close-btn" onClick={onClose}>
-              &times;
-            </button>
-          </div>
-        )}
-        <div className="modal-body">
-          {children}
-        </div>
-      </div>
-    </div>,
-    document.body // Render at document.body, not in parent component
-  );
-}
-```
-
-**Key Features:**
-- ✅ Uses `createPortal()` to render at `document.body`
-- ✅ Handles Escape key to close
-- ✅ Closes on overlay click (not content click)
-- ✅ Accepts custom className for styling
-- ✅ Reusable across all modals
-
----
-
-### Pattern 2: Separating Modal Content for Reusability
-
-Extract business logic and UI into separate content components:
-
-```tsx
-// src/entrypoints/job-details/components/SynthesisForm.tsx
-import React, { useState } from 'react';
-import type { Job } from '../hooks';
-
-interface SynthesisFormProps {
-  job: Job;
-  onGenerate: (result: { content: string }) => void;
-  onCancel?: () => void;
-}
-
-export function SynthesisForm({ job, onGenerate, onCancel }: SynthesisFormProps) {
-  const [selectedModel, setSelectedModel] = useState('gpt-4');
-  const [maxTokens, setMaxTokens] = useState(2000);
-  const [isGenerating, setIsGenerating] = useState(false);
-
-  const handleSubmit = async () => {
-    setIsGenerating(true);
-    try {
-      // Generation logic...
-      const result = { content: '...' };
-      onGenerate(result);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  return (
-    <div className="synthesis-form">
-      <div className="form-group">
-        <label>Model:</label>
-        <select value={selectedModel} onChange={(e) => setSelectedModel(e.target.value)}>
-          <option value="gpt-4">GPT-4</option>
-          <option value="claude-3">Claude 3</option>
-        </select>
-      </div>
-
-      <div className="form-group">
-        <label>Max Tokens:</label>
-        <input 
-          type="number" 
-          value={maxTokens} 
-          onChange={(e) => setMaxTokens(parseInt(e.target.value))}
-        />
-      </div>
-
-      <div className="form-actions">
-        {onCancel && (
-          <button onClick={onCancel} className="btn-secondary">
-            Cancel
-          </button>
-        )}
-        <button onClick={handleSubmit} disabled={isGenerating} className="btn-primary">
-          {isGenerating ? 'Generating...' : 'Generate'}
-        </button>
-      </div>
-    </div>
-  );
-}
-```
-
-**Benefits:**
-- ✅ No modal-specific code (overlay, portals, etc.)
-- ✅ Can be used in modal OR inline in sidepanel
-- ✅ Easier to test (just test the form logic)
-- ✅ Follows Single Responsibility Principle
-
----
-
-### Pattern 3: Composing Modal with Content
-
-**Usage as Modal:**
-```tsx
-// src/entrypoints/job-details/App.tsx
 import { Modal } from '@/components/ui/Modal';
-import { SynthesisForm } from './components/SynthesisForm';
 
-function JobDetailsApp() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [job, setJob] = useState<Job>(...);
-
-  const handleGenerate = (result: { content: string }) => {
-    // Save generated content
-    console.info('Generated:', result.content);
-    setIsModalOpen(false);
-  };
+function MyComponent() {
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div>
-      <button onClick={() => setIsModalOpen(true)}>
-        Synthesize Document
-      </button>
+    <>
+      <button onClick={() => setIsOpen(true)}>Open Modal</button>
 
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)}
-        title="Synthesize Document with LLM"
+      <Modal
+        open={isOpen}
+        onOpenChange={setIsOpen}
+        title="Modal Title"
+        description="Optional description text"
       >
-        <SynthesisForm 
-          job={job} 
-          onGenerate={handleGenerate}
-          onCancel={() => setIsModalOpen(false)}
-        />
+        <p>Modal content goes here</p>
+        <Button onClick={() => setIsOpen(false)}>Close</Button>
       </Modal>
-    </div>
+    </>
   );
 }
 ```
 
-**Usage Inline (No Modal):**
+### Key Features (via Radix Dialog)
+
+- **Accessibility:** Focus trapping, Escape key, ARIA attributes built-in
+- **Portal rendering:** Automatically renders at document.body
+- **Body scroll lock:** Prevents background scrolling when open
+- **Overlay click:** Closes on backdrop click by default
+
+### Advanced: Using Radix Primitives Directly
+
+For complex modals, use the exported primitives:
+
 ```tsx
-// src/entrypoints/sidepanel/App.tsx
-import { SynthesisForm } from '@/entrypoints/job-details/components/SynthesisForm';
+import {
+  DialogRoot,
+  DialogTrigger,
+  DialogPortal,
+  DialogOverlay,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from '@/components/ui/Modal';
 
-function SidePanelApp() {
-  const [job, setJob] = useState<Job>(...);
-
-  const handleGenerate = (result: { content: string }) => {
-    console.info('Generated:', result.content);
-  };
-
-  return (
-    <div className="sidepanel">
-      <h2>Quick Synthesis</h2>
-      
-      {/* Same component, used inline without modal wrapper */}
-      <SynthesisForm 
-        job={job} 
-        onGenerate={handleGenerate}
-      />
-    </div>
-  );
-}
+<DialogRoot>
+  <DialogTrigger asChild>
+    <Button>Open</Button>
+  </DialogTrigger>
+  <DialogPortal>
+    <DialogOverlay className="fixed inset-0 bg-black/50" />
+    <DialogContent className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-lg">
+      <DialogTitle>Custom Modal</DialogTitle>
+      <DialogDescription>With full control over styling</DialogDescription>
+      <DialogClose asChild>
+        <Button variant="ghost">Close</Button>
+      </DialogClose>
+    </DialogContent>
+  </DialogPortal>
+</DialogRoot>;
 ```
 
-**Key Insight:** The `SynthesisForm` component doesn't know (or care) if it's rendered in a modal or inline. This is maximum flexibility.
+### Dropdown Menus
 
----
+Use the `Dropdown` component for context menus:
 
-### When to Extract Content Components
+```tsx
+import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 
-**Extract content when:**
-- ✅ Building 3+ modals with similar structure (create generic `Modal` wrapper)
-- ✅ Component will be used as modal AND inline in different contexts
-- ✅ You want to test business logic separately from modal behavior
-- ✅ Team is building multiple features that need modals
-
-**Keep self-contained when:**
-- ✅ Only 1-2 modals in the entire app
-- ✅ Modal logic is simple and won't be reused
-- ✅ Component is only ever used as a modal (never inline)
-
-**Project Implementation:**
-All modals in this project follow the generic wrapper + content separation pattern for consistency and maximum flexibility
-
----
+<Dropdown
+  trigger={<Button variant="ghost">Actions</Button>}
+  items={[
+    { label: 'Edit', onClick: handleEdit },
+    { label: 'Delete', onClick: handleDelete, variant: 'danger' },
+  ]}
+/>;
+```
 
 ### Best Practices
 
-1. **Portal Rendering Location:** Always render modals/tooltips at `document.body`, not arbitrary DOM nodes
-2. **Event Handling:** Remember that React event bubbling works through component tree, not DOM tree
-3. **Focus Management:** Consider trapping focus within modal when open (accessibility)
-4. **Body Scroll Lock:** Add `overflow: hidden` to `<body>` when modal is open to prevent background scrolling
-5. **Animation:** Use CSS transitions on overlay/content, not on portal mount/unmount
-6. **Z-Index:** Portals eliminate most z-index issues, but define a consistent z-index scale in your CSS
-
-```css
-/* Example CSS for generic modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.modal-overlay.visible {
-  opacity: 1;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 8px;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow: auto;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-```
+1. **Use the simple wrapper** (`Modal`, `Dropdown`) for standard use cases
+2. **Use primitives** only when you need custom layout or behavior
+3. **Apply Tailwind classes** directly to primitives for custom styling
+4. **Never build modal/dropdown from scratch** - always use Radix primitives
 
 ---
 
-## 16. Resources
+## 17. Resources
 
 - [WXT Documentation](https://wxt.dev/)
 - [React Documentation](https://react.dev/)
@@ -805,5 +713,5 @@ All modals in this project follow the generic wrapper + content separation patte
 
 ---
 
-**Last Updated:** November 21, 2024  
+**Last Updated:** November 28, 2024  
 **Maintained By:** Sir Hires Development Team

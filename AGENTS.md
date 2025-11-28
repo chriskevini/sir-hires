@@ -78,43 +78,112 @@ This project has **extensive reusable UI/feature components and custom hooks** t
 
 - **Language:** TypeScript (`.ts`, `.tsx`) is mandatory.
 - **Components:** Use Functional Components with Hooks.
-- **Styling:** Import CSS/SCSS modules or Tailwind classes directly in `.tsx` files.
+- **Styling:** Use Tailwind CSS classes with the `cn()` utility for conditional styling.
 - **Browser API:** Always use the `browser` global (e.g., `browser.runtime.sendMessage`). **Do not use `chrome.*`.**
 
-### Component CSS Architecture
+### Styling with Tailwind CSS + shadcn/ui
 
-**Rule:** Shared components must import their own CSS.
+This project uses **Tailwind CSS v4** with **shadcn/ui** components and **CVA** (class-variance-authority) for variant-based styling.
 
-- **Page-level CSS** (e.g., `entrypoints/popup/styles.css`):
-  - Layout, typography, global variables
-  - Page-specific classes (not used by shared components)
-  - Imported in `main.tsx` or `App.tsx`
+#### Core Tools
 
-- **Component-level CSS** (e.g., `components/MyButton.css` or `views/my-view.css`):
-  - Component-specific classes
-  - Imported directly in component file: `import './MyButton.css'`
-  - Ensures component works across all entrypoints
+- **Tailwind CSS v4:** Utility-first CSS framework
+- **shadcn/ui:** Radix-based accessible component primitives
+- **CVA:** Type-safe component variants
+- **`cn()` utility:** Merges Tailwind classes with proper precedence
 
-**Anti-pattern:**
-❌ Shared component relies on page-level CSS → Missing styles when reused
+#### The `cn()` Utility
 
-**Correct pattern:**
-✅ Shared component imports own CSS → Works everywhere
-
-**Example:**
+Located in `src/lib/utils.ts`, combines `clsx` + `tailwind-merge`:
 
 ```typescript
-// src/entrypoints/job-details/views/ResearchingView.tsx
-import './ResearchingView.css'; // ✅ Component imports its own styles
+import { cn } from '@/lib/utils';
 
-export function ResearchingView({ job }: Props) {
-  return <div className="researching-editor">...</div>;
+// Merge conditional classes with proper Tailwind precedence
+<div className={cn(
+  'flex items-center gap-2',           // Base classes
+  isActive && 'bg-primary text-white', // Conditional
+  className                             // Props override
+)} />
+```
+
+**Always use `cn()` when:**
+
+- Combining multiple class sources
+- Accepting `className` prop from parent
+- Applying conditional styles
+
+#### Component Variants with CVA
+
+UI components use CVA for type-safe variants:
+
+```typescript
+import { cva, type VariantProps } from 'class-variance-authority';
+
+const buttonVariants = cva(
+  'inline-flex items-center justify-center rounded-md font-medium transition-colors',
+  {
+    variants: {
+      variant: {
+        primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        secondary:
+          'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+        danger:
+          'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+        ghost: 'hover:bg-accent hover:text-accent-foreground',
+      },
+      size: {
+        sm: 'h-8 px-3 text-xs',
+        md: 'h-9 px-4 text-sm',
+        lg: 'h-10 px-6 text-base',
+      },
+    },
+    defaultVariants: {
+      variant: 'primary',
+      size: 'md',
+    },
+  }
+);
+```
+
+#### CSS Variables (Theming)
+
+CSS variables are defined in `src/styles/globals.css`:
+
+```css
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --primary: oklch(0.546 0.245 275.75);
+  --destructive: oklch(0.577 0.245 27.325);
+  /* ... */
 }
 ```
 
-**Why:** When components are shared across multiple entrypoints (e.g., sidepanel and job-details), they must bring their styles with them. Page-level CSS only affects that specific entrypoint.
+Use semantic color classes:
 
-**Reference:** `docs/refactors/component-css-architecture.md`
+- `bg-primary`, `text-primary-foreground`
+- `bg-destructive`, `text-destructive-foreground`
+- `bg-muted`, `text-muted-foreground`
+
+#### Global Styles Import
+
+Each entrypoint imports global styles in `main.tsx`:
+
+```typescript
+// src/entrypoints/popup/main.tsx
+import '@/styles/globals.css'; // Tailwind + CSS variables
+```
+
+**Anti-pattern:**
+
+- Creating separate CSS files for components
+- Using arbitrary color values instead of CSS variables
+
+**Correct pattern:**
+
+- Use Tailwind utilities + semantic color classes
+- Extend variants via CVA for component-specific needs
 
 ### State Management
 

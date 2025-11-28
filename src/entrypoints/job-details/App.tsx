@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { ResearchingView } from './views/ResearchingView';
 import { DraftingView } from './views/DraftingView';
-import { useJobStore } from './hooks';
+import { useJobStore, useToggleState } from './hooks';
 import { JobViewRouter } from '../../components/features/JobViewRouter';
 import {
   ParsedJobProvider,
@@ -15,6 +15,7 @@ import {
   type SortField,
   type SortDirection,
 } from '../../components/ui/SortIconButtons';
+import { Dropdown } from '../../components/ui/Dropdown';
 import {
   getAllStorageData,
   restoreStorageFromBackup,
@@ -42,6 +43,10 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [error, _setError] = useState<string | null>(null);
+
+  // Dropdown state for overflow menu
+  const [isMenuOpen, toggleMenu, setMenuOpen] = useToggleState(false);
+  const closeMenu = useCallback(() => setMenuOpen(false), [setMenuOpen]);
 
   // ============================================================================
   // ID-based handlers: Pass directly to view components
@@ -479,21 +484,45 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
 
   return (
     <div className="container">
-      {/* Header with title and action buttons */}
+      {/* Header with branding and action buttons */}
       <header>
         <div className="header-title">
-          <h1>Saved Jobs</h1>
-          <span className="job-count">
-            {filteredJobs.length} of {store.jobs.length} jobs
-          </span>
+          <h1>Sir Hires</h1>
         </div>
         <div className="header-actions">
-          <button onClick={handleProfileClick}>Profile</button>
-          <button onClick={handleCreateBackup}>Create Backup</button>
-          <button onClick={handleRestoreBackup}>Restore Backup</button>
-          <button onClick={handleDeleteAll} className="danger">
-            Delete All
+          <button
+            className="btn-icon"
+            onClick={handleProfileClick}
+            title="Profile"
+          >
+            👤
           </button>
+          <Dropdown
+            isOpen={isMenuOpen}
+            onToggle={toggleMenu}
+            onClose={closeMenu}
+            buttonLabel="More options"
+            buttonIcon="⋮"
+            iconOnly={true}
+            items={[
+              {
+                label: 'Create Backup',
+                icon: '💾',
+                onClick: handleCreateBackup,
+              },
+              {
+                label: 'Restore Backup',
+                icon: '📂',
+                onClick: handleRestoreBackup,
+              },
+              {
+                label: 'Delete All',
+                icon: '🗑️',
+                onClick: handleDeleteAll,
+                variant: 'danger',
+              },
+            ]}
+          />
         </div>
       </header>
 
@@ -511,18 +540,25 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <StatusFilterDots
-                selectedStatuses={statusFilters}
-                onChange={setStatusFilters}
-              />
-              <SortIconButtons
-                sortField={sortField}
-                sortDirection={sortDirection}
-                onChange={(field, direction) => {
-                  setSortField(field);
-                  setSortDirection(direction);
-                }}
-              />
+              <div className="filter-row">
+                <StatusFilterDots
+                  selectedStatuses={statusFilters}
+                  onChange={setStatusFilters}
+                />
+              </div>
+              <div className="filter-row">
+                <SortIconButtons
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onChange={(field, direction) => {
+                    setSortField(field);
+                    setSortDirection(direction);
+                  }}
+                />
+              </div>
+              <div className="filter-row job-count-row">
+                <span className="job-count">{filteredJobs.length} jobs</span>
+              </div>
             </div>
           </div>
           <div className="jobs-list-sidebar" id="jobsList">

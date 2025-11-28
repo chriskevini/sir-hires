@@ -338,7 +338,8 @@ export const App: React.FC = () => {
         onToggleChecklistExpand={handleChecklistToggleExpand}
         onToggleChecklistItem={handleChecklistToggleItem}
         emptyStateMessage="No job selected"
-        hideChrome={true}
+        showHeader={false}
+        showFooter={true}
       />
     );
   };

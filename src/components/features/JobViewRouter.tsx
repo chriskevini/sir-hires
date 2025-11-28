@@ -45,8 +45,10 @@ export interface JobViewRouterProps {
   onToggleChecklistExpand: (isExpanded: boolean) => void;
   onToggleChecklistItem: (jobId: string, itemId: string) => void;
   emptyStateMessage?: string;
-  /** Hide header/footer chrome (for sidepanel compact mode) */
-  hideChrome?: boolean;
+  /** Show the JobHeader component (default: true) */
+  showHeader?: boolean;
+  /** Show the JobFooter component (default: true) */
+  showFooter?: boolean;
 }
 
 /**
@@ -80,7 +82,8 @@ export function JobViewRouter({
   onToggleChecklistExpand,
   onToggleChecklistItem,
   emptyStateMessage = 'No job selected',
-  hideChrome = false,
+  showHeader = true,
+  showFooter = true,
 }: JobViewRouterProps) {
   // Parse job at top level (hooks must be called unconditionally)
   const parsed = useParsedJob(job?.id || null);
@@ -159,36 +162,33 @@ export function JobViewRouter({
     }
   };
 
-  // Compact mode (hideChrome) - just render view content
-  if (hideChrome) {
-    return (
-      <div className="job-view-container compact">
-        <div className="job-view-content">{renderViewContent()}</div>
-      </div>
-    );
-  }
+  // Render layout based on header/footer visibility
+  const isCompact = !showHeader;
 
-  // Full layout with header and footer
   return (
-    <div className="job-view-container">
-      <JobHeader
-        jobTitle={jobTitle}
-        company={company}
-        url={job.url}
-        status={status}
-      />
+    <div className={`job-view-container ${isCompact ? 'compact' : ''}`}>
+      {showHeader && (
+        <JobHeader
+          jobTitle={jobTitle}
+          company={company}
+          url={job.url}
+          status={status}
+        />
+      )}
 
       <div className="job-view-content">{renderViewContent()}</div>
 
-      <JobFooter
-        status={status}
-        checklist={job.checklist}
-        jobId={job.id}
-        isChecklistExpanded={isChecklistExpanded}
-        onNavigate={handleNavigate}
-        onToggleChecklist={onToggleChecklistExpand}
-        onToggleChecklistItem={onToggleChecklistItem}
-      />
+      {showFooter && (
+        <JobFooter
+          status={status}
+          checklist={job.checklist}
+          jobId={job.id}
+          isChecklistExpanded={isChecklistExpanded}
+          onNavigate={handleNavigate}
+          onToggleChecklist={onToggleChecklistExpand}
+          onToggleChecklistItem={onToggleChecklistItem}
+        />
+      )}
     </div>
   );
 }

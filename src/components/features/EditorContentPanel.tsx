@@ -36,21 +36,21 @@ export const EditorContentPanel: React.FC<EditorContentPanelProps> = ({
       data-content={documentKey}
     >
       {/* Thinking panel (initially hidden) */}
-      <div className="hidden bg-gray-50 border border-gray-200 rounded-md mb-3 overflow-hidden transition-all duration-300">
-        <div className="flex justify-between items-center px-3 py-2 bg-blue-50 border-b border-blue-100 cursor-pointer select-none">
-          <span className="text-sm font-semibold text-blue-600">
+      <div className="hidden bg-muted border border-border rounded-md mb-3 overflow-hidden transition-all duration-300">
+        <div className="flex justify-between items-center px-3 py-2 bg-primary/10 border-b border-primary/20 cursor-pointer select-none">
+          <span className="text-sm font-semibold text-primary">
             🤔 AI Thinking Process
           </span>
           <Button
             variant="ghost"
-            className="bg-transparent border-none text-blue-600 text-sm cursor-pointer px-1.5 py-0.5 leading-none hover:bg-blue-600/10 hover:rounded transition-transform duration-200"
+            className="bg-transparent border-none text-primary text-sm cursor-pointer px-1.5 py-0.5 leading-none hover:bg-primary/10 hover:rounded transition-transform duration-200"
             title="Collapse"
           >
             <ChevronDown className="h-4 w-4" />
           </Button>
         </div>
         <StreamingTextarea
-          className="w-[calc(100%-24px)] m-3 text-gray-700 scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400"
+          className="w-[calc(100%-24px)] m-3 text-foreground scrollbar-thin scrollbar-track-muted scrollbar-thumb-muted-foreground/30 hover:scrollbar-thumb-muted-foreground/50"
           readOnly
         />
       </div>

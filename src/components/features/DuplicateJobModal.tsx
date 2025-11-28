@@ -23,7 +23,7 @@ export const DuplicateJobModal: React.FC<DuplicateJobModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={onCancel} title="Duplicate Job Detected">
       <div className="flex flex-col items-center text-center p-5">
-        <p className="text-sm text-gray-500 mb-6">
+        <p className="text-sm text-muted-foreground mb-6">
           You already have a job saved from this page.
         </p>
 

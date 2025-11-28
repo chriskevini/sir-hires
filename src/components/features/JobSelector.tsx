@@ -107,7 +107,7 @@ export function JobSelector({
               'w-full px-3 py-2.5 border border-neutral-300 rounded',
               'text-sm font-sans',
               'transition-colors duration-200',
-              'focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10',
+              'focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10',
               'placeholder:text-neutral-400'
             )}
             placeholder="Search jobs..."

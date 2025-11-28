@@ -60,8 +60,8 @@ export function JobCard({
       className={cn(
         'border border-neutral-200 rounded-md p-3 mb-2 cursor-pointer',
         'transition-all duration-200',
-        'hover:bg-blue-50 hover:border-blue-600',
-        isSelected && 'border-blue-600 border-2'
+        'hover:bg-primary/10 hover:border-primary',
+        isSelected && 'border-primary border-2'
       )}
       style={{
         backgroundColor: cardBackground,
@@ -81,7 +81,7 @@ export function JobCard({
               'absolute -top-1 -right-1 w-5 h-5 rounded-full',
               'bg-neutral-400 text-white text-xs leading-none',
               'flex items-center justify-center opacity-70',
-              'hover:bg-red-600 hover:opacity-100',
+              'hover:bg-destructive hover:opacity-100',
               'active:scale-90',
               'transition-all duration-200'
             )}

@@ -40,8 +40,8 @@ export const TabBar: React.FC<TabBarProps> = ({
               'text-sm font-medium transition-all duration-150',
               'min-w-30 -mb-px',
               isActive
-                ? 'bg-white text-foreground border-gray-200 z-[1] shadow-[0_-2px_4px_rgba(0,0,0,0.05)]'
-                : 'bg-muted text-muted-foreground border-gray-200 hover:bg-muted/80 hover:text-foreground'
+                ? 'bg-white text-foreground border-border z-[1] shadow-[0_-2px_4px_rgba(0,0,0,0.05)]'
+                : 'bg-muted text-muted-foreground border-border hover:bg-muted/80 hover:text-foreground'
             )}
             onClick={() => onTabChange(tab.key)}
           >
@@ -54,7 +54,7 @@ export const TabBar: React.FC<TabBarProps> = ({
                   'w-4 h-4 rounded-full text-sm leading-none',
                   'text-muted-foreground bg-transparent cursor-pointer',
                   'transition-all duration-150',
-                  'hover:bg-black/10 hover:text-[#d93025]'
+                  'hover:bg-black/10 hover:text-destructive'
                 )}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -72,7 +72,7 @@ export const TabBar: React.FC<TabBarProps> = ({
         <button
           className={cn(
             'relative flex items-center justify-center px-3.5 py-2',
-            'border border-dashed border-gray-200 rounded-t-lg cursor-pointer',
+            'border border-dashed border-border rounded-t-lg cursor-pointer',
             'text-lg font-normal leading-none text-muted-foreground',
             'bg-transparent transition-all duration-150',
             'hover:bg-muted hover:border-primary hover:text-primary'

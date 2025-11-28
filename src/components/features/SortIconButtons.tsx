@@ -75,7 +75,7 @@ export function SortIconButtons({
               'transition-colors duration-150',
               'active:scale-95',
               isActive
-                ? 'text-blue-600 hover:text-blue-700'
+                ? 'text-primary hover:text-primary/80'
                 : 'text-neutral-500 hover:text-neutral-700'
             )}
             onClick={() => handleClick(field)}

@@ -62,7 +62,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
         <div className="flex items-center gap-2 flex-shrink-0 max-[480px]:w-full max-[480px]:justify-start">
           <a
             href={url}
-            className="inline-flex items-center py-1.5 px-3 bg-neutral-100 text-blue-600 no-underline rounded text-sm font-medium transition-all duration-200 hover:bg-blue-50 hover:shadow-sm"
+            className="inline-flex items-center py-1.5 px-3 bg-muted text-primary no-underline rounded text-sm font-medium transition-all duration-200 hover:bg-primary/10 hover:shadow-sm"
             target="_blank"
             rel="noopener noreferrer"
           >

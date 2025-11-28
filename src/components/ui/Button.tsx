@@ -10,17 +10,19 @@ const buttonVariants = cva(
     variants: {
       variant: {
         // Primary - Purple accent (main CTA)
-        primary: 'bg-[#9c27b0] text-white hover:bg-[#7b1fa2] border-none',
+        primary:
+          'bg-primary text-primary-foreground hover:bg-primary/90 border-none',
         // Secondary - Grey outline (cancel, back)
         secondary:
           'bg-transparent text-muted-foreground border border-border hover:bg-muted hover:border-border cursor-pointer',
         // Danger - Red (delete, destructive actions)
-        danger: 'bg-[#d93025] text-white hover:bg-[#c5221f] border-none',
+        danger:
+          'bg-destructive text-destructive-foreground hover:bg-destructive/90 border-none',
         // Subtle - No background, grey text (dismiss, close)
         subtle:
           'bg-transparent border-none text-muted-foreground hover:text-foreground px-2 py-1',
         // Link - Blue text, no background (inline actions)
-        link: 'bg-transparent border-none text-[#1a73e8] hover:text-[#1557b0] hover:underline px-2 py-1',
+        link: 'bg-transparent border-none text-primary hover:text-primary/80 hover:underline px-2 py-1',
         // Ghost - Transparent, fully controlled by parent CSS
         ghost: 'bg-transparent border-none cursor-pointer',
       },

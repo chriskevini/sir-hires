@@ -105,10 +105,14 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
   // Compute status display
   const getStatusDisplay = () => {
     if (isValid === null) {
-      return { icon: '⏳', text: 'Validating...', color: 'text-gray-500' };
+      return {
+        icon: '⏳',
+        text: 'Validating...',
+        color: 'text-muted-foreground',
+      };
     }
     if (errorCount > 0) {
-      return { icon: '✗', text: invalidLabel, color: 'text-red-600' };
+      return { icon: '✗', text: invalidLabel, color: 'text-destructive' };
     }
     if (warningCount > 0) {
       return {
@@ -118,9 +122,9 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
       };
     }
     if (isValid) {
-      return { icon: '✓', text: validLabel, color: 'text-green-600' };
+      return { icon: '✓', text: validLabel, color: 'text-success' };
     }
-    return { icon: '○', text: 'No Content', color: 'text-gray-500' };
+    return { icon: '○', text: 'No Content', color: 'text-muted-foreground' };
   };
 
   const status = getStatusDisplay();
@@ -134,7 +138,7 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
         </div>
         <div className="flex gap-3 text-xs font-medium">
           {errorCount > 0 && (
-            <span className="text-red-600">
+            <span className="text-destructive">
               {errorCount} error{errorCount > 1 ? 's' : ''}
             </span>
           )}
@@ -144,11 +148,11 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
             </span>
           )}
           {infoCount > 0 && (
-            <span className="text-blue-600">{infoCount} custom</span>
+            <span className="text-primary">{infoCount} custom</span>
           )}
         </div>
       </div>
-      <span className="text-xs text-gray-500">
+      <span className="text-muted-foreground text-xs">
         {isCollapsed ? (
           <ChevronUp className="h-4 w-4" />
         ) : (
@@ -163,10 +167,10 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
       'px-3 py-2 mb-2 last:mb-0 rounded text-sm leading-relaxed border-l-[3px]';
     const typeClasses =
       m.type === 'error'
-        ? 'bg-red-50 border-l-red-600 text-red-900'
+        ? 'bg-destructive/10 border-l-destructive text-destructive'
         : m.type === 'warning'
           ? 'bg-amber-50 border-l-amber-500 text-amber-900'
-          : 'bg-blue-50 border-l-blue-600 text-blue-800';
+          : 'bg-primary/10 border-l-primary text-primary';
 
     // Handle multi-value enum fixes (show multiple buttons)
     if (
@@ -218,8 +222,8 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
     >
       {/* Quick Actions Bar */}
       {quickActions && quickActions.length > 0 && (
-        <div className="flex gap-2 border-b border-gray-300 bg-gray-100 px-3 py-2 text-xs -mx-4 -mt-3 mb-3">
-          <span className="self-center font-semibold text-gray-600">
+        <div className="flex gap-2 border-b border-border bg-muted px-3 py-2 text-xs -mx-4 -mt-3 mb-3">
+          <span className="self-center font-semibold text-muted-foreground">
             Quick Actions:
           </span>
           {quickActions.map((action, i) => (
@@ -237,7 +241,7 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
 
       {/* Messages */}
       {messages.length === 0 ? (
-        <div className="text-gray-500 text-sm text-center p-4">
+        <div className="text-muted-foreground text-sm text-center p-4">
           No validation messages
         </div>
       ) : (
@@ -257,11 +261,11 @@ export function getValidationEditorClass(
   hasContent: boolean
 ): string {
   if (hasErrors) {
-    return 'border-l-4 border-l-red-600';
+    return 'border-l-4 border-l-destructive';
   } else if (hasWarnings) {
     return 'border-l-4 border-l-amber-500';
   } else if (hasContent) {
-    return 'border-l-4 border-l-green-600';
+    return 'border-l-4 border-l-success';
   }
   return '';
 }

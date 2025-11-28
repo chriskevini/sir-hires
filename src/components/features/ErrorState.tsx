@@ -23,24 +23,24 @@ export const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry }) => {
     <div className="flex flex-1 flex-col relative">
       {/* Main content centered */}
       <div className="flex flex-1 flex-col items-center justify-center p-4 text-center">
-        <h2 className="text-lg font-semibold text-gray-700 mb-4">
+        <h2 className="text-lg font-semibold text-foreground mb-4">
           Couldn't connect to LLM
         </h2>
 
-        <p className="text-sm text-gray-500 leading-relaxed mb-4">
+        <p className="text-sm text-muted-foreground leading-relaxed mb-4">
           Right-click the extension icon
           <br />
           and select "
-          <strong className="text-gray-700">Open LLM Settings</strong>"
+          <strong className="text-foreground">Open LLM Settings</strong>"
         </p>
 
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-muted-foreground/70">
           New to LM Studio?{' '}
           <a
             href={QUICK_START_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-600 hover:underline"
+            className="text-primary hover:underline"
           >
             Quick Start Guide ↗
           </a>
@@ -48,7 +48,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry }) => {
       </div>
 
       {/* Footer with retry button */}
-      <div className="absolute bottom-0 left-0 right-0 h-14 flex items-center justify-center px-4 bg-white border-t border-gray-200">
+      <div className="absolute bottom-0 left-0 right-0 h-14 flex items-center justify-center px-4 bg-white border-t border-border">
         <Button variant="primary" onClick={onRetry}>
           Try Again
         </Button>

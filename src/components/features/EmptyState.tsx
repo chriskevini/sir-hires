@@ -14,17 +14,17 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ onRestoreBackup }) => {
   return (
     <div className="flex flex-1 flex-col items-center justify-center p-4 relative">
       {/* Bouncing arrow pointing to Extract button */}
-      <div className="absolute top-4 right-12 text-gray-500 animate-bounce-diagonal">
+      <div className="absolute top-4 right-12 text-muted-foreground animate-bounce-diagonal">
         <ArrowUpLeft className="h-8 w-8" />
       </div>
 
-      <p className="text-sm text-gray-500 text-center leading-relaxed">
+      <p className="text-sm text-muted-foreground text-center leading-relaxed">
         Navigate to a job posting, then click{' '}
-        <strong className="text-gray-700">Extract</strong>
+        <strong className="text-foreground">Extract</strong>
       </p>
 
       {/* Footer with restore backup link */}
-      <div className="absolute bottom-0 left-0 right-0 h-14 flex items-center justify-end px-4 bg-white border-t border-gray-200">
+      <div className="absolute bottom-0 left-0 right-0 h-14 flex items-center justify-end px-4 bg-white border-t border-border">
         <Button
           variant="link"
           onClick={onRestoreBackup}

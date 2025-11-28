@@ -156,7 +156,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
               'cursor-pointer transition-all duration-200',
               'text-sm font-medium text-neutral-800',
               'hover:bg-neutral-200 hover:border-neutral-300',
-              isChecklistExpanded && 'bg-blue-50 border-blue-600 text-blue-600'
+              isChecklistExpanded && 'bg-primary/10 border-primary text-primary'
             )}
             onClick={handleChecklistToggle}
             title={isChecklistExpanded ? 'Hide checklist' : 'Show checklist'}

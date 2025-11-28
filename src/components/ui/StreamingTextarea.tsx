@@ -8,12 +8,12 @@ const streamingTextareaVariants = cva(
     variants: {
       state: {
         default:
-          'bg-white border-gray-200 focus:border-blue-600 focus:ring-blue-600/10',
+          'bg-white border-border focus:border-primary focus:ring-primary/10',
         streaming:
-          'bg-purple-50/30 border-purple-400 ring-2 ring-purple-400/20 animate-pulse',
+          'bg-primary/5 border-primary ring-2 ring-primary/20 animate-pulse',
         error:
-          'bg-red-50 border-red-300 focus:border-red-500 focus:ring-red-500/10',
-        disabled: 'bg-gray-100 text-gray-500 cursor-not-allowed',
+          'bg-destructive/10 border-destructive/50 focus:border-destructive focus:ring-destructive/10',
+        disabled: 'bg-muted text-muted-foreground cursor-not-allowed',
       },
     },
     defaultVariants: {
@@ -113,8 +113,8 @@ const StreamingTextarea = React.forwardRef<
 
         {/* Streaming indicator */}
         {isStreaming && (
-          <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded">
-            <span className="inline-block w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
+          <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded">
+            <span className="inline-block w-2 h-2 bg-primary rounded-full animate-pulse" />
             Streaming...
           </div>
         )}
@@ -125,9 +125,9 @@ const StreamingTextarea = React.forwardRef<
             {errors.map((err, i) => (
               <p
                 key={`error-${i}`}
-                className="text-sm text-red-600 flex items-start gap-1.5"
+                className="text-sm text-destructive flex items-start gap-1.5"
               >
-                <span className="text-red-500 mt-0.5">●</span>
+                <span className="text-destructive mt-0.5">●</span>
                 {err.field && <span className="font-medium">{err.field}:</span>}
                 {err.message}
               </p>

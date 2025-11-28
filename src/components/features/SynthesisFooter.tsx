@@ -55,11 +55,11 @@ export const SynthesisFooter: React.FC<SynthesisFooterProps> = ({
   isSynthesizing = false,
 }) => {
   return (
-    <div className="flex justify-between items-center px-5 py-3 bg-purple-50 border-t border-purple-200 gap-4">
+    <div className="flex justify-between items-center px-5 py-3 bg-secondary/50 border-t border-border gap-4">
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
-          className="flex items-center justify-center w-8 h-8 p-0 bg-purple-600 text-white border-none rounded hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200"
+          className="flex items-center justify-center w-8 h-8 p-0 bg-primary text-primary-foreground border-none rounded hover:bg-primary/90 disabled:bg-muted disabled:cursor-not-allowed transition-all duration-200"
           onClick={onRefreshTone}
           disabled={disabled || isSynthesizing}
           title="Random tone"
@@ -69,14 +69,14 @@ export const SynthesisFooter: React.FC<SynthesisFooterProps> = ({
         </Button>
         <label
           htmlFor="synthesisFooterTone"
-          className="text-sm font-medium text-gray-500"
+          className="text-sm font-medium text-muted-foreground"
         >
           Tone:
         </label>
         <input
           type="text"
           id="synthesisFooterTone"
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded min-w-[150px] transition-all duration-200 focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/10 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+          className="px-3 py-1.5 text-sm border border-input rounded min-w-[150px] transition-all duration-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
           value={tone}
           onChange={(e) => onToneChange(e.target.value)}
           disabled={disabled || isSynthesizing}
@@ -86,7 +86,7 @@ export const SynthesisFooter: React.FC<SynthesisFooterProps> = ({
       {isSynthesizing ? (
         <Button
           variant="secondary"
-          className="bg-red-500 text-white px-5 py-2 border-none rounded cursor-pointer text-sm font-medium hover:bg-red-600 hover:shadow-md transition-all duration-200"
+          className="bg-destructive text-destructive-foreground px-5 py-2 border-none rounded cursor-pointer text-sm font-medium hover:bg-destructive/90 hover:shadow-md transition-all duration-200"
           onClick={onCancel}
         >
           Cancel
@@ -94,7 +94,7 @@ export const SynthesisFooter: React.FC<SynthesisFooterProps> = ({
       ) : (
         <Button
           variant="primary"
-          className="bg-purple-600 text-white px-5 py-2 border-none rounded cursor-pointer text-sm font-medium hover:bg-purple-700 hover:shadow-md disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200"
+          className="bg-primary text-primary-foreground px-5 py-2 border-none rounded cursor-pointer text-sm font-medium hover:bg-primary/90 hover:shadow-md disabled:bg-muted disabled:cursor-not-allowed transition-all duration-200"
           onClick={onSynthesize}
           disabled={disabled}
         >

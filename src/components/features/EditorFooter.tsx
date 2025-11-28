@@ -20,8 +20,8 @@ export const EditorFooter: React.FC<EditorFooterProps> = ({
         <span
           className={cn(
             'font-medium transition-opacity duration-200',
-            isSaving && 'text-blue-600',
-            isSaved && 'text-green-600'
+            isSaving && 'text-primary',
+            isSaved && 'text-success'
           )}
           id="saveStatus"
         >

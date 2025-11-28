@@ -22,7 +22,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   onExport,
 }) => {
   return (
-    <div className="flex justify-between items-end pr-4 bg-neutral-100 border-b border-neutral-300">
+    <div className="flex justify-between items-end pr-4 bg-muted border-b border-border">
       <TabBar
         tabs={documentKeys.map((key) => ({
           key,

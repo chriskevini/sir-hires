@@ -8,7 +8,7 @@ const streamingTextareaVariants = cva(
     variants: {
       state: {
         default:
-          'bg-white border-border focus:border-primary focus:ring-primary/10',
+          'bg-background border-border focus:border-primary focus:ring-primary/10',
         streaming:
           'bg-primary/5 border-primary ring-2 ring-primary/20 animate-pulse',
         error:

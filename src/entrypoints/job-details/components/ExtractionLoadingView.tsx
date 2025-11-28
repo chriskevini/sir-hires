@@ -33,10 +33,10 @@ export const ExtractionLoadingView: React.FC<ExtractionLoadingViewProps> = ({
           {/* Editor layout */}
           <div className="flex flex-row flex-1 overflow-hidden gap-0">
             {/* Editor panel */}
-            <div className="flex-1 flex flex-col overflow-hidden bg-white">
+            <div className="flex-1 flex flex-col overflow-hidden bg-background">
               <textarea
                 id="jobEditor"
-                className="flex-1 w-full p-4 border-none border-l-4 border-l-amber-400 text-sm font-mono leading-relaxed resize-none bg-neutral-50 overflow-y-auto cursor-wait opacity-95 focus:outline-none"
+                className="flex-1 w-full p-4 border-none border-l-4 border-l-amber-400 text-sm font-mono leading-relaxed resize-none bg-muted overflow-y-auto cursor-wait opacity-95 focus:outline-none"
                 readOnly
                 data-job-id={jobId}
                 placeholder="Waiting for LLM response..."
@@ -47,7 +47,7 @@ export const ExtractionLoadingView: React.FC<ExtractionLoadingViewProps> = ({
         </div>
       </div>
       {/* Footer actions - matches JobFooter height: min-h-14 (56px) */}
-      <div className="flex items-center px-4 py-3 border-t border-neutral-200 bg-white flex-shrink-0 min-h-14 box-border">
+      <div className="flex items-center px-4 py-3 border-t border-border bg-background flex-shrink-0 min-h-14 box-border">
         <Button variant="danger" onClick={onDelete} className="w-full">
           Cancel Extraction
         </Button>

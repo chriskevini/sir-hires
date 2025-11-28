@@ -87,7 +87,7 @@ export function JobSelector({
   return (
     <div
       className={cn(
-        'absolute top-0 left-0 bottom-0 bg-white',
+        'absolute top-0 left-0 bottom-0 bg-background',
         'flex flex-col z-[100] overflow-hidden',
         'transition-[width] duration-200 ease-in-out',
         isOpen ? 'w-full' : 'w-0'
@@ -99,16 +99,16 @@ export function JobSelector({
         <div className="fixed inset-0 -z-[1]" onClick={handleBackdropClick} />
       )}
       {/* Header with filters */}
-      <div className="shrink-0 p-4 border-b border-neutral-200 bg-neutral-50">
+      <div className="shrink-0 p-4 border-b border-border bg-muted">
         <div className="flex flex-col gap-3">
           <input
             type="text"
             className={cn(
-              'w-full px-3 py-2.5 border border-neutral-300 rounded',
+              'w-full px-3 py-2.5 border border-border rounded',
               'text-sm font-sans',
               'transition-colors duration-200',
               'focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10',
-              'placeholder:text-neutral-400'
+              'placeholder:text-muted-foreground/60'
             )}
             placeholder="Search jobs..."
             value={searchTerm}
@@ -128,7 +128,7 @@ export function JobSelector({
               onChange={handleSortChange}
             />
           </div>
-          <div className="text-xs text-neutral-500 italic">
+          <div className="text-xs text-muted-foreground italic">
             {filteredCount} of {totalCount} jobs
           </div>
         </div>
@@ -155,7 +155,7 @@ export function JobSelector({
         })}
 
         {filteredJobs.length === 0 && (
-          <div className="text-center py-10 px-5 text-neutral-600 text-sm italic">
+          <div className="text-center py-10 px-5 text-muted-foreground text-sm italic">
             {jobs.length === 0
               ? 'No jobs yet. Extract a job to get started.'
               : 'No jobs match your filters.'}

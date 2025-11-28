@@ -50,8 +50,8 @@ export function App() {
   return (
     <div className="p-4" style={{ width: '380px', minHeight: '250px' }}>
       {/* Header */}
-      <header className="flex justify-between items-center mb-4 pb-3 border-b-2 border-gray-200">
-        <h1 className="text-lg font-semibold text-blue-600">
+      <header className="flex justify-between items-center mb-4 pb-3 border-b-2 border-border">
+        <h1 className="text-lg font-semibold text-primary">
           Sir Hires - LLM Settings
         </h1>
       </header>
@@ -61,7 +61,7 @@ export function App() {
         <div className="flex flex-col gap-1">
           <label
             htmlFor="serverUrl"
-            className="font-medium text-sm text-gray-600"
+            className="font-medium text-sm text-foreground"
           >
             Server
           </label>
@@ -72,7 +72,7 @@ export function App() {
               value={serverUrl}
               onChange={(e) => setServerUrl(e.target.value)}
               placeholder="http://localhost:1234"
-              className="flex-1 px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
+              className="flex-1 px-2 py-2 border border-border rounded text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
             />
             <Button
               variant="ghost"
@@ -93,7 +93,7 @@ export function App() {
               <div className="flex flex-col gap-1">
                 <label
                   htmlFor="apiKey-connected"
-                  className="font-medium text-sm text-gray-600"
+                  className="font-medium text-sm text-foreground"
                 >
                   API Key
                 </label>
@@ -103,7 +103,7 @@ export function App() {
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder="sk-..."
-                  className="w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
+                  className="w-full px-2 py-2 border border-border rounded text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
                 />
               </div>
             )}
@@ -112,7 +112,7 @@ export function App() {
             <div className="flex flex-col gap-1">
               <label
                 htmlFor="model"
-                className="font-medium text-sm text-gray-600"
+                className="font-medium text-sm text-foreground"
               >
                 Model
               </label>
@@ -120,7 +120,7 @@ export function App() {
                 id="model"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                className="w-full px-2 py-2 border border-gray-300 rounded text-sm bg-white cursor-pointer focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
+                className="w-full px-2 py-2 border border-border rounded text-sm bg-background cursor-pointer focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
               >
                 {availableModels.length === 0 ? (
                   <option value={model}>{model}</option>
@@ -150,20 +150,20 @@ export function App() {
 
             {/* Per-Task Settings (collapsible) */}
             {showAdvanced && (
-              <div className="bg-gray-50 border border-gray-300 rounded p-3 mt-1">
+              <div className="bg-muted border border-border rounded p-3 mt-1">
                 {/* Synthesis Settings */}
                 <div className="mb-4">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-1">
+                  <h4 className="text-sm font-semibold text-foreground mb-1">
                     Synthesis (Resume/Cover Letter)
                   </h4>
-                  <p className="text-xs text-gray-500 mb-2">
+                  <p className="text-xs text-muted-foreground mb-2">
                     Higher creativity for document generation
                   </p>
                   <div className="flex gap-3">
                     <div className="flex-1 flex flex-col gap-1">
                       <label
                         htmlFor="synthesis-tokens"
-                        className="font-medium text-sm text-gray-600"
+                        className="font-medium text-sm text-foreground"
                       >
                         Max Tokens
                       </label>
@@ -179,13 +179,13 @@ export function App() {
                         min={100}
                         max={32000}
                         step={100}
-                        className="w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
+                        className="w-full px-2 py-2 border border-border rounded text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
                       />
                     </div>
                     <div className="flex-1 flex flex-col gap-1">
                       <label
                         htmlFor="synthesis-temp"
-                        className="font-medium text-sm text-gray-600"
+                        className="font-medium text-sm text-foreground"
                       >
                         Temperature
                       </label>
@@ -201,7 +201,7 @@ export function App() {
                         min={0}
                         max={2}
                         step={0.1}
-                        className="w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
+                        className="w-full px-2 py-2 border border-border rounded text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
                       />
                     </div>
                   </div>
@@ -209,17 +209,17 @@ export function App() {
 
                 {/* Extraction Settings */}
                 <div className="mb-2">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-1">
+                  <h4 className="text-sm font-semibold text-foreground mb-1">
                     Extraction (Job Parsing)
                   </h4>
-                  <p className="text-xs text-gray-500 mb-2">
+                  <p className="text-xs text-muted-foreground mb-2">
                     Low creativity for consistent parsing
                   </p>
                   <div className="flex gap-3">
                     <div className="flex-1 flex flex-col gap-1">
                       <label
                         htmlFor="extraction-tokens"
-                        className="font-medium text-sm text-gray-600"
+                        className="font-medium text-sm text-foreground"
                       >
                         Max Tokens
                       </label>
@@ -235,13 +235,13 @@ export function App() {
                         min={100}
                         max={32000}
                         step={100}
-                        className="w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
+                        className="w-full px-2 py-2 border border-border rounded text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
                       />
                     </div>
                     <div className="flex-1 flex flex-col gap-1">
                       <label
                         htmlFor="extraction-temp"
-                        className="font-medium text-sm text-gray-600"
+                        className="font-medium text-sm text-foreground"
                       >
                         Temperature
                       </label>
@@ -257,7 +257,7 @@ export function App() {
                         min={0}
                         max={2}
                         step={0.1}
-                        className="w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
+                        className="w-full px-2 py-2 border border-border rounded text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
                       />
                     </div>
                   </div>
@@ -279,42 +279,42 @@ export function App() {
 
         {/* Error State - Show setup guide or API key prompt */}
         {status === 'error' && (
-          <div className="bg-gray-50 border border-gray-300 rounded p-4">
+          <div className="bg-muted border border-border rounded p-4">
             {provider === 'local' ? (
               <>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                <h3 className="text-sm font-semibold text-foreground mb-3">
                   Getting Started with LM Studio
                 </h3>
                 <ol className="list-decimal pl-5 mb-3 space-y-2">
-                  <li className="text-sm text-gray-600 leading-relaxed">
+                  <li className="text-sm text-foreground leading-relaxed">
                     Download from{' '}
                     <a
                       href="https://lmstudio.ai"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+                      className="text-primary hover:underline"
                     >
                       lmstudio.ai
                     </a>
                   </li>
-                  <li className="text-sm text-gray-600 leading-relaxed">
+                  <li className="text-sm text-foreground leading-relaxed">
                     Load a model (e.g., Qwen 2.5 7B)
                   </li>
-                  <li className="text-sm text-gray-600 leading-relaxed">
+                  <li className="text-sm text-foreground leading-relaxed">
                     Start the server: <strong>Developer → Start Server</strong>
                   </li>
-                  <li className="text-sm text-gray-600 leading-relaxed">
+                  <li className="text-sm text-foreground leading-relaxed">
                     Click refresh above
                   </li>
                 </ol>
-                <p className="text-xs text-gray-500 mt-3">
+                <p className="text-xs text-muted-foreground mt-3">
                   <a
                     href="#"
                     onClick={(e) => {
                       e.preventDefault();
                       setServerUrl('https://api.openai.com');
                     }}
-                    className="text-blue-600 hover:underline"
+                    className="text-primary hover:underline"
                   >
                     Using OpenAI or another provider?
                   </a>
@@ -322,13 +322,13 @@ export function App() {
               </>
             ) : (
               <>
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                <h3 className="text-sm font-semibold text-foreground mb-3">
                   API Key Required
                 </h3>
                 <div className="flex flex-col gap-1 mb-2">
                   <label
                     htmlFor="apiKey-error"
-                    className="font-medium text-sm text-gray-600"
+                    className="font-medium text-sm text-foreground"
                   >
                     API Key
                   </label>
@@ -338,11 +338,11 @@ export function App() {
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder="sk-..."
-                    className="w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10"
+                    className="w-full px-2 py-2 border border-border rounded text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
                   />
                 </div>
                 <p className="text-xs text-red-600 my-2">{errorMessage}</p>
-                <p className="text-xs text-gray-500 mt-3">
+                <p className="text-xs text-muted-foreground mt-3">
                   <a
                     href="#"
                     onClick={(e) => {
@@ -350,7 +350,7 @@ export function App() {
                       setServerUrl(DEFAULT_ENDPOINT);
                       setApiKey('');
                     }}
-                    className="text-blue-600 hover:underline"
+                    className="text-primary hover:underline"
                   >
                     Using LM Studio instead?
                   </a>
@@ -362,14 +362,14 @@ export function App() {
 
         {/* Loading State */}
         {status === 'loading' && (
-          <div className="text-center py-4 text-gray-500 text-sm">
+          <div className="text-center py-4 text-muted-foreground text-sm">
             Connecting...
           </div>
         )}
 
         {/* Idle State - Initial load */}
         {status === 'idle' && (
-          <div className="text-center py-4 text-gray-500 text-sm">
+          <div className="text-center py-4 text-muted-foreground text-sm">
             Loading settings...
           </div>
         )}

@@ -554,7 +554,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     <>
       <div className="flex flex-col h-full gap-4">
         {/* Drafting Editor */}
-        <div className="mt-6 border border-gray-200 rounded-lg overflow-hidden bg-white">
+        <div className="mt-6 border border-border rounded-lg overflow-hidden bg-background">
           {/* Topbar with tabs and actions */}
           <EditorToolbar
             documentKeys={documentKeys}
@@ -584,7 +584,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
                   placeholder="Click + to create your first document"
                   disabled
                   minHeight="450px"
-                  className="bg-gray-100 text-gray-500"
+                  className="bg-muted text-muted-foreground"
                 />
               </div>
             ) : (
@@ -666,7 +666,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           </Button>
         </div>
 
-        <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
+        <div className="px-6 py-4 border-t border-border flex justify-between items-center">
           <Button
             variant="subtle"
             className="ml-auto"
@@ -699,7 +699,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
             undone.
           </p>
         </div>
-        <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
+        <div className="px-6 py-4 border-t border-border flex justify-between items-center">
           <div className="flex gap-3 ml-auto">
             <Button
               variant="secondary"

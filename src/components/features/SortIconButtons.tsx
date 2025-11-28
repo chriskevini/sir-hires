@@ -76,7 +76,7 @@ export function SortIconButtons({
               'active:scale-95',
               isActive
                 ? 'text-primary hover:text-primary/80'
-                : 'text-neutral-500 hover:text-neutral-700'
+                : 'text-muted-foreground hover:text-foreground'
             )}
             onClick={() => handleClick(field)}
             title={tooltips[field]}

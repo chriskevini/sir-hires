@@ -108,13 +108,13 @@ export const Checklist: React.FC<ChecklistProps> = ({
   );
 
   const renderExpandedDropdown = () => {
-    const dropdownClasses = `min-w-[280px] max-w-[320px] bg-white border-none rounded-xl overflow-visible origin-bottom-right mb-3 ${getAnimationClass()}`;
+    const dropdownClasses = `min-w-[280px] max-w-[320px] bg-background border-none rounded-xl overflow-visible origin-bottom-right mb-3 ${getAnimationClass()}`;
 
     if (!items || items.length === 0) {
       return (
         <div ref={dropdownRef} className={dropdownClasses} data-job-id={jobId}>
           <div className="py-3 max-h-[300px] overflow-y-auto origin-bottom-right">
-            <div className="p-3 text-center text-gray-500 text-sm">
+            <div className="p-3 text-center text-muted-foreground text-sm">
               No checklist items yet
             </div>
           </div>
@@ -128,16 +128,16 @@ export const Checklist: React.FC<ChecklistProps> = ({
           {sortedItems.map((item) => (
             <div
               key={item.id}
-              className="flex items-start justify-between gap-2.5 py-2.5 px-4 cursor-pointer transition-colors duration-150 select-none hover:bg-gray-50"
+              className="flex items-start justify-between gap-2.5 py-2.5 px-4 cursor-pointer transition-colors duration-150 select-none hover:bg-muted"
               data-item-id={item.id}
               data-job-id={jobId}
               onClick={(e) => handleItemClick(e, item.id)}
             >
-              <span className="text-sm text-gray-700 leading-relaxed flex-1 text-right">
+              <span className="text-sm text-foreground leading-relaxed flex-1 text-right">
                 {item.text}
               </span>
               <span
-                className={`text-sm leading-relaxed shrink-0 transition-colors duration-150 ml-2 ${item.checked ? 'text-blue-600' : 'text-gray-400'}`}
+                className={`text-sm leading-relaxed shrink-0 transition-colors duration-150 ml-2 ${item.checked ? 'text-primary' : 'text-muted-foreground/60'}`}
                 style={item.checked ? { color: nextColor } : undefined}
               >
                 {item.checked ? '●' : '○'}

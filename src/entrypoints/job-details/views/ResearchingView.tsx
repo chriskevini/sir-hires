@@ -137,7 +137,7 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
     <div className="flex flex-col h-full">
       <div className="flex flex-row flex-1 overflow-hidden">
         {/* Editor Panel */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-white p-2">
+        <div className="flex-1 flex flex-col overflow-hidden bg-background p-2">
           <StreamingTextarea
             id="jobEditor"
             data-job-id={job.id}

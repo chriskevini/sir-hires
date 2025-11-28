@@ -15,7 +15,7 @@ export const EditorFooter: React.FC<EditorFooterProps> = ({
   const isSaved = saveStatus.toLowerCase().includes('saved');
 
   return (
-    <div className="flex justify-between items-center py-3 px-5 bg-neutral-100 border-t border-neutral-200 text-xs text-neutral-500">
+    <div className="flex justify-between items-center py-3 px-5 bg-muted border-t border-border text-xs text-muted-foreground">
       <div className="flex items-center gap-2">
         <span
           className={cn(
@@ -29,7 +29,7 @@ export const EditorFooter: React.FC<EditorFooterProps> = ({
         </span>
       </div>
       <div className="flex items-center gap-4">
-        <span className="font-medium text-neutral-500" id="wordCount">
+        <span className="font-medium text-muted-foreground" id="wordCount">
           {wordCount} words
         </span>
       </div>

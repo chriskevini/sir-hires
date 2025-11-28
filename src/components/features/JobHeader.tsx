@@ -32,12 +32,12 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
   return (
     <div
       className={cn(
-        'flex flex-col bg-white border-b border-neutral-200',
+        'flex flex-col bg-background border-b border-border',
         className
       )}
     >
       {/* Progress bar strip at top */}
-      <div className="h-1 bg-neutral-200 w-full overflow-hidden">
+      <div className="h-1 bg-muted w-full overflow-hidden">
         <div
           className="h-full transition-all duration-300 ease-out"
           style={{
@@ -50,10 +50,10 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
       {/* Main header content */}
       <div className="flex justify-between items-start py-4 px-5 gap-4 max-[480px]:flex-col max-[480px]:gap-3">
         <div className="flex flex-col gap-1 min-w-0 flex-1">
-          <h1 className="text-lg font-semibold text-neutral-800 m-0 leading-tight overflow-hidden text-ellipsis whitespace-nowrap max-[480px]:text-base max-[480px]:whitespace-normal">
+          <h1 className="text-lg font-semibold text-foreground m-0 leading-tight overflow-hidden text-ellipsis whitespace-nowrap max-[480px]:text-base max-[480px]:whitespace-normal">
             {jobTitle || 'Untitled Position'}
           </h1>
-          <p className="text-sm text-neutral-500 m-0 leading-tight overflow-hidden text-ellipsis whitespace-nowrap">
+          <p className="text-sm text-muted-foreground m-0 leading-tight overflow-hidden text-ellipsis whitespace-nowrap">
             {company || 'Unknown Company'}
           </p>
           <StatusBadge status={status} className="mt-1.5 w-fit" />

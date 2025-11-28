@@ -92,7 +92,7 @@ export function JobViewRouter({
   // Handle empty state
   if (!job) {
     return (
-      <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
+      <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
         {emptyStateMessage}
       </div>
     );
@@ -139,9 +139,9 @@ export function JobViewRouter({
       default: {
         // WIP view for unimplemented states
         return (
-          <div className="flex flex-col items-center justify-center py-15 px-5 text-neutral-600 text-center min-h-[300px]">
+          <div className="flex flex-col items-center justify-center py-15 px-5 text-muted-foreground text-center min-h-[300px]">
             <div className="text-5xl mb-5">🚧</div>
-            <div className="text-lg font-medium mb-2.5 text-neutral-800">
+            <div className="text-lg font-medium mb-2.5 text-foreground">
               {status} Panel - Work in Progress
             </div>
             <div className="text-sm mb-6">This panel is coming soon!</div>
@@ -169,7 +169,7 @@ export function JobViewRouter({
     <div
       className={cn(
         'flex flex-col h-full relative',
-        isCompact ? 'bg-transparent' : 'bg-neutral-50'
+        isCompact ? 'bg-transparent' : 'bg-muted'
       )}
     >
       {showHeader && (

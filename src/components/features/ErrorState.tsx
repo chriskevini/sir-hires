@@ -48,7 +48,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry }) => {
       </div>
 
       {/* Footer with retry button */}
-      <div className="absolute bottom-0 left-0 right-0 h-14 flex items-center justify-center px-4 bg-white border-t border-border">
+      <div className="absolute bottom-0 left-0 right-0 h-14 flex items-center justify-center px-4 bg-background border-t border-border">
         <Button variant="primary" onClick={onRetry}>
           Try Again
         </Button>

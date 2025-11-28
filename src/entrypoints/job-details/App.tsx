@@ -381,7 +381,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   if (store.isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <p className="text-gray-600">Loading jobs...</p>
+        <p className="text-muted-foreground">Loading jobs...</p>
       </div>
     );
   }
@@ -401,8 +401,11 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   // Empty state
   if (store.jobs.length === 0) {
     return (
-      <div className="max-w-full h-screen m-0 bg-white flex flex-col">
-        <div id="emptyState" className="text-center py-16 px-5 text-gray-600">
+      <div className="max-w-full h-screen m-0 bg-background flex flex-col">
+        <div
+          id="emptyState"
+          className="text-center py-16 px-5 text-muted-foreground"
+        >
           <h2 className="text-xl mb-3">No Jobs Yet</h2>
           <p>
             Use the browser extension to save jobs from LinkedIn, Indeed, or
@@ -421,13 +424,13 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   });
 
   return (
-    <div className="max-w-full h-screen m-0 bg-white flex flex-col">
+    <div className="max-w-full h-screen m-0 bg-background flex flex-col">
       {/* Header with branding and action buttons */}
-      <header className="flex justify-between items-center py-3 px-6 border-b border-gray-200 bg-white shrink-0">
+      <header className="flex justify-between items-center py-3 px-6 border-b border-border bg-background shrink-0">
         <div className="flex items-baseline gap-3">
           <Button
             variant="ghost"
-            className="p-2 min-w-9 min-h-9 text-gray-500 hover:bg-gray-100 flex items-center justify-center"
+            className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
             onClick={handleSidebarToggle}
             title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
             aria-label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
@@ -438,12 +441,12 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
               <ChevronLeft className="h-4 w-4" />
             )}
           </Button>
-          <h1 className="text-lg font-semibold text-gray-800">Sir Hires</h1>
+          <h1 className="text-lg font-semibold text-foreground">Sir Hires</h1>
         </div>
         <div className="flex gap-1 items-center">
           <Button
             variant="ghost"
-            className="p-2 min-w-9 min-h-9 text-gray-500 hover:bg-gray-100 flex items-center justify-center"
+            className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
             onClick={handleProfileClick}
             title="Profile"
           >
@@ -476,14 +479,14 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar with filters and job list */}
         <div
-          className={`${sidebarCollapsed ? 'w-0' : 'w-80'} border-r border-gray-200 flex flex-col bg-gray-50 shrink-0 transition-[width] duration-200 ease-in-out overflow-hidden ${sidebarCollapsed ? 'border-r-0' : ''}`}
+          className={`${sidebarCollapsed ? 'w-0' : 'w-80'} border-r border-border flex flex-col bg-muted shrink-0 transition-[width] duration-200 ease-in-out overflow-hidden ${sidebarCollapsed ? 'border-r-0' : ''}`}
         >
-          <div className="p-4 border-b border-gray-200 bg-white">
+          <div className="p-4 border-b border-border bg-background">
             <div className="flex flex-col gap-3">
               <input
                 type="text"
                 id="searchInput"
-                className="py-2 px-3 border border-gray-300 rounded text-sm w-full focus:outline-none focus:border-blue-500"
+                className="py-2 px-3 border border-border rounded text-sm w-full focus:outline-none focus:border-primary"
                 placeholder="Search jobs..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -502,7 +505,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
                 />
               </div>
               <div className="flex items-center justify-start">
-                <span className="text-xs italic text-gray-500">
+                <span className="text-xs italic text-muted-foreground">
                   {filteredCount} of {totalCount} jobs
                 </span>
               </div>
@@ -535,7 +538,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
         {/* Detail panel */}
         <div className="relative flex-1 overflow-hidden">
           <div
-            className="absolute inset-0 overflow-hidden bg-white"
+            className="absolute inset-0 overflow-hidden bg-background"
             id="detailPanel"
           >
             {renderJobView()}

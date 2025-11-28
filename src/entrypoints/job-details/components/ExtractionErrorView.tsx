@@ -28,11 +28,11 @@ export function ExtractionErrorView({
   const hasPartialContent = partialContent && partialContent.trim().length > 0;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-md p-6">
+    <div className="bg-background border border-border rounded-md p-6">
       <div className="flex flex-col items-center text-center">
         <div className="mb-4">
           <div className="text-4xl mb-3">⚠️</div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-2">
+          <h3 className="text-lg font-semibold text-foreground mb-2">
             Extraction Failed
           </h3>
           <p className="text-red-600 text-sm">{escapeHtml(errorMessage)}</p>
@@ -41,16 +41,16 @@ export function ExtractionErrorView({
         {hasPartialContent && (
           <div className="w-full mt-4 text-left">
             <div className="flex items-center gap-2 mb-2">
-              <strong className="text-sm text-gray-700">
+              <strong className="text-sm text-foreground">
                 📄 Partial Content
               </strong>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-muted-foreground">
                 (You can edit this or re-extract)
               </span>
             </div>
             <textarea
               id="jobEditor"
-              className="w-full min-h-[200px] p-3 font-mono text-sm border border-gray-300 rounded resize-y focus:outline-none focus:border-blue-500"
+              className="w-full min-h-[200px] p-3 font-mono text-sm border border-border rounded resize-y focus:outline-none focus:border-primary"
               data-job-id={jobId}
               value={editorContent}
               onChange={onEditorChange}

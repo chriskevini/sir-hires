@@ -40,7 +40,7 @@ export const TabBar: React.FC<TabBarProps> = ({
               'text-sm font-medium transition-all duration-150',
               'min-w-30 -mb-px',
               isActive
-                ? 'bg-white text-foreground border-border z-[1] shadow-[0_-2px_4px_rgba(0,0,0,0.05)]'
+                ? 'bg-background text-foreground border-border z-[1] shadow-[0_-2px_4px_rgba(0,0,0,0.05)]'
                 : 'bg-muted text-muted-foreground border-border hover:bg-muted/80 hover:text-foreground'
             )}
             onClick={() => onTabChange(tab.key)}
@@ -54,7 +54,7 @@ export const TabBar: React.FC<TabBarProps> = ({
                   'w-4 h-4 rounded-full text-sm leading-none',
                   'text-muted-foreground bg-transparent cursor-pointer',
                   'transition-all duration-150',
-                  'hover:bg-black/10 hover:text-destructive'
+                  'hover:bg-foreground/10 hover:text-destructive'
                 )}
                 onClick={(e) => {
                   e.stopPropagation();

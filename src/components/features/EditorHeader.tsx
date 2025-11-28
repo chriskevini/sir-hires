@@ -21,12 +21,12 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   return (
     <div
       className={cn(
-        'py-3 px-4 bg-neutral-100 border-b border-neutral-200',
+        'py-3 px-4 bg-muted border-b border-border',
         'flex justify-between items-center flex-shrink-0 gap-3',
         className
       )}
     >
-      <div className="text-sm font-semibold text-neutral-800 flex-1 min-w-0">
+      <div className="text-sm font-semibold text-foreground flex-1 min-w-0">
         <strong>{title}</strong>
         {subtitle && <span> {subtitle}</span>}
       </div>

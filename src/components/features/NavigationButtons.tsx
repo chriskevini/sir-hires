@@ -47,7 +47,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
             </span>
             <button
               className={cn(
-                'flex items-center justify-center bg-white',
+                'flex items-center justify-center bg-background',
                 'border-2 border-[var(--nav-color,#1a73e8)] rounded-full',
                 'w-20 h-20 cursor-pointer transition-all duration-200',
                 'shadow-[0_2px_8px_rgba(0,0,0,0.1)] p-0',
@@ -94,7 +94,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
             </span>
             <button
               className={cn(
-                'flex items-center justify-center bg-white',
+                'flex items-center justify-center bg-background',
                 'border-2 border-[var(--nav-color,#1a73e8)] rounded-full',
                 'w-20 h-20 cursor-pointer transition-all duration-200',
                 'shadow-[0_2px_8px_rgba(0,0,0,0.1)] p-0',

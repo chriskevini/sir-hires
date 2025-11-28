@@ -371,7 +371,7 @@ export const App: React.FC = () => {
   // Loading state
   if (isLoading) {
     mainContent = (
-      <div className="text-center py-10 px-5 text-gray-500 italic">
+      <div className="text-center py-10 px-5 text-muted-foreground italic">
         Loading job details...
       </div>
     );

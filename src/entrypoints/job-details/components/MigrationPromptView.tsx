@@ -15,13 +15,13 @@ export function MigrationPromptView({
   onDelete,
 }: MigrationPromptViewProps) {
   return (
-    <div className="bg-white border border-gray-200 rounded-md p-6">
+    <div className="bg-background border border-border rounded-md p-6">
       <div className="flex flex-col items-center text-center">
         <div className="text-4xl mb-3">⚠️</div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+        <h3 className="text-lg font-semibold text-foreground mb-2">
           Job Needs Re-Extraction
         </h3>
-        <p className="text-gray-600 text-sm mb-6">
+        <p className="text-muted-foreground text-sm mb-6">
           This job was saved in an old format and needs to be re-extracted from
           the job posting.
         </p>

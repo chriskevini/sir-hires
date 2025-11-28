@@ -22,7 +22,7 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
 }) => {
   return (
     <div
-      className={`border-t-2 border-border bg-white shrink-0 overflow-hidden transition-[max-height] duration-300 ${isCollapsed ? 'max-h-11' : 'max-h-[500px]'} ${className}`}
+      className={`border-t-2 border-border bg-background shrink-0 overflow-hidden transition-[max-height] duration-300 ${isCollapsed ? 'max-h-11' : 'max-h-[500px]'} ${className}`}
     >
       <div
         className="flex justify-between items-center px-4 py-3 bg-muted border-b border-border cursor-pointer select-none hover:bg-muted/80"

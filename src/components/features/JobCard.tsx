@@ -58,7 +58,7 @@ export function JobCard({
     <div
       data-job-id={jobId}
       className={cn(
-        'border border-neutral-200 rounded-md p-3 mb-2 cursor-pointer',
+        'border border-border rounded-md p-3 mb-2 cursor-pointer',
         'transition-all duration-200',
         'hover:bg-primary/10 hover:border-primary',
         isSelected && 'border-primary border-2'
@@ -69,17 +69,17 @@ export function JobCard({
       onClick={onClick}
     >
       <div className="flex flex-col gap-1 relative">
-        <div className="text-sm font-semibold text-neutral-800 overflow-hidden text-ellipsis line-clamp-2 pr-6">
+        <div className="text-sm font-semibold text-foreground overflow-hidden text-ellipsis line-clamp-2 pr-6">
           {title}
         </div>
-        <div className="text-xs text-neutral-600 mb-1">{company}</div>
+        <div className="text-xs text-muted-foreground mb-1">{company}</div>
         <StatusBadge status={normalizedStatus} size="sm" className="w-fit" />
         {showDeleteButton && (
           <Button
             variant="ghost"
             className={cn(
               'absolute -top-1 -right-1 w-5 h-5 rounded-full',
-              'bg-neutral-400 text-white text-xs leading-none',
+              'bg-muted-foreground text-white text-xs leading-none',
               'flex items-center justify-center opacity-70',
               'hover:bg-destructive hover:opacity-100',
               'active:scale-90',

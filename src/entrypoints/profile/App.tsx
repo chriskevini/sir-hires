@@ -683,17 +683,17 @@ BULLETS:
   const isValid = hasContent && !hasErrors;
 
   return (
-    <div className="flex h-screen w-full flex-col bg-white">
-      <header className="flex shrink-0 items-center justify-between border-b-2 border-gray-200 bg-white px-6 py-4">
+    <div className="flex h-screen w-full flex-col bg-background">
+      <header className="flex shrink-0 items-center justify-between border-b-2 border-border bg-background px-6 py-4">
         <div className="flex items-center gap-4">
           <Button variant="secondary" size="sm" onClick={goBack}>
             ← Back to Jobs
           </Button>
-          <h1 className="text-xl text-blue-600">Profile</h1>
+          <h1 className="text-xl text-primary">Profile</h1>
         </div>
         <div className="flex items-center gap-3">
           <span
-            className={`text-sm ${statusMessage ? 'font-semibold text-amber-600' : 'text-gray-500'}`}
+            className={`text-sm ${statusMessage ? 'font-semibold text-amber-600' : 'text-muted-foreground'}`}
           >
             {statusMessage ||
               (lastSavedTime
@@ -707,10 +707,10 @@ BULLETS:
         {/* Left Panel: Template Guide */}
         <div
           id="templatePanel"
-          className={`flex w-2/5 flex-col overflow-hidden border-r-2 border-gray-200 bg-gray-50 ${isTemplatePanelVisible ? '' : 'hidden'}`}
+          className={`flex w-2/5 flex-col overflow-hidden border-r-2 border-border bg-muted ${isTemplatePanelVisible ? '' : 'hidden'}`}
         >
-          <div className="flex shrink-0 items-center justify-between border-b border-blue-200 bg-blue-50 px-4 py-3">
-            <h3 className="text-sm font-medium text-blue-700">
+          <div className="flex shrink-0 items-center justify-between border-b border-primary/30 bg-primary/10 px-4 py-3">
+            <h3 className="text-sm font-medium text-primary">
               Profile Template
             </h3>
             <Button
@@ -721,7 +721,7 @@ BULLETS:
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex-1 overflow-y-auto whitespace-pre-wrap break-words p-4 font-mono text-sm leading-relaxed text-gray-700">
+          <div className="flex-1 overflow-y-auto whitespace-pre-wrap break-words p-4 font-mono text-sm leading-relaxed text-foreground">
             {PROFILE_TEMPLATE}
           </div>
         </div>
@@ -768,17 +768,17 @@ BULLETS:
               </p>
             </div>
           </div>
-          <div className="my-4 flex items-start gap-3 rounded-md border border-blue-600 bg-blue-50 p-4">
+          <div className="my-4 flex items-start gap-3 rounded-md border border-primary bg-primary/10 p-4">
             <span className="shrink-0 text-2xl">💡</span>
             <div className="flex-1">
-              <p className="text-sm text-blue-900">
+              <p className="text-sm text-primary">
                 <strong>Tip:</strong> Label your projects clearly in your resume
                 (e.g., &quot;Project: MyApp&quot;) - the LLM may not recognize
                 unlabeled projects.
               </p>
             </div>
           </div>
-          <div className="mt-6 flex justify-end gap-3 border-t border-gray-200 pt-5">
+          <div className="mt-6 flex justify-end gap-3 border-t border-border pt-5">
             <Button
               variant="secondary"
               onClick={() => setShowConfirmDialog(false)}
@@ -817,7 +817,7 @@ BULLETS:
         ]}
       />
 
-      <footer className="flex shrink-0 items-center justify-between border-t border-gray-200 bg-gray-50 px-6 py-4">
+      <footer className="flex shrink-0 items-center justify-between border-t border-border bg-muted px-6 py-4">
         <Button
           variant="secondary"
           size="sm"

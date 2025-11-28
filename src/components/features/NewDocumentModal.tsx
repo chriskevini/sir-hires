@@ -23,7 +23,7 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
 
   // Shared styles for template option buttons
   const templateOptionClasses =
-    'flex flex-col items-start p-3 px-4 border border-border rounded-lg bg-white cursor-pointer transition-all duration-150 text-left shadow-sm hover:border-primary hover:bg-primary/10 hover:shadow-md active:bg-primary/20';
+    'flex flex-col items-start p-3 px-4 border border-border rounded-lg bg-background cursor-pointer transition-all duration-150 text-left shadow-sm hover:border-primary hover:bg-primary/10 hover:shadow-md active:bg-primary/20';
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="New Document">

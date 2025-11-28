@@ -59,7 +59,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
   return (
     <div
       className={cn(
-        'flex flex-col bg-white border-t border-neutral-200 relative',
+        'flex flex-col bg-background border-t border-border relative',
         className
       )}
     >
@@ -68,7 +68,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
         <div
           className={cn(
             'absolute bottom-full left-1/2 -translate-x-1/2',
-            'bg-white border border-neutral-200 rounded-lg',
+            'bg-background border border-border rounded-lg',
             'shadow-[0_-4px_16px_rgba(0,0,0,0.12)]',
             'max-w-[400px] min-w-[280px] w-max mb-2',
             'overflow-visible animate-in fade-in slide-in-from-bottom-2 duration-200',
@@ -76,7 +76,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
             'after:content-[""] after:absolute after:-bottom-1.5 after:left-1/2 after:-translate-x-1/2',
             'after:border-l-[6px] after:border-l-transparent',
             'after:border-r-[6px] after:border-r-transparent',
-            'after:border-t-[6px] after:border-t-white',
+            'after:border-t-[6px] after:border-t-background',
             'after:drop-shadow-[0_2px_1px_rgba(0,0,0,0.06)]'
           )}
         >
@@ -88,20 +88,20 @@ export const JobFooter: React.FC<JobFooterProps> = ({
                   className={cn(
                     'flex items-start gap-2.5 py-2.5 px-4 cursor-pointer',
                     'transition-colors duration-150 select-none',
-                    'hover:bg-neutral-100'
+                    'hover:bg-muted'
                   )}
                   onClick={(e) => handleItemClick(e, item.id)}
                 >
                   <span
-                    className="text-sm text-neutral-400 flex-shrink-0 leading-relaxed transition-colors duration-150"
+                    className="text-sm text-muted-foreground/60 flex-shrink-0 leading-relaxed transition-colors duration-150"
                     style={item.checked ? { color: currentColor } : undefined}
                   >
                     {item.checked ? '●' : '○'}
                   </span>
                   <span
                     className={cn(
-                      'text-sm text-neutral-800 leading-relaxed flex-1',
-                      item.checked && 'text-neutral-500 line-through'
+                      'text-sm text-foreground leading-relaxed flex-1',
+                      item.checked && 'text-muted-foreground line-through'
                     )}
                   >
                     {item.text}
@@ -110,7 +110,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
               ))}
             </div>
           ) : (
-            <div className="p-4 text-center text-neutral-500 text-sm">
+            <div className="p-4 text-center text-muted-foreground text-sm">
               No checklist items for this status
             </div>
           )}
@@ -152,10 +152,10 @@ export const JobFooter: React.FC<JobFooterProps> = ({
             variant="ghost"
             className={cn(
               'inline-flex items-center gap-1.5 py-2 px-3.5',
-              'bg-neutral-100 border border-neutral-200 rounded-md',
+              'bg-muted border border-border rounded-md',
               'cursor-pointer transition-all duration-200',
-              'text-sm font-medium text-neutral-800',
-              'hover:bg-neutral-200 hover:border-neutral-300',
+              'text-sm font-medium text-foreground',
+              'hover:bg-muted hover:border-border',
               isChecklistExpanded && 'bg-primary/10 border-primary text-primary'
             )}
             onClick={handleChecklistToggle}
@@ -165,7 +165,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
               {sortedItems.map((item, index) => (
                 <span
                   key={index}
-                  className="w-2 h-2 rounded-full bg-neutral-300 transition-colors duration-150"
+                  className="w-2 h-2 rounded-full bg-muted-foreground/40 transition-colors duration-150"
                   style={
                     item.checked ? { backgroundColor: currentColor } : undefined
                   }

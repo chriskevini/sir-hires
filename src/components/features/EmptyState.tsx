@@ -24,7 +24,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ onRestoreBackup }) => {
       </p>
 
       {/* Footer with restore backup link */}
-      <div className="absolute bottom-0 left-0 right-0 h-14 flex items-center justify-end px-4 bg-white border-t border-border">
+      <div className="absolute bottom-0 left-0 right-0 h-14 flex items-center justify-end px-4 bg-background border-t border-border">
         <Button
           variant="link"
           onClick={onRestoreBackup}

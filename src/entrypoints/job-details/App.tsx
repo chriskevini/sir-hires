@@ -255,7 +255,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
    * Open profile.html in a new tab
    */
   const handleProfileClick = useCallback(() => {
-    browser.tabs.create({ url: '/profile.html' });
+    window.location.href = '/profile.html';
   }, []);
 
   /**

@@ -347,3 +347,17 @@ export const ProfileIcon = (
     />
   </svg>
 );
+
+// Diagonal arrow pointing up-left (for EmptyState)
+export const ArrowUpLeftIcon = (
+  <svg viewBox="0 0 16 16" fill="currentColor" className="icon-svg">
+    <path
+      d="M11 11 L5 5 M5 10 L5 5 L10 5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);

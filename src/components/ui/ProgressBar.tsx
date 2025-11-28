@@ -1,12 +1,9 @@
 import React from 'react';
+import { statusStyles } from '@/config';
 import './ProgressBar.css';
 
 interface ProgressBarProps {
   status: string;
-  progressConfig: Record<
-    string,
-    { fill: number; color: string; textColor: string }
-  >;
 }
 
 /**
@@ -18,17 +15,13 @@ interface ProgressBarProps {
  * Displays a horizontal bar with color-coded fill percentage indicating
  * the current stage in the application workflow.
  *
- * Uses progressConfig from config.ts:
+ * Uses statusStyles from config.ts:
  * - fill: percentage width (0-100)
  * - color: background color of the fill
- * - textColor: color of the status label text
  */
-export const ProgressBar: React.FC<ProgressBarProps> = ({
-  status,
-  progressConfig,
-}) => {
-  const config = progressConfig[status] || progressConfig['Researching'];
-  const { fill, color, textColor } = config;
+export const ProgressBar: React.FC<ProgressBarProps> = ({ status }) => {
+  const styles = statusStyles[status] || statusStyles['Researching'];
+  const { fill, color } = styles;
 
   return (
     <div className="progress-bar-container">
@@ -42,7 +35,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       <span
         className="progress-bar-label"
         style={{
-          color: textColor,
+          color: color,
         }}
       >
         {status}

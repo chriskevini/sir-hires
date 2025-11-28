@@ -1,4 +1,5 @@
 import React from 'react';
+import { statusStyles } from '@/config';
 import './JobHeader.css';
 
 interface JobHeaderProps {
@@ -6,8 +7,6 @@ interface JobHeaderProps {
   company: string;
   url: string;
   status: string;
-  progressConfig: Record<string, { fill: number; color: string }>;
-  statusColors: Record<string, { bg: string; text: string }>;
   className?: string;
 }
 
@@ -19,20 +18,15 @@ interface JobHeaderProps {
  * - Job title and company
  * - Status badge (colored indicator of current status)
  * - Action link to view original job posting
- *
- * Replaces: EditorHeader, ProgressBar (merged functionality)
  */
 export const JobHeader: React.FC<JobHeaderProps> = ({
   jobTitle,
   company,
   url,
   status,
-  progressConfig,
-  statusColors,
   className = '',
 }) => {
-  const progress = progressConfig[status] || progressConfig['Researching'];
-  const statusColor = statusColors[status] || statusColors['Researching'];
+  const styles = statusStyles[status] || statusStyles['Researching'];
 
   return (
     <div className={`job-header-container ${className}`}>
@@ -41,8 +35,8 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
         <div
           className="job-header-progress-fill"
           style={{
-            width: `${progress.fill}%`,
-            backgroundColor: progress.color,
+            width: `${styles.fill}%`,
+            backgroundColor: styles.color,
           }}
         />
       </div>
@@ -57,8 +51,8 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
           <span
             className="job-header-status-badge"
             style={{
-              backgroundColor: statusColor.bg,
-              color: statusColor.text,
+              backgroundColor: styles.color,
+              color: '#fff',
             }}
           >
             {status}

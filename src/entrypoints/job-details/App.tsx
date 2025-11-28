@@ -20,6 +20,7 @@ import {
   getAllStorageData,
   restoreStorageFromBackup,
   clearAllStorage,
+  sidebarCollapsedStorage,
 } from '../../utils/storage';
 import { defaults, statusStyles } from '@/config';
 import { browser } from 'wxt/browser';
@@ -43,6 +44,21 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [error, _setError] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Load sidebar collapsed state from storage on mount
+  useEffect(() => {
+    sidebarCollapsedStorage.getValue().then(setSidebarCollapsed);
+  }, []);
+
+  // Handle sidebar toggle with storage persistence
+  const handleSidebarToggle = useCallback(() => {
+    setSidebarCollapsed((prev) => {
+      const newValue = !prev;
+      sidebarCollapsedStorage.setValue(newValue);
+      return newValue;
+    });
+  }, []);
 
   // Dropdown state for overflow menu
   const [isMenuOpen, toggleMenu, setMenuOpen] = useToggleState(false);
@@ -487,6 +503,14 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
       {/* Header with branding and action buttons */}
       <header>
         <div className="header-title">
+          <button
+            className="sidebar-toggle-btn"
+            onClick={handleSidebarToggle}
+            title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+            aria-label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+          >
+            {sidebarCollapsed ? '▶' : '◀'}
+          </button>
           <h1>Sir Hires</h1>
         </div>
         <div className="header-actions">
@@ -529,7 +553,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
       {/* Main content area */}
       <div className="main-content">
         {/* Sidebar with filters and job list */}
-        <div className="sidebar">
+        <div className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
           <div className="sidebar-header">
             <div className="filters">
               <input

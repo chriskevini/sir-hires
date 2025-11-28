@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ChevronDownIcon, ChevronUpIcon } from '@/components/ui/icons';
 import type {
   ValidationResult,
   ValidationFix,
@@ -96,7 +97,9 @@ export function ValidationPanel({
             )}
           </div>
         </div>
-        <span className="validation-toggle">{isCollapsed ? '▼' : '▲'}</span>
+        <span className="validation-toggle">
+          {isCollapsed ? ChevronDownIcon : ChevronUpIcon}
+        </span>
       </div>
 
       {showQuickActions && (onInsertEducation || onInsertExperience) && (

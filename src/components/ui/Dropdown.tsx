@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { ChevronDownIcon } from './icons';
 import './Dropdown.css';
 
 interface DropdownItem {
@@ -68,7 +69,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         ) : (
           <>
             {buttonIcon && <span>{buttonIcon} </span>}
-            {buttonLabel} ▼
+            {buttonLabel} {ChevronDownIcon}
           </>
         )}
       </button>

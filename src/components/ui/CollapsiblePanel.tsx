@@ -1,4 +1,5 @@
 import React from 'react';
+import { ChevronDownIcon, ChevronUpIcon } from './icons';
 
 interface CollapsiblePanelProps {
   isCollapsed: boolean;
@@ -25,7 +26,9 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
     >
       <div className="collapsible-header" onClick={onToggle}>
         {header}
-        <span className="collapsible-toggle">{isCollapsed ? '▼' : '▲'}</span>
+        <span className="collapsible-toggle">
+          {isCollapsed ? ChevronDownIcon : ChevronUpIcon}
+        </span>
       </div>
       <div className="collapsible-content">{children}</div>
     </div>

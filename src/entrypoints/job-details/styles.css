@@ -547,6 +547,12 @@ h1 {
   width: 0;
   border-right: none;
   overflow: hidden;
+  visibility: hidden;
+}
+
+/* Restore visibility on expanded sidebar (needed for transition) */
+.sidebar:not(.collapsed) {
+  visibility: visible;
 }
 
 .sidebar-header {

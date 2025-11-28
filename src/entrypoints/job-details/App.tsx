@@ -20,6 +20,7 @@ import {
   getAllStorageData,
   restoreStorageFromBackup,
   clearAllStorage,
+  sidebarCollapsedStorage,
 } from '../../utils/storage';
 import { defaults, statusStyles } from '@/config';
 import { browser } from 'wxt/browser';
@@ -44,6 +45,20 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [error, _setError] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Load sidebar collapsed state from storage on mount
+  useEffect(() => {
+    sidebarCollapsedStorage.getValue().then(setSidebarCollapsed);
+  }, []);
+
+  // Handle sidebar toggle with storage persistence
+  const handleSidebarToggle = useCallback(() => {
+    setSidebarCollapsed((prev) => {
+      const newValue = !prev;
+      sidebarCollapsedStorage.setValue(newValue);
+      return newValue;
+    });
+  }, []);
 
   // Dropdown state for overflow menu
   const [isMenuOpen, toggleMenu, setMenuOpen] = useToggleState(false);
@@ -490,7 +505,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
         <div className="header-title">
           <button
             className="sidebar-toggle-btn"
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            onClick={handleSidebarToggle}
             title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
             aria-label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
           >

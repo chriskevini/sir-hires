@@ -183,6 +183,17 @@ export const profileTemplatePanelStorage = storage.defineItem<boolean>(
   }
 );
 
+/**
+ * Sidebar collapsed state - User preference for job-details sidebar visibility
+ */
+export const sidebarCollapsedStorage = storage.defineItem<boolean>(
+  'local:sidebarCollapsed',
+  {
+    defaultValue: false,
+    version: 1,
+  }
+);
+
 // ===== Helper Functions =====
 
 /**

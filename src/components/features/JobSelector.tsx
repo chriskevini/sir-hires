@@ -14,7 +14,7 @@ import {
 import type { Job } from '@/entrypoints/job-details/hooks';
 import { CloseIcon } from '../ui/icons';
 import { Button } from '../ui/Button';
-import './JobSelector.css';
+import { cn } from '@/lib/utils';
 
 interface JobSelectorProps {
   /** All jobs to display */
@@ -156,55 +156,56 @@ export function JobSelector({
   // Always render - CSS transition handles open/close
   return (
     <div
-      className={`job-selector-panel ${isOpen ? '' : 'collapsed'}`}
+      className={cn(
+        'absolute top-0 left-0 bottom-0 bg-white',
+        'flex flex-col z-[100] overflow-hidden',
+        'transition-[width] duration-200 ease-in-out',
+        isOpen ? 'w-full' : 'w-0'
+      )}
       onClick={handlePanelClick}
     >
       {/* Invisible backdrop for closing when open */}
       {isOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: -1,
-          }}
-          onClick={handleBackdropClick}
-        />
+        <div className="fixed inset-0 -z-[1]" onClick={handleBackdropClick} />
       )}
       {/* Header with filters */}
-      <div className="job-selector-header">
-        <div className="job-selector-filters">
+      <div className="shrink-0 p-4 border-b border-neutral-200 bg-neutral-50">
+        <div className="flex flex-col gap-3">
           <input
             type="text"
-            className="job-selector-search"
+            className={cn(
+              'w-full px-3 py-2.5 border border-neutral-300 rounded',
+              'text-sm font-sans',
+              'transition-colors duration-200',
+              'focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10',
+              'placeholder:text-neutral-400'
+            )}
             placeholder="Search jobs..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             autoFocus
           />
-          <div className="job-selector-filter-row">
+          <div className="flex items-center justify-center">
             <StatusFilterDots
               selectedStatuses={statusFilters}
               onChange={setStatusFilters}
             />
           </div>
-          <div className="job-selector-filter-row">
+          <div className="flex items-center justify-center">
             <SortIconButtons
               sortField={sortField}
               sortDirection={sortDirection}
               onChange={handleSortChange}
             />
           </div>
-          <div className="job-selector-count">
+          <div className="text-xs text-neutral-500 italic">
             {filteredJobs.length} of {jobs.length} jobs
           </div>
         </div>
       </div>
 
       {/* Job list */}
-      <div className="job-selector-list">
+      <div className="flex-1 overflow-y-auto p-2">
         {filteredJobs.map((job: Job) => {
           const isSelected = job.id === selectedJobId;
           const parsed = getParsedJob(job.id);
@@ -214,30 +215,42 @@ export function JobSelector({
           return (
             <div
               key={job.id}
-              className={`job-selector-card ${isSelected ? 'selected' : ''}`}
-              style={{ backgroundColor: styles.cardBg }}
+              className={cn(
+                'border border-neutral-200 rounded-md p-3 mb-2 cursor-pointer',
+                'transition-all duration-200',
+                'hover:bg-blue-50 hover:border-blue-600',
+                isSelected &&
+                  'bg-blue-100 border-blue-600 border-2 shadow-md shadow-blue-600/20'
+              )}
+              style={{
+                backgroundColor: isSelected ? undefined : styles.cardBg,
+              }}
               onClick={() => handleSelectJob(job.id)}
             >
-              <div className="job-selector-card-header">
-                <div className="job-selector-card-title">
+              <div className="flex flex-col gap-1 relative">
+                <div className="text-sm font-semibold text-neutral-800 overflow-hidden text-ellipsis line-clamp-2 pr-6">
                   {parsed ? getJobTitle(parsed) || 'Untitled' : 'Untitled'}
                 </div>
-                <div className="job-selector-card-company">
+                <div className="text-xs text-neutral-600 mb-1">
                   {parsed ? getCompanyName(parsed) || 'Unknown' : 'Unknown'}
                 </div>
                 <span
-                  className="job-selector-card-badge"
-                  style={{
-                    backgroundColor: styles.color,
-                    color: '#fff',
-                  }}
+                  className="inline-block px-2 py-0.5 rounded-xl text-[10px] font-medium w-fit text-white"
+                  style={{ backgroundColor: styles.color }}
                 >
                   {status}
                 </span>
                 {isSelected && (
                   <Button
                     variant="ghost"
-                    className="job-selector-delete-btn"
+                    className={cn(
+                      'absolute -top-1 -right-1 w-5 h-5 rounded-full',
+                      'bg-neutral-400 text-white text-xs leading-none',
+                      'flex items-center justify-center opacity-70',
+                      'hover:bg-red-600 hover:opacity-100',
+                      'active:scale-90',
+                      'transition-all duration-200'
+                    )}
                     onClick={(e) => {
                       e.stopPropagation();
                       onDeleteJob(job.id);
@@ -253,7 +266,7 @@ export function JobSelector({
         })}
 
         {filteredJobs.length === 0 && (
-          <div className="job-selector-empty">
+          <div className="text-center py-10 px-5 text-neutral-600 text-sm italic">
             {jobs.length === 0
               ? 'No jobs yet. Extract a job to get started.'
               : 'No jobs match your filters.'}

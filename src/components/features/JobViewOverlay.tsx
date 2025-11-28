@@ -1,9 +1,8 @@
 import React from 'react';
 import { Checklist } from '../../entrypoints/job-details/components/checklist';
 import { NavigationButtons } from './NavigationButtons';
-import { getNavigationButtons, statusStyles } from '@/config';
+import { getNavigationButtons } from '@/config';
 import type { ChecklistItem } from '@/entrypoints/job-details/hooks';
-import './JobViewOverlay.css';
 
 /**
  * @deprecated This component is replaced by the JobViewRouter + JobFooter architecture.
@@ -68,7 +67,7 @@ export const JobViewOverlay: React.FC<JobViewOverlayProps> = ({
   }
 
   return (
-    <div className="overlay-container">
+    <div className="absolute bottom-0 left-0 right-0 flex flex-col justify-end pointer-events-none z-10 [&>*]:pointer-events-auto">
       <Checklist
         checklist={job.checklist || {}}
         status={job.applicationStatus || 'researching'}

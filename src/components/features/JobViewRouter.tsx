@@ -6,7 +6,7 @@ import { defaults } from '@/config';
 import { JobHeader } from './JobHeader';
 import { JobFooter } from './JobFooter';
 import { Button } from '../ui/Button';
-import './JobViewRouter.css';
+import { cn } from '@/lib/utils';
 
 /**
  * Common props for view components (ID-based callbacks)
@@ -91,7 +91,11 @@ export function JobViewRouter({
 
   // Handle empty state
   if (!job) {
-    return <div className="detail-panel-empty">{emptyStateMessage}</div>;
+    return (
+      <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
+        {emptyStateMessage}
+      </div>
+    );
   }
 
   const status = job.applicationStatus || defaults.status;
@@ -135,15 +139,13 @@ export function JobViewRouter({
       default: {
         // WIP view for unimplemented states
         return (
-          <div className="job-view-wip">
-            <div className="job-view-wip-icon">🚧</div>
-            <div className="job-view-wip-title">
+          <div className="flex flex-col items-center justify-center py-15 px-5 text-neutral-600 text-center min-h-[300px]">
+            <div className="text-5xl mb-5">🚧</div>
+            <div className="text-lg font-medium mb-2.5 text-neutral-800">
               {status} Panel - Work in Progress
             </div>
-            <div className="job-view-wip-subtitle">
-              This panel is coming soon!
-            </div>
-            <div className="job-view-wip-actions">
+            <div className="text-sm mb-6">This panel is coming soon!</div>
+            <div className="flex gap-3">
               <Button
                 variant="link"
                 onClick={() => window.open(job.url, '_blank')}
@@ -164,7 +166,12 @@ export function JobViewRouter({
   const isCompact = !showHeader;
 
   return (
-    <div className={`job-view-container ${isCompact ? 'compact' : ''}`}>
+    <div
+      className={cn(
+        'flex flex-col h-full relative',
+        isCompact ? 'bg-transparent' : 'bg-neutral-50'
+      )}
+    >
       {showHeader && (
         <JobHeader
           jobTitle={jobTitle}
@@ -174,7 +181,9 @@ export function JobViewRouter({
         />
       )}
 
-      <div className="job-view-content">{renderViewContent()}</div>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4">
+        {renderViewContent()}
+      </div>
 
       {showFooter && (
         <JobFooter

@@ -18,6 +18,9 @@ interface NavigationButtonsProps {
 }
 
 /**
+ * @deprecated This component is replaced by JobFooter which includes
+ * integrated navigation buttons with status colors. Will be removed in a future release.
+ *
  * NavigationButtons - Status progression navigation with left/right buttons
  * Used in overlay container for both ResearchingView and DraftingView
  */

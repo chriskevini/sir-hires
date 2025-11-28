@@ -1,11 +1,9 @@
 import React, { useMemo, useCallback } from 'react';
 import { useParsedJob } from '@/components/features/ParsedJobProvider';
-import { JobViewOverlay } from '@/components/features/JobViewOverlay';
 import { escapeHtml } from '@/utils/shared-utils';
 import { useToggleState, useJobValidation, ChecklistItem } from '../hooks';
 import { useImmediateSave } from '@/hooks/useImmediateSave';
 import { ValidationPanel } from '@/components/ui/ValidationPanel';
-import { EditorHeader } from '@/components/ui/EditorHeader';
 import { ExtractionLoadingView } from '../components/ExtractionLoadingView';
 import { ExtractionErrorView } from '../components/ExtractionErrorView';
 import { MigrationPromptView } from '../components/MigrationPromptView';
@@ -23,22 +21,20 @@ interface Job {
 
 interface ResearchingViewProps {
   job: Job;
-  isChecklistExpanded?: boolean;
   onDeleteJob: (jobId: string) => void;
   onSaveField: (jobId: string, fieldName: string, value: string) => void;
-  onToggleChecklistExpand: (isExpanded: boolean) => void;
-  onToggleChecklistItem: (jobId: string, itemId: string) => void;
-  hideOverlay?: boolean;
 }
 
+/**
+ * ResearchingView - Content-only view for job research phase
+ *
+ * Renders the markdown editor and validation panel.
+ * Header and footer are handled by JobViewRouter.
+ */
 export const ResearchingView: React.FC<ResearchingViewProps> = ({
   job,
-  isChecklistExpanded = false,
   onDeleteJob,
   onSaveField,
-  onToggleChecklistExpand,
-  onToggleChecklistItem,
-  hideOverlay = false,
 }) => {
   const [isValidationCollapsed, toggleValidationCollapsed] =
     useToggleState(true);
@@ -142,59 +138,33 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   ];
 
   return (
-    <>
-      <div className="researching-editor">
-        <div className="editor-layout">
-          {/* Editor Panel */}
-          <div className="editor-panel">
-            <EditorHeader
-              title={escapeHtml(parsedJob.jobTitle || 'Untitled Position')}
-              subtitle={`at ${escapeHtml(parsedJob.company || 'Unknown Company')}`}
-              actions={
-                <a
-                  href={escapeHtml(job.url)}
-                  className="btn-link"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View Original ↗
-                </a>
-              }
-            />
-            <textarea
-              id="jobEditor"
-              className={editorClass}
-              data-job-id={job.id}
-              value={editorContent}
-              onChange={handleEditorChange}
-            />
-          </div>
+    <div className="researching-editor">
+      <div className="editor-layout">
+        {/* Editor Panel */}
+        <div className="editor-panel">
+          <textarea
+            id="jobEditor"
+            className={editorClass}
+            data-job-id={job.id}
+            value={editorContent}
+            onChange={handleEditorChange}
+          />
         </div>
-
-        {/* Validation Panel */}
-        <ValidationPanel
-          isCollapsed={isValidationCollapsed}
-          onToggle={toggleValidationCollapsed}
-          isValid={validation?.valid ?? null}
-          errorCount={errorCount}
-          warningCount={warningCount}
-          infoCount={infoCount}
-          messages={messages.map((m) => ({
-            ...m,
-            message: escapeHtml(m.message),
-          }))}
-        />
       </div>
 
-      {/* Overlay container for Checklist and Navigation */}
-      <JobViewOverlay
-        job={job}
-        isChecklistExpanded={isChecklistExpanded}
-        onSaveField={onSaveField}
-        onToggleChecklistExpand={onToggleChecklistExpand}
-        onToggleChecklistItem={onToggleChecklistItem}
-        hidden={hideOverlay}
+      {/* Validation Panel */}
+      <ValidationPanel
+        isCollapsed={isValidationCollapsed}
+        onToggle={toggleValidationCollapsed}
+        isValid={validation?.valid ?? null}
+        errorCount={errorCount}
+        warningCount={warningCount}
+        infoCount={infoCount}
+        messages={messages.map((m) => ({
+          ...m,
+          message: escapeHtml(m.message),
+        }))}
       />
-    </>
+    </div>
   );
 };

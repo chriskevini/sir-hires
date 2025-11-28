@@ -17,10 +17,8 @@ import {
   SynthesisFooter,
   getRandomTone,
 } from '@/components/ui/SynthesisFooter';
-import { JobViewOverlay } from '@/components/features/JobViewOverlay';
 import { useParsedJob } from '@/components/features/ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '@/utils/job-parser';
-import { escapeHtml } from '@/utils/shared-utils';
 import { formatSaveTime } from '@/utils/date-utils';
 import { defaultDocuments, synthesisConfig } from '@/tasks';
 import { countWords } from '@/utils/text-utils';
@@ -39,7 +37,6 @@ import './DraftingView.css';
 
 interface DraftingViewProps {
   job: Job;
-  isChecklistExpanded?: boolean;
   onDeleteJob: (_jobId: string) => void;
   onSaveField: (jobId: string, fieldName: string, value: string) => void;
   onSaveDocument: (
@@ -48,9 +45,6 @@ interface DraftingViewProps {
     _documentData: { title: string; text: string; order?: number }
   ) => void;
   onDeleteDocument: (jobId: string, documentKey: string) => void;
-  onToggleChecklistExpand: (isExpanded: boolean) => void;
-  onToggleChecklistItem: (jobId: string, itemId: string) => void;
-  hideOverlay?: boolean;
 }
 
 // Progress messages shown sequentially during synthesis
@@ -97,16 +91,18 @@ const showToast = (
   }
 };
 
+/**
+ * DraftingView - Content-only view for document drafting phase
+ *
+ * Renders the document editor with tabs, synthesis controls, and export options.
+ * Header and footer are handled by JobViewRouter.
+ */
 export const DraftingView: React.FC<DraftingViewProps> = ({
   job,
-  isChecklistExpanded = false,
   onDeleteJob: _onDeleteJob,
-  onSaveField,
+  onSaveField: _onSaveField,
   onSaveDocument,
   onDeleteDocument,
-  onToggleChecklistExpand,
-  onToggleChecklistItem,
-  hideOverlay = false,
 }) => {
   // Toggle states
   const [exportDropdownOpen, toggleExportDropdown, setExportDropdownOpen] =
@@ -535,26 +531,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   return (
     <>
       <div className="drafting-view">
-        {/* Job Header */}
-        <div className="job-header">
-          <div>
-            <div className="job-title">
-              {escapeHtml(parsedJob.jobTitle || '')}
-            </div>
-            <div className="company">{escapeHtml(parsedJob.company || '')}</div>
-          </div>
-          <div>
-            <a
-              href={escapeHtml(job.url)}
-              className="badge badge-link"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              View Job Posting
-            </a>
-          </div>
-        </div>
-
         {/* Drafting Editor */}
         <div className="drafting-editor-container">
           {/* Topbar with tabs and actions */}
@@ -636,16 +612,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           <EditorFooter saveStatus={saveStatusText} wordCount={wordCount} />
         </div>
       </div>
-
-      {/* Overlay container for Checklist and Navigation */}
-      <JobViewOverlay
-        job={job}
-        isChecklistExpanded={isChecklistExpanded}
-        onSaveField={onSaveField}
-        onToggleChecklistExpand={onToggleChecklistExpand}
-        onToggleChecklistItem={onToggleChecklistItem}
-        hidden={hideOverlay}
-      />
 
       {/* Profile Warning Modal */}
       <Modal

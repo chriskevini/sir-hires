@@ -14,7 +14,7 @@ import {
   restoreStorageFromBackup,
   clearAllStorage,
 } from '../../utils/storage';
-import { defaults } from '@/config';
+import { defaults, statusColors } from '@/config';
 import { browser } from 'wxt/browser';
 import type { JobStore } from './hooks/useJobStore';
 import type { Job } from './hooks';
@@ -534,6 +534,10 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
               );
               const isSelected = globalIndex === store.selectedJobIndex;
               const parsed = getParsedJob(job.id);
+              const status = job.applicationStatus || defaults.status;
+              const statusColor =
+                statusColors[status as keyof typeof statusColors] ||
+                statusColors['Researching'];
 
               return (
                 <div
@@ -548,6 +552,15 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
                     <div className="company">
                       {parsed ? getCompanyName(parsed) || 'Unknown' : 'Unknown'}
                     </div>
+                    <span
+                      className="job-card-status-badge"
+                      style={{
+                        backgroundColor: statusColor.bg,
+                        color: statusColor.text,
+                      }}
+                    >
+                      {status}
+                    </span>
                     {isSelected && (
                       <button
                         className="btn-delete-card"

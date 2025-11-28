@@ -115,7 +115,7 @@ const Modal: React.FC<ModalProps> = ({
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className={className}>
+      <DialogContent className={className} aria-describedby={undefined}>
         {title && (
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>

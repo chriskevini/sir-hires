@@ -5,6 +5,7 @@ interface DropdownItem {
   label: string;
   icon?: string;
   onClick: () => void;
+  variant?: 'default' | 'danger';
 }
 
 interface DropdownProps {
@@ -13,6 +14,8 @@ interface DropdownProps {
   onClose: () => void;
   buttonLabel: string;
   buttonIcon?: string;
+  /** When true, only shows the icon (no label or caret) */
+  iconOnly?: boolean;
   items: DropdownItem[];
   className?: string;
 }
@@ -27,6 +30,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   onClose,
   buttonLabel,
   buttonIcon,
+  iconOnly = false,
   items,
   className = '',
 }) => {
@@ -52,20 +56,27 @@ export const Dropdown: React.FC<DropdownProps> = ({
   return (
     <div ref={dropdownRef} className={`dropdown-container ${className}`}>
       <button
-        className="btn-dropdown"
+        className={`btn-dropdown ${iconOnly ? 'btn-dropdown-icon-only' : ''}`}
         onClick={(e) => {
           e.stopPropagation();
           onToggle();
         }}
+        title={iconOnly ? buttonLabel : undefined}
       >
-        {buttonIcon && <span>{buttonIcon} </span>}
-        {buttonLabel} ▼
+        {iconOnly ? (
+          <span>{buttonIcon}</span>
+        ) : (
+          <>
+            {buttonIcon && <span>{buttonIcon} </span>}
+            {buttonLabel} ▼
+          </>
+        )}
       </button>
       <div className={`dropdown-menu ${isOpen ? '' : 'hidden'}`}>
-        {items.map((item, index) => (
+        {items.map((item) => (
           <button
-            key={index}
-            className="dropdown-item"
+            key={item.label}
+            className={`dropdown-item ${item.variant === 'danger' ? 'dropdown-item-danger' : ''}`}
             onClick={() => {
               item.onClick();
               onClose();

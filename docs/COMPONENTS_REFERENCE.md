@@ -357,6 +357,7 @@ import { TabBar } from '@/components/ui/TabBar';
 
 - Export menus
 - Action menus
+- Overflow menus (icon-only trigger)
 - Status selectors (though `StatusSelector` is more specialized)
 
 **Props:**
@@ -366,6 +367,7 @@ interface DropdownItem {
   label: string;
   icon?: string;
   onClick: () => void;
+  variant?: 'default' | 'danger'; // Use 'danger' for destructive actions
 }
 
 interface DropdownProps {
@@ -374,6 +376,7 @@ interface DropdownProps {
   onClose: () => void;
   buttonLabel: string;
   buttonIcon?: string;
+  iconOnly?: boolean; // When true, only shows icon (no label or caret)
   items: DropdownItem[];
   className?: string;
 }
@@ -404,6 +407,21 @@ import { Dropdown } from '@/components/ui/Dropdown';
     },
   ]}
   className="export-dropdown"
+/>
+
+// Icon-only overflow menu example (from job-details App.tsx)
+<Dropdown
+  isOpen={isMenuOpen}
+  onToggle={toggleMenu}
+  onClose={closeMenu}
+  buttonLabel="More options"
+  buttonIcon="⋮"
+  iconOnly={true}
+  items={[
+    { label: 'Create Backup', icon: '💾', onClick: handleCreateBackup },
+    { label: 'Restore Backup', icon: '📂', onClick: handleRestoreBackup },
+    { label: 'Delete All', icon: '🗑️', onClick: handleDeleteAll, variant: 'danger' },
+  ]}
 />
 ```
 

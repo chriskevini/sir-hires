@@ -103,19 +103,12 @@
 }
 
 /* Ghost - Transparent with hover background (icon buttons, toolbar actions) */
+/* Minimal styles - component CSS should override sizing/padding */
 .btn-ghost {
   background: transparent;
   border: none;
-  color: #666;
-  padding: 6px;
-  border-radius: 4px;
-}
-
-.btn-ghost:hover:not(:disabled) {
-  background-color: rgba(0, 0, 0, 0.06);
-  color: #333;
-}
-
-.btn-ghost:active:not(:disabled) {
-  background-color: rgba(0, 0, 0, 0.1);
+  color: inherit;
+  padding: 0;
+  font-weight: inherit;
+  font-size: inherit;
 }

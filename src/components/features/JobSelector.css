@@ -1,0 +1,175 @@
+/* JobSelector - Sliding panel for job selection */
+
+/* Panel container - always rendered, width transitions */
+.job-selector-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  transition: width 0.2s ease-in-out;
+  overflow: hidden;
+}
+
+.job-selector-panel.collapsed {
+  width: 0;
+}
+
+/* Header section with filters */
+.job-selector-header {
+  flex-shrink: 0;
+  padding: 16px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f9f9f9;
+}
+
+.job-selector-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Search input */
+.job-selector-search {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.job-selector-search:focus {
+  outline: none;
+  border-color: #1a73e8;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
+}
+
+.job-selector-search::placeholder {
+  color: #999;
+}
+
+/* Filter rows */
+.job-selector-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Job count */
+.job-selector-count {
+  font-size: 12px;
+  color: #5f6368;
+  font-style: italic;
+}
+
+/* Job list */
+.job-selector-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+/* Job card */
+.job-selector-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.job-selector-card:hover {
+  background-color: #f0f7ff;
+  border-color: #1a73e8;
+}
+
+.job-selector-card.selected {
+  background-color: #e8f0fe;
+  border-color: #1a73e8;
+  border-width: 2px;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.2);
+}
+
+/* Card header layout */
+.job-selector-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+}
+
+/* Card title */
+.job-selector-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  padding-right: 24px; /* Space for delete button */
+}
+
+/* Card company */
+.job-selector-card-company {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+/* Status badge */
+.job-selector-card-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  width: fit-content;
+}
+
+/* Delete button (only visible on selected card) */
+.job-selector-delete-btn {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #999;
+  color: white;
+  border: none;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  opacity: 0.7;
+}
+
+.job-selector-delete-btn:hover {
+  background-color: #d93025;
+  opacity: 1;
+}
+
+.job-selector-delete-btn:active {
+  transform: scale(0.9);
+}
+
+/* Empty state */
+.job-selector-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+  font-size: 14px;
+  font-style: italic;
+}

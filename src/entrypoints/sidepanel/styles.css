@@ -21,7 +21,19 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  padding: 16px;
+  /* No padding - each child component manages its own padding:
+     - SidepanelHeader: has padding: 8px 12px
+     - JobViewRouter: .job-view-content has padding: 16px
+     - EmptyState/ErrorState: use .empty-state which has its own padding */
+}
+
+/* Content area below header - contains main content and JobSelector overlay */
+.sidepanel-content-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Utility Classes */
@@ -79,7 +91,7 @@ body {
   justify-content: center;
   align-items: center;
   overflow-y: auto;
-  padding: 16px 0;
+  padding: 16px;
   position: relative;
 }
 
@@ -478,6 +490,12 @@ body {
   padding: 40px 20px;
   color: #666;
   font-style: italic;
+}
+
+/* Error State */
+.app-error {
+  padding: 40px 20px;
+  text-align: center;
 }
 
 /* Footer */

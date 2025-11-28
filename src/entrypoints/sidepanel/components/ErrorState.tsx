@@ -11,11 +11,9 @@ interface ErrorStateProps {
  */
 export const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry }) => {
   return (
-    <div className="container">
-      <div className="app-error">
-        <p style={{ color: 'red' }}>{error}</p>
-        <button onClick={onRetry}>Retry</button>
-      </div>
+    <div className="app-error">
+      <p style={{ color: 'red' }}>{error}</p>
+      <button onClick={onRetry}>Retry</button>
     </div>
   );
 };

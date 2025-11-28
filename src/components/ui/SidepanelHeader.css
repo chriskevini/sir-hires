@@ -1,0 +1,90 @@
+/* SidepanelHeader - Compact header with toggle and action icons */
+
+.sidepanel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+/* Toggle button (left side) */
+.sidepanel-header-toggle {
+  background: none;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 14px;
+  cursor: pointer;
+  color: #5f6368;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 32px;
+}
+
+.sidepanel-header-toggle:hover {
+  background-color: #e8eaed;
+  border-color: #bdc1c6;
+  color: #333;
+}
+
+.sidepanel-header-toggle:active {
+  background-color: #dadce0;
+}
+
+/* Action buttons container (right side) */
+.sidepanel-header-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/* Individual action buttons */
+.sidepanel-header-btn {
+  background: none;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 16px;
+  cursor: pointer;
+  color: #5f6368;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.sidepanel-header-btn:hover:not(:disabled) {
+  background-color: #e8eaed;
+}
+
+.sidepanel-header-btn:active:not(:disabled) {
+  background-color: #dadce0;
+}
+
+.sidepanel-header-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Spinner animation for extracting state */
+.sidepanel-header-spinner {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,4 +1,4 @@
-import { statusOrder, progressConfig } from '@/config';
+import { statusOrder, statusStyles } from '@/config';
 import './StatusFilterDots.css';
 
 interface StatusFilterDotsProps {
@@ -44,7 +44,7 @@ export function StatusFilterDots({
       aria-label="Filter by status"
     >
       {statusOrder.map((status) => {
-        const progress = progressConfig[status as keyof typeof progressConfig];
+        const styles = statusStyles[status] || statusStyles['Researching'];
         const isFilled = isAllSelected || selectedStatuses.includes(status);
 
         return (
@@ -54,8 +54,8 @@ export function StatusFilterDots({
             className={`status-filter-dot ${isFilled ? 'filled' : ''}`}
             style={
               isFilled
-                ? { backgroundColor: progress.color }
-                : { borderColor: progress.color }
+                ? { backgroundColor: styles.color }
+                : { borderColor: styles.color }
             }
             onClick={() => handleDotClick(status)}
             title={status}

@@ -27,29 +27,58 @@ export const statusOrder = [
   'Withdrawn',
 ];
 
-// Status badge color configuration (v0.3.0)
-// Used for both badge styling and progress bar colors
-export const statusColors = {
-  Researching: { bg: '#f5f5f5', text: '#666' }, // Gray to match progress bar
-  Drafting: { bg: '#d4edda', text: '#155724' },
-  'Awaiting Review': { bg: '#e8f0fe', text: '#1967d2' }, // Blue to match progress bar
-  Interviewing: { bg: '#fff3cd', text: '#856404' },
-  Deciding: { bg: '#f3e8fd', text: '#7627bb' },
-  Accepted: { bg: '#ceead6', text: '#0d652d' },
-  Rejected: { bg: '#f8d7da', text: '#721c24' },
-  Withdrawn: { bg: '#e2e3e5', text: '#383d41' },
-};
-
-// Progress bar visual configuration for each status (v0.3.0)
-export const progressConfig = {
-  Researching: { fill: 0, color: '#757575', textColor: '#fff' },
-  Drafting: { fill: 15, color: '#4caf50', textColor: '#fff' },
-  'Awaiting Review': { fill: 35, color: '#2196f3', textColor: '#fff' },
-  Interviewing: { fill: 60, color: '#ff9800', textColor: '#fff' },
-  Deciding: { fill: 85, color: '#9c27b0', textColor: '#fff' },
-  Accepted: { fill: 100, color: '#4caf50', textColor: '#fff' },
-  Rejected: { fill: 100, color: '#f44336', textColor: '#fff' },
-  Withdrawn: { fill: 100, color: '#757575', textColor: '#fff' },
+// Status visual styles (v0.3.0)
+// All color values in one place:
+// - color: base status color (badges, progress bar, borders)
+// - cardBg: 20% opacity (hex 33) for job card backgrounds
+export const statusStyles: Record<
+  string,
+  {
+    color: string;
+    fill: number;
+    cardBg: string;
+  }
+> = {
+  Researching: {
+    color: '#757575',
+    fill: 0,
+    cardBg: '#75757533',
+  },
+  Drafting: {
+    color: '#4caf50',
+    fill: 15,
+    cardBg: '#4caf5033',
+  },
+  'Awaiting Review': {
+    color: '#2196f3',
+    fill: 35,
+    cardBg: '#2196f333',
+  },
+  Interviewing: {
+    color: '#9c27b0',
+    fill: 60,
+    cardBg: '#9c27b033',
+  },
+  Deciding: {
+    color: '#ff9800',
+    fill: 85,
+    cardBg: '#ff980033',
+  },
+  Accepted: {
+    color: '#4caf50',
+    fill: 100,
+    cardBg: '#4caf5033',
+  },
+  Rejected: {
+    color: '#f44336',
+    fill: 100,
+    cardBg: '#f4433633',
+  },
+  Withdrawn: {
+    color: '#757575',
+    fill: 100,
+    cardBg: '#75757533',
+  },
 };
 
 // Navigation button configuration for each status (v0.3.0)

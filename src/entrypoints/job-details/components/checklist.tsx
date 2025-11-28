@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { statusOrder, progressConfig } from '@/config';
+import { statusOrder, statusStyles } from '@/config';
 import type { ChecklistItem } from '../hooks';
 import './checklist.css';
 
@@ -74,10 +74,9 @@ export const Checklist: React.FC<ChecklistProps> = ({
     currentIndex >= 0 && currentIndex < statusOrder.length - 1
       ? statusOrder[currentIndex + 1]
       : null;
-  const nextColor =
-    nextStatus && progressConfig[nextStatus as keyof typeof progressConfig]
-      ? progressConfig[nextStatus as keyof typeof progressConfig].color
-      : '#666';
+  const nextColor = nextStatus
+    ? statusStyles[nextStatus]?.color || '#666'
+    : '#666';
 
   // Get items for current status
   const items = checklist && checklist[status] ? checklist[status] : [];

@@ -2,7 +2,7 @@ import React from 'react';
 import { useParsedJob } from './ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '../../utils/job-parser';
 import type { Job } from '../../entrypoints/job-details/hooks';
-import { defaults, progressConfig, statusColors } from '@/config';
+import { defaults } from '@/config';
 import { JobHeader } from '../ui/JobHeader';
 import { JobFooter } from '../ui/JobFooter';
 import './JobViewRouter.css';
@@ -176,8 +176,6 @@ export function JobViewRouter({
         company={company}
         url={job.url}
         status={status}
-        progressConfig={progressConfig}
-        statusColors={statusColors}
       />
 
       <div className="job-view-content">{renderViewContent()}</div>

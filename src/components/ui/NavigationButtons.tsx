@@ -1,4 +1,5 @@
 import React from 'react';
+import { statusStyles } from '@/config';
 import './NavigationButtons.css';
 
 interface NavigationButton {
@@ -11,10 +12,6 @@ interface NavigationButtonsProps {
   leftButton: NavigationButton | null;
   rightButtons: NavigationButton[];
   onNavigate: (targetStatus: string, direction: 'backward' | 'forward') => void;
-  progressConfig: Record<
-    string,
-    { fill: number; color: string; textColor: string }
-  >;
 }
 
 /**
@@ -28,7 +25,6 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   leftButton,
   rightButtons,
   onNavigate,
-  progressConfig,
 }) => {
   return (
     <div id="navButtonsContainer" className="nav-buttons-container">
@@ -39,7 +35,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
             className="nav-button-wrapper"
             style={
               {
-                '--nav-color': progressConfig[leftButton.target]?.color,
+                '--nav-color': statusStyles[leftButton.target]?.color,
               } as React.CSSProperties
             }
           >
@@ -66,7 +62,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
             className="nav-button-wrapper"
             style={
               {
-                '--nav-color': progressConfig[button.target]?.color,
+                '--nav-color': statusStyles[button.target]?.color,
               } as React.CSSProperties
             }
           >

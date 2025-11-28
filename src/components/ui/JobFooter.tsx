@@ -1,5 +1,5 @@
 import React from 'react';
-import { getNavigationButtons, progressConfig } from '@/config';
+import { getNavigationButtons, statusStyles } from '@/config';
 import type { ChecklistItem } from '@/entrypoints/job-details/hooks';
 import './JobFooter.css';
 
@@ -41,13 +41,9 @@ export const JobFooter: React.FC<JobFooterProps> = ({
   const sortedItems = [...items].sort((a, b) => a.order - b.order);
 
   // Get colors for current and next status
-  const currentColor =
-    (progressConfig as Record<string, { color: string }>)[status]?.color ||
-    '#757575';
+  const currentColor = statusStyles[status]?.color || '#757575';
   const leftTargetColor = navButtons.left
-    ? (progressConfig as Record<string, { color: string }>)[
-        navButtons.left.target
-      ]?.color || '#757575'
+    ? statusStyles[navButtons.left.target]?.color || '#757575'
     : currentColor;
 
   const handleChecklistToggle = () => {
@@ -133,10 +129,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
         {/* Right: Forward button(s) */}
         <div className="job-footer-right">
           {navButtons.right.map((button, index) => {
-            const targetColor =
-              (progressConfig as Record<string, { color: string }>)[
-                button.target
-              ]?.color || '#757575';
+            const targetColor = statusStyles[button.target]?.color || '#757575';
             return (
               <button
                 key={index}

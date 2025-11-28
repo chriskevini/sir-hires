@@ -1,7 +1,7 @@
 import React from 'react';
 import { Checklist } from '../../entrypoints/job-details/components/checklist';
 import { NavigationButtons } from '../ui/NavigationButtons';
-import { getNavigationButtons, progressConfig } from '@/config';
+import { getNavigationButtons, statusStyles } from '@/config';
 import type { ChecklistItem } from '@/entrypoints/job-details/hooks';
 import './JobViewOverlay.css';
 
@@ -84,7 +84,6 @@ export const JobViewOverlay: React.FC<JobViewOverlayProps> = ({
         leftButton={navButtons.left}
         rightButtons={navButtons.right}
         onNavigate={handleNavigate}
-        progressConfig={progressConfig}
       />
     </div>
   );

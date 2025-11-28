@@ -47,9 +47,9 @@ export const ExtractionLoadingView: React.FC<ExtractionLoadingViewProps> = ({
         </div>
       </div>
       {/* Footer actions - matches JobFooter height: 56px */}
-      <div className="flex items-center justify-end px-4 py-3 border-t border-neutral-200 bg-white flex-shrink-0 min-h-[56px] box-border">
-        <Button variant="secondary" onClick={onDelete}>
-          Cancel
+      <div className="flex items-center px-4 py-3 border-t border-neutral-200 bg-white flex-shrink-0 min-h-[56px] box-border">
+        <Button variant="danger" onClick={onDelete} className="w-full">
+          Cancel Extraction
         </Button>
       </div>
     </div>

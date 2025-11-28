@@ -129,7 +129,6 @@ function SidepanelContent({
       {pendingExtraction && (
         <DuplicateJobModal
           isOpen={showDuplicateModal}
-          jobUrl={pendingExtraction.url}
           onRefresh={onRefresh}
           onExtractNew={onExtractNew}
           onCancel={onCancelDuplicate}

@@ -2,19 +2,19 @@ import React from 'react';
 import { useParsedJob } from './ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '../../utils/job-parser';
 import type { Job } from '../../entrypoints/job-details/hooks';
-import { defaults } from '@/config';
-import { JobViewOverlay } from './JobViewOverlay';
+import { defaults, progressConfig, statusColors } from '@/config';
+import { JobHeader } from '../ui/JobHeader';
+import { JobFooter } from '../ui/JobFooter';
+import './JobViewRouter.css';
 
 /**
  * Common props for view components (ID-based callbacks)
+ * Views now only render content - header/footer handled by router
  */
 interface ViewComponentProps {
   job: Job;
-  isChecklistExpanded: boolean;
   onDeleteJob: (jobId: string) => void;
-  onToggleChecklistExpand: (isExpanded: boolean) => void;
-  onToggleChecklistItem: (jobId: string, itemId: string) => void;
-  hideOverlay?: boolean;
+  onSaveField: (jobId: string, fieldName: string, value: string) => void;
 }
 
 /**
@@ -23,14 +23,9 @@ interface ViewComponentProps {
 export interface JobViewRouterProps {
   job: Job | null;
   isChecklistExpanded: boolean;
-  ResearchingView: React.ComponentType<
-    ViewComponentProps & {
-      onSaveField: (jobId: string, fieldName: string, value: string) => void;
-    }
-  >;
+  ResearchingView: React.ComponentType<ViewComponentProps>;
   DraftingView: React.ComponentType<
     ViewComponentProps & {
-      onSaveField: (jobId: string, fieldName: string, value: string) => void;
       onSaveDocument: (
         jobId: string,
         documentKey: string,
@@ -50,14 +45,25 @@ export interface JobViewRouterProps {
   onToggleChecklistExpand: (isExpanded: boolean) => void;
   onToggleChecklistItem: (jobId: string, itemId: string) => void;
   emptyStateMessage?: string;
-  hideOverlay?: boolean;
+  /** Hide header/footer chrome (for sidepanel compact mode) */
+  hideChrome?: boolean;
 }
 
 /**
  * JobViewRouter - Routes to appropriate view based on job status
  *
- * Eliminates duplication between job-details and sidepanel App files.
- * Provides centralized view routing logic based on job application status.
+ * Architecture (v2):
+ * ┌─────────────────────────────────┐
+ * │ JobHeader                       │ - Progress bar, title, status, link
+ * ├─────────────────────────────────┤
+ * │ View Content (scrollable)       │ - ResearchingView / DraftingView
+ * │                                 │
+ * ├─────────────────────────────────┤
+ * │ JobFooter                       │ - Nav buttons, checklist drawer
+ * └─────────────────────────────────┘
+ *
+ * Views are now "content-only" - they don't render headers, footers, or overlays.
+ * All navigation and status chrome is handled at the router level.
  *
  * @param props - Router configuration and handlers
  * @returns Appropriate view component for the job's status
@@ -74,7 +80,7 @@ export function JobViewRouter({
   onToggleChecklistExpand,
   onToggleChecklistItem,
   emptyStateMessage = 'No job selected',
-  hideOverlay = false,
+  hideChrome = false,
 }: JobViewRouterProps) {
   // Parse job at top level (hooks must be called unconditionally)
   const parsed = useParsedJob(job?.id || null);
@@ -86,102 +92,105 @@ export function JobViewRouter({
 
   const status = job.applicationStatus || defaults.status;
 
-  // Route to the appropriate view based on status
-  switch (status) {
-    case 'Researching':
-      return (
-        <ResearchingView
-          job={job}
-          isChecklistExpanded={isChecklistExpanded}
-          onDeleteJob={onDeleteJob}
-          onSaveField={onSaveField}
-          onToggleChecklistExpand={onToggleChecklistExpand}
-          onToggleChecklistItem={onToggleChecklistItem}
-          hideOverlay={hideOverlay}
-        />
-      );
+  // Extract job metadata for header
+  const jobTitle = parsed
+    ? getJobTitle(parsed) || 'Untitled Position'
+    : 'Untitled Position';
+  const company = parsed
+    ? getCompanyName(parsed) || 'Unknown Company'
+    : 'Unknown Company';
 
-    case 'Drafting':
-      return (
-        <DraftingView
-          job={job}
-          isChecklistExpanded={isChecklistExpanded}
-          onDeleteJob={onDeleteJob}
-          onSaveField={onSaveField}
-          onSaveDocument={onSaveDocument}
-          onDeleteDocument={onDeleteDocument}
-          onToggleChecklistExpand={onToggleChecklistExpand}
-          onToggleChecklistItem={onToggleChecklistItem}
-          hideOverlay={hideOverlay}
-        />
-      );
+  // Navigation handler - updates applicationStatus field
+  const handleNavigate = (targetStatus: string) => {
+    onSaveField(job.id, 'applicationStatus', targetStatus);
+  };
 
-    default: {
-      // WIP view for unimplemented states
-      // Use parsed data from top-level hook call
-      const jobTitle = parsed ? getJobTitle(parsed) || 'Untitled' : 'Untitled';
-      const company = parsed ? getCompanyName(parsed) || 'Unknown' : 'Unknown';
+  // Helper to render the appropriate view content based on status
+  const renderViewContent = () => {
+    switch (status) {
+      case 'Researching':
+        return (
+          <ResearchingView
+            job={job}
+            onDeleteJob={onDeleteJob}
+            onSaveField={onSaveField}
+          />
+        );
 
-      return (
-        <>
-          <div className="job-card">
-            <div className="detail-panel-content">
-              <div className="job-header">
-                <div>
-                  <div className="job-title">{jobTitle}</div>
-                  <div className="company">{company}</div>
-                </div>
-              </div>
+      case 'Drafting':
+        return (
+          <DraftingView
+            job={job}
+            onDeleteJob={onDeleteJob}
+            onSaveField={onSaveField}
+            onSaveDocument={onSaveDocument}
+            onDeleteDocument={onDeleteDocument}
+          />
+        );
 
-              <div
-                style={{
-                  textAlign: 'center',
-                  padding: '60px 20px',
-                  color: '#666',
-                }}
+      default: {
+        // WIP view for unimplemented states
+        return (
+          <div className="job-view-wip">
+            <div className="job-view-wip-icon">🚧</div>
+            <div className="job-view-wip-title">
+              {status} Panel - Work in Progress
+            </div>
+            <div className="job-view-wip-subtitle">
+              This panel is coming soon!
+            </div>
+            <div className="job-view-wip-actions">
+              <button
+                className="btn btn-link"
+                onClick={() => window.open(job.url, '_blank')}
               >
-                <div style={{ fontSize: '48px', marginBottom: '20px' }}>🚧</div>
-                <div
-                  style={{
-                    fontSize: '18px',
-                    fontWeight: 500,
-                    marginBottom: '10px',
-                  }}
-                >
-                  {status} Panel - Work in Progress
-                </div>
-                <div style={{ fontSize: '14px' }}>
-                  This panel is coming soon!
-                </div>
-              </div>
-
-              <div className="job-actions">
-                <button
-                  className="btn btn-link"
-                  onClick={() => window.open(job.url, '_blank')}
-                >
-                  View Job Posting
-                </button>
-                <button
-                  className="btn btn-delete"
-                  onClick={() => onDeleteJob(job.id)}
-                >
-                  Delete
-                </button>
-              </div>
+                View Job Posting
+              </button>
+              <button
+                className="btn btn-delete"
+                onClick={() => onDeleteJob(job.id)}
+              >
+                Delete
+              </button>
             </div>
           </div>
-
-          <JobViewOverlay
-            job={job}
-            isChecklistExpanded={isChecklistExpanded}
-            onSaveField={onSaveField}
-            onToggleChecklistExpand={onToggleChecklistExpand}
-            onToggleChecklistItem={onToggleChecklistItem}
-            hidden={hideOverlay}
-          />
-        </>
-      );
+        );
+      }
     }
+  };
+
+  // Compact mode (hideChrome) - just render view content
+  if (hideChrome) {
+    return (
+      <div className="job-view-container compact">
+        <div className="job-view-content">{renderViewContent()}</div>
+      </div>
+    );
   }
+
+  // Full layout with header and footer
+  return (
+    <div className="job-view-container">
+      <JobHeader
+        jobTitle={jobTitle}
+        company={company}
+        url={job.url}
+        status={status}
+        progressConfig={progressConfig}
+        statusColors={statusColors}
+      />
+
+      <div className="job-view-content">{renderViewContent()}</div>
+
+      <JobFooter
+        status={status}
+        checklist={job.checklist}
+        jobId={job.id}
+        isChecklistExpanded={isChecklistExpanded}
+        onNavigate={handleNavigate}
+        onToggleChecklist={onToggleChecklistExpand}
+        onToggleChecklistItem={onToggleChecklistItem}
+      />
+    </div>
+  );
 }

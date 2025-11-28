@@ -1,45 +1,122 @@
 /* ===================================================================
    JobHeader Component Styles
-   Displays job title, company, and link to original posting
+   Consolidated header: progress bar + title + status badge + actions
    =================================================================== */
 
-.job-header {
+.job-header-container {
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* Progress bar - thin strip at top */
+.job-header-progress {
+  height: 4px;
+  background-color: #e0e0e0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.job-header-progress-fill {
+  height: 100%;
+  transition:
+    width 0.3s ease,
+    background-color 0.3s ease;
+}
+
+/* Main header content */
+.job-header-content {
   display: flex;
   justify-content: space-between;
-  align-items: start;
-  margin-bottom: 12px;
+  align-items: flex-start;
+  padding: 16px 20px;
+  gap: 16px;
 }
 
-.job-title {
-  font-size: 20px;
+/* Left side: title, company, status */
+.job-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0; /* Allow text truncation */
+  flex: 1;
+}
+
+.job-header-title {
+  font-size: 18px;
   font-weight: 600;
   color: #333;
-  margin-bottom: 4px;
+  margin: 0;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.company {
-  font-size: 16px;
+.job-header-company {
+  font-size: 14px;
   color: #666;
-  margin-bottom: 8px;
+  margin: 0;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.badge {
+/* Status badge */
+.job-header-status-badge {
   display: inline-block;
-  padding: 4px 8px;
-  background-color: #e8f0fe;
-  color: #1a73e8;
-  border-radius: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
+  margin-top: 6px;
+  width: fit-content;
 }
 
-.badge-link {
+/* Right side: actions */
+.job-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.job-header-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  background-color: #f5f5f5;
+  color: #1a73e8;
   text-decoration: none;
-  cursor: pointer;
-  transition: all 0.2s;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  transition:
+    background-color 0.2s,
+    box-shadow 0.2s;
 }
 
-.badge-link:hover {
-  background-color: #d2e3fc;
-  box-shadow: 0 1px 3px rgba(26, 115, 232, 0.3);
+.job-header-link:hover {
+  background-color: #e8f0fe;
+  box-shadow: 0 1px 3px rgba(26, 115, 232, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .job-header-content {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .job-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .job-header-title {
+    font-size: 16px;
+    white-space: normal;
+  }
 }

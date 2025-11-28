@@ -1,0 +1,87 @@
+/* ===================================================================
+   JobViewRouter Component Styles
+   Container layout: header + scrollable content + footer
+   =================================================================== */
+
+.job-view-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  background-color: #fafafa;
+}
+
+/* Compact mode (no header/footer chrome) */
+.job-view-container.compact {
+  background-color: transparent;
+}
+
+/* Scrollable content area between header and footer */
+.job-view-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+}
+
+/* WIP placeholder view for unimplemented statuses */
+.job-view-wip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #666;
+  text-align: center;
+  min-height: 300px;
+}
+
+.job-view-wip-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.job-view-wip-title {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.job-view-wip-subtitle {
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.job-view-wip-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.job-view-wip-actions .btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.job-view-wip-actions .btn-link {
+  background-color: #e8f0fe;
+  color: #1a73e8;
+  border: none;
+}
+
+.job-view-wip-actions .btn-link:hover {
+  background-color: #d2e3fc;
+}
+
+.job-view-wip-actions .btn-delete {
+  background-color: #fff;
+  color: #d32f2f;
+  border: 1px solid #d32f2f;
+}
+
+.job-view-wip-actions .btn-delete:hover {
+  background-color: #ffebee;
+}

@@ -90,6 +90,11 @@ function SidepanelContent({
   // Get parsed job accessor from context (must be inside ParsedJobProvider)
   const getParsedJob = useGetParsedJob();
 
+  // Get parsed job info for the header
+  const parsedJob = selectedJobId ? getParsedJob(selectedJobId) : null;
+  const jobTitle = parsedJob?.topLevelFields['TITLE'];
+  const company = parsedJob?.topLevelFields['COMPANY'];
+
   return (
     <div className="container">
       {/* Header with toggle and action buttons */}
@@ -101,6 +106,8 @@ function SidepanelContent({
         extracting={extracting}
         hasJob={hasJob}
         selectorOpen={selectorOpen}
+        jobTitle={jobTitle}
+        company={company}
       />
 
       {/* Main content area with JobSelector overlay */}

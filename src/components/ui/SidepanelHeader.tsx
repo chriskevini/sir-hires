@@ -23,15 +23,20 @@ interface SidepanelHeaderProps {
   hasJob: boolean;
   /** Whether the job selector is open */
   selectorOpen: boolean;
+  /** Job title to display */
+  jobTitle?: string;
+  /** Company name to display */
+  company?: string;
 }
 
 /**
  * SidepanelHeader - Compact header with toggle and action icons
  *
- * Layout: [chevron toggle] ... [Extract] [Delete] [Maximize]
+ * Layout: [chevron toggle] [Job Title - Company] [Extract] [Delete] [Maximize]
  *
  * Features:
  * - Toggle arrow to open/close JobSelector overlay
+ * - Job title and company display in center
  * - SVG icon buttons for common actions (consistent with SortIconButtons)
  * - Disabled states for context-appropriate actions
  */
@@ -43,6 +48,8 @@ export function SidepanelHeader({
   extracting,
   hasJob,
   selectorOpen,
+  jobTitle,
+  company,
 }: SidepanelHeaderProps) {
   return (
     <header className="sidepanel-header">
@@ -55,6 +62,21 @@ export function SidepanelHeader({
       >
         {selectorOpen ? ChevronLeftIcon : ChevronRightIcon}
       </button>
+
+      {/* Center: Job info */}
+      {hasJob && (jobTitle || company) && (
+        <div className="sidepanel-header-job-info">
+          {jobTitle && (
+            <span className="sidepanel-header-title">{jobTitle}</span>
+          )}
+          {jobTitle && company && (
+            <span className="sidepanel-header-separator">|</span>
+          )}
+          {company && (
+            <span className="sidepanel-header-company">{company}</span>
+          )}
+        </div>
+      )}
 
       {/* Right: Action buttons */}
       <div className="sidepanel-header-actions">

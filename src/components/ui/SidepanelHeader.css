@@ -8,6 +8,7 @@
   background-color: #f8f9fa;
   border-bottom: 1px solid #e0e0e0;
   flex-shrink: 0;
+  gap: 8px;
 }
 
 /* Toggle button (left side) */
@@ -25,6 +26,7 @@
   justify-content: center;
   min-width: 36px;
   min-height: 32px;
+  flex-shrink: 0;
 }
 
 .sidepanel-header-toggle:hover {
@@ -35,6 +37,38 @@
 
 .sidepanel-header-toggle:active {
   background-color: #dadce0;
+}
+
+/* Job info (center) */
+.sidepanel-header-job-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.sidepanel-header-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidepanel-header-separator {
+  color: #999;
+  flex-shrink: 0;
+}
+
+.sidepanel-header-company {
+  font-size: 13px;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Action buttons container (right side) */

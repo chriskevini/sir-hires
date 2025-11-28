@@ -6,7 +6,7 @@ import { ValidationPanel } from '@/components/features/ValidationPanel';
 import { ExtractionLoadingView } from '../components/ExtractionLoadingView';
 import { ExtractionErrorView } from '../components/ExtractionErrorView';
 import { MigrationPromptView } from '../components/MigrationPromptView';
-import './ResearchingView.css';
+import { cn } from '@/lib/utils';
 
 interface Job {
   id: string;
@@ -101,9 +101,22 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   }
 
   // Render normal editing state
-  const editorClass = validation?.valid
-    ? 'job-markdown-editor is-valid'
-    : 'job-markdown-editor has-errors';
+  // Tailwind equivalent of .job-markdown-editor validation states:
+  // Base: flex-1 w-full p-4 border-l-4 border-gray-200 text-[13px] font-mono leading-relaxed resize-none bg-white overflow-y-auto transition-all
+  // Focus: focus:outline-none focus:border-l-blue-500
+  // has-errors: border-l-red-600
+  // has-warnings: border-l-amber-500
+  // is-valid: border-l-green-600
+  const editorClass = cn(
+    'flex-1 w-full p-4 border-l-4 text-[13px] font-mono leading-relaxed resize-none bg-white overflow-y-auto transition-all',
+    'focus:outline-none focus:border-l-blue-500',
+    'scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100',
+    validation?.valid
+      ? 'border-l-green-600'
+      : validation?.errors?.length
+        ? 'border-l-red-600'
+        : 'border-l-gray-200'
+  );
 
   const errorCount = validation?.errors.length || 0;
   const warningCount = validation?.warnings.length || 0;
@@ -125,10 +138,10 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   ];
 
   return (
-    <div className="researching-editor">
-      <div className="editor-layout">
+    <div className="flex flex-col h-full">
+      <div className="flex flex-row flex-1 overflow-hidden">
         {/* Editor Panel */}
-        <div className="editor-panel">
+        <div className="flex-1 flex flex-col overflow-hidden bg-white">
           <textarea
             id="jobEditor"
             className={editorClass}

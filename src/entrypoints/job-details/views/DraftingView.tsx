@@ -33,7 +33,6 @@ import { useLLMSettings } from '@/hooks/useLLMSettings';
 import { DEFAULT_MODEL, DEFAULT_TASK_SETTINGS } from '@/utils/llm-utils';
 import { runTask, startKeepalive } from '@/utils/llm-task-runner';
 import type { Job } from '../hooks';
-import './DraftingView.css';
 
 interface DraftingViewProps {
   job: Job;
@@ -528,9 +527,9 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
   return (
     <>
-      <div className="drafting-view">
+      <div className="flex flex-col h-full gap-4">
         {/* Drafting Editor */}
-        <div className="drafting-editor-container">
+        <div className="mt-6 border border-gray-200 rounded-lg overflow-hidden bg-white">
           {/* Topbar with tabs and actions */}
           <EditorToolbar
             documentKeys={documentKeys}
@@ -551,11 +550,11 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           />
 
           {/* Editor wrapper */}
-          <div className="editor-wrapper">
+          <div className="relative min-h-[500px]">
             {documentKeys.length === 0 ? (
-              <div className="editor-content active">
+              <div className="flex flex-col p-5 gap-3">
                 <textarea
-                  className="document-editor"
+                  className="w-full min-h-[450px] p-4 font-mono text-[13px] leading-relaxed border border-gray-200 rounded resize-y bg-gray-100 text-gray-500"
                   placeholder="Click + to create your first document"
                   disabled
                 />
@@ -587,8 +586,9 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
           {/* Synthesis error display */}
           {synthesisError && (
-            <div className="synthesis-error">
-              <strong>Synthesis Error:</strong> {synthesisError}
+            <div className="py-3 px-5 mx-5 mb-3 bg-red-50 border border-red-300 rounded text-red-700 text-[13px]">
+              <strong className="block mb-1">Synthesis Error:</strong>{' '}
+              {synthesisError}
             </div>
           )}
 
@@ -614,7 +614,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
         onClose={() => setShowProfileWarning(false)}
         title="Profile Required"
       >
-        <div className="modal-body" style={{ textAlign: 'center' }}>
+        <div className="p-6 flex-1 overflow-y-auto text-center">
           <p>
             <strong>
               Please create a profile before synthesizing documents.
@@ -626,7 +626,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           </p>
           <Button
             variant="primary"
-            style={{ marginTop: '16px' }}
+            className="mt-4"
             onClick={() => {
               browser.tabs.create({
                 url: browser.runtime.getURL('/profile.html'),
@@ -638,10 +638,10 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           </Button>
         </div>
 
-        <div className="modal-footer">
+        <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
           <Button
             variant="subtle"
-            style={{ marginLeft: 'auto' }}
+            className="ml-auto"
             onClick={() => setShowProfileWarning(false)}
           >
             Cancel
@@ -665,14 +665,14 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
         }}
         title="Delete Document"
       >
-        <div className="modal-body">
+        <div className="p-6 flex-1 overflow-y-auto">
           <p>
             Are you sure you want to delete this document? This action cannot be
             undone.
           </p>
         </div>
-        <div className="modal-footer">
-          <div className="action-buttons-group" style={{ marginLeft: 'auto' }}>
+        <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
+          <div className="flex gap-3 ml-auto">
             <Button
               variant="secondary"
               onClick={() => {

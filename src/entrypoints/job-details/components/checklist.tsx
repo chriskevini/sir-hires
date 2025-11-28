@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { statusOrder, statusStyles } from '@/config';
 import type { ChecklistItem } from '../hooks';
-import './checklist.css';
 
 interface ChecklistProps {
   checklist: Record<string, ChecklistItem[]>;
@@ -22,7 +21,9 @@ export const Checklist: React.FC<ChecklistProps> = ({
   onToggleExpand,
   onToggleItem,
 }) => {
-  const [_isAnimating, setIsAnimating] = useState(false);
+  const [animationState, setAnimationState] = useState<
+    'idle' | 'expanding' | 'collapsing'
+  >('idle');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const prevExpandedRef = useRef(isExpanded);
 
@@ -34,34 +35,18 @@ export const Checklist: React.FC<ChecklistProps> = ({
     if (animate && dropdown) {
       if (wasExpanded && !isExpanded) {
         // Collapsing
-        setIsAnimating(true);
-        dropdown.classList.add('collapsing');
-        dropdown.classList.remove('expanded');
-
+        setAnimationState('collapsing');
         const timeout = setTimeout(() => {
-          setIsAnimating(false);
-          dropdown.classList.remove('collapsing');
+          setAnimationState('idle');
         }, 300);
-
         return () => clearTimeout(timeout);
       } else if (!wasExpanded && isExpanded) {
         // Expanding
-        setIsAnimating(true);
-        dropdown.style.transform = 'scaleY(0)';
-        dropdown.style.opacity = '0';
-
-        requestAnimationFrame(() => {
-          dropdown.classList.add('expanding');
-          dropdown.style.transform = '';
-          dropdown.style.opacity = '';
-
-          const timeout = setTimeout(() => {
-            setIsAnimating(false);
-            dropdown.classList.remove('expanding');
-          }, 300);
-
-          return () => clearTimeout(timeout);
-        });
+        setAnimationState('expanding');
+        const timeout = setTimeout(() => {
+          setAnimationState('idle');
+        }, 300);
+        return () => clearTimeout(timeout);
       }
     }
 
@@ -92,16 +77,30 @@ export const Checklist: React.FC<ChecklistProps> = ({
     onToggleItem(jobId, itemId);
   };
 
+  // Animation classes based on state
+  const getAnimationClass = () => {
+    if (animationState === 'expanding') {
+      return 'animate-[expandVertical_0.3s_cubic-bezier(0.4,0,0.2,1)_forwards]';
+    }
+    if (animationState === 'collapsing') {
+      return 'animate-[collapseVertical_0.3s_cubic-bezier(0.4,0,0.2,1)_forwards]';
+    }
+    return '';
+  };
+
   const renderExpander = () => (
-    <div className="checklist-expander" onClick={handleExpanderClick}>
-      <div className="checklist-dots">
-        <span className="checklist-dot" style={{ color: nextColor }}>
+    <div
+      className="flex items-center justify-center w-10 h-10 bg-transparent border-none rounded-full cursor-pointer transition-all duration-200"
+      onClick={handleExpanderClick}
+    >
+      <div className="flex flex-col gap-0.5 items-center">
+        <span className="text-sm leading-none" style={{ color: nextColor }}>
           •
         </span>
-        <span className="checklist-dot" style={{ color: nextColor }}>
+        <span className="text-sm leading-none" style={{ color: nextColor }}>
           •
         </span>
-        <span className="checklist-dot" style={{ color: nextColor }}>
+        <span className="text-sm leading-none" style={{ color: nextColor }}>
           •
         </span>
       </div>
@@ -109,23 +108,13 @@ export const Checklist: React.FC<ChecklistProps> = ({
   );
 
   const renderExpandedDropdown = () => {
+    const dropdownClasses = `min-w-[280px] max-w-[320px] bg-white border-none rounded-xl overflow-visible origin-bottom-right mb-3 ${getAnimationClass()}`;
+
     if (!items || items.length === 0) {
       return (
-        <div
-          ref={dropdownRef}
-          className="checklist-dropdown expanded"
-          data-job-id={jobId}
-        >
-          <div className="checklist-items">
-            <div
-              className="checklist-empty"
-              style={{
-                padding: '12px',
-                textAlign: 'center',
-                color: '#666',
-                fontSize: '13px',
-              }}
-            >
+        <div ref={dropdownRef} className={dropdownClasses} data-job-id={jobId}>
+          <div className="py-3 max-h-[300px] overflow-y-auto origin-bottom-right">
+            <div className="p-3 text-center text-gray-500 text-[13px]">
               No checklist items yet
             </div>
           </div>
@@ -134,23 +123,21 @@ export const Checklist: React.FC<ChecklistProps> = ({
     }
 
     return (
-      <div
-        ref={dropdownRef}
-        className="checklist-dropdown expanded"
-        data-job-id={jobId}
-      >
-        <div className="checklist-items">
+      <div ref={dropdownRef} className={dropdownClasses} data-job-id={jobId}>
+        <div className="py-3 max-h-[300px] overflow-y-auto origin-bottom-right">
           {sortedItems.map((item) => (
             <div
               key={item.id}
-              className="checklist-item"
+              className="flex items-start justify-between gap-2.5 py-2.5 px-4 cursor-pointer transition-colors duration-150 select-none hover:bg-gray-50"
               data-item-id={item.id}
               data-job-id={jobId}
               onClick={(e) => handleItemClick(e, item.id)}
             >
-              <span className="checklist-text">{item.text}</span>
+              <span className="text-[13px] text-gray-700 leading-relaxed flex-1 text-right">
+                {item.text}
+              </span>
               <span
-                className={`checklist-bullet ${item.checked ? 'checked' : ''}`}
+                className={`text-sm leading-relaxed shrink-0 transition-colors duration-150 ml-2 ${item.checked ? 'text-blue-600' : 'text-gray-400'}`}
                 style={item.checked ? { color: nextColor } : undefined}
               >
                 {item.checked ? '●' : '○'}
@@ -163,7 +150,7 @@ export const Checklist: React.FC<ChecklistProps> = ({
   };
 
   return (
-    <div className="checklist-wrapper">
+    <div className="relative flex flex-col items-end">
       {isExpanded && renderExpandedDropdown()}
       {renderExpander()}
     </div>

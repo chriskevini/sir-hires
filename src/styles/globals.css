@@ -1,5 +1,28 @@
 @import 'tailwindcss';
 
+/* Custom keyframe animations for components */
+@keyframes expandVertical {
+  from {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes collapseVertical {
+  from {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+  to {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+}
+
 /* shadcn/ui CSS variables for theming */
 @layer base {
   :root {

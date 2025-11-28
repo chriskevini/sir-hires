@@ -100,7 +100,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
                   </span>
                   <span
                     className={cn(
-                      'text-[13px] text-neutral-800 leading-relaxed flex-1',
+                      'text-sm text-neutral-800 leading-relaxed flex-1',
                       item.checked && 'text-neutral-500 line-through'
                     )}
                   >
@@ -110,7 +110,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
               ))}
             </div>
           ) : (
-            <div className="p-4 text-center text-neutral-500 text-[13px]">
+            <div className="p-4 text-center text-neutral-500 text-sm">
               No checklist items for this status
             </div>
           )}
@@ -118,7 +118,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
       )}
 
       {/* Main footer bar */}
-      <div className="flex items-center justify-between py-3 px-4 gap-3 min-h-[56px] max-[480px]:py-2.5 max-[480px]:px-3">
+      <div className="flex items-center justify-between py-3 px-4 gap-3 min-h-14 max-[480px]:py-2.5 max-[480px]:px-3">
         {/* Left: Back button */}
         <div className="flex-1 flex justify-start">
           {navButtons.left && (
@@ -128,7 +128,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
                 'inline-flex items-center gap-1.5 py-2 px-3.5',
                 'bg-transparent rounded-md cursor-pointer',
                 'transition-all duration-200',
-                'text-[13px] font-medium whitespace-nowrap',
+                'text-sm font-medium whitespace-nowrap',
                 'border border-[var(--nav-color,#757575)] text-[var(--nav-color,#757575)]',
                 'hover:bg-[color-mix(in_srgb,var(--nav-color,#757575)_10%,transparent)]',
                 'active:scale-[0.98]',
@@ -154,7 +154,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
               'inline-flex items-center gap-1.5 py-2 px-3.5',
               'bg-neutral-100 border border-neutral-200 rounded-md',
               'cursor-pointer transition-all duration-200',
-              'text-[13px] font-medium text-neutral-800',
+              'text-sm font-medium text-neutral-800',
               'hover:bg-neutral-200 hover:border-neutral-300',
               isChecklistExpanded && 'bg-blue-50 border-blue-600 text-blue-600'
             )}
@@ -187,7 +187,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
                   'inline-flex items-center gap-1.5 py-2 px-3.5',
                   'bg-transparent rounded-md cursor-pointer',
                   'transition-all duration-200',
-                  'text-[13px] font-medium whitespace-nowrap',
+                  'text-sm font-medium whitespace-nowrap',
                   'border border-[var(--nav-color,#757575)] text-[var(--nav-color,#757575)]',
                   'hover:bg-[color-mix(in_srgb,var(--nav-color,#757575)_10%,transparent)]',
                   'active:scale-[0.98]',

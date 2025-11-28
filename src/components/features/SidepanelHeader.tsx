@@ -56,7 +56,7 @@ export function SidepanelHeader({
       {/* Left: Toggle button */}
       <Button
         variant="ghost"
-        className="border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-500 hover:bg-gray-100 hover:border-gray-400 hover:text-gray-700 active:bg-gray-200 flex items-center justify-center min-w-[36px] min-h-[32px] shrink-0 transition-all duration-200"
+        className="border border-gray-300 rounded px-2.5 py-1.5 text-sm text-gray-500 hover:bg-gray-100 hover:border-gray-400 hover:text-gray-700 active:bg-gray-200 flex items-center justify-center min-w-[36px] min-h-8 shrink-0 transition-all duration-200"
         onClick={onToggleSelector}
         title={selectorOpen ? 'Close job list' : 'Open job list'}
         aria-label={selectorOpen ? 'Close job list' : 'Open job list'}
@@ -72,7 +72,7 @@ export function SidepanelHeader({
       {hasJob && (jobTitle || company) && (
         <div className="flex-1 min-w-0 flex items-center gap-1.5 overflow-hidden">
           {jobTitle && (
-            <span className="text-[13px] font-semibold text-gray-700 whitespace-nowrap overflow-hidden text-ellipsis">
+            <span className="text-sm font-semibold text-gray-700 whitespace-nowrap overflow-hidden text-ellipsis">
               {jobTitle}
             </span>
           )}
@@ -80,7 +80,7 @@ export function SidepanelHeader({
             <span className="text-gray-400 shrink-0">|</span>
           )}
           {company && (
-            <span className="text-[13px] text-gray-500 whitespace-nowrap overflow-hidden text-ellipsis">
+            <span className="text-sm text-gray-500 whitespace-nowrap overflow-hidden text-ellipsis">
               {company}
             </span>
           )}
@@ -91,7 +91,7 @@ export function SidepanelHeader({
       <div className="flex gap-1 items-center">
         <Button
           variant="ghost"
-          className="rounded p-1.5 text-base text-gray-500 hover:bg-gray-100 active:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center min-w-[32px] min-h-[32px] transition-all duration-200"
+          className="rounded p-1.5 text-base text-gray-500 hover:bg-gray-100 active:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center min-w-8 min-h-8 transition-all duration-200"
           onClick={onExtract}
           disabled={extracting}
           title={extracting ? 'Extracting...' : 'Extract job from current tab'}
@@ -106,7 +106,7 @@ export function SidepanelHeader({
 
         <Button
           variant="ghost"
-          className="rounded p-1.5 text-base text-gray-500 hover:bg-gray-100 active:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center min-w-[32px] min-h-[32px] transition-all duration-200"
+          className="rounded p-1.5 text-base text-gray-500 hover:bg-gray-100 active:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center min-w-8 min-h-8 transition-all duration-200"
           onClick={onDelete}
           disabled={!hasJob}
           title={hasJob ? 'Delete this job' : 'No job to delete'}
@@ -117,7 +117,7 @@ export function SidepanelHeader({
 
         <Button
           variant="ghost"
-          className="rounded p-1.5 text-base text-gray-500 hover:bg-gray-100 active:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center min-w-[32px] min-h-[32px] transition-all duration-200"
+          className="rounded p-1.5 text-base text-gray-500 hover:bg-gray-100 active:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center min-w-8 min-h-8 transition-all duration-200"
           onClick={onMaximize}
           title="Open full job details"
           aria-label="Open full view"

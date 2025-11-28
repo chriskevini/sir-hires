@@ -21,9 +21,9 @@ interface SortIconButtonsProps {
 }
 
 const icons: Record<SortField, ReactNode> = {
-  date: <Calendar className="h-[18px] w-[18px]" />,
-  company: <Building2 className="h-[18px] w-[18px]" />,
-  title: <FileText className="h-[18px] w-[18px]" />,
+  date: <Calendar className="h-5 w-5" />,
+  company: <Building2 className="h-5 w-5" />,
+  title: <FileText className="h-5 w-5" />,
 };
 
 const tooltips: Record<SortField, string> = {

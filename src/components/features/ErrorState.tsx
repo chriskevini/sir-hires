@@ -34,7 +34,7 @@ export const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry }) => {
           <strong className="text-gray-700">Open LLM Settings</strong>"
         </p>
 
-        <p className="text-[13px] text-gray-400">
+        <p className="text-sm text-gray-400">
           New to LM Studio?{' '}
           <a
             href={QUICK_START_URL}

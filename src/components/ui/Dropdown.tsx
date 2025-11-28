@@ -79,7 +79,7 @@ const DropdownMenuItem = React.forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex cursor-pointer select-none items-center gap-2 px-4 py-2.5 text-[13px] outline-none transition-colors focus:bg-[#f5f5f5] data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+      'relative flex cursor-pointer select-none items-center gap-2 px-4 py-2.5 text-sm outline-none transition-colors focus:bg-[#f5f5f5] data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       variant === 'danger' ? 'text-[#c5221f]' : 'text-[#333]',
       inset && 'pl-8',
       className
@@ -230,7 +230,7 @@ const Dropdown: React.FC<DropdownProps> = ({
         ) : (
           <Button
             variant="secondary"
-            className={cn('text-[13px] px-4 py-2', className)}
+            className={cn('text-sm px-4 py-2', className)}
           >
             {buttonIcon && <span>{buttonIcon} </span>}
             {buttonLabel}

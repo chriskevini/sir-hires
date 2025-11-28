@@ -42,7 +42,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
               } as React.CSSProperties
             }
           >
-            <span className="text-[11px] font-semibold text-[var(--nav-color,#1a73e8)] uppercase tracking-wide leading-tight text-center max-w-[100px] break-words">
+            <span className="text-xs font-semibold text-[var(--nav-color,#1a73e8)] uppercase tracking-wide leading-tight text-center max-w-[100px] break-words">
               {leftButton.label}
             </span>
             <button
@@ -89,7 +89,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
               } as React.CSSProperties
             }
           >
-            <span className="text-[11px] font-semibold text-[var(--nav-color,#1a73e8)] uppercase tracking-wide leading-tight text-center max-w-[100px] break-words">
+            <span className="text-xs font-semibold text-[var(--nav-color,#1a73e8)] uppercase tracking-wide leading-tight text-center max-w-[100px] break-words">
               {button.label}
             </span>
             <button

@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const streamingTextareaVariants = cva(
-  'w-full p-4 font-mono text-[13px] leading-relaxed border rounded resize-none transition-all duration-200 focus:outline-none focus:ring-2',
+  'w-full p-4 font-mono text-sm leading-relaxed border rounded resize-none transition-all duration-200 focus:outline-none focus:ring-2',
   {
     variants: {
       state: {

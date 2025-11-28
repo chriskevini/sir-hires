@@ -693,7 +693,7 @@ BULLETS:
         </div>
         <div className="flex items-center gap-3">
           <span
-            className={`text-[13px] ${statusMessage ? 'font-semibold text-amber-600' : 'text-gray-500'}`}
+            className={`text-sm ${statusMessage ? 'font-semibold text-amber-600' : 'text-gray-500'}`}
           >
             {statusMessage ||
               (lastSavedTime
@@ -721,7 +721,7 @@ BULLETS:
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex-1 overflow-y-auto whitespace-pre-wrap break-words p-4 font-mono text-[13px] leading-relaxed text-gray-700">
+          <div className="flex-1 overflow-y-auto whitespace-pre-wrap break-words p-4 font-mono text-sm leading-relaxed text-gray-700">
             {PROFILE_TEMPLATE}
           </div>
         </div>
@@ -742,7 +742,7 @@ BULLETS:
             />
           </div>
           {extractionError && (
-            <div className="mx-4 mb-3 rounded border border-red-600 bg-red-50 px-4 py-3 text-[13px] leading-normal text-red-900">
+            <div className="mx-4 mb-3 rounded border border-red-600 bg-red-50 px-4 py-3 text-sm leading-normal text-red-900">
               <strong className="mb-1 block font-semibold">
                 Extraction Error:
               </strong>{' '}

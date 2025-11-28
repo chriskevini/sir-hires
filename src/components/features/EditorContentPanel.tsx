@@ -38,7 +38,7 @@ export const EditorContentPanel: React.FC<EditorContentPanelProps> = ({
       {/* Thinking panel (initially hidden) */}
       <div className="hidden bg-gray-50 border border-gray-200 rounded-md mb-3 overflow-hidden transition-all duration-300">
         <div className="flex justify-between items-center px-3 py-2 bg-blue-50 border-b border-blue-100 cursor-pointer select-none">
-          <span className="text-[13px] font-semibold text-blue-600">
+          <span className="text-sm font-semibold text-blue-600">
             🤔 AI Thinking Process
           </span>
           <Button

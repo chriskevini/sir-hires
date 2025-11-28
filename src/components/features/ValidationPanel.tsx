@@ -127,7 +127,7 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
 
   const header = (
     <>
-      <div className="flex items-center gap-3 text-[13px] font-semibold">
+      <div className="flex items-center gap-3 text-sm font-semibold">
         <div className="flex items-center gap-1.5">
           <span className={`text-base ${status.color}`}>{status.icon}</span>
           <span className={status.color}>{status.text}</span>
@@ -160,7 +160,7 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
 
   const renderMessage = (m: ValidationMessage, index: number) => {
     const baseClasses =
-      'px-3 py-2 mb-2 last:mb-0 rounded text-[13px] leading-relaxed border-l-[3px]';
+      'px-3 py-2 mb-2 last:mb-0 rounded text-sm leading-relaxed border-l-[3px]';
     const typeClasses =
       m.type === 'error'
         ? 'bg-red-50 border-l-red-600 text-red-900'
@@ -237,7 +237,7 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
 
       {/* Messages */}
       {messages.length === 0 ? (
-        <div className="text-gray-500 text-[13px] text-center p-4">
+        <div className="text-gray-500 text-sm text-center p-4">
           No validation messages
         </div>
       ) : (

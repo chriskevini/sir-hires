@@ -447,7 +447,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
             onClick={handleProfileClick}
             title="Profile"
           >
-            <User className="h-[18px] w-[18px]" />
+            <User className="h-5 w-5" />
           </Button>
           <Dropdown
             buttonLabel="More options"

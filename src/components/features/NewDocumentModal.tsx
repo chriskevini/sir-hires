@@ -56,7 +56,7 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
             <span className="font-semibold text-sm text-gray-700 mb-2">
               Resume
             </span>
-            <pre className="font-mono text-[11px] leading-snug text-gray-600 whitespace-pre-wrap break-words m-0 w-full">
+            <pre className="font-mono text-xs leading-snug text-gray-600 whitespace-pre-wrap break-words m-0 w-full">
               {documentTemplates.tailoredResume.trim()}
             </pre>
           </Button>
@@ -69,7 +69,7 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
             <span className="font-semibold text-sm text-gray-700 mb-2">
               Cover Letter
             </span>
-            <pre className="font-mono text-[11px] leading-snug text-gray-600 whitespace-pre-wrap break-words m-0 w-full">
+            <pre className="font-mono text-xs leading-snug text-gray-600 whitespace-pre-wrap break-words m-0 w-full">
               {documentTemplates.coverLetter.trim()}
             </pre>
           </Button>

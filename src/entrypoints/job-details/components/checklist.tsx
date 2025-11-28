@@ -114,7 +114,7 @@ export const Checklist: React.FC<ChecklistProps> = ({
       return (
         <div ref={dropdownRef} className={dropdownClasses} data-job-id={jobId}>
           <div className="py-3 max-h-[300px] overflow-y-auto origin-bottom-right">
-            <div className="p-3 text-center text-gray-500 text-[13px]">
+            <div className="p-3 text-center text-gray-500 text-sm">
               No checklist items yet
             </div>
           </div>
@@ -133,7 +133,7 @@ export const Checklist: React.FC<ChecklistProps> = ({
               data-job-id={jobId}
               onClick={(e) => handleItemClick(e, item.id)}
             >
-              <span className="text-[13px] text-gray-700 leading-relaxed flex-1 text-right">
+              <span className="text-sm text-gray-700 leading-relaxed flex-1 text-right">
                 {item.text}
               </span>
               <span

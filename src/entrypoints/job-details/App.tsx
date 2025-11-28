@@ -14,7 +14,7 @@ import {
   restoreStorageFromBackup,
   clearAllStorage,
 } from '../../utils/storage';
-import { defaults, statusColors, progressConfig } from '@/config';
+import { defaults, progressConfig } from '@/config';
 import { browser } from 'wxt/browser';
 import type { JobStore } from './hooks/useJobStore';
 import type { Job } from './hooks';
@@ -535,9 +535,6 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
               const isSelected = globalIndex === store.selectedJobIndex;
               const parsed = getParsedJob(job.id);
               const status = job.applicationStatus || defaults.status;
-              const statusColor =
-                statusColors[status as keyof typeof statusColors] ||
-                statusColors['Researching'];
 
               // Get the progress color for the status
               const progress =
@@ -563,8 +560,8 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
                     <span
                       className="job-card-status-badge"
                       style={{
-                        backgroundColor: statusColor.bg,
-                        color: statusColor.text,
+                        backgroundColor: progress.color,
+                        color: progress.textColor,
                       }}
                     >
                       {status}

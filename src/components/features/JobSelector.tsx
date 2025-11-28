@@ -236,7 +236,7 @@ export function JobSelector({
                 </span>
                 {isSelected && (
                   <Button
-                    variant="danger"
+                    variant="ghost"
                     className="job-selector-delete-btn"
                     onClick={(e) => {
                       e.stopPropagation();

@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/Button';
 import { escapeHtml } from '@/utils/shared-utils';
 
 interface MigrationPromptViewProps {
@@ -33,9 +34,9 @@ export function MigrationPromptView({
           </a>
         </div>
         <div className="job-actions" style={{ marginTop: '24px' }}>
-          <button className="btn btn-delete" onClick={onDelete}>
+          <Button variant="danger" onClick={onDelete}>
             Delete This Job
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Button } from '@/components/ui/Button';
 
 interface ErrorStateProps {
   error: string;
@@ -43,9 +44,9 @@ export const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry }) => {
       </div>
 
       <div className="error-state-footer">
-        <button className="btn btn-primary" onClick={onRetry}>
+        <Button variant="primary" onClick={onRetry}>
           Try Again
-        </button>
+        </Button>
       </div>
     </div>
   );

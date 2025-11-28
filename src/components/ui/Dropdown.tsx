@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { ChevronDownIcon } from './icons';
+import { Button } from './Button';
 import './Dropdown.css';
 
 interface DropdownItem {
@@ -56,7 +57,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
   return (
     <div ref={dropdownRef} className={`dropdown-container ${className}`}>
-      <button
+      <Button
+        variant="ghost"
         className={`btn-dropdown ${iconOnly ? 'btn-dropdown-icon-only' : ''}`}
         onClick={(e) => {
           e.stopPropagation();
@@ -72,11 +74,12 @@ export const Dropdown: React.FC<DropdownProps> = ({
             {buttonLabel} {ChevronDownIcon}
           </>
         )}
-      </button>
+      </Button>
       <div className={`dropdown-menu ${isOpen ? '' : 'hidden'}`}>
         {items.map((item) => (
-          <button
+          <Button
             key={item.label}
+            variant={item.variant === 'danger' ? 'danger' : 'ghost'}
             className={`dropdown-item ${item.variant === 'danger' ? 'dropdown-item-danger' : ''}`}
             onClick={() => {
               item.onClick();
@@ -85,7 +88,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
           >
             {item.icon && <span>{item.icon} </span>}
             {item.label}
-          </button>
+          </Button>
         ))}
       </div>
     </div>

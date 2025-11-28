@@ -6,6 +6,7 @@ import React, {
   useRef,
 } from 'react';
 import { Modal } from '../../../components/ui/Modal';
+import { Button } from '@/components/ui/Button';
 import {
   NewDocumentModal,
   type DocumentTemplateKey,
@@ -619,37 +620,38 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
         onClose={() => setShowProfileWarning(false)}
         title="Profile Required"
       >
-        <div className="modal-body">
-          <div className="error-warning">
-            <p>
-              <strong>
-                Please create a profile before synthesizing documents.
-              </strong>
-            </p>
-            <p>
-              Your profile contains your resume information which is used to
-              generate tailored documents for this job.
-            </p>
-            <button
-              className="btn-primary"
-              onClick={() => {
-                window.location.href = '/profile.html';
-              }}
-            >
-              Create Profile
-            </button>
-          </div>
+        <div className="modal-body" style={{ textAlign: 'center' }}>
+          <p>
+            <strong>
+              Please create a profile before synthesizing documents.
+            </strong>
+          </p>
+          <p>
+            Your profile contains your resume information which is used to
+            generate tailored documents for this job.
+          </p>
+          <Button
+            variant="primary"
+            style={{ marginTop: '16px' }}
+            onClick={() => {
+              browser.tabs.create({
+                url: browser.runtime.getURL('/profile.html'),
+              });
+              window.close();
+            }}
+          >
+            Create Profile
+          </Button>
         </div>
 
         <div className="modal-footer">
-          <div className="action-buttons-group" style={{ marginLeft: 'auto' }}>
-            <button
-              className="btn-secondary"
-              onClick={() => setShowProfileWarning(false)}
-            >
-              Cancel
-            </button>
-          </div>
+          <Button
+            variant="subtle"
+            style={{ marginLeft: 'auto' }}
+            onClick={() => setShowProfileWarning(false)}
+          >
+            Cancel
+          </Button>
         </div>
       </Modal>
 
@@ -677,18 +679,18 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
         </div>
         <div className="modal-footer">
           <div className="action-buttons-group" style={{ marginLeft: 'auto' }}>
-            <button
-              className="btn-secondary"
+            <Button
+              variant="secondary"
               onClick={() => {
                 setShowDeleteModal(false);
                 setDocumentToDelete(null);
               }}
             >
               Cancel
-            </button>
-            <button className="btn-danger" onClick={handleConfirmDelete}>
+            </Button>
+            <Button variant="danger" onClick={handleConfirmDelete}>
               Delete
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>

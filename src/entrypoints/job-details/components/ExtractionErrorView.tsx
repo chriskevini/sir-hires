@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from '@/components/ui/Button';
 import { escapeHtml } from '@/utils/shared-utils';
 
 interface ExtractionErrorViewProps {
@@ -62,9 +63,9 @@ export function ExtractionErrorView({
           >
             Retry Extraction ↗
           </a>
-          <button className="btn btn-delete" onClick={onDelete}>
+          <Button variant="danger" onClick={onDelete}>
             Delete Job
-          </button>
+          </Button>
         </div>
       </div>
     </div>

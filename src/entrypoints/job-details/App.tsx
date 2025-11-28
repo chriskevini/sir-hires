@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback, useState } from 'react';
+import { Button } from '@/components/ui/Button';
 import { ResearchingView } from './views/ResearchingView';
 import { DraftingView } from './views/DraftingView';
 import { useJobStore, useToggleState } from './hooks';
@@ -476,7 +477,9 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
     return (
       <div className="app-error">
         <p style={{ color: 'red' }}>{error}</p>
-        <button onClick={() => window.location.reload()}>Retry</button>
+        <Button variant="primary" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
       </div>
     );
   }
@@ -508,24 +511,26 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
       {/* Header with branding and action buttons */}
       <header>
         <div className="header-title">
-          <button
+          <Button
+            variant="ghost"
             className="sidebar-toggle-btn"
             onClick={handleSidebarToggle}
             title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
             aria-label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
           >
             {sidebarCollapsed ? ChevronRightIcon : ChevronLeftIcon}
-          </button>
+          </Button>
           <h1>Sir Hires</h1>
         </div>
         <div className="header-actions">
-          <button
+          <Button
+            variant="ghost"
             className="header-icon-btn"
             onClick={handleProfileClick}
             title="Profile"
           >
             {ProfileIcon}
-          </button>
+          </Button>
           <Dropdown
             isOpen={isMenuOpen}
             onToggle={toggleMenu}
@@ -631,7 +636,8 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
                       {status}
                     </span>
                     {isSelected && (
-                      <button
+                      <Button
+                        variant="ghost"
                         className="btn-delete-card"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -640,7 +646,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
                         title="Delete this job"
                       >
                         {CloseIcon}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>

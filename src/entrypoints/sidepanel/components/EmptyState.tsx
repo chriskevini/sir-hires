@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from '@/components/ui/Button';
 import { ArrowUpLeftIcon } from '../../../components/ui/icons';
 
 interface EmptyStateProps {
@@ -15,13 +16,13 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ onRestoreBackup }) => {
       </p>
 
       <div className="empty-state-footer">
-        <button
-          className="empty-state-restore-link"
+        <Button
+          variant="link"
           onClick={onRestoreBackup}
           title="Import a JSON backup (will overwrite current data)"
         >
           Restore Backup
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import {
   TrashIcon,
   MaximizeIcon,
 } from './icons';
+import { Button } from './Button';
 import './SidepanelHeader.css';
 
 interface SidepanelHeaderProps {
@@ -54,14 +55,15 @@ export function SidepanelHeader({
   return (
     <header className="sidepanel-header">
       {/* Left: Toggle button */}
-      <button
+      <Button
+        variant="ghost"
         className="sidepanel-header-toggle"
         onClick={onToggleSelector}
         title={selectorOpen ? 'Close job list' : 'Open job list'}
         aria-label={selectorOpen ? 'Close job list' : 'Open job list'}
       >
         {selectorOpen ? ChevronLeftIcon : ChevronRightIcon}
-      </button>
+      </Button>
 
       {/* Center: Job info */}
       {hasJob && (jobTitle || company) && (
@@ -80,7 +82,8 @@ export function SidepanelHeader({
 
       {/* Right: Action buttons */}
       <div className="sidepanel-header-actions">
-        <button
+        <Button
+          variant="ghost"
           className="sidepanel-header-btn"
           onClick={onExtract}
           disabled={extracting}
@@ -92,9 +95,10 @@ export function SidepanelHeader({
           ) : (
             ExtractIcon
           )}
-        </button>
+        </Button>
 
-        <button
+        <Button
+          variant="ghost"
           className="sidepanel-header-btn"
           onClick={onDelete}
           disabled={!hasJob}
@@ -102,16 +106,17 @@ export function SidepanelHeader({
           aria-label="Delete job"
         >
           {TrashIcon}
-        </button>
+        </Button>
 
-        <button
+        <Button
+          variant="ghost"
           className="sidepanel-header-btn"
           onClick={onMaximize}
           title="Open full job details"
           aria-label="Open full view"
         >
           {MaximizeIcon}
-        </button>
+        </Button>
       </div>
     </header>
   );

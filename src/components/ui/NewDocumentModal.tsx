@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal } from './Modal';
+import { Button } from './Button';
 import { documentTemplates } from '@/tasks';
 import './NewDocumentModal.css';
 
@@ -29,7 +30,8 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
         </p>
 
         {/* Blank template - full width at top */}
-        <button
+        <Button
+          variant="ghost"
           className="template-option template-option-blank"
           onClick={() => handleSelect('blank')}
         >
@@ -37,11 +39,12 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
           <span className="template-preview template-preview-empty">
             Start with an empty document
           </span>
-        </button>
+        </Button>
 
         {/* Resume and Cover Letter - side by side */}
         <div className="template-options-row">
-          <button
+          <Button
+            variant="ghost"
             className="template-option"
             onClick={() => handleSelect('tailoredResume')}
           >
@@ -49,9 +52,10 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
             <pre className="template-preview">
               {documentTemplates.tailoredResume.trim()}
             </pre>
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant="ghost"
             className="template-option"
             onClick={() => handleSelect('coverLetter')}
           >
@@ -59,7 +63,7 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
             <pre className="template-preview">
               {documentTemplates.coverLetter.trim()}
             </pre>
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>

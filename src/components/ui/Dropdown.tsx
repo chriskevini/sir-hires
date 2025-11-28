@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useId, useRef, useCallback } from 'react';
 import { ChevronDownIcon } from './icons';
 import { Button } from './Button';
 import './Dropdown.css';
@@ -11,9 +11,6 @@ interface DropdownItem {
 }
 
 interface DropdownProps {
-  isOpen: boolean;
-  onToggle: () => void;
-  onClose: () => void;
   buttonLabel: string;
   buttonIcon?: string;
   /** When true, only shows the icon (no label or caret) */
@@ -23,48 +20,58 @@ interface DropdownProps {
 }
 
 /**
- * Generic dropdown component with toggle button and menu items.
- * Handles outside click detection and keyboard events.
+ * Generic dropdown component using native HTML Popover API.
+ * Handles click outside, escape key, and focus management automatically.
  */
 export const Dropdown: React.FC<DropdownProps> = ({
-  isOpen,
-  onToggle,
-  onClose,
   buttonLabel,
   buttonIcon,
   iconOnly = false,
   items,
   className = '',
 }) => {
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  // Generate unique ID for popover target (sanitize colons from useId)
+  const rawId = useId();
+  const popoverId = `dropdown-${rawId.replace(/:/g, '')}`;
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
-  // Handle outside clicks
-  useEffect(() => {
-    if (!isOpen) return;
+  // Position and toggle popover
+  const handleToggle = useCallback(() => {
+    const popover = popoverRef.current;
+    const button = buttonRef.current;
 
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
-      ) {
-        onClose();
-      }
-    };
+    if (!popover || !button) return;
 
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [isOpen, onClose]);
+    // Position popover below and aligned to right edge of button
+    const rect = button.getBoundingClientRect();
+    popover.style.position = 'fixed';
+    popover.style.top = `${rect.bottom + 4}px`;
+    popover.style.right = `${window.innerWidth - rect.right}px`;
+    popover.style.left = 'auto';
+
+    popover.togglePopover();
+  }, []);
+
+  // Close popover after item click
+  const handleItemClick = useCallback((onClick: () => void) => {
+    const popover = popoverRef.current;
+    if (popover) {
+      popover.hidePopover();
+    }
+    onClick();
+  }, []);
 
   return (
-    <div ref={dropdownRef} className={`dropdown-container ${className}`}>
+    <div className={`dropdown-container ${className}`}>
       <Button
-        variant="ghost"
-        className={`btn-dropdown ${iconOnly ? 'btn-dropdown-icon-only' : ''}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle();
-        }}
+        ref={buttonRef}
+        variant={iconOnly ? 'ghost' : 'secondary'}
+        className={
+          iconOnly ? 'btn-dropdown btn-dropdown-icon-only' : 'btn-dropdown'
+        }
         title={iconOnly ? buttonLabel : undefined}
+        onClick={handleToggle}
       >
         {iconOnly ? (
           <span>{buttonIcon}</span>
@@ -75,16 +82,18 @@ export const Dropdown: React.FC<DropdownProps> = ({
           </>
         )}
       </Button>
-      <div className={`dropdown-menu ${isOpen ? '' : 'hidden'}`}>
+      <div
+        ref={popoverRef}
+        id={popoverId}
+        className="dropdown-menu"
+        popover="auto"
+      >
         {items.map((item) => (
           <Button
             key={item.label}
             variant={item.variant === 'danger' ? 'danger' : 'ghost'}
             className={`dropdown-item ${item.variant === 'danger' ? 'dropdown-item-danger' : ''}`}
-            onClick={() => {
-              item.onClick();
-              onClose();
-            }}
+            onClick={() => handleItemClick(item.onClick)}
           >
             {item.icon && <span>{item.icon} </span>}
             {item.label}

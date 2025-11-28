@@ -26,7 +26,6 @@ import { countWords } from '@/utils/text-utils';
 import { exportMarkdown, exportPDF } from '@/utils/export-utils';
 import { useImmediateSaveMulti } from '@/hooks/useImmediateSave';
 import { useTabState } from '../hooks/useTabState';
-import { useToggleState } from '../hooks/useToggleState';
 import { useDocumentManager } from '../hooks/useDocumentManager';
 import { LLMClient } from '@/utils/llm-client';
 import { userProfileStorage } from '@/utils/storage';
@@ -105,9 +104,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   onSaveDocument,
   onDeleteDocument,
 }) => {
-  // Toggle states
-  const [exportDropdownOpen, toggleExportDropdown, setExportDropdownOpen] =
-    useToggleState(false);
+  // State
   const [wordCount, setWordCount] = React.useState<number>(0);
 
   // Synthesis state
@@ -547,12 +544,9 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
               })
             )}
             activeTab={activeTab}
-            exportDropdownOpen={exportDropdownOpen}
             onTabChange={switchTab}
             onAddDocument={() => setShowNewDocumentModal(true)}
             onDeleteDocument={handleDeleteRequest}
-            onToggleExportDropdown={toggleExportDropdown}
-            onCloseExportDropdown={() => setExportDropdownOpen(false)}
             onExport={handleExport}
           />
 

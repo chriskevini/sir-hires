@@ -2,7 +2,7 @@ import React, { useEffect, useCallback, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ResearchingView } from './views/ResearchingView';
 import { DraftingView } from './views/DraftingView';
-import { useJobStore, useToggleState } from './hooks';
+import { useJobStore } from './hooks';
 import { JobViewRouter } from '../../components/features/JobViewRouter';
 import {
   ParsedJobProvider,
@@ -65,10 +65,6 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
       return newValue;
     });
   }, []);
-
-  // Dropdown state for overflow menu
-  const [isMenuOpen, toggleMenu, setMenuOpen] = useToggleState(false);
-  const closeMenu = useCallback(() => setMenuOpen(false), [setMenuOpen]);
 
   // ============================================================================
   // ID-based handlers: Pass directly to view components
@@ -532,9 +528,6 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
             {ProfileIcon}
           </Button>
           <Dropdown
-            isOpen={isMenuOpen}
-            onToggle={toggleMenu}
-            onClose={closeMenu}
             buttonLabel="More options"
             buttonIcon="⋮"
             iconOnly={true}

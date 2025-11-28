@@ -1,5 +1,5 @@
 import { statusOrder, statusStyles } from '@/config';
-import './StatusFilterDots.css';
+import { cn } from '@/lib/utils';
 
 interface StatusFilterDotsProps {
   /** Array of selected statuses. Empty array = all statuses shown */
@@ -39,7 +39,7 @@ export function StatusFilterDots({
 
   return (
     <div
-      className="status-filter-dots"
+      className="flex items-center justify-center gap-1.5 py-1"
       role="group"
       aria-label="Filter by status"
     >
@@ -51,7 +51,12 @@ export function StatusFilterDots({
           <button
             key={status}
             type="button"
-            className={`status-filter-dot ${isFilled ? 'filled' : ''}`}
+            className={cn(
+              'w-3 h-3 rounded-full border-2 p-0 cursor-pointer',
+              'transition-all duration-150',
+              'hover:scale-125 active:scale-95',
+              isFilled ? 'border-transparent' : 'bg-transparent'
+            )}
             style={
               isFilled
                 ? { backgroundColor: styles.color }

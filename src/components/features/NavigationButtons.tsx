@@ -1,6 +1,6 @@
 import React from 'react';
 import { statusStyles } from '@/config';
-import './NavigationButtons.css';
+import { cn } from '@/lib/utils';
 
 interface NavigationButton {
   label: string;
@@ -27,26 +27,46 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   onNavigate,
 }) => {
   return (
-    <div id="navButtonsContainer" className="nav-buttons-container">
+    <div
+      id="navButtonsContainer"
+      className="flex justify-between items-end px-6 mb-5 z-10"
+    >
       {/* Left button container */}
-      <div className="nav-button-container left">
+      <div className="flex-shrink-0 z-10 flex flex-col items-center gap-2">
         {leftButton && (
           <div
-            className="nav-button-wrapper"
+            className="flex flex-col items-center gap-2"
             style={
               {
                 '--nav-color': statusStyles[leftButton.target]?.color,
               } as React.CSSProperties
             }
           >
-            <span className="nav-label">{leftButton.label}</span>
+            <span className="text-[11px] font-semibold text-[var(--nav-color,#1a73e8)] uppercase tracking-wide leading-tight text-center max-w-[100px] break-words">
+              {leftButton.label}
+            </span>
             <button
-              className="nav-button"
+              className={cn(
+                'flex items-center justify-center bg-white',
+                'border-2 border-[var(--nav-color,#1a73e8)] rounded-full',
+                'w-20 h-20 cursor-pointer transition-all duration-200',
+                'shadow-[0_2px_8px_rgba(0,0,0,0.1)] p-0',
+                'hover:bg-[var(--nav-color,#1a73e8)] hover:scale-105 hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)]',
+                'group'
+              )}
               onClick={() => onNavigate(leftButton.target, 'backward')}
               data-target={leftButton.target}
               data-direction="backward"
             >
-              <i className="nav-arrow left"></i>
+              <i
+                className={cn(
+                  'w-0 h-0 border-solid border-[var(--nav-color,#1a73e8)]',
+                  'border-[0_3px_3px_0] inline-block p-2.5',
+                  'transition-colors duration-200',
+                  'rotate-[135deg]',
+                  'group-hover:border-white'
+                )}
+              ></i>
             </button>
           </div>
         )}
@@ -54,26 +74,46 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
 
       {/* Right button(s) container */}
       <div
-        className={`nav-button-container right${rightButtons.length > 1 ? ' multiple' : ''}`}
+        className={cn(
+          'flex-shrink-0 z-10 flex flex-col items-center gap-2',
+          rightButtons.length > 1 && 'gap-4'
+        )}
       >
         {rightButtons.map((button, index) => (
           <div
             key={index}
-            className="nav-button-wrapper"
+            className="flex flex-col items-center gap-2"
             style={
               {
                 '--nav-color': statusStyles[button.target]?.color,
               } as React.CSSProperties
             }
           >
-            <span className="nav-label">{button.label}</span>
+            <span className="text-[11px] font-semibold text-[var(--nav-color,#1a73e8)] uppercase tracking-wide leading-tight text-center max-w-[100px] break-words">
+              {button.label}
+            </span>
             <button
-              className="nav-button"
+              className={cn(
+                'flex items-center justify-center bg-white',
+                'border-2 border-[var(--nav-color,#1a73e8)] rounded-full',
+                'w-20 h-20 cursor-pointer transition-all duration-200',
+                'shadow-[0_2px_8px_rgba(0,0,0,0.1)] p-0',
+                'hover:bg-[var(--nav-color,#1a73e8)] hover:scale-105 hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)]',
+                'group'
+              )}
               onClick={() => onNavigate(button.target, 'forward')}
               data-target={button.target}
               data-direction="forward"
             >
-              <i className="nav-arrow right"></i>
+              <i
+                className={cn(
+                  'w-0 h-0 border-solid border-[var(--nav-color,#1a73e8)]',
+                  'border-[0_3px_3px_0] inline-block p-2.5',
+                  'transition-colors duration-200',
+                  '-rotate-45',
+                  'group-hover:border-white'
+                )}
+              ></i>
             </button>
           </div>
         ))}

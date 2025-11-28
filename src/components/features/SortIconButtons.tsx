@@ -6,7 +6,7 @@ import {
   BuildingIcon,
   DocumentIcon,
 } from '../ui/icons';
-import './SortIconButtons.css';
+import { cn } from '@/lib/utils';
 
 export type SortField = 'date' | 'company' | 'title';
 export type SortDirection = 'asc' | 'desc';
@@ -57,14 +57,28 @@ export function SortIconButtons({
   const fields: SortField[] = ['date', 'company', 'title'];
 
   return (
-    <div className="sort-icon-buttons" role="group" aria-label="Sort options">
+    <div
+      className="flex items-center justify-center gap-2 py-1"
+      role="group"
+      aria-label="Sort options"
+    >
       {fields.map((field) => {
         const isActive = field === sortField;
         return (
           <button
             key={field}
             type="button"
-            className={`sort-icon-btn ${isActive ? 'active' : ''}`}
+            className={cn(
+              'relative flex items-center justify-center',
+              'w-8 h-7 p-1 border-none rounded',
+              'bg-transparent cursor-pointer',
+              'transition-colors duration-150',
+              'active:scale-95',
+              '[&_.icon-svg]:w-[18px] [&_.icon-svg]:h-[18px] [&_.icon-svg]:shrink-0',
+              isActive
+                ? 'text-blue-600 hover:text-blue-700'
+                : 'text-neutral-500 hover:text-neutral-700'
+            )}
             onClick={() => handleClick(field)}
             title={tooltips[field]}
             aria-label={`${tooltips[field]}${isActive ? ` (${sortDirection === 'asc' ? 'ascending' : 'descending'})` : ''}`}
@@ -72,7 +86,7 @@ export function SortIconButtons({
           >
             {icons[field]}
             {isActive && (
-              <span className="sort-direction-arrow">
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 [&_.icon-svg]:w-2.5 [&_.icon-svg]:h-2.5">
                 {sortDirection === 'asc' ? ArrowUpIcon : ArrowDownIcon}
               </span>
             )}

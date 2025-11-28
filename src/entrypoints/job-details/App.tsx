@@ -16,6 +16,7 @@ import {
   type SortDirection,
 } from '../../components/ui/SortIconButtons';
 import { Dropdown } from '../../components/ui/Dropdown';
+import { ChevronLeftIcon, ChevronRightIcon } from '../../components/ui/icons';
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -29,7 +30,6 @@ import {
   sidebarCollapsedStorage,
 } from '../../utils/storage';
 import { defaults, statusStyles } from '@/config';
-import { browser } from 'wxt/browser';
 import type { JobStore } from './hooks/useJobStore';
 import type { Job } from './hooks';
 

@@ -12,6 +12,7 @@ import {
   type JobTemplateData,
 } from '@/utils/job-parser';
 import type { Job } from '@/entrypoints/job-details/hooks';
+import { CloseIcon } from '../ui/icons';
 import './JobSelector.css';
 
 interface JobSelectorProps {
@@ -241,7 +242,7 @@ export function JobSelector({
                     }}
                     title="Delete this job"
                   >
-                    ✕
+                    {CloseIcon}
                   </button>
                 )}
               </div>

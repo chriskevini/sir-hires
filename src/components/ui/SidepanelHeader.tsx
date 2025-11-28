@@ -1,3 +1,11 @@
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ExtractIcon,
+  SpinnerIcon,
+  TrashIcon,
+  MaximizeIcon,
+} from './icons';
 import './SidepanelHeader.css';
 
 interface SidepanelHeaderProps {
@@ -20,11 +28,11 @@ interface SidepanelHeaderProps {
 /**
  * SidepanelHeader - Compact header with toggle and action icons
  *
- * Layout: [▶/◀ toggle] ... [Extract] [Delete] [Maximize]
+ * Layout: [chevron toggle] ... [Extract] [Delete] [Maximize]
  *
  * Features:
  * - Toggle arrow to open/close JobSelector overlay
- * - Icon buttons for common actions
+ * - SVG icon buttons for common actions (consistent with SortIconButtons)
  * - Disabled states for context-appropriate actions
  */
 export function SidepanelHeader({
@@ -45,7 +53,7 @@ export function SidepanelHeader({
         title={selectorOpen ? 'Close job list' : 'Open job list'}
         aria-label={selectorOpen ? 'Close job list' : 'Open job list'}
       >
-        {selectorOpen ? '◀' : '▶'}
+        {selectorOpen ? ChevronLeftIcon : ChevronRightIcon}
       </button>
 
       {/* Right: Action buttons */}
@@ -58,9 +66,9 @@ export function SidepanelHeader({
           aria-label="Extract job"
         >
           {extracting ? (
-            <span className="sidepanel-header-spinner">⟳</span>
+            <span className="sidepanel-header-spinner">{SpinnerIcon}</span>
           ) : (
-            '📥'
+            ExtractIcon
           )}
         </button>
 
@@ -71,7 +79,7 @@ export function SidepanelHeader({
           title={hasJob ? 'Delete this job' : 'No job to delete'}
           aria-label="Delete job"
         >
-          🗑️
+          {TrashIcon}
         </button>
 
         <button
@@ -80,7 +88,7 @@ export function SidepanelHeader({
           title="Open full job details"
           aria-label="Open full view"
         >
-          ↗️
+          {MaximizeIcon}
         </button>
       </div>
     </header>

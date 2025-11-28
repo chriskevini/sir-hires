@@ -74,9 +74,24 @@
   cursor: not-allowed;
 }
 
+/* SVG icon sizing (consistent with SortIconButtons) */
+.icon-svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Slightly smaller icons for toggle button */
+.sidepanel-header-toggle .icon-svg {
+  width: 16px;
+  height: 16px;
+}
+
 /* Spinner animation for extracting state */
 .sidepanel-header-spinner {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   animation: spin 1s linear infinite;
 }
 

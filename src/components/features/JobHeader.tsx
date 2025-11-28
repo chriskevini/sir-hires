@@ -1,6 +1,6 @@
 import React from 'react';
 import { statusStyles } from '@/config';
-import './JobHeader.css';
+import { cn } from '@/lib/utils';
 
 interface JobHeaderProps {
   jobTitle: string;
@@ -29,11 +29,16 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
   const styles = statusStyles[status] || statusStyles['Researching'];
 
   return (
-    <div className={`job-header-container ${className}`}>
+    <div
+      className={cn(
+        'flex flex-col bg-white border-b border-neutral-200',
+        className
+      )}
+    >
       {/* Progress bar strip at top */}
-      <div className="job-header-progress">
+      <div className="h-1 bg-neutral-200 w-full overflow-hidden">
         <div
-          className="job-header-progress-fill"
+          className="h-full transition-all duration-300 ease-out"
           style={{
             width: `${styles.fill}%`,
             backgroundColor: styles.color,
@@ -42,14 +47,16 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
       </div>
 
       {/* Main header content */}
-      <div className="job-header-content">
-        <div className="job-header-info">
-          <h1 className="job-header-title">
+      <div className="flex justify-between items-start py-4 px-5 gap-4 max-[480px]:flex-col max-[480px]:gap-3">
+        <div className="flex flex-col gap-1 min-w-0 flex-1">
+          <h1 className="text-lg font-semibold text-neutral-800 m-0 leading-tight overflow-hidden text-ellipsis whitespace-nowrap max-[480px]:text-base max-[480px]:whitespace-normal">
             {jobTitle || 'Untitled Position'}
           </h1>
-          <p className="job-header-company">{company || 'Unknown Company'}</p>
+          <p className="text-sm text-neutral-500 m-0 leading-tight overflow-hidden text-ellipsis whitespace-nowrap">
+            {company || 'Unknown Company'}
+          </p>
           <span
-            className="job-header-status-badge"
+            className="inline-block py-1 px-2.5 rounded-xl text-xs font-medium mt-1.5 w-fit"
             style={{
               backgroundColor: styles.color,
               color: '#fff',
@@ -59,10 +66,10 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
           </span>
         </div>
 
-        <div className="job-header-actions">
+        <div className="flex items-center gap-2 flex-shrink-0 max-[480px]:w-full max-[480px]:justify-start">
           <a
             href={url}
-            className="job-header-link"
+            className="inline-flex items-center py-1.5 px-3 bg-neutral-100 text-blue-600 no-underline rounded text-[13px] font-medium transition-all duration-200 hover:bg-blue-50 hover:shadow-sm"
             target="_blank"
             rel="noopener noreferrer"
           >

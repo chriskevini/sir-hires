@@ -1,5 +1,5 @@
 import React from 'react';
-import './EditorHeader.css';
+import { cn } from '@/lib/utils';
 
 interface EditorHeaderProps {
   title: string;
@@ -19,12 +19,20 @@ export const EditorHeader: React.FC<EditorHeaderProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`editor-header ${className}`}>
-      <div className="editor-title">
+    <div
+      className={cn(
+        'py-3 px-4 bg-neutral-100 border-b border-neutral-200',
+        'flex justify-between items-center flex-shrink-0 gap-3',
+        className
+      )}
+    >
+      <div className="text-sm font-semibold text-neutral-800 flex-1 min-w-0">
         <strong>{title}</strong>
         {subtitle && <span> {subtitle}</span>}
       </div>
-      {actions && <div className="editor-actions">{actions}</div>}
+      {actions && (
+        <div className="flex gap-2 items-center flex-shrink-0">{actions}</div>
+      )}
     </div>
   );
 };

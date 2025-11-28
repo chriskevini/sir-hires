@@ -1,7 +1,6 @@
 import React from 'react';
 import { TabBar } from '../ui/TabBar';
 import { Dropdown } from '../ui/Dropdown';
-import './EditorToolbar.css';
 
 interface EditorToolbarProps {
   documentKeys: string[];
@@ -23,7 +22,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   onExport,
 }) => {
   return (
-    <div className="editor-topbar">
+    <div className="flex justify-between items-end pr-4 bg-neutral-100 border-b border-neutral-300">
       <TabBar
         tabs={documentKeys.map((key) => ({
           key,
@@ -34,7 +33,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         onAddTab={onAddDocument}
         onDeleteTab={onDeleteDocument}
       />
-      <div className="editor-actions">
+      <div className="flex gap-2 items-center">
         <Dropdown
           buttonLabel="Export"
           items={[
@@ -47,7 +46,6 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
               onClick: () => onExport('pdf'),
             },
           ]}
-          className="export-dropdown"
         />
       </div>
     </div>

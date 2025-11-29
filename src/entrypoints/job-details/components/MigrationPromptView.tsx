@@ -28,7 +28,7 @@ export function MigrationPromptView({
         <div className="flex flex-col gap-4">
           <a
             href={escapeHtml(jobUrl)}
-            className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded font-semibold text-sm hover:bg-purple-700 transition-colors"
+            className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded font-semibold text-sm hover:bg-primary/90 transition-colors"
             target="_blank"
             rel="noopener noreferrer"
           >

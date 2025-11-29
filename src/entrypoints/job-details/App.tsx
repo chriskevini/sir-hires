@@ -390,7 +390,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-4">
-        <p className="text-red-600">{error}</p>
+        <p className="text-destructive">{error}</p>
         <Button variant="primary" onClick={() => window.location.reload()}>
           Retry
         </Button>

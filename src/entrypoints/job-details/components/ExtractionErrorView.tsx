@@ -35,7 +35,7 @@ export function ExtractionErrorView({
           <h3 className="text-lg font-semibold text-foreground mb-2">
             Extraction Failed
           </h3>
-          <p className="text-red-600 text-sm">{escapeHtml(errorMessage)}</p>
+          <p className="text-destructive text-sm">{escapeHtml(errorMessage)}</p>
         </div>
 
         {hasPartialContent && (
@@ -61,7 +61,7 @@ export function ExtractionErrorView({
         <div className="flex gap-3 mt-6">
           <a
             href={escapeHtml(jobUrl)}
-            className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded font-semibold text-sm hover:bg-purple-700 transition-colors"
+            className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded font-semibold text-sm hover:bg-primary/90 transition-colors"
             target="_blank"
             rel="noopener noreferrer"
           >

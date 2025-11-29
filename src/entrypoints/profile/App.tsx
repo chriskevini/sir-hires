@@ -742,7 +742,7 @@ BULLETS:
             />
           </div>
           {extractionError && (
-            <div className="mx-4 mb-3 rounded border border-red-600 bg-red-50 px-4 py-3 text-sm leading-normal text-red-900">
+            <div className="mx-4 mb-3 rounded border border-destructive bg-destructive/10 px-4 py-3 text-sm leading-normal text-destructive">
               <strong className="mb-1 block font-semibold">
                 Extraction Error:
               </strong>{' '}

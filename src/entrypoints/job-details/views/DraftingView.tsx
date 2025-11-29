@@ -614,7 +614,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
           {/* Synthesis error display */}
           {synthesisError && (
-            <div className="py-3 px-5 mx-5 mb-3 bg-red-50 border border-red-300 rounded text-red-700 text-sm">
+            <div className="py-3 px-5 mx-5 mb-3 bg-destructive/10 border border-destructive/50 rounded text-destructive text-sm">
               <strong className="block mb-1">Synthesis Error:</strong>{' '}
               {synthesisError}
             </div>

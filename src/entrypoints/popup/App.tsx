@@ -341,7 +341,7 @@ export function App() {
                     className="w-full px-2 py-2 border border-border rounded text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
                   />
                 </div>
-                <p className="text-xs text-red-600 my-2">{errorMessage}</p>
+                <p className="text-xs text-destructive my-2">{errorMessage}</p>
                 <p className="text-xs text-muted-foreground mt-3">
                   <a
                     href="#"

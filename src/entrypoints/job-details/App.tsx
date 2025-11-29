@@ -11,6 +11,7 @@ import {
 import { JobSelector } from '../../components/features/JobSelector';
 import { initDevModeValidation } from '../../utils/dev-validators';
 import { Dropdown } from '../../components/ui/Dropdown';
+import { ThemeModal } from '../../components/features/ThemeModal';
 import { ChevronLeft, ChevronRight, User } from 'lucide-react';
 import {
   AlertDialog,
@@ -46,6 +47,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
 
   const [error, _setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
 
   // Dialog state for confirmations and alerts
   const {
@@ -475,6 +477,10 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
             iconOnly={true}
             items={[
               {
+                label: 'Theme',
+                onClick: () => setIsThemeModalOpen(true),
+              },
+              {
                 label: 'Create Backup',
                 onClick: handleCreateBackup,
               },
@@ -566,6 +572,12 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Theme Modal */}
+      <ThemeModal
+        isOpen={isThemeModalOpen}
+        onClose={() => setIsThemeModalOpen(false)}
+      />
     </div>
   );
 };

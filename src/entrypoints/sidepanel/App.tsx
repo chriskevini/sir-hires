@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
 } from '../../components/ui/alert-dialog';
 import { useConfirmDialog, useAlertDialog } from '../../hooks/useConfirmDialog';
+import { useTheme } from '../../hooks/useTheme';
 
 /**
  * Create default checklist for all statuses (adapter for useJobExtraction)
@@ -161,6 +162,9 @@ function SidepanelContent({
 export const App: React.FC = () => {
   // Use the unified job store
   const store = useJobStore();
+
+  // Initialize theme and watch for changes across tabs
+  useTheme();
 
   // Local UI state
   const [isInitialLoad, setIsInitialLoad] = useState(true);

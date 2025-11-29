@@ -225,6 +225,222 @@
     --status-withdrawn: hsl(var(--rosy-granite-400));
   }
 
+  /* 
+   * Color Theme: Lancelot (Crimson & Parchment)
+   * Silver/white shield with red diagonal stripes
+   * Warm parchment backgrounds like aged medieval manuscripts
+   */
+  .theme-lancelot {
+    /* Backgrounds - warm parchment tones */
+    --background: var(--parchment-50);
+    --foreground: var(--parchment-900);
+    --card: var(--parchment-100);
+    --card-foreground: var(--parchment-900);
+    --popover: var(--parchment-50);
+    --popover-foreground: var(--parchment-900);
+
+    /* Primary - Crimson red */
+    --primary: var(--crimson-600);
+    --primary-foreground: var(--parchment-50);
+
+    /* Secondary & Muted - Warm tans */
+    --secondary: var(--parchment-200);
+    --secondary-foreground: var(--parchment-800);
+    --muted: var(--parchment-200);
+    --muted-foreground: var(--parchment-500);
+
+    /* Accent - Silver highlights */
+    --accent: var(--silver-100);
+    --accent-foreground: var(--silver-800);
+
+    /* Borders */
+    --border: var(--parchment-300);
+    --input: var(--parchment-300);
+    --ring: var(--crimson-500);
+
+    /* Success */
+    --success: var(--crimson-600);
+    --success-foreground: var(--parchment-50);
+  }
+
+  .dark.theme-lancelot,
+  .theme-lancelot.dark {
+    /* Backgrounds - deep charred parchment */
+    --background: var(--parchment-950);
+    --foreground: var(--parchment-100);
+    --card: var(--parchment-900);
+    --card-foreground: var(--parchment-100);
+    --popover: var(--parchment-900);
+    --popover-foreground: var(--parchment-100);
+
+    /* Primary - Lighter crimson */
+    --primary: var(--crimson-400);
+    --primary-foreground: var(--parchment-950);
+
+    /* Secondary & Muted */
+    --secondary: var(--parchment-800);
+    --secondary-foreground: var(--parchment-100);
+    --muted: var(--parchment-800);
+    --muted-foreground: var(--parchment-400);
+
+    /* Accent */
+    --accent: var(--silver-800);
+    --accent-foreground: var(--silver-100);
+
+    /* Borders */
+    --border: var(--parchment-700);
+    --input: var(--parchment-700);
+    --ring: var(--crimson-500);
+
+    /* Success */
+    --success: var(--crimson-400);
+    --success-foreground: var(--parchment-950);
+  }
+
+  /* 
+   * Color Theme: Gawain (Royal Purple & Gold)
+   * Purple shield with golden two-headed eagle
+   * Deep twilight backgrounds like a royal court at dusk
+   */
+  .theme-gawain {
+    /* Backgrounds - violet-tinted twilight */
+    --background: var(--twilight-50);
+    --foreground: var(--twilight-900);
+    --card: var(--twilight-100);
+    --card-foreground: var(--twilight-900);
+    --popover: var(--twilight-50);
+    --popover-foreground: var(--twilight-900);
+
+    /* Primary - Royal purple */
+    --primary: var(--royal-purple-600);
+    --primary-foreground: var(--heraldic-gold-100);
+
+    /* Secondary & Muted - Dusty violets */
+    --secondary: var(--twilight-200);
+    --secondary-foreground: var(--twilight-800);
+    --muted: var(--twilight-200);
+    --muted-foreground: var(--twilight-500);
+
+    /* Accent - Heraldic gold */
+    --accent: var(--heraldic-gold-100);
+    --accent-foreground: var(--heraldic-gold-800);
+
+    /* Borders */
+    --border: var(--twilight-300);
+    --input: var(--twilight-300);
+    --ring: var(--royal-purple-500);
+
+    /* Success */
+    --success: var(--royal-purple-600);
+    --success-foreground: var(--heraldic-gold-100);
+  }
+
+  .dark.theme-gawain,
+  .theme-gawain.dark {
+    /* Backgrounds - deep purple night */
+    --background: var(--twilight-950);
+    --foreground: var(--twilight-100);
+    --card: var(--twilight-900);
+    --card-foreground: var(--twilight-100);
+    --popover: var(--twilight-900);
+    --popover-foreground: var(--twilight-100);
+
+    /* Primary - Lighter purple */
+    --primary: var(--royal-purple-400);
+    --primary-foreground: var(--twilight-950);
+
+    /* Secondary & Muted */
+    --secondary: var(--twilight-800);
+    --secondary-foreground: var(--twilight-100);
+    --muted: var(--twilight-800);
+    --muted-foreground: var(--twilight-400);
+
+    /* Accent - Gold highlights */
+    --accent: var(--heraldic-gold-700);
+    --accent-foreground: var(--heraldic-gold-100);
+
+    /* Borders */
+    --border: var(--twilight-700);
+    --input: var(--twilight-700);
+    --ring: var(--royal-purple-500);
+
+    /* Success */
+    --success: var(--royal-purple-400);
+    --success-foreground: var(--twilight-950);
+  }
+
+  /* 
+   * Color Theme: Yvain (Sapphire & Gold)
+   * Blue shield with golden lion
+   * Ocean-tinted azure backgrounds like coastal waters
+   */
+  .theme-yvain {
+    /* Backgrounds - cool azure tones */
+    --background: var(--azure-50);
+    --foreground: var(--azure-900);
+    --card: var(--azure-100);
+    --card-foreground: var(--azure-900);
+    --popover: var(--azure-50);
+    --popover-foreground: var(--azure-900);
+
+    /* Primary - Deep sapphire */
+    --primary: var(--sapphire-600);
+    --primary-foreground: var(--heraldic-gold-100);
+
+    /* Secondary & Muted - Cool blue-grays */
+    --secondary: var(--azure-200);
+    --secondary-foreground: var(--azure-800);
+    --muted: var(--azure-200);
+    --muted-foreground: var(--azure-500);
+
+    /* Accent - Heraldic gold (lion) */
+    --accent: var(--heraldic-gold-100);
+    --accent-foreground: var(--heraldic-gold-800);
+
+    /* Borders */
+    --border: var(--azure-300);
+    --input: var(--azure-300);
+    --ring: var(--sapphire-500);
+
+    /* Success */
+    --success: var(--sapphire-600);
+    --success-foreground: var(--heraldic-gold-100);
+  }
+
+  .dark.theme-yvain,
+  .theme-yvain.dark {
+    /* Backgrounds - deep ocean depths */
+    --background: var(--azure-950);
+    --foreground: var(--azure-100);
+    --card: var(--azure-900);
+    --card-foreground: var(--azure-100);
+    --popover: var(--azure-900);
+    --popover-foreground: var(--azure-100);
+
+    /* Primary - Lighter sapphire */
+    --primary: var(--sapphire-400);
+    --primary-foreground: var(--azure-950);
+
+    /* Secondary & Muted */
+    --secondary: var(--azure-800);
+    --secondary-foreground: var(--azure-100);
+    --muted: var(--azure-800);
+    --muted-foreground: var(--azure-400);
+
+    /* Accent - Gold highlights */
+    --accent: var(--heraldic-gold-700);
+    --accent-foreground: var(--heraldic-gold-100);
+
+    /* Borders */
+    --border: var(--azure-700);
+    --input: var(--azure-700);
+    --ring: var(--sapphire-500);
+
+    /* Success */
+    --success: var(--sapphire-400);
+    --success-foreground: var(--azure-950);
+  }
+
   /* Common body styles for all entrypoints */
   body {
     font-family:

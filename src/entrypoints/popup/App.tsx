@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLLMSettings } from '@/hooks/useLLMSettings';
+import { useTheme } from '@/hooks/useTheme';
 import { DEFAULT_ENDPOINT } from '@/utils/llm-utils';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,9 @@ import {
 } from '@/components/ui/select';
 
 export function App() {
+  // Initialize theme and watch for changes across tabs
+  useTheme();
+
   // Use shared LLM settings hook (no task = UI management mode)
   const {
     status,

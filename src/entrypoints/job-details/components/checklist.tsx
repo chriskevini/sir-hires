@@ -126,14 +126,14 @@ export const Checklist: React.FC<ChecklistProps> = ({
     >
       <CollapsiblePrimitive.Content
         className={cn(
-          'min-w-[280px] max-w-[320px] bg-background border-none rounded-xl',
+          'min-w-72 max-w-xs bg-background border-none rounded-xl',
           'overflow-hidden origin-bottom-right mb-3',
           animate &&
             'data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up'
         )}
         data-job-id={jobId}
       >
-        <div className="py-3 max-h-[300px] overflow-y-auto origin-bottom-right">
+        <div className="py-3 max-h-72 overflow-y-auto origin-bottom-right">
           {renderContent()}
         </div>
       </CollapsiblePrimitive.Content>

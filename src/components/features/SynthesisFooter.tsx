@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from '../ui/Button';
+import { Input } from '@/components/ui/input';
 
 // 20 hardcoded tones for document synthesis
 export const SYNTHESIS_TONES = [
@@ -73,10 +74,10 @@ export const SynthesisFooter: React.FC<SynthesisFooterProps> = ({
         >
           Tone:
         </label>
-        <input
+        <Input
           type="text"
           id="synthesisFooterTone"
-          className="px-3 py-1.5 text-sm border border-input rounded min-w-[150px] transition-all duration-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+          className="min-w-36"
           value={tone}
           onChange={(e) => onToneChange(e.target.value)}
           disabled={disabled || isSynthesizing}

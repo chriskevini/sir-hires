@@ -139,7 +139,7 @@ export function JobViewRouter({
       default: {
         // WIP view for unimplemented states
         return (
-          <div className="flex flex-col items-center justify-center py-15 px-5 text-muted-foreground text-center min-h-[300px]">
+          <div className="flex flex-col items-center justify-center py-15 px-5 text-muted-foreground text-center min-h-72">
             <div className="text-5xl mb-5">🚧</div>
             <div className="text-lg font-medium mb-2.5 text-foreground">
               {status} Panel - Work in Progress

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLLMSettings } from '@/hooks/useLLMSettings';
 import { DEFAULT_ENDPOINT } from '@/utils/llm-utils';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -73,13 +74,13 @@ export function App() {
             Server
           </label>
           <div className="flex gap-2 items-stretch">
-            <input
+            <Input
               type="text"
               id="serverUrl"
               value={serverUrl}
               onChange={(e) => setServerUrl(e.target.value)}
               placeholder="http://localhost:1234"
-              className="flex-1 px-2 py-2 border border-border rounded text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+              className="flex-1"
             />
             <Button
               variant="ghost"
@@ -104,13 +105,13 @@ export function App() {
                 >
                   API Key
                 </label>
-                <input
+                <Input
                   type="password"
                   id="apiKey-connected"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder="sk-..."
-                  className="w-full px-2 py-2 border border-border rounded text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+                  className="w-full"
                 />
               </div>
             )}
@@ -174,7 +175,7 @@ export function App() {
                       >
                         Max Tokens
                       </label>
-                      <input
+                      <Input
                         type="number"
                         id="synthesis-tokens"
                         value={taskSettings.synthesis.maxTokens}
@@ -186,7 +187,7 @@ export function App() {
                         min={100}
                         max={32000}
                         step={100}
-                        className="w-full px-2 py-2 border border-border rounded text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+                        className="w-full"
                       />
                     </div>
                     <div className="flex-1 flex flex-col gap-1">
@@ -196,7 +197,7 @@ export function App() {
                       >
                         Temperature
                       </label>
-                      <input
+                      <Input
                         type="number"
                         id="synthesis-temp"
                         value={taskSettings.synthesis.temperature}
@@ -208,7 +209,7 @@ export function App() {
                         min={0}
                         max={2}
                         step={0.1}
-                        className="w-full px-2 py-2 border border-border rounded text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+                        className="w-full"
                       />
                     </div>
                   </div>
@@ -230,7 +231,7 @@ export function App() {
                       >
                         Max Tokens
                       </label>
-                      <input
+                      <Input
                         type="number"
                         id="extraction-tokens"
                         value={taskSettings.extraction.maxTokens}
@@ -242,7 +243,7 @@ export function App() {
                         min={100}
                         max={32000}
                         step={100}
-                        className="w-full px-2 py-2 border border-border rounded text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+                        className="w-full"
                       />
                     </div>
                     <div className="flex-1 flex flex-col gap-1">
@@ -252,7 +253,7 @@ export function App() {
                       >
                         Temperature
                       </label>
-                      <input
+                      <Input
                         type="number"
                         id="extraction-temp"
                         value={taskSettings.extraction.temperature}
@@ -264,7 +265,7 @@ export function App() {
                         min={0}
                         max={2}
                         step={0.1}
-                        className="w-full px-2 py-2 border border-border rounded text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+                        className="w-full"
                       />
                     </div>
                   </div>
@@ -339,13 +340,13 @@ export function App() {
                   >
                     API Key
                   </label>
-                  <input
+                  <Input
                     type="password"
                     id="apiKey-error"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder="sk-..."
-                    className="w-full px-2 py-2 border border-border rounded text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+                    className="w-full"
                   />
                 </div>
                 <p className="text-xs text-destructive my-2">{errorMessage}</p>

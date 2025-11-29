@@ -7,6 +7,7 @@ import type { Job } from '@/entrypoints/job-details/hooks';
 import { JobCard } from './JobCard';
 import { cn } from '@/lib/utils';
 import { useJobFilters } from '@/hooks/useJobFilters';
+import { Input } from '@/components/ui/input';
 
 // ============================================================================
 // Types
@@ -185,15 +186,9 @@ export function JobSelector({
       {/* Header with filters */}
       <div className="shrink-0 p-4 border-b border-border bg-background">
         <div className="flex flex-col gap-3">
-          <input
+          <Input
             type="text"
-            className={cn(
-              'w-full px-3 py-2.5 border border-border rounded',
-              'text-sm font-sans',
-              'transition-colors duration-200',
-              'focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10',
-              'placeholder:text-muted-foreground/60'
-            )}
+            className="w-full"
             placeholder="Search jobs..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

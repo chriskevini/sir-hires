@@ -1,5 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/Button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { escapeHtml } from '@/utils/shared-utils';
 
 interface ExtractionErrorViewProps {
@@ -28,8 +30,8 @@ export function ExtractionErrorView({
   const hasPartialContent = partialContent && partialContent.trim().length > 0;
 
   return (
-    <div className="bg-background border border-border rounded-md p-6">
-      <div className="flex flex-col items-center text-center">
+    <Card>
+      <CardContent className="flex flex-col items-center text-center pt-6">
         <div className="mb-4">
           <div className="text-4xl mb-3">⚠️</div>
           <h3 className="text-lg font-semibold text-foreground mb-2">
@@ -48,9 +50,9 @@ export function ExtractionErrorView({
                 (You can edit this or re-extract)
               </span>
             </div>
-            <textarea
+            <Textarea
               id="jobEditor"
-              className="w-full min-h-[200px] p-3 font-mono text-sm border border-border rounded resize-y focus:outline-none focus:border-primary"
+              className="w-full min-h-48 p-3 font-mono text-sm border border-border rounded resize-y"
               data-job-id={jobId}
               value={editorContent}
               onChange={onEditorChange}
@@ -59,19 +61,20 @@ export function ExtractionErrorView({
         )}
 
         <div className="flex gap-3 mt-6">
-          <a
-            href={escapeHtml(jobUrl)}
-            className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded font-semibold text-sm hover:bg-primary/90 transition-colors"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Retry Extraction ↗
-          </a>
+          <Button variant="primary" asChild>
+            <a
+              href={escapeHtml(jobUrl)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Retry Extraction ↗
+            </a>
+          </Button>
           <Button variant="danger" onClick={onDelete}>
             Delete Job
           </Button>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

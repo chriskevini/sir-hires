@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/Button';
+import { Card, CardContent } from '@/components/ui/card';
 import { escapeHtml } from '@/utils/shared-utils';
 
 interface MigrationPromptViewProps {
@@ -15,8 +16,8 @@ export function MigrationPromptView({
   onDelete,
 }: MigrationPromptViewProps) {
   return (
-    <div className="bg-background border border-border rounded-md p-6">
-      <div className="flex flex-col items-center text-center">
+    <Card>
+      <CardContent className="flex flex-col items-center text-center pt-6">
         <div className="text-4xl mb-3">⚠️</div>
         <h3 className="text-lg font-semibold text-foreground mb-2">
           Job Needs Re-Extraction
@@ -26,19 +27,20 @@ export function MigrationPromptView({
           the job posting.
         </p>
         <div className="flex flex-col gap-4">
-          <a
-            href={escapeHtml(jobUrl)}
-            className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded font-semibold text-sm hover:bg-primary/90 transition-colors"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Re-Extract from Original Posting ↗
-          </a>
+          <Button variant="primary" asChild>
+            <a
+              href={escapeHtml(jobUrl)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Re-Extract from Original Posting ↗
+            </a>
+          </Button>
           <Button variant="danger" onClick={onDelete}>
             Delete This Job
           </Button>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

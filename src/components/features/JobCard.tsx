@@ -78,7 +78,7 @@ export function JobCard({
             variant="ghost"
             className={cn(
               'absolute -top-1 -right-1 w-5 h-5 rounded-full',
-              'bg-muted-foreground text-white text-xs leading-none',
+              'bg-muted-foreground text-background text-xs leading-none',
               'flex items-center justify-center opacity-70',
               'hover:bg-destructive hover:opacity-100',
               'active:scale-90',

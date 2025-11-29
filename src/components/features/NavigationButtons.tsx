@@ -64,7 +64,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
                   'border-[0_3px_3px_0] inline-block p-2.5',
                   'transition-colors duration-200',
                   'rotate-[135deg]',
-                  'group-hover:border-white'
+                  'group-hover:border-background'
                 )}
               ></i>
             </button>
@@ -111,7 +111,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
                   'border-[0_3px_3px_0] inline-block p-2.5',
                   'transition-colors duration-200',
                   '-rotate-45',
-                  'group-hover:border-white'
+                  'group-hover:border-background'
                 )}
               ></i>
             </button>

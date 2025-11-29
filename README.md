@@ -240,13 +240,13 @@ Local LLM via LM Studio (document synthesis & insights)
 - ✅ UI modernization with shadcn/ui + Tailwind CSS (v0.4.0)
 - ✅ Theme system with multiple color palettes (v0.4.0)
 - ✅ Profile extraction and validation (v0.4.0)
+- ✅ Better loading screens with status messages (v0.4.0)
+- ✅ Toggleable job selector with animation (v0.4.0)
 
 **Planned:**
 
 - UX improvements:
   - Speed up LLM data extraction
-  - Better loading screens during extraction
-  - Toggleable job selector
   - Interactive merge when restoring backups
   - LLM-free workflow (manual data entry)
 

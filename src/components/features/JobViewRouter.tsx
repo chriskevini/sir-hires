@@ -3,10 +3,10 @@ import { useParsedJob } from './ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '../../utils/job-parser';
 import type { Job } from '../../entrypoints/job-details/hooks';
 import { defaults } from '@/config';
-import { JobHeader } from '../ui/JobHeader';
-import { JobFooter } from '../ui/JobFooter';
+import { JobHeader } from './JobHeader';
+import { JobFooter } from './JobFooter';
 import { Button } from '../ui/Button';
-import './JobViewRouter.css';
+import { cn } from '@/lib/utils';
 
 /**
  * Common props for view components (ID-based callbacks)
@@ -91,7 +91,11 @@ export function JobViewRouter({
 
   // Handle empty state
   if (!job) {
-    return <div className="detail-panel-empty">{emptyStateMessage}</div>;
+    return (
+      <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+        {emptyStateMessage}
+      </div>
+    );
   }
 
   const status = job.applicationStatus || defaults.status;
@@ -135,15 +139,13 @@ export function JobViewRouter({
       default: {
         // WIP view for unimplemented states
         return (
-          <div className="job-view-wip">
-            <div className="job-view-wip-icon">🚧</div>
-            <div className="job-view-wip-title">
+          <div className="flex flex-col items-center justify-center py-15 px-5 text-muted-foreground text-center min-h-72">
+            <div className="text-5xl mb-5">🚧</div>
+            <div className="text-lg font-medium mb-2.5 text-foreground">
               {status} Panel - Work in Progress
             </div>
-            <div className="job-view-wip-subtitle">
-              This panel is coming soon!
-            </div>
-            <div className="job-view-wip-actions">
+            <div className="text-sm mb-6">This panel is coming soon!</div>
+            <div className="flex gap-3">
               <Button
                 variant="link"
                 onClick={() => window.open(job.url, '_blank')}
@@ -164,7 +166,12 @@ export function JobViewRouter({
   const isCompact = !showHeader;
 
   return (
-    <div className={`job-view-container ${isCompact ? 'compact' : ''}`}>
+    <div
+      className={cn(
+        'flex flex-col h-full relative',
+        isCompact ? 'bg-transparent' : 'bg-muted'
+      )}
+    >
       {showHeader && (
         <JobHeader
           jobTitle={jobTitle}
@@ -174,7 +181,16 @@ export function JobViewRouter({
         />
       )}
 
-      <div className="job-view-content">{renderViewContent()}</div>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div
+          className={cn(
+            'flex-1 flex flex-col overflow-hidden',
+            isCompact ? 'p-2' : 'px-6 py-4 max-w-4xl mx-auto w-full'
+          )}
+        >
+          {renderViewContent()}
+        </div>
+      </div>
 
       {showFooter && (
         <JobFooter

@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import './styles.css';
 import { browser } from 'wxt/browser';
 
 // Import WXT storage
@@ -23,6 +22,7 @@ import { UI_UPDATE_INTERVAL_MS } from '@/config';
 import { LLMClient } from '@/utils/llm-client';
 import { runTask, startKeepalive } from '@/utils/llm-task-runner';
 import { DEFAULT_TASK_SETTINGS } from '@/utils/llm-utils';
+import { escapeHtml } from '@/utils/shared-utils';
 
 // Import hooks
 import {
@@ -33,49 +33,60 @@ import {
 // Import components
 import {
   ValidationPanel,
-  useValidationEditorClass,
-} from './components/ValidationPanel';
+  getValidationEditorClass,
+} from '@/components/features/ValidationPanel';
+import { EditorFooter } from '@/components/features/EditorFooter';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { CloseIcon } from '@/components/ui/icons';
+import { StreamingTextarea } from '@/components/ui/StreamingTextarea';
+import {
+  ArrowLeft,
+  Download,
+  FileText,
+  X,
+  BookOpen,
+  Sparkles,
+  WandSparkles,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // Constants
 const PROGRESS_MESSAGE_INTERVAL_MS = 1000; // Cycle progress messages every 1 second
 
 // Progress messages shown sequentially during extraction
 const EXTRACTION_PROGRESS_MESSAGES = [
-  '⏳ Starting extraction',
-  '⏳ Starting extraction.',
-  '⏳ Starting extraction..',
-  '⏳ Starting extraction...',
-  '🔍 Analyzing resume structure',
-  '🔍 Analyzing resume structure.',
-  '🔍 Analyzing resume structure..',
-  '🔍 Analyzing resume structure...',
-  '📝 Extracting contact information',
-  '📝 Extracting contact information.',
-  '📝 Extracting contact information..',
-  '📝 Extracting contact information...',
-  '🎓 Processing education history',
-  '🎓 Processing education history.',
-  '🎓 Processing education history..',
-  '🎓 Processing education history...',
-  '💼 Parsing work experience',
-  '💼 Parsing work experience.',
-  '💼 Parsing work experience..',
-  '💼 Parsing work experience...',
-  '🔧 Identifying skills and projects',
-  '🔧 Identifying skills and projects.',
-  '🔧 Identifying skills and projects..',
-  '🔧 Identifying skills and projects...',
-  '✨ Formatting profile data',
-  '✨ Formatting profile data.',
-  '✨ Formatting profile data..',
-  '✨ Formatting profile data...',
-  '⏳ Almost done',
-  '⏳ Almost done.',
-  '⏳ Almost done..',
-  '⏳ Almost done...',
+  'Starting extraction',
+  'Starting extraction.',
+  'Starting extraction..',
+  'Starting extraction...',
+  'Analyzing resume structure',
+  'Analyzing resume structure.',
+  'Analyzing resume structure..',
+  'Analyzing resume structure...',
+  'Extracting contact information',
+  'Extracting contact information.',
+  'Extracting contact information..',
+  'Extracting contact information...',
+  'Processing education history',
+  'Processing education history.',
+  'Processing education history..',
+  'Processing education history...',
+  'Parsing work experience',
+  'Parsing work experience.',
+  'Parsing work experience..',
+  'Parsing work experience...',
+  'Identifying skills and projects',
+  'Identifying skills and projects.',
+  'Identifying skills and projects..',
+  'Identifying skills and projects...',
+  'Formatting profile data',
+  'Formatting profile data.',
+  'Formatting profile data..',
+  'Formatting profile data...',
+  'Almost done',
+  'Almost done.',
+  'Almost done..',
+  'Almost done...',
 ];
 
 // Helper to check if text is a progress message
@@ -86,11 +97,13 @@ export default function App() {
   // State
   const [content, setContent] = useState('');
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
+  const [saveStatusText, setSaveStatusText] = useState<string>('');
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [isTemplatePanelVisible, setIsTemplatePanelVisible] = useState(true);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionError, setExtractionError] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [wordCount, setWordCount] = useState(0);
 
   // Refs
   const editorRef = useRef<HTMLTextAreaElement>(null);
@@ -111,6 +124,7 @@ export default function App() {
 
       await userProfileStorage.setValue(profileData);
       setLastSavedTime(profileData.updatedAt);
+      setSaveStatusText(`Last saved ${formatSaveTime(new Date())}`);
 
       // Also save to localStorage as backup
       localStorage.setItem('userProfileDraft', newContent);
@@ -147,6 +161,7 @@ export default function App() {
       };
       await userProfileStorage.setValue(profileData);
       setLastSavedTime(profileData.updatedAt);
+      setSaveStatusText(`Last saved ${formatSaveTime(new Date())}`);
       localStorage.setItem('userProfileDraft', newContent);
     } catch (error) {
       console.error('Save error:', error);
@@ -231,6 +246,11 @@ export default function App() {
 
         setContent(profileContent);
         setLastSavedTime(updatedAt);
+        if (updatedAt) {
+          setSaveStatusText(
+            `Last saved ${formatSaveTime(new Date(updatedAt))}`
+          );
+        }
       } else {
         // Check for draft in localStorage
         const draft = localStorage.getItem('userProfileDraft');
@@ -249,7 +269,9 @@ export default function App() {
     lastSavedIntervalRef.current = setInterval(() => {
       // Trigger re-render to update last saved time display
       if (lastSavedTime) {
-        setLastSavedTime(lastSavedTime);
+        setSaveStatusText(
+          `Last saved ${formatSaveTime(new Date(lastSavedTime))}`
+        );
       }
     }, UI_UPDATE_INTERVAL_MS);
   };
@@ -526,7 +548,7 @@ BULLETS:
 
       if (!llmSettings?.endpoint || llmSettings.endpoint.trim() === '') {
         throw new Error(
-          '⚠️ LLM endpoint not configured. Please configure settings in the popup first.'
+          'LLM endpoint not configured. Please configure settings in the popup first.'
         );
       }
 
@@ -615,7 +637,7 @@ BULLETS:
       setIsExtracting(false);
       progressIndexRef.current = 0;
       hasReceivedContentRef.current = false;
-      setStatusMessage('✅ Profile extracted successfully!');
+      setStatusMessage('Profile extracted successfully!');
       setTimeout(() => setStatusMessage(''), 3000);
       // Save extracted content
       saveProfileToStorage(result.content);
@@ -646,68 +668,210 @@ BULLETS:
   };
 
   // Compute editor className based on validation state
-  const editorClassName = useValidationEditorClass(validation, content);
+  const hasErrors = validation.errors.length > 0;
+  const hasWarnings = validation.warnings.length > 0;
+  const hasContent = content.trim().length > 0;
+  const editorClassName = getValidationEditorClass(
+    hasErrors,
+    hasWarnings,
+    hasContent
+  );
+
+  // Build messages array for ValidationPanel
+  const validationMessages = [
+    ...validation.errors.map((error, index) => ({
+      type: 'error' as const,
+      message: error.message,
+      fix: validationFixes[index],
+    })),
+    ...validation.warnings.map((warning, index) => ({
+      type: 'warning' as const,
+      message: warning.message,
+      fix: warningFixes[index],
+    })),
+    ...validation.info.map((info) => ({
+      type: 'info' as const,
+      message: info.message,
+    })),
+  ];
+
+  // Compute counts
+  const errorCount = validation.errors.length;
+  const warningCount = validation.warnings.length;
+  const customCount =
+    validation.customFields.length + validation.customSections.length;
+
+  // Compute validity
+  const isValid = hasContent && !hasErrors;
 
   return (
-    <div className="container">
-      <header>
-        <div className="header-left">
-          <Button variant="secondary" size="sm" onClick={goBack}>
-            ← Back to Jobs
-          </Button>
-          <h1>Profile</h1>
+    <div className="flex h-screen w-full flex-col bg-muted">
+      {/* Header - matches SidepanelHeader pattern */}
+      <header className="flex items-center justify-between px-3 py-2 bg-background border-b border-border shrink-0 gap-2">
+        {/* Left: Back button */}
+        <Button
+          variant="ghost"
+          className="border border-border rounded px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-muted/80 hover:border-border hover:text-foreground active:bg-muted flex items-center justify-center gap-1.5 shrink-0 transition-all duration-200"
+          onClick={goBack}
+          title="Back to Jobs"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span className="hidden sm:inline">Jobs</span>
+        </Button>
+
+        {/* Center: Title and status */}
+        <div className="flex-1 min-w-0 flex items-center justify-center gap-2 overflow-hidden">
+          <span className="text-sm font-semibold text-foreground">Profile</span>
+          {statusMessage && (
+            <>
+              <span className="text-muted-foreground">|</span>
+              <span className="text-sm text-warning font-medium truncate">
+                {statusMessage}
+              </span>
+            </>
+          )}
         </div>
-        <div className="header-right">
-          <span
-            className={
-              statusMessage ? 'last-saved unsaved-indicator' : 'last-saved'
-            }
+
+        {/* Right: Action buttons */}
+        <div className="flex gap-1 items-center">
+          <Button
+            variant="ghost"
+            className="rounded p-1.5 text-muted-foreground hover:bg-muted active:bg-muted/80 flex items-center justify-center min-w-8 min-h-8 transition-all duration-200"
+            onClick={() => toggleTemplatePanel(!isTemplatePanelVisible)}
+            title={isTemplatePanelVisible ? 'Hide template' : 'Show template'}
           >
-            {statusMessage ||
-              (lastSavedTime
-                ? `Last saved: ${formatSaveTime(new Date(lastSavedTime))}`
-                : '')}
-          </span>
+            <BookOpen className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            className="rounded p-1.5 text-muted-foreground hover:bg-muted active:bg-muted/80 flex items-center justify-center min-w-8 min-h-8 transition-all duration-200"
+            onClick={formatProfile}
+            title="Fix formatting"
+          >
+            <Sparkles className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            className="rounded p-1.5 text-muted-foreground hover:bg-muted active:bg-muted/80 flex items-center justify-center min-w-8 min-h-8 transition-all duration-200"
+            onClick={exportMarkdown}
+            title="Export as Markdown"
+          >
+            <Download className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            className="rounded p-1.5 text-muted-foreground hover:bg-muted active:bg-muted/80 flex items-center justify-center min-w-8 min-h-8 transition-all duration-200"
+            onClick={exportText}
+            title="Export as Text"
+          >
+            <FileText className="h-4 w-4" />
+          </Button>
         </div>
       </header>
 
-      <div className="editor-container">
-        {/* Left Panel: Template Guide */}
-        <div
-          id="templatePanel"
-          className={`template-panel ${isTemplatePanelVisible ? '' : 'hidden'}`}
-        >
-          <div className="template-panel-header">
-            <h3>Profile Template</h3>
+      {/* Main content area */}
+      <div className="flex flex-1 overflow-hidden p-4 gap-4">
+        {/* Editor container - matches DraftingView/ResearchingView pattern */}
+        <div className="flex-1 flex flex-col border border-border rounded-lg overflow-hidden bg-background">
+          {/* Toolbar with insert actions */}
+          <div className="flex items-center justify-between px-3 py-2 bg-card border-b border-border shrink-0">
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground hover:text-foreground"
+                onClick={insertEducationTemplate}
+                title="Insert education entry"
+              >
+                + Education
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs text-muted-foreground hover:text-foreground"
+                onClick={insertExperienceTemplate}
+                title="Insert experience entry"
+              >
+                + Experience
+              </Button>
+            </div>
             <Button
-              variant="ghost"
-              onClick={() => toggleTemplatePanel(false)}
-              title="Hide template"
+              variant={isExtracting ? 'danger' : 'primary'}
+              size="sm"
+              className="gap-1.5"
+              onClick={handleExtractClick}
+              disabled={isExtracting && !content.trim()}
             >
-              {CloseIcon}
+              <WandSparkles className="h-3.5 w-3.5" />
+              {isExtracting ? 'Cancel' : 'Extract with LLM'}
             </Button>
           </div>
-          <div className="template-content">{PROFILE_TEMPLATE}</div>
-        </div>
 
-        {/* Right Panel: Editor */}
-        <div className="editor-panel">
-          <div className="editor-wrapper">
-            <textarea
+          {/* Editor */}
+          <div className="flex-1 flex flex-col p-4 overflow-hidden">
+            <StreamingTextarea
               ref={editorRef}
               id="profileEditor"
-              className={editorClassName}
-              placeholder="Follow the template on the left or paste your resume here and click extract with LLM."
               value={content}
-              onChange={(e) => handleContentChange(e.target.value)}
+              onChange={handleContentChange}
+              placeholder="Paste your resume text here and click 'Extract with LLM' to convert it to the profile format, or follow the template to write it manually."
               disabled={isExtracting}
+              isStreaming={isExtracting}
+              className={cn('flex-1', editorClassName)}
             />
           </div>
+
+          {/* Extraction error display */}
           {extractionError && (
-            <div className="extraction-error">
-              <strong>❌ Extraction Error:</strong> {extractionError}
+            <div className="py-2 px-4 mx-4 mb-2 bg-destructive/10 border border-destructive/50 rounded text-destructive text-sm">
+              <strong className="block mb-1">Extraction Error:</strong>{' '}
+              {extractionError}
             </div>
           )}
+
+          {/* Validation Panel - inside the editor container */}
+          <ValidationPanel
+            initialCollapsed={true}
+            isValid={isValid}
+            errorCount={errorCount}
+            warningCount={warningCount}
+            infoCount={customCount}
+            messages={validationMessages.map((m) => ({
+              ...m,
+              message: escapeHtml(m.message),
+            }))}
+            onApplyFix={applyFix}
+            validLabel="Valid Profile"
+            invalidLabel="Validation Errors"
+          />
+
+          {/* Footer with save status */}
+          <EditorFooter saveStatus={saveStatusText} />
+        </div>
+
+        {/* Template Panel - right side, collapsible */}
+        <div
+          className={cn(
+            'flex flex-col border border-border rounded-lg overflow-hidden bg-card transition-[width] duration-200 ease-in-out shrink-0',
+            isTemplatePanelVisible ? 'w-80' : 'w-0 border-0'
+          )}
+        >
+          <div className="flex items-center justify-between px-3 py-2 bg-card border-b border-border shrink-0">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+              <BookOpen className="h-4 w-4 text-primary" />
+              Profile Template
+            </h3>
+            <Button
+              variant="ghost"
+              className="p-1 text-muted-foreground hover:text-foreground"
+              onClick={() => toggleTemplatePanel(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 font-mono text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+            {PROFILE_TEMPLATE}
+          </div>
         </div>
       </div>
 
@@ -717,27 +881,26 @@ BULLETS:
         onClose={() => setShowConfirmDialog(false)}
         title="Confirm Extraction"
       >
-        <div className="modal-body">
-          <div className="modal-warning">
-            <span className="modal-warning-icon">⚠️</span>
-            <div className="modal-warning-content">
-              <p>
+        <div className="p-6">
+          <div className="my-4 flex items-start gap-3 rounded-md border border-warning bg-warning/10 p-4">
+            <span className="shrink-0 text-2xl">!</span>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-warning-foreground">
                 LLM extraction may have errors. The current content will be
                 replaced. Save a backup first if needed.
               </p>
             </div>
           </div>
-          <div className="modal-hint">
-            <span className="modal-hint-icon">💡</span>
-            <div className="modal-hint-content">
-              <p>
-                <strong>Tip:</strong> Label your projects clearly in your resume
-                (e.g., &quot;Project: MyApp&quot;) - the LLM may not recognize
-                unlabeled projects.
+          <div className="my-4 flex items-start gap-3 rounded-md border border-primary bg-primary/10 p-4">
+            <span className="shrink-0 text-lg">Tip:</span>
+            <div className="flex-1">
+              <p className="text-sm text-primary">
+                Label your projects clearly in your resume (e.g., &quot;Project:
+                MyApp&quot;) - the LLM may not recognize unlabeled projects.
               </p>
             </div>
           </div>
-          <div className="modal-actions">
+          <div className="mt-6 flex justify-end gap-3 border-t border-border pt-5">
             <Button
               variant="secondary"
               onClick={() => setShowConfirmDialog(false)}
@@ -750,45 +913,6 @@ BULLETS:
           </div>
         </div>
       </Modal>
-
-      {/* Validation Panel */}
-      <ValidationPanel
-        validation={validation}
-        validationFixes={validationFixes}
-        warningFixes={warningFixes}
-        onApplyFix={applyFix}
-        onInsertEducation={insertEducationTemplate}
-        onInsertExperience={insertExperienceTemplate}
-        showQuickActions={true}
-      />
-
-      <footer>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => toggleTemplatePanel(!isTemplatePanelVisible)}
-        >
-          Toggle Template
-        </Button>
-        <Button
-          variant={isExtracting ? 'danger' : 'primary'}
-          onClick={handleExtractClick}
-          disabled={isExtracting && !content.trim()}
-        >
-          {isExtracting ? 'Cancel Extraction' : 'Extract with LLM'}
-        </Button>
-        <div className="export-buttons">
-          <Button variant="secondary" size="sm" onClick={formatProfile}>
-            Fix Formatting
-          </Button>
-          <Button variant="secondary" size="sm" onClick={exportMarkdown}>
-            Export .md
-          </Button>
-          <Button variant="secondary" size="sm" onClick={exportText}>
-            Export .txt
-          </Button>
-        </div>
-      </footer>
     </div>
   );
 }

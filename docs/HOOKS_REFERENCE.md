@@ -7,6 +7,7 @@
 - [Simple State Hooks](#simple-state-hooks) - `useToggleState`, `useEditorState`
 - [Validation Hooks](#validation-hooks) - `useJobValidation`, `useProfileValidation`
 - [Auto-Save Hooks](#auto-save-hooks) - `useSimpleAutoSave`
+- [Dialog Hooks](#dialog-hooks) - `useConfirmDialog`, `useAlertDialog`
 - [Business Logic Hooks](#business-logic-hooks) - `useJobExtraction`, `useBackupRestore`, `useParsedJob`
 - [Utility Hooks](#utility-hooks) - `useDebounce`, `useInterval`
 - [Unified Job Store](#unified-job-store) - `useJobStore`
@@ -255,6 +256,257 @@ useSimpleAutoSave({
 - If you need explicit "Save" button feedback
 - If you need to track dirty/pristine state in UI
 - If save operation is expensive (consider explicit save instead)
+
+---
+
+## Dialog Hooks
+
+### useConfirmDialog
+
+**Purpose:** Manage confirmation dialog state with promise-based API for async/await patterns.
+
+**Location:** `src/hooks/useConfirmDialog.ts`
+
+**Parameters:** None
+
+**Returns:**
+
+```typescript
+{
+  dialogState: ConfirmDialogState;
+  confirm: (options: ConfirmDialogOptions) => Promise<boolean>;
+  closeDialog: () => void;
+  handleOpenChange: (open: boolean) => void;
+}
+
+interface ConfirmDialogState {
+  isOpen: boolean;
+  title: string;
+  description: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  variant: 'default' | 'destructive';
+  onConfirm: () => void;
+}
+
+interface ConfirmDialogOptions {
+  title: string;
+  description: string;
+  confirmLabel?: string;  // Default: 'Confirm'
+  cancelLabel?: string;   // Default: 'Cancel'
+  variant?: 'default' | 'destructive';
+}
+```
+
+**Usage Example:**
+
+```typescript
+// From: src/entrypoints/job-details/App.tsx
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
+
+function App() {
+  const { dialogState, confirm, closeDialog, handleOpenChange } = useConfirmDialog();
+
+  const handleDelete = async () => {
+    const confirmed = await confirm({
+      title: 'Delete Job',
+      description: 'Are you sure you want to delete this job? This cannot be undone.',
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+    });
+
+    if (confirmed) {
+      await deleteJob(jobId);
+    }
+  };
+
+  return (
+    <>
+      <button onClick={handleDelete}>Delete Job</button>
+
+      <AlertDialog open={dialogState.isOpen} onOpenChange={handleOpenChange}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{dialogState.title}</AlertDialogTitle>
+            <AlertDialogDescription>{dialogState.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={closeDialog}>
+              {dialogState.cancelLabel}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={dialogState.onConfirm}
+              className={dialogState.variant === 'destructive' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
+            >
+              {dialogState.confirmLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+```
+
+**Key Features:**
+
+- ✅ Promise-based API for clean async/await usage
+- ✅ Replaces native `window.confirm()` with accessible dialog
+- ✅ Supports destructive variant for delete/danger actions
+- ✅ Customizable labels and styling
+- ✅ Handles cancel via backdrop click or Cancel button
+
+**When to Use:**
+
+- Delete confirmations
+- Destructive actions (clear data, reset settings)
+- Actions with significant consequences
+- Any place you would have used `window.confirm()`
+
+**Anti-Pattern:** Using `window.confirm()` directly:
+
+```typescript
+// ❌ BAD: Native confirm - not accessible, not styled
+if (window.confirm('Delete this job?')) {
+  deleteJob();
+}
+
+// ✅ GOOD: AlertDialog with hook
+const confirmed = await confirm({
+  title: 'Delete Job',
+  description: 'This cannot be undone.',
+  variant: 'destructive',
+});
+if (confirmed) {
+  deleteJob();
+}
+```
+
+---
+
+### useAlertDialog
+
+**Purpose:** Manage simple alert dialog state for notifications (no confirmation, just acknowledgment).
+
+**Location:** `src/hooks/useConfirmDialog.ts`
+
+**Parameters:** None
+
+**Returns:**
+
+```typescript
+{
+  alertState: AlertDialogState;
+  alert: (options: AlertOptions) => Promise<void>;
+  closeAlert: () => void;
+}
+
+interface AlertDialogState {
+  isOpen: boolean;
+  title: string;
+  description: string;
+  buttonLabel: string;
+}
+
+interface AlertOptions {
+  title: string;
+  description: string;
+  buttonLabel?: string;  // Default: 'OK'
+}
+```
+
+**Usage Example:**
+
+```typescript
+import { useAlertDialog } from '@/hooks/useConfirmDialog';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
+
+function App() {
+  const { alertState, alert, closeAlert } = useAlertDialog();
+
+  const handleExport = async () => {
+    try {
+      await exportData();
+      await alert({
+        title: 'Export Complete',
+        description: 'Your data has been exported successfully.',
+      });
+    } catch (err) {
+      await alert({
+        title: 'Export Failed',
+        description: 'Unable to export data. Please try again.',
+      });
+    }
+  };
+
+  return (
+    <>
+      <button onClick={handleExport}>Export</button>
+
+      <AlertDialog open={alertState.isOpen} onOpenChange={(open) => !open && closeAlert()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{alertState.title}</AlertDialogTitle>
+            <AlertDialogDescription>{alertState.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={closeAlert}>
+              {alertState.buttonLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+```
+
+**Key Features:**
+
+- ✅ Promise-based API - `await alert()` blocks until user acknowledges
+- ✅ Replaces native `window.alert()` with accessible dialog
+- ✅ Single button for acknowledgment (no cancel)
+- ✅ Customizable button label
+
+**When to Use:**
+
+- Success notifications that need acknowledgment
+- Error messages requiring user attention
+- Information that user must see before continuing
+- Any place you would have used `window.alert()`
+
+**Anti-Pattern:** Using `window.alert()` directly:
+
+```typescript
+// ❌ BAD: Native alert - blocks thread, not styled
+window.alert('Operation complete!');
+
+// ✅ GOOD: AlertDialog with hook
+await alert({
+  title: 'Success',
+  description: 'Operation complete!',
+});
+```
+
+**Related Components:** See [COMPONENTS_REFERENCE.md](./COMPONENTS_REFERENCE.md#3-alertdialog) for AlertDialog component API.
 
 ---
 
@@ -1026,9 +1278,13 @@ function MyEditor({ content }) {
 - ❗ "I need validation" → Use `useJobValidation` or `useProfileValidation`
 - ❗ "I need auto-save" → Use `useSimpleAutoSave`
 - ❗ "I need to manage textarea state" → Use `useEditorState`
-- ❗ "I need to debounce something" → Check if hook already has debouncing, else use `useDebounce`
+- ❗ "I need debounce something" → Check if hook already has debouncing, else use `useDebounce`
 - ❗ "I need to extract jobs" → Use `useJobExtraction` (supports streaming + cancellation)
 - ❗ "I need backup/restore" → Use `useBackupRestore`
+- ❗ "I need a confirmation dialog" → Use `useConfirmDialog` with `AlertDialog`
+- ❗ "I need an alert/notification dialog" → Use `useAlertDialog` with `AlertDialog`
+- ❗ "I want to use window.confirm()" → **NO!** Use `useConfirmDialog` instead
+- ❗ "I want to use window.alert()" → **NO!** Use `useAlertDialog` instead
 
 ### When Creating New Hooks:
 
@@ -1077,4 +1333,4 @@ You're using hooks correctly if:
 
 ---
 
-**Last Updated:** November 2024 (Updated useJobExtraction for runTask() pattern)
+**Last Updated:** November 2024 (Added useConfirmDialog, useAlertDialog for native dialog replacement)

@@ -1,5 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/Button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { escapeHtml } from '@/utils/shared-utils';
 
 interface ExtractionErrorViewProps {
@@ -28,25 +30,29 @@ export function ExtractionErrorView({
   const hasPartialContent = partialContent && partialContent.trim().length > 0;
 
   return (
-    <div className="job-card researching-editor">
-      <div className="extraction-error-state">
-        <div className="extraction-error-header">
-          <div className="extraction-error-icon">⚠️</div>
-          <h3>Extraction Failed</h3>
-          <p className="error-message">{escapeHtml(errorMessage)}</p>
+    <Card>
+      <CardContent className="flex flex-col items-center text-center pt-6">
+        <div className="mb-4">
+          <div className="text-4xl mb-3">⚠️</div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            Extraction Failed
+          </h3>
+          <p className="text-destructive text-sm">{escapeHtml(errorMessage)}</p>
         </div>
 
         {hasPartialContent && (
-          <div className="extraction-partial">
-            <div className="extraction-partial-header">
-              <strong>📄 Partial Content</strong>
-              <span className="extraction-partial-hint">
+          <div className="w-full mt-4 text-left">
+            <div className="flex items-center gap-2 mb-2">
+              <strong className="text-sm text-foreground">
+                📄 Partial Content
+              </strong>
+              <span className="text-xs text-muted-foreground">
                 (You can edit this or re-extract)
               </span>
             </div>
-            <textarea
+            <Textarea
               id="jobEditor"
-              className="job-markdown-editor"
+              className="w-full min-h-48 p-3 font-mono text-sm border border-border rounded resize-y"
               data-job-id={jobId}
               value={editorContent}
               onChange={onEditorChange}
@@ -54,20 +60,21 @@ export function ExtractionErrorView({
           </div>
         )}
 
-        <div className="job-actions" style={{ marginTop: '24px' }}>
-          <a
-            href={escapeHtml(jobUrl)}
-            className="btn btn-primary"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Retry Extraction ↗
-          </a>
+        <div className="flex gap-3 mt-6">
+          <Button variant="primary" asChild>
+            <a
+              href={escapeHtml(jobUrl)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Retry Extraction ↗
+            </a>
+          </Button>
           <Button variant="danger" onClick={onDelete}>
             Delete Job
           </Button>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

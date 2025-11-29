@@ -1,13 +1,13 @@
-import React, { useMemo, useCallback } from 'react';
-import { useParsedJob } from '@/components/features/ParsedJobProvider';
+import React, { useCallback } from 'react';
 import { escapeHtml } from '@/utils/shared-utils';
 import { useToggleState, useJobValidation, ChecklistItem } from '../hooks';
 import { useImmediateSave } from '@/hooks/useImmediateSave';
-import { ValidationPanel } from '@/components/ui/ValidationPanel';
+import { ValidationPanel } from '@/components/features/ValidationPanel';
+import { StreamingTextarea } from '@/components/ui/StreamingTextarea';
 import { ExtractionLoadingView } from '../components/ExtractionLoadingView';
 import { ExtractionErrorView } from '../components/ExtractionErrorView';
 import { MigrationPromptView } from '../components/MigrationPromptView';
-import './ResearchingView.css';
+import { cn } from '@/lib/utils';
 
 interface Job {
   id: string;
@@ -50,23 +50,13 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
     }
   );
 
-  // Handle textarea change
+  // Handler for ExtractionErrorView (event-based onChange)
   const handleEditorChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setEditorContent(e.target.value);
     },
     [setEditorContent]
   );
-
-  // Parse job content on-read (MarkdownDB pattern) using cached provider
-  const parsed = useParsedJob(job.id);
-  const parsedJob = useMemo(() => {
-    const fields = (parsed?.topLevelFields as Record<string, string>) || {};
-    return {
-      jobTitle: fields.TITLE || '',
-      company: fields.COMPANY || '',
-    };
-  }, [parsed]);
 
   // Use validation hook
   const validation = useJobValidation({
@@ -84,8 +74,6 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
     return (
       <ExtractionLoadingView
         content={job.content || ''}
-        jobTitle={parsedJob.jobTitle || 'Untitled Position'}
-        company={parsedJob.company || 'Unknown Company'}
         jobId={job.id}
         onDelete={handleDelete}
       />
@@ -114,9 +102,17 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   }
 
   // Render normal editing state
-  const editorClass = validation?.valid
-    ? 'job-markdown-editor is-valid'
-    : 'job-markdown-editor has-errors';
+  // Build validation messages for StreamingTextarea
+  const validationMessages = [
+    ...(validation?.errors.map((e) => ({
+      type: 'error' as const,
+      message: e.message,
+    })) || []),
+    ...(validation?.warnings.map((w) => ({
+      type: 'warning' as const,
+      message: w.message,
+    })) || []),
+  ];
 
   const errorCount = validation?.errors.length || 0;
   const warningCount = validation?.warnings.length || 0;
@@ -138,33 +134,41 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   ];
 
   return (
-    <div className="researching-editor">
-      <div className="editor-layout">
-        {/* Editor Panel */}
-        <div className="editor-panel">
-          <textarea
+    <div className="flex flex-col h-full">
+      {/* Editor with Validation Panel */}
+      <div className="flex-1 flex flex-col overflow-hidden border border-border rounded-lg bg-background">
+        <div className="flex-1 flex flex-col p-4">
+          <StreamingTextarea
             id="jobEditor"
-            className={editorClass}
             data-job-id={job.id}
             value={editorContent}
-            onChange={handleEditorChange}
+            onChange={setEditorContent}
+            validationMessages={validationMessages}
+            className={cn(
+              'flex-1 border-l-4',
+              validation?.valid
+                ? 'border-l-success'
+                : validation?.errors?.length
+                  ? 'border-l-destructive'
+                  : 'border-l-border'
+            )}
           />
         </div>
-      </div>
 
-      {/* Validation Panel */}
-      <ValidationPanel
-        isCollapsed={isValidationCollapsed}
-        onToggle={toggleValidationCollapsed}
-        isValid={validation?.valid ?? null}
-        errorCount={errorCount}
-        warningCount={warningCount}
-        infoCount={infoCount}
-        messages={messages.map((m) => ({
-          ...m,
-          message: escapeHtml(m.message),
-        }))}
-      />
+        {/* Validation Panel */}
+        <ValidationPanel
+          isCollapsed={isValidationCollapsed}
+          onToggle={toggleValidationCollapsed}
+          isValid={validation?.valid ?? null}
+          errorCount={errorCount}
+          warningCount={warningCount}
+          infoCount={infoCount}
+          messages={messages.map((m) => ({
+            ...m,
+            message: escapeHtml(m.message),
+          }))}
+        />
+      </div>
     </div>
   );
 };

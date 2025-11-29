@@ -9,16 +9,28 @@ import {
   useGetParsedJob,
 } from '../../components/features/ParsedJobProvider';
 import { JobSelector } from '../../components/features/JobSelector';
-import { SidepanelHeader } from '../../components/ui/SidepanelHeader';
+import { SidepanelHeader } from '../../components/features/SidepanelHeader';
 import type { Job, ChecklistItem } from '../job-details/hooks';
 import { useJobExtraction, useBackupRestore } from './hooks';
-import { EmptyState } from './components/EmptyState';
+import { EmptyState } from '@/components/features/EmptyState';
 import { ExtractionLoadingView } from '../job-details/components/ExtractionLoadingView';
-import { ErrorState } from './components/ErrorState';
-import { DuplicateJobModal } from './components/DuplicateJobModal';
+import { ErrorState } from '@/components/features/ErrorState';
+import { DuplicateJobModal } from '@/components/features/DuplicateJobModal';
 import { checklistTemplates, defaults } from '@/config';
 import { jobsStorage, restoreStorageFromBackup } from '../../utils/storage';
 import { generateItemId } from '../../utils/shared-utils';
+import { buttonVariants } from '@/components/ui/Button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
+import { useConfirmDialog, useAlertDialog } from '../../hooks/useConfirmDialog';
 
 /**
  * Create default checklist for all statuses (adapter for useJobExtraction)
@@ -50,7 +62,7 @@ interface SidepanelContentProps {
   selectorOpen: boolean;
   extracting: boolean;
   hasJob: boolean;
-  onToggleSelector: () => void;
+  onSelectorOpenChange: (open: boolean) => void;
   onExtract: () => void;
   onDelete: () => void;
   onMaximize: () => void;
@@ -74,7 +86,7 @@ function SidepanelContent({
   selectorOpen,
   extracting,
   hasJob,
-  onToggleSelector,
+  onSelectorOpenChange,
   onExtract,
   onDelete,
   onMaximize,
@@ -95,10 +107,10 @@ function SidepanelContent({
   const company = parsedJob?.topLevelFields['COMPANY'];
 
   return (
-    <div className="container">
+    <div className="flex flex-col h-screen">
       {/* Header with toggle and action buttons */}
       <SidepanelHeader
-        onToggleSelector={onToggleSelector}
+        onToggleSelector={() => onSelectorOpenChange(!selectorOpen)}
         onExtract={onExtract}
         onDelete={onDelete}
         onMaximize={onMaximize}
@@ -110,7 +122,7 @@ function SidepanelContent({
       />
 
       {/* Main content area with JobSelector overlay */}
-      <div className="sidepanel-content-area">
+      <div className="flex-1 relative overflow-hidden flex flex-col">
         {mainContent}
 
         {/* Job selector overlay - positioned relative to content area */}
@@ -120,8 +132,9 @@ function SidepanelContent({
           onSelectJob={onSelectJob}
           onDeleteJob={onDeleteJobFromSelector}
           isOpen={selectorOpen}
-          onClose={onToggleSelector}
+          onOpenChange={onSelectorOpenChange}
           getParsedJob={getParsedJob}
+          mode="overlay"
         />
       </div>
 
@@ -129,7 +142,6 @@ function SidepanelContent({
       {pendingExtraction && (
         <DuplicateJobModal
           isOpen={showDuplicateModal}
-          jobUrl={pendingExtraction.url}
           onRefresh={onRefresh}
           onExtractNew={onExtractNew}
           onCancel={onCancelDuplicate}
@@ -153,6 +165,16 @@ export const App: React.FC = () => {
   // Local UI state
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [selectorOpen, setSelectorOpen] = useState(false);
+
+  // Dialog state for confirmations
+  const {
+    dialogState: confirmState,
+    confirm,
+    closeDialog: closeConfirm,
+  } = useConfirmDialog();
+
+  // Dialog state for alerts
+  const { alertState, alert, closeAlert } = useAlertDialog();
 
   // Derive current job from store
   const currentJob = useMemo(() => {
@@ -220,8 +242,8 @@ export const App: React.FC = () => {
     currentJob
   );
 
-  // Use backup/restore hook with adapter
-  const backup = useBackupRestore(backupStorageAdapter);
+  // Use backup/restore hook with adapter and dialog callbacks
+  const backup = useBackupRestore(backupStorageAdapter, { confirm, alert });
 
   /**
    * Open job details in full page
@@ -236,9 +258,15 @@ export const App: React.FC = () => {
    */
   const handleDeleteJob = useCallback(async () => {
     if (!currentJob) return;
-    if (!confirm('Are you sure you want to delete this job?')) return;
+    const confirmed = await confirm({
+      title: 'Delete Job',
+      description: 'Are you sure you want to delete this job?',
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     await store.deleteJob(currentJob.id);
-  }, [currentJob, store]);
+  }, [currentJob, store, confirm]);
 
   /**
    * Handle saving a field on a job (ID-based)
@@ -307,18 +335,17 @@ export const App: React.FC = () => {
    */
   const handleDeleteJobFromSelector = useCallback(
     async (jobId: string) => {
-      if (!confirm('Are you sure you want to delete this job?')) return;
+      const confirmed = await confirm({
+        title: 'Delete Job',
+        description: 'Are you sure you want to delete this job?',
+        confirmLabel: 'Delete',
+        variant: 'destructive',
+      });
+      if (!confirmed) return;
       await store.deleteJob(jobId);
     },
-    [store]
+    [store, confirm]
   );
-
-  /**
-   * Toggle the job selector panel
-   */
-  const handleToggleSelector = useCallback(() => {
-    setSelectorOpen((prev) => !prev);
-  }, []);
 
   /**
    * Mark initial load as complete when store finishes loading
@@ -371,7 +398,11 @@ export const App: React.FC = () => {
 
   // Loading state
   if (isLoading) {
-    mainContent = <div className="loading">Loading job details...</div>;
+    mainContent = (
+      <div className="text-center py-10 px-5 text-muted-foreground italic">
+        Loading job details...
+      </div>
+    );
   }
   // Extracting state (ephemeral - not yet saved to storage)
   else if (extraction.extractingJob) {
@@ -412,7 +443,7 @@ export const App: React.FC = () => {
         selectorOpen={selectorOpen}
         extracting={extraction.extracting}
         hasJob={!!currentJob}
-        onToggleSelector={handleToggleSelector}
+        onSelectorOpenChange={setSelectorOpen}
         onExtract={extraction.handleExtractJob}
         onDelete={handleDeleteJob}
         onMaximize={handleOpenJobDetails}
@@ -424,6 +455,56 @@ export const App: React.FC = () => {
         onExtractNew={extraction.handleExtractNew}
         onCancelDuplicate={extraction.handleCancelDuplicate}
       />
+
+      {/* Confirmation Dialog */}
+      <AlertDialog
+        open={confirmState.isOpen}
+        onOpenChange={(open) => !open && closeConfirm()}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmState.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmState.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={closeConfirm}>
+              {confirmState.cancelLabel}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmState.onConfirm}
+              className={
+                confirmState.variant === 'destructive'
+                  ? buttonVariants({ variant: 'danger' })
+                  : undefined
+              }
+            >
+              {confirmState.confirmLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Alert Dialog */}
+      <AlertDialog
+        open={alertState.isOpen}
+        onOpenChange={(open) => !open && closeAlert()}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{alertState.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {alertState.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={closeAlert}>
+              {alertState.buttonLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ParsedJobProvider>
   );
 };

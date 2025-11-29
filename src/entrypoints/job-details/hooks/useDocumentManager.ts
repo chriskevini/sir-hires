@@ -6,7 +6,7 @@
 import { useCallback, useMemo } from 'react';
 import { defaultDocuments, documentTemplates } from '@/tasks';
 import { formatSaveTime } from '@/utils/date-utils';
-import type { DocumentTemplateKey } from '@/components/ui/NewDocumentModal';
+import type { DocumentTemplateKey } from '@/components/features/NewDocumentModal';
 
 interface Document {
   title: string;

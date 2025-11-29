@@ -10,14 +10,15 @@ import { Button } from '@/components/ui/Button';
 import {
   NewDocumentModal,
   type DocumentTemplateKey,
-} from '@/components/ui/NewDocumentModal';
-import { EditorToolbar } from '@/components/ui/EditorToolbar';
-import { EditorContentPanel } from '@/components/ui/EditorContentPanel';
-import { EditorFooter } from '@/components/ui/EditorFooter';
+} from '@/components/features/NewDocumentModal';
+import { EditorToolbar } from '@/components/features/EditorToolbar';
+import { EditorContentPanel } from '@/components/features/EditorContentPanel';
+import { StreamingTextarea } from '@/components/ui/StreamingTextarea';
+import { EditorFooter } from '@/components/features/EditorFooter';
 import {
   SynthesisFooter,
   getRandomTone,
-} from '@/components/ui/SynthesisFooter';
+} from '@/components/features/SynthesisFooter';
 import { useParsedJob } from '@/components/features/ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '@/utils/job-parser';
 import { formatSaveTime } from '@/utils/date-utils';
@@ -33,7 +34,6 @@ import { useLLMSettings } from '@/hooks/useLLMSettings';
 import { DEFAULT_MODEL, DEFAULT_TASK_SETTINGS } from '@/utils/llm-utils';
 import { runTask, startKeepalive } from '@/utils/llm-task-runner';
 import type { Job } from '../hooks';
-import './DraftingView.css';
 
 interface DraftingViewProps {
   job: Job;
@@ -344,14 +344,26 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
   // Build context for synthesis - uses raw MarkdownDB content
   const buildContext = useCallback((): Record<string, string> => {
+    // Use getLatestValue first, fallback to job.documents for race condition
+    // when a new document is created but useImmediateSaveMulti hasn't synced yet
+    const latestTemplate = getLatestValue(activeTab) || '';
+    const template = latestTemplate || job.documents?.[activeTab]?.text || '';
+
     return {
       profile: userProfile || '',
       job: job.content || '',
-      template: getLatestValue(activeTab) || '',
+      template,
       tone: tone,
       task: 'Follow the TEMPLATE and TONE and output only the final document.',
     };
-  }, [job.content, userProfile, activeTab, tone, getLatestValue]);
+  }, [
+    job.content,
+    job.documents,
+    userProfile,
+    activeTab,
+    tone,
+    getLatestValue,
+  ]);
 
   // Handle synthesis using runTask()
   const handleSynthesize = useCallback(async () => {
@@ -360,6 +372,9 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
       setShowProfileWarning(true);
       return;
     }
+
+    // Build context BEFORE showing progress message (otherwise getLatestValue returns progress text)
+    const context = buildContext();
 
     // Start synthesis
     setIsSynthesizing(true);
@@ -401,8 +416,17 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     const stopKeepalive = startKeepalive();
 
     try {
-      // Build context
-      const context = buildContext();
+      // DEBUG: Log entire API call context
+      console.info('[DraftingView] Synthesis API call:', {
+        config: synthesisConfig,
+        context,
+        model: selectedModel,
+        maxTokens,
+        temperature: savedTemperature,
+        activeTab,
+        jobDocuments: job.documents,
+        getLatestValueResult: getLatestValue(activeTab),
+      });
 
       // Run synthesis using runTask()
       const result = await runTask({
@@ -528,9 +552,9 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
   return (
     <>
-      <div className="drafting-view">
+      <div className="flex flex-col h-full gap-4">
         {/* Drafting Editor */}
-        <div className="drafting-editor-container">
+        <div className="flex-1 flex flex-col border border-border rounded-lg overflow-hidden bg-background">
           {/* Topbar with tabs and actions */}
           <EditorToolbar
             documentKeys={documentKeys}
@@ -551,13 +575,16 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           />
 
           {/* Editor wrapper */}
-          <div className="editor-wrapper">
+          <div className="flex-1 flex flex-col relative overflow-hidden">
             {documentKeys.length === 0 ? (
-              <div className="editor-content active">
-                <textarea
-                  className="document-editor"
+              <div className="flex flex-col p-4 gap-3">
+                <StreamingTextarea
+                  value=""
+                  onChange={() => {}}
                   placeholder="Click + to create your first document"
                   disabled
+                  minHeight="450px"
+                  className="bg-muted text-muted-foreground"
                 />
               </div>
             ) : (
@@ -587,8 +614,9 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
           {/* Synthesis error display */}
           {synthesisError && (
-            <div className="synthesis-error">
-              <strong>Synthesis Error:</strong> {synthesisError}
+            <div className="py-2 px-4 mx-4 mb-2 bg-destructive/10 border border-destructive/50 rounded text-destructive text-sm">
+              <strong className="block mb-1">Synthesis Error:</strong>{' '}
+              {synthesisError}
             </div>
           )}
 
@@ -614,7 +642,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
         onClose={() => setShowProfileWarning(false)}
         title="Profile Required"
       >
-        <div className="modal-body" style={{ textAlign: 'center' }}>
+        <div className="p-6 flex-1 overflow-y-auto text-center">
           <p>
             <strong>
               Please create a profile before synthesizing documents.
@@ -626,7 +654,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           </p>
           <Button
             variant="primary"
-            style={{ marginTop: '16px' }}
+            className="mt-4"
             onClick={() => {
               browser.tabs.create({
                 url: browser.runtime.getURL('/profile.html'),
@@ -638,10 +666,10 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           </Button>
         </div>
 
-        <div className="modal-footer">
+        <div className="px-6 py-4 border-t border-border flex justify-between items-center">
           <Button
             variant="subtle"
-            style={{ marginLeft: 'auto' }}
+            className="ml-auto"
             onClick={() => setShowProfileWarning(false)}
           >
             Cancel
@@ -665,14 +693,14 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
         }}
         title="Delete Document"
       >
-        <div className="modal-body">
+        <div className="p-6 flex-1 overflow-y-auto">
           <p>
             Are you sure you want to delete this document? This action cannot be
             undone.
           </p>
         </div>
-        <div className="modal-footer">
-          <div className="action-buttons-group" style={{ marginLeft: 'auto' }}>
+        <div className="px-6 py-4 border-t border-border flex justify-between items-center">
+          <div className="flex gap-3 ml-auto">
             <Button
               variant="secondary"
               onClick={() => {

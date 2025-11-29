@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useState } from 'react';
-import { Button } from '@/components/ui/Button';
+import { Button, buttonVariants } from '@/components/ui/Button';
 import { ResearchingView } from './views/ResearchingView';
 import { DraftingView } from './views/DraftingView';
 import { useJobStore } from './hooks';
@@ -8,28 +8,28 @@ import {
   ParsedJobProvider,
   useGetParsedJob,
 } from '../../components/features/ParsedJobProvider';
-import { getJobTitle, getCompanyName } from '../../utils/job-parser';
+import { JobSelector } from '../../components/features/JobSelector';
 import { initDevModeValidation } from '../../utils/dev-validators';
-import { StatusFilterDots } from '../../components/ui/StatusFilterDots';
-import {
-  SortIconButtons,
-  type SortField,
-  type SortDirection,
-} from '../../components/ui/SortIconButtons';
 import { Dropdown } from '../../components/ui/Dropdown';
+import { ChevronLeft, ChevronRight, User } from 'lucide-react';
 import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ProfileIcon,
-  CloseIcon,
-} from '../../components/ui/icons';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
+import { useConfirmDialog, useAlertDialog } from '../../hooks/useConfirmDialog';
 import {
   getAllStorageData,
   restoreStorageFromBackup,
   clearAllStorage,
   sidebarCollapsedStorage,
 } from '../../utils/storage';
-import { defaults, statusStyles } from '@/config';
+import { defaults } from '@/config';
 import type { JobStore } from './hooks/useJobStore';
 import type { Job } from './hooks';
 
@@ -44,26 +44,28 @@ interface AppContentProps {
 const AppContent: React.FC<AppContentProps> = ({ store }) => {
   const getParsedJob = useGetParsedJob();
 
-  // Local state for UI controls (will be migrated to store.updateFilters in future)
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilters, setStatusFilters] = useState<string[]>([]);
-  const [sortField, setSortField] = useState<SortField>('date');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [error, _setError] = useState<string | null>(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Load sidebar collapsed state from storage on mount
+  // Dialog state for confirmations and alerts
+  const {
+    dialogState: confirmState,
+    confirm,
+    closeDialog: closeConfirm,
+  } = useConfirmDialog();
+  const { alertState, alert: showAlert, closeAlert } = useAlertDialog();
+
+  // Load sidebar open state from storage on mount (stored as "collapsed")
   useEffect(() => {
-    sidebarCollapsedStorage.getValue().then(setSidebarCollapsed);
+    sidebarCollapsedStorage.getValue().then((collapsed) => {
+      setSidebarOpen(!collapsed);
+    });
   }, []);
 
-  // Handle sidebar toggle with storage persistence
-  const handleSidebarToggle = useCallback(() => {
-    setSidebarCollapsed((prev) => {
-      const newValue = !prev;
-      sidebarCollapsedStorage.setValue(newValue);
-      return newValue;
-    });
+  // Handle sidebar open change with storage persistence
+  const handleSidebarOpenChange = useCallback((open: boolean) => {
+    setSidebarOpen(open);
+    sidebarCollapsedStorage.setValue(!open);
   }, []);
 
   // ============================================================================
@@ -87,14 +89,20 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
    */
   const handleDeleteJob = useCallback(
     async (jobId: string) => {
-      if (!confirm('Are you sure you want to delete this job?')) {
+      const confirmed = await confirm({
+        title: 'Delete Job',
+        description: 'Are you sure you want to delete this job?',
+        confirmLabel: 'Delete',
+        variant: 'destructive',
+      });
+      if (!confirmed) {
         return;
       }
 
       await store.deleteJob(jobId);
       console.info(`[App] Deleted job ${jobId}`);
     },
-    [store]
+    [store, confirm]
   );
 
   /**
@@ -155,105 +163,15 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
     [store]
   );
 
-  // ============================================================================
-  // Filter jobs based on current filter settings
-  // TODO: Migrate to store.updateFilters() in a future iteration
-  // ============================================================================
-
-  const filterJobs = useCallback(() => {
-    const allJobs = store.jobs;
-    console.info(`[filterJobs] Starting filter with ${allJobs.length} jobs`);
-
-    // Filter jobs using provider's cached parsing
-    let filtered = allJobs.filter((job: Job) => {
-      const parsed = getParsedJob(job.id);
-      if (!parsed) return true; // Include jobs with no content
-
-      // Search filter
-      if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase();
-        const jobTitle = getJobTitle(parsed);
-        const company = getCompanyName(parsed);
-        const matchesSearch =
-          jobTitle?.toLowerCase().includes(searchLower) ||
-          company?.toLowerCase().includes(searchLower);
-        if (!matchesSearch) return false;
-      }
-
-      // Status filter (multi-select: empty array = show all)
-      if (statusFilters.length > 0) {
-        const jobStatus = job.applicationStatus || defaults.status;
-        if (!statusFilters.includes(jobStatus)) return false;
-      }
-
-      return true;
-    });
-
-    // Sort jobs using provider's cached parsing
-    // Direction multiplier: 1 for ascending, -1 for descending
-    const dirMult = sortDirection === 'asc' ? 1 : -1;
-
-    if (sortField === 'date') {
-      filtered = filtered.sort(
-        (a: Job, b: Job) =>
-          dirMult *
-          (new Date(a.updatedAt || 0).getTime() -
-            new Date(b.updatedAt || 0).getTime())
-      );
-    } else if (sortField === 'company') {
-      filtered = filtered.sort((a: Job, b: Job) => {
-        const parsedA = getParsedJob(a.id) || null;
-        const parsedB = getParsedJob(b.id) || null;
-        const companyA = parsedA ? getCompanyName(parsedA) || '' : '';
-        const companyB = parsedB ? getCompanyName(parsedB) || '' : '';
-        return dirMult * companyA.localeCompare(companyB);
-      });
-    } else if (sortField === 'title') {
-      filtered = filtered.sort((a: Job, b: Job) => {
-        const parsedA = getParsedJob(a.id) || null;
-        const parsedB = getParsedJob(b.id) || null;
-        const titleA = parsedA ? getJobTitle(parsedA) || '' : '';
-        const titleB = parsedB ? getJobTitle(parsedB) || '' : '';
-        return dirMult * titleA.localeCompare(titleB);
-      });
-    }
-
-    console.info(`[filterJobs] Filtered to ${filtered.length} jobs`, {
-      searchTerm,
-      statusFilters,
-      sortField,
-      sortDirection,
-    });
-
-    return filtered;
-  }, [
-    store.jobs,
-    searchTerm,
-    statusFilters,
-    sortField,
-    sortDirection,
-    getParsedJob,
-  ]);
-
-  // Calculate filtered jobs (memoized via filterJobs callback)
-  const filteredJobs = filterJobs();
-
   /**
-   * Select a job by index in filtered list
+   * Select a job by ID
    */
   const selectJob = useCallback(
-    async (filteredIndex: number) => {
-      const job = filteredJobs[filteredIndex];
-
-      if (!job) {
-        console.error('Job not found at filtered index:', filteredIndex);
-        return;
-      }
-
+    async (jobId: string) => {
       // Find global index
-      const globalIndex = store.jobs.findIndex((j: Job) => j.id === job.id);
+      const globalIndex = store.jobs.findIndex((j: Job) => j.id === jobId);
       if (globalIndex === -1) {
-        console.error('Job not found in jobs array');
+        console.error('Job not found in jobs array:', jobId);
         return;
       }
 
@@ -261,12 +179,10 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
       store.setSelectedIndex(globalIndex);
 
       // Set as job in focus
-      if (job.id) {
-        await store.setJobInFocus(job.id);
-        console.info(`Set job ${job.id} as job in focus`);
-      }
+      await store.setJobInFocus(jobId);
+      console.info(`Set job ${jobId} as job in focus`);
     },
-    [filteredJobs, store]
+    [store]
   );
 
   /**
@@ -308,9 +224,12 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
       console.info(`Backup created: ${filename}`);
     } catch (err) {
       console.error('Error creating backup:', err);
-      alert('Failed to create backup. See console for details.');
+      showAlert({
+        title: 'Backup Failed',
+        description: 'Failed to create backup. See console for details.',
+      });
     }
-  }, []);
+  }, [showAlert]);
 
   /**
    * Restore backup from uploaded JSON file
@@ -337,54 +256,78 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
           keys: Object.keys(backup).slice(0, 10),
         });
 
-        const confirmed = confirm(
-          'This will overwrite all current data. Are you sure you want to restore this backup?'
-        );
+        const confirmed = await confirm({
+          title: 'Restore Backup',
+          description:
+            'This will overwrite all current data. Are you sure you want to restore this backup?',
+          confirmLabel: 'Restore',
+          variant: 'destructive',
+        });
         if (!confirmed) return;
 
         await restoreStorageFromBackup(data);
         console.info('Backup restored successfully');
-        alert('Backup restored! The page will now reload.');
-        window.location.reload();
+        showAlert({
+          title: 'Backup Restored',
+          description: 'Backup restored! The page will now reload.',
+        });
+        setTimeout(() => window.location.reload(), 1500);
       } catch (err) {
         console.error('Error restoring backup:', err);
         console.error('Error details:', {
           message: err instanceof Error ? err.message : String(err),
           fileName: file.name,
         });
-        alert(
-          'Failed to restore backup. Check the console for details. Make sure the file is a valid JSON backup.'
-        );
+        showAlert({
+          title: 'Restore Failed',
+          description:
+            'Failed to restore backup. Check the console for details. Make sure the file is a valid JSON backup.',
+        });
       }
     };
 
     input.click();
-  }, []);
+  }, [confirm, showAlert]);
 
   /**
    * Delete all storage data (with double confirmation)
    */
   const handleDeleteAll = useCallback(async () => {
-    const firstConfirm = confirm(
-      'WARNING: This will permanently delete ALL jobs and data. This cannot be undone. Are you sure?'
-    );
-    if (!firstConfirm) return;
+    const firstConfirmed = await confirm({
+      title: 'Delete All Data',
+      description:
+        'WARNING: This will permanently delete ALL jobs and data. This cannot be undone. Are you sure?',
+      confirmLabel: 'Continue',
+      variant: 'destructive',
+    });
+    if (!firstConfirmed) return;
 
-    const secondConfirm = confirm(
-      'FINAL WARNING: This is your last chance to cancel. Delete everything?'
-    );
-    if (!secondConfirm) return;
+    const secondConfirmed = await confirm({
+      title: 'Final Confirmation',
+      description:
+        'FINAL WARNING: This is your last chance to cancel. Delete everything?',
+      confirmLabel: 'Delete Everything',
+      variant: 'destructive',
+    });
+    if (!secondConfirmed) return;
 
     try {
       await clearAllStorage();
       console.info('All storage cleared');
-      alert('All data has been deleted. The page will now reload.');
-      window.location.reload();
+      showAlert({
+        title: 'Data Deleted',
+        description: 'All data has been deleted. The page will now reload.',
+      });
+      // Delay reload slightly so user sees the alert
+      setTimeout(() => window.location.reload(), 1500);
     } catch (err) {
       console.error('Error clearing storage:', err);
-      alert('Failed to clear storage. See console for details.');
+      showAlert({
+        title: 'Error',
+        description: 'Failed to clear storage. See console for details.',
+      });
     }
-  }, []);
+  }, [confirm, showAlert]);
 
   /**
    * Initialize app on mount
@@ -396,10 +339,10 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   }, []);
 
   /**
-   * Auto-select job after filtering or when jobInFocus changes
+   * Auto-select job when jobInFocus changes or on initial load
    */
   useEffect(() => {
-    if (filteredJobs.length === 0) {
+    if (store.jobs.length === 0) {
       store.setSelectedIndex(-1);
       return;
     }
@@ -415,7 +358,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
       }
     }
 
-    // Priority 2: Currently selected job
+    // Priority 2: Currently selected job is still valid
     const selectedIndex = store.selectedJobIndex;
     if (selectedIndex >= 0 && selectedIndex < store.jobs.length) {
       return; // Keep current selection
@@ -424,12 +367,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
     // Priority 3: First job
     store.setSelectedIndex(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    filteredJobs.length,
-    store.jobInFocusId,
-    store.selectedJobIndex,
-    store.jobs.length,
-  ]);
+  }, [store.jobInFocusId, store.selectedJobIndex, store.jobs.length]);
 
   /**
    * Get the view component for the current job
@@ -451,9 +389,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
         onToggleChecklistExpand={handleChecklistToggleExpand}
         onToggleChecklistItem={handleChecklistToggleItem}
         emptyStateMessage={
-          filteredJobs.length === 0
-            ? 'No jobs match your filters'
-            : 'No job selected'
+          store.jobs.length === 0 ? 'No jobs yet' : 'No job selected'
         }
       />
     );
@@ -462,8 +398,8 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   // Loading state
   if (store.isLoading) {
     return (
-      <div className="app-loading">
-        <p>Loading jobs...</p>
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-muted-foreground">Loading jobs...</p>
       </div>
     );
   }
@@ -471,8 +407,8 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   // Error state
   if (error) {
     return (
-      <div className="app-error">
-        <p style={{ color: 'red' }}>{error}</p>
+      <div className="flex flex-col items-center justify-center h-screen gap-4">
+        <p className="text-destructive">{error}</p>
         <Button variant="primary" onClick={() => window.location.reload()}>
           Retry
         </Button>
@@ -483,9 +419,12 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   // Empty state
   if (store.jobs.length === 0) {
     return (
-      <div className="container">
-        <div id="emptyState" className="empty-state">
-          <h2>No Jobs Yet</h2>
+      <div className="max-w-full h-screen m-0 bg-background flex flex-col">
+        <div
+          id="emptyState"
+          className="text-center py-16 px-5 text-muted-foreground"
+        >
+          <h2 className="text-xl mb-3">No Jobs Yet</h2>
           <p>
             Use the browser extension to save jobs from LinkedIn, Indeed, or
             other job sites.
@@ -497,35 +436,38 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
 
   // Main app UI
   console.info('[Render] Main app UI', {
-    allJobs: store.jobs.length,
-    filteredJobs: filteredJobs.length,
+    totalJobs: store.jobs.length,
     selectedIndex: store.selectedJobIndex,
   });
 
   return (
-    <div className="container">
+    <div className="max-w-full h-screen m-0 bg-background flex flex-col">
       {/* Header with branding and action buttons */}
-      <header>
-        <div className="header-title">
+      <header className="flex justify-between items-center py-3 px-6 border-b border-border bg-background shrink-0">
+        <div className="flex items-baseline gap-3">
           <Button
             variant="ghost"
-            className="sidebar-toggle-btn"
-            onClick={handleSidebarToggle}
-            title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
-            aria-label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
+            className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
+            onClick={() => handleSidebarOpenChange(!sidebarOpen)}
+            title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+            aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
           >
-            {sidebarCollapsed ? ChevronRightIcon : ChevronLeftIcon}
+            {sidebarOpen ? (
+              <ChevronLeft className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
           </Button>
-          <h1>Sir Hires</h1>
+          <h1 className="text-lg font-semibold text-foreground">Sir Hires</h1>
         </div>
-        <div className="header-actions">
+        <div className="flex gap-1 items-center">
           <Button
             variant="ghost"
-            className="header-icon-btn"
+            className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
             onClick={handleProfileClick}
             title="Profile"
           >
-            {ProfileIcon}
+            <User className="h-5 w-5" />
           </Button>
           <Dropdown
             buttonLabel="More options"
@@ -551,107 +493,79 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
       </header>
 
       {/* Main content area */}
-      <div className="main-content">
-        {/* Sidebar with filters and job list */}
-        <div className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
-          <div className="sidebar-header">
-            <div className="filters">
-              <input
-                type="text"
-                id="searchInput"
-                className="filter-input"
-                placeholder="Search jobs..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <div className="filter-row">
-                <StatusFilterDots
-                  selectedStatuses={statusFilters}
-                  onChange={setStatusFilters}
-                />
-              </div>
-              <div className="filter-row">
-                <SortIconButtons
-                  sortField={sortField}
-                  sortDirection={sortDirection}
-                  onChange={(field, direction) => {
-                    setSortField(field);
-                    setSortDirection(direction);
-                  }}
-                />
-              </div>
-              <div className="filter-row job-count-row">
-                <span className="job-count">
-                  {filteredJobs.length} of {store.jobs.length} jobs
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="jobs-list-sidebar" id="jobsList">
-            {filteredJobs.map((job: Job, filteredIndex: number) => {
-              const globalIndex = store.jobs.findIndex(
-                (j: Job) => j.id === job.id
-              );
-              const isSelected = globalIndex === store.selectedJobIndex;
-              const parsed = getParsedJob(job.id);
-              const status = job.applicationStatus || defaults.status;
-
-              // Get the styles for the status
-              const styles =
-                statusStyles[status] || statusStyles['Researching'];
-
-              return (
-                <div
-                  key={job.id}
-                  className={`job-card ${isSelected ? 'selected' : ''}`}
-                  style={{
-                    backgroundColor: styles.cardBg,
-                  }}
-                  onClick={() => selectJob(filteredIndex)}
-                >
-                  <div className="job-card-header">
-                    <div className="job-title">
-                      {parsed ? getJobTitle(parsed) || 'Untitled' : 'Untitled'}
-                    </div>
-                    <div className="company">
-                      {parsed ? getCompanyName(parsed) || 'Unknown' : 'Unknown'}
-                    </div>
-                    <span
-                      className="job-card-status-badge"
-                      style={{
-                        backgroundColor: styles.color,
-                        color: '#fff',
-                      }}
-                    >
-                      {status}
-                    </span>
-                    {isSelected && (
-                      <Button
-                        variant="ghost"
-                        className="btn-delete-card"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteJob(job.id);
-                        }}
-                        title="Delete this job"
-                      >
-                        {CloseIcon}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Job Selector (sidebar) */}
+        <JobSelector
+          jobs={store.jobs}
+          selectedJobId={store.jobs[store.selectedJobIndex]?.id ?? null}
+          onSelectJob={selectJob}
+          onDeleteJob={handleDeleteJob}
+          isOpen={sidebarOpen}
+          onOpenChange={handleSidebarOpenChange}
+          getParsedJob={getParsedJob}
+          mode="responsive"
+        />
 
         {/* Detail panel */}
-        <div className="detail-panel-wrapper">
-          <div className="detail-panel" id="detailPanel">
+        <div className="flex-1 overflow-hidden">
+          <div
+            className="h-full overflow-hidden bg-background"
+            id="detailPanel"
+          >
             {renderJobView()}
           </div>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog
+        open={confirmState.isOpen}
+        onOpenChange={(open) => !open && closeConfirm()}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmState.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmState.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={closeConfirm}>
+              {confirmState.cancelLabel}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmState.onConfirm}
+              className={
+                confirmState.variant === 'destructive'
+                  ? buttonVariants({ variant: 'danger' })
+                  : undefined
+              }
+            >
+              {confirmState.confirmLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Simple Alert Dialog */}
+      <AlertDialog
+        open={alertState.isOpen}
+        onOpenChange={(open) => !open && closeAlert()}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{alertState.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {alertState.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={closeAlert}>
+              {alertState.buttonLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -1,20 +1,25 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { StatusFilterDots } from '../ui/StatusFilterDots';
-import {
-  SortIconButtons,
-  type SortField,
-  type SortDirection,
-} from '../ui/SortIconButtons';
-import { statusStyles, defaults } from '@/config';
-import {
-  getJobTitle,
-  getCompanyName,
-  type JobTemplateData,
-} from '@/utils/job-parser';
+import React, { useCallback } from 'react';
+import { StatusFilterDots } from './StatusFilterDots';
+import { SortIconButtons } from './SortIconButtons';
+import { defaults } from '@/config';
+import type { JobTemplateData } from '@/utils/job-parser';
 import type { Job } from '@/entrypoints/job-details/hooks';
-import { CloseIcon } from '../ui/icons';
-import { Button } from '../ui/Button';
-import './JobSelector.css';
+import { JobCard } from './JobCard';
+import { cn } from '@/lib/utils';
+import { useJobFilters } from '@/hooks/useJobFilters';
+import { Input } from '@/components/ui/input';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+/**
+ * Display mode for JobSelector
+ * - overlay: Full-width absolute positioning, covers content (mobile/sidepanel)
+ * - push: Fixed-width in normal flow, pushes content aside (desktop)
+ * - responsive: Overlay on small screens, push on md: and up
+ */
+type JobSelectorMode = 'overlay' | 'push' | 'responsive';
 
 interface JobSelectorProps {
   /** All jobs to display */
@@ -27,21 +32,47 @@ interface JobSelectorProps {
   onDeleteJob: (jobId: string) => void;
   /** Whether the selector is open */
   isOpen: boolean;
-  /** Callback to close the selector */
-  onClose: () => void;
+  /** Callback when open state changes (for toggle/close) */
+  onOpenChange: (open: boolean) => void;
   /** Function to get parsed job data (from ParsedJobProvider) */
   getParsedJob: (jobId: string) => JobTemplateData | null;
+  /**
+   * Display mode
+   * - overlay: absolute, full-width (sidepanel)
+   * - push: relative, fixed-width w-80 (desktop)
+   * - responsive: overlay on mobile, push on md:+
+   * @default 'overlay'
+   */
+  mode?: JobSelectorMode;
+  /** Width when in push mode or responsive desktop (Tailwind class) @default 'w-80' */
+  pushWidth?: string;
 }
 
+// ============================================================================
+// Component
+// ============================================================================
+
 /**
- * JobSelector - Sliding overlay panel for selecting jobs
+ * JobSelector - Unified job selection panel with multiple display modes
  *
  * Features:
  * - Search filter by title/company
  * - Status filter dots (multi-select)
  * - Sort by date/company/title
  * - Job cards with status badges
- * - CSS transition for open/close (width: 0 <-> 100%)
+ * - Three display modes: overlay, push, responsive
+ *
+ * @example
+ * ```tsx
+ * // Sidepanel - always overlay
+ * <JobSelector mode="overlay" isOpen={open} onOpenChange={setOpen} ... />
+ *
+ * // Job-details - responsive (overlay mobile, push desktop)
+ * <JobSelector mode="responsive" isOpen={open} onOpenChange={setOpen} ... />
+ *
+ * // Force push mode
+ * <JobSelector mode="push" isOpen={open} onOpenChange={setOpen} ... />
+ * ```
  */
 export function JobSelector({
   jobs,
@@ -49,102 +80,52 @@ export function JobSelector({
   onSelectJob,
   onDeleteJob,
   isOpen,
-  onClose,
+  onOpenChange,
   getParsedJob,
+  mode = 'overlay',
+  pushWidth = 'w-80',
 }: JobSelectorProps) {
-  // Filter state
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilters, setStatusFilters] = useState<string[]>([]);
-  const [sortField, setSortField] = useState<SortField>('date');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  // Use shared job filtering hook
+  const {
+    searchTerm,
+    setSearchTerm,
+    statusFilters,
+    setStatusFilters,
+    sortField,
+    sortDirection,
+    handleSortChange,
+    filteredJobs,
+    totalCount,
+    filteredCount,
+  } = useJobFilters({ jobs, getParsedJob });
 
   /**
-   * Filter and sort jobs based on current filter settings
-   */
-  const filteredJobs = useMemo(() => {
-    let filtered = jobs.filter((job: Job) => {
-      const parsed = getParsedJob(job.id);
-      if (!parsed) return true; // Include jobs with no content
-
-      // Search filter
-      if (searchTerm) {
-        const searchLower = searchTerm.toLowerCase();
-        const jobTitle = getJobTitle(parsed);
-        const company = getCompanyName(parsed);
-        const matchesSearch =
-          jobTitle?.toLowerCase().includes(searchLower) ||
-          company?.toLowerCase().includes(searchLower);
-        if (!matchesSearch) return false;
-      }
-
-      // Status filter (multi-select: empty array = show all)
-      if (statusFilters.length > 0) {
-        const jobStatus = job.applicationStatus || defaults.status;
-        if (!statusFilters.includes(jobStatus)) return false;
-      }
-
-      return true;
-    });
-
-    // Sort jobs
-    const dirMult = sortDirection === 'asc' ? 1 : -1;
-
-    if (sortField === 'date') {
-      filtered = filtered.sort(
-        (a: Job, b: Job) =>
-          dirMult *
-          (new Date(a.updatedAt || 0).getTime() -
-            new Date(b.updatedAt || 0).getTime())
-      );
-    } else if (sortField === 'company') {
-      filtered = filtered.sort((a: Job, b: Job) => {
-        const parsedA = getParsedJob(a.id);
-        const parsedB = getParsedJob(b.id);
-        const companyA = parsedA ? getCompanyName(parsedA) || '' : '';
-        const companyB = parsedB ? getCompanyName(parsedB) || '' : '';
-        return dirMult * companyA.localeCompare(companyB);
-      });
-    } else if (sortField === 'title') {
-      filtered = filtered.sort((a: Job, b: Job) => {
-        const parsedA = getParsedJob(a.id);
-        const parsedB = getParsedJob(b.id);
-        const titleA = parsedA ? getJobTitle(parsedA) || '' : '';
-        const titleB = parsedB ? getJobTitle(parsedB) || '' : '';
-        return dirMult * titleA.localeCompare(titleB);
-      });
-    }
-
-    return filtered;
-  }, [jobs, searchTerm, statusFilters, sortField, sortDirection, getParsedJob]);
-
-  /**
-   * Handle job selection - select and close panel
+   * Handle job selection - select and close panel in overlay mode
    */
   const handleSelectJob = useCallback(
     (jobId: string) => {
       onSelectJob(jobId);
-      onClose();
+      // Close panel in overlay mode (or responsive on mobile)
+      // In push mode, keep panel open after selection
+      if (mode === 'overlay') {
+        onOpenChange(false);
+      }
+      // For responsive mode, we close on mobile but keep open on desktop
+      // Since we can't detect breakpoint in JS easily, we always close
+      // (desktop users can reopen easily, mobile UX is more important)
+      if (mode === 'responsive') {
+        onOpenChange(false);
+      }
     },
-    [onSelectJob, onClose]
+    [onSelectJob, onOpenChange, mode]
   );
 
   /**
-   * Handle sort change
-   */
-  const handleSortChange = useCallback(
-    (field: SortField, direction: SortDirection) => {
-      setSortField(field);
-      setSortDirection(direction);
-    },
-    []
-  );
-
-  /**
-   * Handle backdrop click - close panel
+   * Handle backdrop click - close panel (overlay mode only)
    */
   const handleBackdropClick = useCallback(() => {
-    onClose();
-  }, [onClose]);
+    onOpenChange(false);
+  }, [onOpenChange]);
 
   /**
    * Prevent click propagation from panel to backdrop
@@ -153,107 +134,107 @@ export function JobSelector({
     e.stopPropagation();
   }, []);
 
+  // Build container classes based on mode
+  // Note: For responsive mode, we use md:w-80 directly since Tailwind needs
+  // complete class names at compile time. The pushWidth prop only affects push mode.
+  const containerClasses = cn(
+    // Base styles (all modes)
+    'flex flex-col bg-background overflow-hidden',
+    'transition-[width] duration-200 ease-in-out',
+
+    // Overlay mode: absolute, full-width, high z-index
+    mode === 'overlay' && [
+      'absolute inset-y-0 left-0 z-[100]',
+      isOpen ? 'w-full' : 'w-0',
+    ],
+
+    // Push mode: relative, fixed-width, normal z-index, border
+    mode === 'push' && [
+      'relative shrink-0 border-r',
+      isOpen ? [pushWidth, 'border-border'] : 'w-0 border-r-0',
+    ],
+
+    // Responsive mode: overlay on mobile, push on md:+
+    mode === 'responsive' && [
+      // Mobile (default): overlay behavior
+      'absolute inset-y-0 left-0 z-[100]',
+      isOpen ? 'w-full' : 'w-0',
+      // Desktop (md:+): push behavior - uses fixed md:w-80
+      'md:relative md:z-auto md:shrink-0 md:border-r',
+      isOpen ? 'md:w-80 md:border-border' : 'md:w-0 md:border-r-0',
+    ]
+  );
+
+  // Show backdrop only in overlay mode, or responsive mode on mobile
+  // For responsive, backdrop is visible on mobile but hidden on md:+
+  const showBackdrop = isOpen && (mode === 'overlay' || mode === 'responsive');
+
   // Always render - CSS transition handles open/close
   return (
-    <div
-      className={`job-selector-panel ${isOpen ? '' : 'collapsed'}`}
-      onClick={handlePanelClick}
-    >
-      {/* Invisible backdrop for closing when open */}
-      {isOpen && (
+    <div className={containerClasses} onClick={handlePanelClick}>
+      {/* Invisible backdrop for closing when open (overlay/responsive-mobile only) */}
+      {showBackdrop && (
         <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: -1,
-          }}
+          className={cn(
+            'fixed inset-0 -z-[1]',
+            // In responsive mode, hide backdrop on desktop (push mode doesn't need it)
+            mode === 'responsive' && 'md:hidden'
+          )}
           onClick={handleBackdropClick}
         />
       )}
       {/* Header with filters */}
-      <div className="job-selector-header">
-        <div className="job-selector-filters">
-          <input
+      <div className="shrink-0 p-4 border-b border-border bg-background">
+        <div className="flex flex-col gap-3">
+          <Input
             type="text"
-            className="job-selector-search"
+            className="w-full"
             placeholder="Search jobs..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             autoFocus
           />
-          <div className="job-selector-filter-row">
+          <div className="flex items-center justify-center">
             <StatusFilterDots
               selectedStatuses={statusFilters}
               onChange={setStatusFilters}
             />
           </div>
-          <div className="job-selector-filter-row">
+          <div className="flex items-center justify-center">
             <SortIconButtons
               sortField={sortField}
               sortDirection={sortDirection}
               onChange={handleSortChange}
             />
           </div>
-          <div className="job-selector-count">
-            {filteredJobs.length} of {jobs.length} jobs
+          <div className="text-xs text-muted-foreground italic">
+            {filteredCount} of {totalCount} jobs
           </div>
         </div>
       </div>
 
       {/* Job list */}
-      <div className="job-selector-list">
+      <div className="flex-1 overflow-y-auto p-2">
         {filteredJobs.map((job: Job) => {
           const isSelected = job.id === selectedJobId;
           const parsed = getParsedJob(job.id);
           const status = job.applicationStatus || defaults.status;
-          const styles = statusStyles[status] || statusStyles['Researching'];
 
           return (
-            <div
+            <JobCard
               key={job.id}
-              className={`job-selector-card ${isSelected ? 'selected' : ''}`}
-              style={{ backgroundColor: styles.cardBg }}
+              jobId={job.id}
+              parsed={parsed}
+              status={status}
+              isSelected={isSelected}
               onClick={() => handleSelectJob(job.id)}
-            >
-              <div className="job-selector-card-header">
-                <div className="job-selector-card-title">
-                  {parsed ? getJobTitle(parsed) || 'Untitled' : 'Untitled'}
-                </div>
-                <div className="job-selector-card-company">
-                  {parsed ? getCompanyName(parsed) || 'Unknown' : 'Unknown'}
-                </div>
-                <span
-                  className="job-selector-card-badge"
-                  style={{
-                    backgroundColor: styles.color,
-                    color: '#fff',
-                  }}
-                >
-                  {status}
-                </span>
-                {isSelected && (
-                  <Button
-                    variant="ghost"
-                    className="job-selector-delete-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteJob(job.id);
-                    }}
-                    title="Delete this job"
-                  >
-                    {CloseIcon}
-                  </Button>
-                )}
-              </div>
-            </div>
+              onDelete={() => onDeleteJob(job.id)}
+            />
           );
         })}
 
         {filteredJobs.length === 0 && (
-          <div className="job-selector-empty">
+          <div className="text-center py-10 px-5 text-muted-foreground text-sm italic">
             {jobs.length === 0
               ? 'No jobs yet. Extract a job to get started.'
               : 'No jobs match your filters.'}

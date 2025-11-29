@@ -2,7 +2,14 @@ import { useState } from 'react';
 import { useLLMSettings } from '@/hooks/useLLMSettings';
 import { DEFAULT_ENDPOINT } from '@/utils/llm-utils';
 import { Button } from '@/components/ui/Button';
-import './styles.css';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export function App() {
   // Use shared LLM settings hook (no task = UI management mode)
@@ -49,22 +56,31 @@ export function App() {
   };
 
   return (
-    <div className="container">
-      <header>
-        <h1>Sir Hires - LLM Settings</h1>
+    <div className="p-4" style={{ width: '380px', minHeight: '250px' }}>
+      {/* Header */}
+      <header className="flex justify-between items-center mb-4 pb-3 border-b-2 border-border">
+        <h1 className="text-lg font-semibold text-primary">
+          Sir Hires - LLM Settings
+        </h1>
       </header>
 
-      <div className="settings-form">
+      <div className="flex flex-col gap-3">
         {/* Server URL */}
-        <div className="form-row">
-          <label htmlFor="serverUrl">Server</label>
-          <div className="input-with-button">
-            <input
+        <div className="flex flex-col gap-1">
+          <label
+            htmlFor="serverUrl"
+            className="font-medium text-sm text-foreground"
+          >
+            Server
+          </label>
+          <div className="flex gap-2 items-stretch">
+            <Input
               type="text"
               id="serverUrl"
               value={serverUrl}
               onChange={(e) => setServerUrl(e.target.value)}
               placeholder="http://localhost:1234"
+              className="flex-1"
             />
             <Button
               variant="ghost"
@@ -82,65 +98,84 @@ export function App() {
           <>
             {/* API Key - Only show for cloud providers */}
             {provider === 'cloud' && (
-              <div className="form-row">
-                <label htmlFor="apiKey-connected">API Key</label>
-                <input
+              <div className="flex flex-col gap-1">
+                <label
+                  htmlFor="apiKey-connected"
+                  className="font-medium text-sm text-foreground"
+                >
+                  API Key
+                </label>
+                <Input
                   type="password"
                   id="apiKey-connected"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder="sk-..."
+                  className="w-full"
                 />
               </div>
             )}
 
             {/* Model Selector */}
-            <div className="form-row">
-              <label htmlFor="model">Model</label>
-              <select
-                id="model"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
+            <div className="flex flex-col gap-1">
+              <label
+                htmlFor="model"
+                className="font-medium text-sm text-foreground"
               >
-                {availableModels.length === 0 ? (
-                  <option value={model}>{model}</option>
-                ) : (
-                  <>
-                    {!availableModels.includes(model) && model && (
-                      <option value={model}>{model}</option>
-                    )}
-                    {availableModels.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </>
-                )}
-              </select>
+                Model
+              </label>
+              <Select value={model} onValueChange={setModel}>
+                <SelectTrigger id="model" className="w-full h-9">
+                  <SelectValue placeholder="Select a model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableModels.length === 0 ? (
+                    <SelectItem value={model}>{model}</SelectItem>
+                  ) : (
+                    <>
+                      {!availableModels.includes(model) && model && (
+                        <SelectItem value={model}>{model}</SelectItem>
+                      )}
+                      {availableModels.map((m) => (
+                        <SelectItem key={m} value={m}>
+                          {m}
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Advanced Settings Toggle */}
             <Button
               variant="secondary"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              style={{ marginTop: '4px' }}
+              className="mt-1"
             >
               {showAdvanced ? 'Hide' : 'Show'} Advanced Settings
             </Button>
 
             {/* Per-Task Settings (collapsible) */}
             {showAdvanced && (
-              <div className="task-settings-section">
+              <div className="bg-muted border border-border rounded p-3 mt-1">
                 {/* Synthesis Settings */}
-                <div className="task-settings-group">
-                  <h4>Synthesis (Resume/Cover Letter)</h4>
-                  <p className="task-description">
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-foreground mb-1">
+                    Synthesis (Resume/Cover Letter)
+                  </h4>
+                  <p className="text-xs text-muted-foreground mb-2">
                     Higher creativity for document generation
                   </p>
-                  <div className="task-settings-row">
-                    <div className="form-row">
-                      <label htmlFor="synthesis-tokens">Max Tokens</label>
-                      <input
+                  <div className="flex gap-3">
+                    <div className="flex-1 flex flex-col gap-1">
+                      <label
+                        htmlFor="synthesis-tokens"
+                        className="font-medium text-sm text-foreground"
+                      >
+                        Max Tokens
+                      </label>
+                      <Input
                         type="number"
                         id="synthesis-tokens"
                         value={taskSettings.synthesis.maxTokens}
@@ -152,11 +187,17 @@ export function App() {
                         min={100}
                         max={32000}
                         step={100}
+                        className="w-full"
                       />
                     </div>
-                    <div className="form-row">
-                      <label htmlFor="synthesis-temp">Temperature</label>
-                      <input
+                    <div className="flex-1 flex flex-col gap-1">
+                      <label
+                        htmlFor="synthesis-temp"
+                        className="font-medium text-sm text-foreground"
+                      >
+                        Temperature
+                      </label>
+                      <Input
                         type="number"
                         id="synthesis-temp"
                         value={taskSettings.synthesis.temperature}
@@ -168,21 +209,29 @@ export function App() {
                         min={0}
                         max={2}
                         step={0.1}
+                        className="w-full"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Extraction Settings */}
-                <div className="task-settings-group">
-                  <h4>Extraction (Job Parsing)</h4>
-                  <p className="task-description">
+                <div className="mb-2">
+                  <h4 className="text-sm font-semibold text-foreground mb-1">
+                    Extraction (Job Parsing)
+                  </h4>
+                  <p className="text-xs text-muted-foreground mb-2">
                     Low creativity for consistent parsing
                   </p>
-                  <div className="task-settings-row">
-                    <div className="form-row">
-                      <label htmlFor="extraction-tokens">Max Tokens</label>
-                      <input
+                  <div className="flex gap-3">
+                    <div className="flex-1 flex flex-col gap-1">
+                      <label
+                        htmlFor="extraction-tokens"
+                        className="font-medium text-sm text-foreground"
+                      >
+                        Max Tokens
+                      </label>
+                      <Input
                         type="number"
                         id="extraction-tokens"
                         value={taskSettings.extraction.maxTokens}
@@ -194,11 +243,17 @@ export function App() {
                         min={100}
                         max={32000}
                         step={100}
+                        className="w-full"
                       />
                     </div>
-                    <div className="form-row">
-                      <label htmlFor="extraction-temp">Temperature</label>
-                      <input
+                    <div className="flex-1 flex flex-col gap-1">
+                      <label
+                        htmlFor="extraction-temp"
+                        className="font-medium text-sm text-foreground"
+                      >
+                        Temperature
+                      </label>
+                      <Input
                         type="number"
                         id="extraction-temp"
                         value={taskSettings.extraction.temperature}
@@ -210,6 +265,7 @@ export function App() {
                         min={0}
                         max={2}
                         step={0.1}
+                        className="w-full"
                       />
                     </div>
                   </div>
@@ -231,34 +287,42 @@ export function App() {
 
         {/* Error State - Show setup guide or API key prompt */}
         {status === 'error' && (
-          <div className="setup-guide">
+          <div className="bg-muted border border-border rounded p-4">
             {provider === 'local' ? (
               <>
-                <h3>Getting Started with LM Studio</h3>
-                <ol>
-                  <li>
+                <h3 className="text-sm font-semibold text-foreground mb-3">
+                  Getting Started with LM Studio
+                </h3>
+                <ol className="list-decimal pl-5 mb-3 space-y-2">
+                  <li className="text-sm text-foreground leading-relaxed">
                     Download from{' '}
                     <a
                       href="https://lmstudio.ai"
                       target="_blank"
                       rel="noopener noreferrer"
+                      className="text-primary hover:underline"
                     >
                       lmstudio.ai
                     </a>
                   </li>
-                  <li>Load a model (e.g., Qwen 2.5 7B)</li>
-                  <li>
+                  <li className="text-sm text-foreground leading-relaxed">
+                    Load a model (e.g., Qwen 2.5 7B)
+                  </li>
+                  <li className="text-sm text-foreground leading-relaxed">
                     Start the server: <strong>Developer → Start Server</strong>
                   </li>
-                  <li>Click refresh above</li>
+                  <li className="text-sm text-foreground leading-relaxed">
+                    Click refresh above
+                  </li>
                 </ol>
-                <p className="alt-provider">
+                <p className="text-xs text-muted-foreground mt-3">
                   <a
                     href="#"
                     onClick={(e) => {
                       e.preventDefault();
                       setServerUrl('https://api.openai.com');
                     }}
+                    className="text-primary hover:underline"
                   >
                     Using OpenAI or another provider?
                   </a>
@@ -266,19 +330,27 @@ export function App() {
               </>
             ) : (
               <>
-                <h3>API Key Required</h3>
-                <div className="form-row">
-                  <label htmlFor="apiKey-error">API Key</label>
-                  <input
+                <h3 className="text-sm font-semibold text-foreground mb-3">
+                  API Key Required
+                </h3>
+                <div className="flex flex-col gap-1 mb-2">
+                  <label
+                    htmlFor="apiKey-error"
+                    className="font-medium text-sm text-foreground"
+                  >
+                    API Key
+                  </label>
+                  <Input
                     type="password"
                     id="apiKey-error"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder="sk-..."
+                    className="w-full"
                   />
                 </div>
-                <p className="error-hint">{errorMessage}</p>
-                <p className="alt-provider">
+                <p className="text-xs text-destructive my-2">{errorMessage}</p>
+                <p className="text-xs text-muted-foreground mt-3">
                   <a
                     href="#"
                     onClick={(e) => {
@@ -286,6 +358,7 @@ export function App() {
                       setServerUrl(DEFAULT_ENDPOINT);
                       setApiKey('');
                     }}
+                    className="text-primary hover:underline"
                   >
                     Using LM Studio instead?
                   </a>
@@ -297,12 +370,16 @@ export function App() {
 
         {/* Loading State */}
         {status === 'loading' && (
-          <div className="loading-state">Connecting...</div>
+          <div className="text-center py-4 text-muted-foreground text-sm">
+            Connecting...
+          </div>
         )}
 
         {/* Idle State - Initial load */}
         {status === 'idle' && (
-          <div className="loading-state">Loading settings...</div>
+          <div className="text-center py-4 text-muted-foreground text-sm">
+            Loading settings...
+          </div>
         )}
       </div>
     </div>

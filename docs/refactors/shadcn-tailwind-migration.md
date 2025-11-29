@@ -11,24 +11,20 @@ Migrate from hand-rolled CSS components to shadcn/ui + Tailwind CSS for:
 
 **Principle:** Prefer shadcn/ui components over hand-rolled solutions wherever possible. New features must use shadcn primitives. Maintainability > custom code.
 
-## Current Status: ⏳ Phase 6 Pending
+## Current Status: ⏳ Phase 7 Pending
 
-**Completed (42 commits):**
+**Completed:**
 
 - All CSS files deleted (~5500 lines removed)
 - All components converted to Tailwind utilities
-- shadcn primitives integrated (Button, Dialog, Dropdown, Sidebar, Sheet, Tooltip, etc.)
+- shadcn primitives integrated (Button, Dialog, Dropdown, Sidebar, Sheet, Tooltip, AlertDialog, etc.)
 - Lucide icons replaced custom SVG icons
 - Color palette system with semantic tokens
 - Unified JobSidebar with responsive behavior
+- Phase 6.5: Raw HTML elements replaced with shadcn components
+- Phase 6.6: Arbitrary CSS values replaced with Tailwind defaults
 
 **Next:**
-
-- Phase 6: Replace remaining hand-rolled components with shadcn equivalents
-- Phase 6.5 (NEW): Replace raw HTML elements with shadcn components
-- Phase 6.6 (NEW): Replace arbitrary CSS values with Tailwind defaults
-
-**After Phase 6:**
 
 - Phase 7: Update documentation (COMPONENTS_REFERENCE.md, STYLE_GUIDE.md)
 - Manual testing across entrypoints
@@ -1245,22 +1241,18 @@ npx shadcn@latest add sonner
 
 #### High Priority
 
-- [ ] Replace 7 raw `<input>` in popup/App.tsx with Input component
-- [ ] Replace 1 raw `<input>` in SynthesisFooter.tsx with Input component
-- [ ] Replace 1 raw `<input>` in JobSelector.tsx with Input component
-- [ ] Replace 2 raw `<textarea>` with StreamingTextarea
-- [ ] Replace 2 styled `<a>` with Button asChild pattern
+- [x] Replace 7 raw `<input>` in popup/App.tsx with Input component
+- [x] Replace 1 raw `<input>` in SynthesisFooter.tsx with Input component
+- [x] Replace 1 raw `<input>` in JobSelector.tsx with Input component
+- [x] Replace 2 raw `<textarea>` with StreamingTextarea/Textarea
+- [x] Replace 2 styled `<a>` with Button asChild pattern
 
 #### Medium Priority
 
-- [ ] Replace 4 card-like divs with Card component
-- [ ] Refactor 5 over-styled buttons in profile/App.tsx
-- [ ] Refactor 2 over-styled buttons in job-details/App.tsx
-- [ ] Replace native alert()/confirm() with AlertDialog
-
-#### Low Priority
-
-- [ ] Implement toast system with Sonner
+- [x] Replace 4 card-like divs with Card component
+- [x] Refactor 5 over-styled buttons in profile/App.tsx
+- [x] Refactor 2 over-styled buttons in job-details/App.tsx
+- [x] Replace native alert()/confirm() with AlertDialog (useConfirmDialog hook + useAlertDialog hook)
 
 ---
 
@@ -1360,21 +1352,25 @@ These are intentional and appropriate:
 
 #### High Priority
 
-- [ ] Replace `w-[2px]` → `w-0.5` in sidebar.tsx
-- [ ] Replace `max-w-[320px]` → `max-w-xs` in checklist.tsx
-- [ ] Replace `max-w-[80px]` → `max-w-20` in JobFooter.tsx
-- [ ] Replace `min-w-[8rem]` → `min-w-32` in select.tsx and Dropdown.tsx
+- [x] Replace `w-[2px]` → `w-0.5` in sidebar.tsx
+- [x] Replace `max-w-[320px]` → `max-w-xs` in checklist.tsx
+- [x] Replace `max-w-[80px]` → `max-w-20` in JobFooter.tsx
+- [x] Replace `min-w-[8rem]` → `min-w-32` in select.tsx and Dropdown.tsx
+- [x] Replace `max-w-[400px] min-w-[280px]` → `max-w-sm min-w-72` in JobFooter.tsx
+- [x] Replace `max-w-[140px]` → `max-w-36` in JobFooter.tsx
+- [x] Replace `min-w-[200px]` → `min-w-52` in Dropdown.tsx
+- [x] Replace `max-w-[100px]` → `max-w-24` in NavigationButtons.tsx
 
 #### Medium Priority
 
-- [ ] Replace remaining arbitrary sizing values with nearest Tailwind default
-- [ ] Standardize z-index values (extend theme or use `z-50`)
-- [ ] Replace arbitrary shadows with `shadow-md`, `shadow-lg`
+- [x] Replace remaining arbitrary sizing values with nearest Tailwind default
+- [x] Standardize z-index values (kept intentional high z-index for modals in browser extension context)
+- [x] Replace arbitrary shadows with `shadow-md`, `shadow-lg` (Dropdown, NavigationButtons)
 
 #### Low Priority
 
 - [ ] Document intentional arbitrary values in STYLE_GUIDE.md
-- [ ] Consider adding custom utilities for upward shadows if pattern is reused
+- [x] Kept custom upward shadows where needed (JobFooter, TabBar) - no Tailwind equivalent
 
 ---
 
@@ -1400,9 +1396,9 @@ npx shadcn@latest add sonner
 | Phase 3: Domain components       | 3-4 hours       | ✅ Done    |
 | Phase 4: Custom components       | 1 hour          | ✅ Done    |
 | Phase 5: Cleanup                 | 30 min          | ✅ Done    |
-| Phase 6: shadcn adoption         | 3-4 hours       | ⏳ Pending |
-| **Phase 6.5: Raw HTML → shadcn** | **2-3 hours**   | ⏳ **NEW** |
-| **Phase 6.6: Arbitrary CSS**     | **1-2 hours**   | ⏳ **NEW** |
+| Phase 6: shadcn adoption         | 3-4 hours       | ✅ Done    |
+| **Phase 6.5: Raw HTML → shadcn** | **2-3 hours**   | ✅ Done    |
+| **Phase 6.6: Arbitrary CSS**     | **1-2 hours**   | ✅ Done    |
 | Phase 7: Documentation           | 1 hour          | ⏳ Pending |
 | Testing                          | 1-2 hours       | ⏳ Pending |
 | **Total**                        | **16-22 hours** |            |

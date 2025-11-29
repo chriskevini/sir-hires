@@ -42,7 +42,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
               } as React.CSSProperties
             }
           >
-            <span className="text-xs font-semibold text-[var(--nav-color,var(--status-researching))] uppercase tracking-wide leading-tight text-center max-w-[100px] break-words">
+            <span className="text-xs font-semibold text-[var(--nav-color,var(--status-researching))] uppercase tracking-wide leading-tight text-center max-w-24 break-words">
               {leftButton.label}
             </span>
             <button
@@ -50,8 +50,8 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
                 'flex items-center justify-center bg-background',
                 'border-2 border-[var(--nav-color,var(--status-researching))] rounded-full',
                 'w-20 h-20 cursor-pointer transition-all duration-200',
-                'shadow-[0_2px_8px_rgba(0,0,0,0.1)] p-0',
-                'hover:bg-[var(--nav-color,var(--status-researching))] hover:scale-105 hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)]',
+                'shadow-md p-0',
+                'hover:bg-[var(--nav-color,var(--status-researching))] hover:scale-105 hover:shadow-lg',
                 'group'
               )}
               onClick={() => onNavigate(leftButton.target, 'backward')}
@@ -89,7 +89,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
               } as React.CSSProperties
             }
           >
-            <span className="text-xs font-semibold text-[var(--nav-color,var(--status-researching))] uppercase tracking-wide leading-tight text-center max-w-[100px] break-words">
+            <span className="text-xs font-semibold text-[var(--nav-color,var(--status-researching))] uppercase tracking-wide leading-tight text-center max-w-24 break-words">
               {button.label}
             </span>
             <button
@@ -97,8 +97,8 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
                 'flex items-center justify-center bg-background',
                 'border-2 border-[var(--nav-color,var(--status-researching))] rounded-full',
                 'w-20 h-20 cursor-pointer transition-all duration-200',
-                'shadow-[0_2px_8px_rgba(0,0,0,0.1)] p-0',
-                'hover:bg-[var(--nav-color,var(--status-researching))] hover:scale-105 hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)]',
+                'shadow-md p-0',
+                'hover:bg-[var(--nav-color,var(--status-researching))] hover:scale-105 hover:shadow-lg',
                 'group'
               )}
               onClick={() => onNavigate(button.target, 'forward')}

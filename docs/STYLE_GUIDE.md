@@ -518,11 +518,25 @@ Use in Tailwind classes:
 3. **Use CVA for variants:** Don't write manual conditional class logic
 4. **Prefer Tailwind over custom CSS:** Only use custom CSS for complex animations
 5. **Import globals.css once:** In each entrypoint's `main.tsx`
+6. **Prefer Tailwind defaults over arbitrary values:** Use standard spacing/sizing
 
 ```tsx
 // src/entrypoints/popup/main.tsx
 import '@/styles/globals.css'; // Import once per entrypoint
 ```
+
+### Intentional Arbitrary Values
+
+Some arbitrary values are intentional for specific design requirements:
+
+| Pattern                          | Reason                                          |
+| -------------------------------- | ----------------------------------------------- |
+| `z-[10000]`                      | High z-index for modals to overlay extension UI |
+| `w-[90%]`, `max-h-[90vh]`        | Viewport-relative sizing for responsive modals  |
+| `shadow-[0_-2px_8px_...]`        | Upward shadows for sticky footers/headers       |
+| `border-[8px_solid_transparent]` | CSS triangles for dropdown carets               |
+
+**Do NOT replace these** - they serve specific design purposes. Only replace arbitrary values that have close Tailwind equivalents (e.g., `max-w-[400px]` → `max-w-sm`).
 
 ---
 
@@ -695,12 +709,80 @@ import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 />;
 ```
 
+### Confirmation Dialogs (AlertDialog)
+
+Use `AlertDialog` for confirmations instead of native `window.confirm()`:
+
+```tsx
+// Imperative pattern with useConfirmDialog hook
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
+
+function MyComponent() {
+  const { dialogState, confirm, closeDialog, handleOpenChange } =
+    useConfirmDialog();
+
+  const handleDelete = async () => {
+    const confirmed = await confirm({
+      title: 'Delete Job',
+      description: 'This action cannot be undone.',
+      variant: 'destructive',
+    });
+    if (confirmed) {
+      await deleteJob();
+    }
+  };
+
+  return (
+    <>
+      <Button onClick={handleDelete}>Delete</Button>
+
+      <AlertDialog open={dialogState.isOpen} onOpenChange={handleOpenChange}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{dialogState.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {dialogState.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={closeDialog}>
+              {dialogState.cancelLabel}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={dialogState.onConfirm}
+              className={
+                dialogState.variant === 'destructive' ? 'bg-destructive' : ''
+              }
+            >
+              {dialogState.confirmLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+```
+
+**See:** [COMPONENTS_REFERENCE.md](./COMPONENTS_REFERENCE.md#3-alertdialog) and [HOOKS_REFERENCE.md](./HOOKS_REFERENCE.md#useconfirmdialog) for complete API.
+
 ### Best Practices
 
 1. **Use the simple wrapper** (`Modal`, `Dropdown`) for standard use cases
 2. **Use primitives** only when you need custom layout or behavior
 3. **Apply Tailwind classes** directly to primitives for custom styling
 4. **Never build modal/dropdown from scratch** - always use Radix primitives
+5. **Use AlertDialog with hooks** for confirmation patterns instead of `window.confirm()`
 
 ---
 
@@ -713,5 +795,5 @@ import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 
 ---
 
-**Last Updated:** November 28, 2024  
+**Last Updated:** November 28, 2024 (Added AlertDialog patterns and intentional arbitrary values)
 **Maintained By:** Sir Hires Development Team

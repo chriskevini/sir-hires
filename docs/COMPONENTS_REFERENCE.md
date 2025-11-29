@@ -215,7 +215,116 @@ import { Button } from '@/components/ui/Button';
 
 ---
 
-### 2. CollapsiblePanel
+### 3. AlertDialog
+
+**File:** `src/components/ui/alert-dialog.tsx`
+
+**Purpose:** Accessible confirmation dialog built on **Radix AlertDialog** for destructive actions that require explicit user confirmation.
+
+**When to Use:**
+
+- Destructive actions (delete, overwrite, restore)
+- Actions that cannot be undone
+- Any action that requires explicit confirmation before proceeding
+
+**Exports:**
+
+```typescript
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
+```
+
+**Real Usage Example:**
+
+```typescript
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/Button';
+
+<AlertDialog>
+  <AlertDialogTrigger asChild>
+    <Button variant="danger">Delete All Jobs</Button>
+  </AlertDialogTrigger>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+      <AlertDialogDescription>
+        This will permanently delete all jobs. This action cannot be undone.
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Cancel</AlertDialogCancel>
+      <AlertDialogAction onClick={handleDeleteAll}>
+        Delete All
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+```
+
+**For programmatic confirm dialogs, use `useConfirmDialog` hook:**
+
+```typescript
+import { useConfirmDialog, ConfirmDialog } from '@/hooks/useConfirmDialog';
+
+const { confirm, dialogState, handleConfirm, handleCancel } = useConfirmDialog();
+
+// In event handler
+const handleDelete = async () => {
+  const confirmed = await confirm({
+    title: 'Delete Job',
+    description: 'Are you sure you want to delete this job?',
+    confirmText: 'Delete',
+    cancelText: 'Cancel',
+    variant: 'danger',
+  });
+  if (confirmed) {
+    // perform delete
+  }
+};
+
+// In JSX
+<ConfirmDialog
+  state={dialogState}
+  onConfirm={handleConfirm}
+  onCancel={handleCancel}
+/>
+```
+
+**Key Features:**
+
+- ✅ Built on Radix AlertDialog (accessible, focus-trapped)
+- ✅ Requires explicit action (no click-outside to dismiss)
+- ✅ Escape key cancels the dialog
+- ✅ Styled with Tailwind CSS
+- ✅ Supports both declarative (trigger-based) and imperative (Promise-based) usage
+
+**Anti-Pattern:**
+
+❌ Using native `window.confirm()` or `window.alert()`  
+✅ Use `AlertDialog` or `useConfirmDialog` hook for consistent UX
+
+---
+
+### 4. CollapsiblePanel
 
 **File:** `src/components/ui/CollapsiblePanel.tsx:15`
 

@@ -19,6 +19,18 @@ import { DuplicateJobModal } from '@/components/features/DuplicateJobModal';
 import { checklistTemplates, defaults } from '@/config';
 import { jobsStorage, restoreStorageFromBackup } from '../../utils/storage';
 import { generateItemId } from '../../utils/shared-utils';
+import { buttonVariants } from '@/components/ui/Button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
+import { useConfirmDialog, useAlertDialog } from '../../hooks/useConfirmDialog';
 
 /**
  * Create default checklist for all statuses (adapter for useJobExtraction)
@@ -154,6 +166,16 @@ export const App: React.FC = () => {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [selectorOpen, setSelectorOpen] = useState(false);
 
+  // Dialog state for confirmations
+  const {
+    dialogState: confirmState,
+    confirm,
+    closeDialog: closeConfirm,
+  } = useConfirmDialog();
+
+  // Dialog state for alerts
+  const { alertState, alert, closeAlert } = useAlertDialog();
+
   // Derive current job from store
   const currentJob = useMemo(() => {
     if (!store.jobInFocusId) return null;
@@ -220,8 +242,8 @@ export const App: React.FC = () => {
     currentJob
   );
 
-  // Use backup/restore hook with adapter
-  const backup = useBackupRestore(backupStorageAdapter);
+  // Use backup/restore hook with adapter and dialog callbacks
+  const backup = useBackupRestore(backupStorageAdapter, { confirm, alert });
 
   /**
    * Open job details in full page
@@ -236,9 +258,15 @@ export const App: React.FC = () => {
    */
   const handleDeleteJob = useCallback(async () => {
     if (!currentJob) return;
-    if (!confirm('Are you sure you want to delete this job?')) return;
+    const confirmed = await confirm({
+      title: 'Delete Job',
+      description: 'Are you sure you want to delete this job?',
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+    });
+    if (!confirmed) return;
     await store.deleteJob(currentJob.id);
-  }, [currentJob, store]);
+  }, [currentJob, store, confirm]);
 
   /**
    * Handle saving a field on a job (ID-based)
@@ -307,10 +335,16 @@ export const App: React.FC = () => {
    */
   const handleDeleteJobFromSelector = useCallback(
     async (jobId: string) => {
-      if (!confirm('Are you sure you want to delete this job?')) return;
+      const confirmed = await confirm({
+        title: 'Delete Job',
+        description: 'Are you sure you want to delete this job?',
+        confirmLabel: 'Delete',
+        variant: 'destructive',
+      });
+      if (!confirmed) return;
       await store.deleteJob(jobId);
     },
-    [store]
+    [store, confirm]
   );
 
   /**
@@ -421,6 +455,56 @@ export const App: React.FC = () => {
         onExtractNew={extraction.handleExtractNew}
         onCancelDuplicate={extraction.handleCancelDuplicate}
       />
+
+      {/* Confirmation Dialog */}
+      <AlertDialog
+        open={confirmState.isOpen}
+        onOpenChange={(open) => !open && closeConfirm()}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmState.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmState.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={closeConfirm}>
+              {confirmState.cancelLabel}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmState.onConfirm}
+              className={
+                confirmState.variant === 'destructive'
+                  ? buttonVariants({ variant: 'danger' })
+                  : undefined
+              }
+            >
+              {confirmState.confirmLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Alert Dialog */}
+      <AlertDialog
+        open={alertState.isOpen}
+        onOpenChange={(open) => !open && closeAlert()}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{alertState.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {alertState.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={closeAlert}>
+              {alertState.buttonLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ParsedJobProvider>
   );
 };

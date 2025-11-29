@@ -70,7 +70,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
             'absolute bottom-full left-1/2 -translate-x-1/2',
             'bg-background border border-border rounded-lg',
             'shadow-[0_-4px_16px_rgba(0,0,0,0.12)]',
-            'max-w-[400px] min-w-[280px] w-max mb-2',
+            'max-w-sm min-w-72 w-max mb-2',
             'overflow-visible animate-in fade-in slide-in-from-bottom-2 duration-200',
             // Arrow pointing down
             'after:content-[""] after:absolute after:-bottom-1.5 after:left-1/2 after:-translate-x-1/2',
@@ -139,7 +139,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
               title={navButtons.left.label}
             >
               <span className="text-sm leading-none">←</span>
-              <span className="max-w-[140px] overflow-hidden text-ellipsis max-[480px]:max-w-[80px] max-[360px]:hidden">
+              <span className="max-w-36 overflow-hidden text-ellipsis max-[480px]:max-w-20 max-[360px]:hidden">
                 {navButtons.left.label}
               </span>
             </Button>
@@ -197,7 +197,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
                 style={{ '--nav-color': targetColor } as React.CSSProperties}
                 title={button.label}
               >
-                <span className="max-w-[140px] overflow-hidden text-ellipsis max-[480px]:max-w-20 max-[360px]:hidden">
+                <span className="max-w-36 overflow-hidden text-ellipsis max-[480px]:max-w-20 max-[360px]:hidden">
                   {button.label}
                 </span>
                 <span className="text-sm leading-none">→</span>

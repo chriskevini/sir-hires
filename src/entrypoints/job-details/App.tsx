@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useState } from 'react';
-import { Button } from '@/components/ui/Button';
+import { Button, buttonVariants } from '@/components/ui/Button';
 import { ResearchingView } from './views/ResearchingView';
 import { DraftingView } from './views/DraftingView';
 import { useJobStore } from './hooks';
@@ -12,6 +12,17 @@ import { JobSelector } from '../../components/features/JobSelector';
 import { initDevModeValidation } from '../../utils/dev-validators';
 import { Dropdown } from '../../components/ui/Dropdown';
 import { ChevronLeft, ChevronRight, User } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
+import { useConfirmDialog, useAlertDialog } from '../../hooks/useConfirmDialog';
 import {
   getAllStorageData,
   restoreStorageFromBackup,
@@ -35,6 +46,14 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
 
   const [error, _setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Dialog state for confirmations and alerts
+  const {
+    dialogState: confirmState,
+    confirm,
+    closeDialog: closeConfirm,
+  } = useConfirmDialog();
+  const { alertState, alert: showAlert, closeAlert } = useAlertDialog();
 
   // Load sidebar open state from storage on mount (stored as "collapsed")
   useEffect(() => {
@@ -70,14 +89,20 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
    */
   const handleDeleteJob = useCallback(
     async (jobId: string) => {
-      if (!confirm('Are you sure you want to delete this job?')) {
+      const confirmed = await confirm({
+        title: 'Delete Job',
+        description: 'Are you sure you want to delete this job?',
+        confirmLabel: 'Delete',
+        variant: 'destructive',
+      });
+      if (!confirmed) {
         return;
       }
 
       await store.deleteJob(jobId);
       console.info(`[App] Deleted job ${jobId}`);
     },
-    [store]
+    [store, confirm]
   );
 
   /**
@@ -199,9 +224,12 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
       console.info(`Backup created: ${filename}`);
     } catch (err) {
       console.error('Error creating backup:', err);
-      alert('Failed to create backup. See console for details.');
+      showAlert({
+        title: 'Backup Failed',
+        description: 'Failed to create backup. See console for details.',
+      });
     }
-  }, []);
+  }, [showAlert]);
 
   /**
    * Restore backup from uploaded JSON file
@@ -228,54 +256,78 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
           keys: Object.keys(backup).slice(0, 10),
         });
 
-        const confirmed = confirm(
-          'This will overwrite all current data. Are you sure you want to restore this backup?'
-        );
+        const confirmed = await confirm({
+          title: 'Restore Backup',
+          description:
+            'This will overwrite all current data. Are you sure you want to restore this backup?',
+          confirmLabel: 'Restore',
+          variant: 'destructive',
+        });
         if (!confirmed) return;
 
         await restoreStorageFromBackup(data);
         console.info('Backup restored successfully');
-        alert('Backup restored! The page will now reload.');
-        window.location.reload();
+        showAlert({
+          title: 'Backup Restored',
+          description: 'Backup restored! The page will now reload.',
+        });
+        setTimeout(() => window.location.reload(), 1500);
       } catch (err) {
         console.error('Error restoring backup:', err);
         console.error('Error details:', {
           message: err instanceof Error ? err.message : String(err),
           fileName: file.name,
         });
-        alert(
-          'Failed to restore backup. Check the console for details. Make sure the file is a valid JSON backup.'
-        );
+        showAlert({
+          title: 'Restore Failed',
+          description:
+            'Failed to restore backup. Check the console for details. Make sure the file is a valid JSON backup.',
+        });
       }
     };
 
     input.click();
-  }, []);
+  }, [confirm, showAlert]);
 
   /**
    * Delete all storage data (with double confirmation)
    */
   const handleDeleteAll = useCallback(async () => {
-    const firstConfirm = confirm(
-      'WARNING: This will permanently delete ALL jobs and data. This cannot be undone. Are you sure?'
-    );
-    if (!firstConfirm) return;
+    const firstConfirmed = await confirm({
+      title: 'Delete All Data',
+      description:
+        'WARNING: This will permanently delete ALL jobs and data. This cannot be undone. Are you sure?',
+      confirmLabel: 'Continue',
+      variant: 'destructive',
+    });
+    if (!firstConfirmed) return;
 
-    const secondConfirm = confirm(
-      'FINAL WARNING: This is your last chance to cancel. Delete everything?'
-    );
-    if (!secondConfirm) return;
+    const secondConfirmed = await confirm({
+      title: 'Final Confirmation',
+      description:
+        'FINAL WARNING: This is your last chance to cancel. Delete everything?',
+      confirmLabel: 'Delete Everything',
+      variant: 'destructive',
+    });
+    if (!secondConfirmed) return;
 
     try {
       await clearAllStorage();
       console.info('All storage cleared');
-      alert('All data has been deleted. The page will now reload.');
-      window.location.reload();
+      showAlert({
+        title: 'Data Deleted',
+        description: 'All data has been deleted. The page will now reload.',
+      });
+      // Delay reload slightly so user sees the alert
+      setTimeout(() => window.location.reload(), 1500);
     } catch (err) {
       console.error('Error clearing storage:', err);
-      alert('Failed to clear storage. See console for details.');
+      showAlert({
+        title: 'Error',
+        description: 'Failed to clear storage. See console for details.',
+      });
     }
-  }, []);
+  }, [confirm, showAlert]);
 
   /**
    * Initialize app on mount
@@ -464,6 +516,56 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog
+        open={confirmState.isOpen}
+        onOpenChange={(open) => !open && closeConfirm()}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmState.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmState.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={closeConfirm}>
+              {confirmState.cancelLabel}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmState.onConfirm}
+              className={
+                confirmState.variant === 'destructive'
+                  ? buttonVariants({ variant: 'danger' })
+                  : undefined
+              }
+            >
+              {confirmState.confirmLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Simple Alert Dialog */}
+      <AlertDialog
+        open={alertState.isOpen}
+        onOpenChange={(open) => !open && closeAlert()}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{alertState.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {alertState.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={closeAlert}>
+              {alertState.buttonLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

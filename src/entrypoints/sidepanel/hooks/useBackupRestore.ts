@@ -9,11 +9,26 @@ export interface BackupStorage {
   }) => Promise<void>;
 }
 
+export interface BackupDialogCallbacks {
+  /** Show a confirmation dialog, returns true if confirmed */
+  confirm: (options: {
+    title: string;
+    description: string;
+    confirmLabel?: string;
+    variant?: 'default' | 'destructive';
+  }) => Promise<boolean>;
+  /** Show an alert dialog */
+  alert: (options: { title: string; description: string }) => Promise<void>;
+}
+
 /**
  * Custom hook for backup restoration functionality
  * Handles file selection, validation, and restoration
  */
-export function useBackupRestore(storage: BackupStorage) {
+export function useBackupRestore(
+  storage: BackupStorage,
+  dialogs: BackupDialogCallbacks
+) {
   /**
    * Restore backup from a JSON file (for empty state)
    */
@@ -36,7 +51,10 @@ export function useBackupRestore(storage: BackupStorage) {
 
         // Basic validation - check if backup has jobs field
         if (!backupData || typeof backupData !== 'object') {
-          alert('Invalid backup file format.');
+          await dialogs.alert({
+            title: 'Invalid Backup',
+            description: 'Invalid backup file format.',
+          });
           return;
         }
 
@@ -45,9 +63,15 @@ export function useBackupRestore(storage: BackupStorage) {
         const backupDate = backup.exportDate
           ? new Date(backup.exportDate).toLocaleString()
           : 'unknown date';
-        const confirmMsg = `This will overwrite all your current data with the backup from ${backupDate}.\n\nBackup contains ${jobCount} job(s).\n\nThis cannot be undone. Continue?`;
 
-        if (!confirm(confirmMsg)) {
+        const confirmed = await dialogs.confirm({
+          title: 'Restore Backup',
+          description: `This will overwrite all your current data with the backup from ${backupDate}. Backup contains ${jobCount} job(s). This cannot be undone.`,
+          confirmLabel: 'Restore',
+          variant: 'destructive',
+        });
+
+        if (!confirmed) {
           return;
         }
 
@@ -64,7 +88,10 @@ export function useBackupRestore(storage: BackupStorage) {
         await storage.restoreBackup(normalizedData);
 
         console.info('[useBackupRestore] Backup restored successfully');
-        alert('Backup restored successfully! Reloading...');
+        await dialogs.alert({
+          title: 'Success',
+          description: 'Backup restored successfully! Reloading...',
+        });
 
         // Reload
         setTimeout(() => {
@@ -72,12 +99,15 @@ export function useBackupRestore(storage: BackupStorage) {
         }, 1000);
       } catch (error) {
         console.error('[useBackupRestore] Error restoring backup:', error);
-        alert('Error restoring backup: ' + (error as Error).message);
+        await dialogs.alert({
+          title: 'Error',
+          description: 'Error restoring backup: ' + (error as Error).message,
+        });
       }
     };
 
     input.click();
-  }, [storage]);
+  }, [storage, dialogs]);
 
   return {
     handleRestoreBackup,

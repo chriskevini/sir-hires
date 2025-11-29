@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 export type ConfirmDialogVariant = 'default' | 'destructive';
 
@@ -59,14 +59,20 @@ const defaultState: ConfirmDialogState = {
 export function useConfirmDialog() {
   const [dialogState, setDialogState] =
     useState<ConfirmDialogState>(defaultState);
+  const resolveRef = useRef<((value: boolean) => void) | null>(null);
 
   const closeDialog = useCallback(() => {
     setDialogState((prev) => ({ ...prev, isOpen: false }));
+    if (resolveRef.current) {
+      resolveRef.current(false);
+      resolveRef.current = null;
+    }
   }, []);
 
   const confirm = useCallback(
     (options: ConfirmDialogOptions): Promise<boolean> => {
       return new Promise((resolve) => {
+        resolveRef.current = resolve;
         setDialogState({
           isOpen: true,
           title: options.title,
@@ -76,12 +82,10 @@ export function useConfirmDialog() {
           variant: options.variant ?? 'default',
           onConfirm: () => {
             resolve(true);
+            resolveRef.current = null;
             setDialogState((prev) => ({ ...prev, isOpen: false }));
           },
         });
-
-        // Handle cancel case - we need to resolve false when dialog closes without confirm
-        // This is handled by the onOpenChange in the dialog component
       });
     },
     []
@@ -90,9 +94,6 @@ export function useConfirmDialog() {
   const handleOpenChange = useCallback(
     (open: boolean) => {
       if (!open) {
-        // Dialog was closed without confirming - resolve the promise as false
-        // We don't have direct access to the promise resolver here, so we need
-        // to handle this in the component that uses this hook
         closeDialog();
       }
     },

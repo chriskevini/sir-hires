@@ -53,9 +53,8 @@ interface UseJobFiltersOptions<T extends FilterableJob> {
 /**
  * useJobFilters - Reusable hook for job filtering, searching, and sorting
  *
- * Extracts duplicated filter logic from:
- * - src/components/features/JobSelector.tsx
- * - src/entrypoints/job-details/App.tsx
+ * Used by:
+ * - src/components/features/JobSidebar.tsx (JobListContent)
  *
  * Features:
  * - Search by job title or company name

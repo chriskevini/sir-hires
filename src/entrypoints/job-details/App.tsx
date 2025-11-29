@@ -8,12 +8,10 @@ import {
   ParsedJobProvider,
   useGetParsedJob,
 } from '../../components/features/ParsedJobProvider';
-import { JobCard } from '../../components/features/JobCard';
+import { JobSidebarLayout } from '../../components/features/JobSidebar';
 import { initDevModeValidation } from '../../utils/dev-validators';
-import { StatusFilterDots } from '../../components/features/StatusFilterDots';
-import { SortIconButtons } from '../../components/features/SortIconButtons';
 import { Dropdown } from '../../components/ui/Dropdown';
-import { ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { PanelLeft, User } from 'lucide-react';
 import {
   getAllStorageData,
   restoreStorageFromBackup,
@@ -21,7 +19,6 @@ import {
   sidebarCollapsedStorage,
 } from '../../utils/storage';
 import { defaults } from '@/config';
-import { useJobFilters } from '@/hooks/useJobFilters';
 import type { JobStore } from './hooks/useJobStore';
 import type { Job } from './hooks';
 
@@ -36,35 +33,20 @@ interface AppContentProps {
 const AppContent: React.FC<AppContentProps> = ({ store }) => {
   const getParsedJob = useGetParsedJob();
 
-  // Use shared job filtering hook
-  const {
-    searchTerm,
-    setSearchTerm,
-    statusFilters,
-    setStatusFilters,
-    sortField,
-    sortDirection,
-    handleSortChange,
-    filteredJobs,
-    totalCount,
-    filteredCount,
-  } = useJobFilters({ jobs: store.jobs, getParsedJob });
-
   const [error, _setError] = useState<string | null>(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Load sidebar collapsed state from storage on mount
+  // Load sidebar collapsed state from storage on mount (inverted: collapsed = !open)
   useEffect(() => {
-    sidebarCollapsedStorage.getValue().then(setSidebarCollapsed);
+    sidebarCollapsedStorage.getValue().then((collapsed) => {
+      setSidebarOpen(!collapsed);
+    });
   }, []);
 
-  // Handle sidebar toggle with storage persistence
-  const handleSidebarToggle = useCallback(() => {
-    setSidebarCollapsed((prev) => {
-      const newValue = !prev;
-      sidebarCollapsedStorage.setValue(newValue);
-      return newValue;
-    });
+  // Handle sidebar open state change with storage persistence
+  const handleSidebarOpenChange = useCallback((open: boolean) => {
+    setSidebarOpen(open);
+    sidebarCollapsedStorage.setValue(!open);
   }, []);
 
   // ============================================================================
@@ -157,21 +139,14 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   );
 
   /**
-   * Select a job by index in filtered list
+   * Select a job by ID
    */
-  const selectJob = useCallback(
-    async (filteredIndex: number) => {
-      const job = filteredJobs[filteredIndex];
-
-      if (!job) {
-        console.error('Job not found at filtered index:', filteredIndex);
-        return;
-      }
-
+  const handleSelectJob = useCallback(
+    async (jobId: string) => {
       // Find global index
-      const globalIndex = store.jobs.findIndex((j: Job) => j.id === job.id);
+      const globalIndex = store.jobs.findIndex((j: Job) => j.id === jobId);
       if (globalIndex === -1) {
-        console.error('Job not found in jobs array');
+        console.error('Job not found in jobs array:', jobId);
         return;
       }
 
@@ -179,12 +154,10 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
       store.setSelectedIndex(globalIndex);
 
       // Set as job in focus
-      if (job.id) {
-        await store.setJobInFocus(job.id);
-        console.info(`Set job ${job.id} as job in focus`);
-      }
+      await store.setJobInFocus(jobId);
+      console.info(`Set job ${jobId} as job in focus`);
     },
-    [filteredJobs, store]
+    [store]
   );
 
   /**
@@ -314,10 +287,10 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   }, []);
 
   /**
-   * Auto-select job after filtering or when jobInFocus changes
+   * Auto-select job when jobInFocus changes
    */
   useEffect(() => {
-    if (filteredJobs.length === 0) {
+    if (store.jobs.length === 0) {
       store.setSelectedIndex(-1);
       return;
     }
@@ -342,12 +315,13 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
     // Priority 3: First job
     store.setSelectedIndex(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    filteredJobs.length,
-    store.jobInFocusId,
-    store.selectedJobIndex,
-    store.jobs.length,
-  ]);
+  }, [store.jobInFocusId, store.selectedJobIndex, store.jobs.length]);
+
+  // Get selected job ID for sidebar
+  const selectedJobId =
+    store.selectedJobIndex >= 0 && store.selectedJobIndex < store.jobs.length
+      ? store.jobs[store.selectedJobIndex]?.id || null
+      : null;
 
   /**
    * Get the view component for the current job
@@ -369,9 +343,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
         onToggleChecklistExpand={handleChecklistToggleExpand}
         onToggleChecklistItem={handleChecklistToggleItem}
         emptyStateMessage={
-          filteredJobs.length === 0
-            ? 'No jobs match your filters'
-            : 'No job selected'
+          store.jobs.length === 0 ? 'No jobs yet' : 'No job selected'
         }
       />
     );
@@ -419,121 +391,65 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   // Main app UI
   console.info('[Render] Main app UI', {
     allJobs: store.jobs.length,
-    filteredJobs: filteredJobs.length,
     selectedIndex: store.selectedJobIndex,
   });
 
   return (
-    <div className="max-w-full h-screen m-0 bg-background flex flex-col">
-      {/* Header with branding and action buttons */}
-      <header className="flex justify-between items-center py-3 px-6 border-b border-border bg-background shrink-0">
-        <div className="flex items-baseline gap-3">
-          <Button
-            variant="ghost"
-            className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
-            onClick={handleSidebarToggle}
-            title={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
-            aria-label={sidebarCollapsed ? 'Show sidebar' : 'Hide sidebar'}
-          >
-            {sidebarCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
-          </Button>
-          <h1 className="text-lg font-semibold text-foreground">Sir Hires</h1>
-        </div>
-        <div className="flex gap-1 items-center">
-          <Button
-            variant="ghost"
-            className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
-            onClick={handleProfileClick}
-            title="Profile"
-          >
-            <User className="h-5 w-5" />
-          </Button>
-          <Dropdown
-            buttonLabel="More options"
-            buttonIcon="⋮"
-            iconOnly={true}
-            items={[
-              {
-                label: 'Create Backup',
-                onClick: handleCreateBackup,
-              },
-              {
-                label: 'Restore Backup',
-                onClick: handleRestoreBackup,
-              },
-              {
-                label: 'Delete All',
-                onClick: handleDeleteAll,
-                variant: 'danger',
-              },
-            ]}
-          />
-        </div>
-      </header>
-
-      {/* Main content area */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar with filters and job list */}
-        <div
-          className={`${sidebarCollapsed ? 'w-0' : 'w-80'} border-r border-border flex flex-col bg-background shrink-0 transition-[width] duration-200 ease-in-out overflow-hidden ${sidebarCollapsed ? 'border-r-0' : ''}`}
-        >
-          <div className="p-4 border-b border-border bg-background">
-            <div className="flex flex-col gap-3">
-              <input
-                type="text"
-                id="searchInput"
-                className="py-2 px-3 border border-border rounded text-sm w-full focus:outline-none focus:border-primary"
-                placeholder="Search jobs..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <div className="flex items-center justify-center">
-                <StatusFilterDots
-                  selectedStatuses={statusFilters}
-                  onChange={setStatusFilters}
-                />
-              </div>
-              <div className="flex items-center justify-center">
-                <SortIconButtons
-                  sortField={sortField}
-                  sortDirection={sortDirection}
-                  onChange={handleSortChange}
-                />
-              </div>
-              <div className="flex items-center justify-start">
-                <span className="text-xs italic text-muted-foreground">
-                  {filteredCount} of {totalCount} jobs
-                </span>
-              </div>
-            </div>
+    <JobSidebarLayout
+      jobs={store.jobs}
+      selectedJobId={selectedJobId}
+      onSelectJob={handleSelectJob}
+      onDeleteJob={handleDeleteJob}
+      getParsedJob={getParsedJob}
+      open={sidebarOpen}
+      onOpenChange={handleSidebarOpenChange}
+    >
+      <div className="flex flex-col h-full">
+        {/* Header with branding and action buttons */}
+        <header className="flex justify-between items-center py-3 px-6 border-b border-border bg-background shrink-0">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
+              onClick={() => handleSidebarOpenChange(!sidebarOpen)}
+              title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+              aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+            >
+              <PanelLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-lg font-semibold text-foreground">Sir Hires</h1>
           </div>
-          <div className="flex-1 overflow-y-auto p-2" id="jobsList">
-            {filteredJobs.map((job: Job, filteredIndex: number) => {
-              const globalIndex = store.jobs.findIndex(
-                (j: Job) => j.id === job.id
-              );
-              const isSelected = globalIndex === store.selectedJobIndex;
-              const parsed = getParsedJob(job.id);
-              const status = job.applicationStatus || defaults.status;
-
-              return (
-                <JobCard
-                  key={job.id}
-                  jobId={job.id}
-                  parsed={parsed}
-                  status={status}
-                  isSelected={isSelected}
-                  onClick={() => selectJob(filteredIndex)}
-                  onDelete={() => handleDeleteJob(job.id)}
-                />
-              );
-            })}
+          <div className="flex gap-1 items-center">
+            <Button
+              variant="ghost"
+              className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
+              onClick={handleProfileClick}
+              title="Profile"
+            >
+              <User className="h-5 w-5" />
+            </Button>
+            <Dropdown
+              buttonLabel="More options"
+              buttonIcon="⋮"
+              iconOnly={true}
+              items={[
+                {
+                  label: 'Create Backup',
+                  onClick: handleCreateBackup,
+                },
+                {
+                  label: 'Restore Backup',
+                  onClick: handleRestoreBackup,
+                },
+                {
+                  label: 'Delete All',
+                  onClick: handleDeleteAll,
+                  variant: 'danger',
+                },
+              ]}
+            />
           </div>
-        </div>
+        </header>
 
         {/* Detail panel */}
         <div className="relative flex-1 overflow-hidden">
@@ -545,7 +461,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
           </div>
         </div>
       </div>
-    </div>
+    </JobSidebarLayout>
   );
 };
 

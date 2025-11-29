@@ -8,7 +8,7 @@ import {
   ParsedJobProvider,
   useGetParsedJob,
 } from '../../components/features/ParsedJobProvider';
-import { JobSelector } from '../../components/features/JobSelector';
+import { JobSidebarOverlay } from '../../components/features/JobSidebar';
 import { SidepanelHeader } from '../../components/features/SidepanelHeader';
 import type { Job, ChecklistItem } from '../job-details/hooks';
 import { useJobExtraction, useBackupRestore } from './hooks';
@@ -109,21 +109,21 @@ function SidepanelContent({
         company={company}
       />
 
-      {/* Main content area with JobSelector overlay */}
+      {/* Main content area with JobSidebarOverlay */}
       <div className="flex-1 relative overflow-hidden flex flex-col">
         {mainContent}
-
-        {/* Job selector overlay - positioned relative to content area */}
-        <JobSelector
-          jobs={jobs}
-          selectedJobId={selectedJobId}
-          onSelectJob={onSelectJob}
-          onDeleteJob={onDeleteJobFromSelector}
-          isOpen={selectorOpen}
-          onClose={onToggleSelector}
-          getParsedJob={getParsedJob}
-        />
       </div>
+
+      {/* Job selector overlay */}
+      <JobSidebarOverlay
+        jobs={jobs}
+        selectedJobId={selectedJobId}
+        onSelectJob={onSelectJob}
+        onDeleteJob={onDeleteJobFromSelector}
+        isOpen={selectorOpen}
+        onClose={onToggleSelector}
+        getParsedJob={getParsedJob}
+      />
 
       {/* Duplicate Job Modal */}
       {pendingExtraction && (
@@ -295,14 +295,14 @@ export const App: React.FC = () => {
   );
 
   /**
-   * Handle selecting a job from the JobSelector
+   * Handle selecting a job from the JobSidebarOverlay
    */
   const handleSelectJob = useCallback(async (jobId: string) => {
     await browser.runtime.sendMessage({ action: 'setJobInFocus', jobId });
   }, []);
 
   /**
-   * Handle deleting a job from the JobSelector
+   * Handle deleting a job from the JobSidebarOverlay
    */
   const handleDeleteJobFromSelector = useCallback(
     async (jobId: string) => {

@@ -8,6 +8,7 @@ import { JobCard } from './JobCard';
 import { cn } from '@/lib/utils';
 import { useJobFilters } from '@/hooks/useJobFilters';
 import { Input } from '@/components/ui/input';
+import { MOBILE_BREAKPOINT } from '@/hooks/use-mobile';
 
 // ============================================================================
 // Types
@@ -110,11 +111,14 @@ export function JobSelector({
       if (mode === 'overlay') {
         onOpenChange(false);
       }
-      // For responsive mode, we close on mobile but keep open on desktop
-      // Since we can't detect breakpoint in JS easily, we always close
-      // (desktop users can reopen easily, mobile UX is more important)
+      // For responsive mode, close on mobile but keep open on desktop
       if (mode === 'responsive') {
-        onOpenChange(false);
+        const isDesktop = window.matchMedia(
+          `(min-width: ${MOBILE_BREAKPOINT}px)`
+        ).matches;
+        if (!isDesktop) {
+          onOpenChange(false);
+        }
       }
     },
     [onSelectJob, onOpenChange, mode]

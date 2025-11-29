@@ -98,7 +98,9 @@ export default function App() {
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
   const [saveStatusText, setSaveStatusText] = useState<string>('');
   const [statusMessage, setStatusMessage] = useState<string>('');
-  const [isTemplatePanelVisible, setIsTemplatePanelVisible] = useState(true);
+  const [isTemplatePanelVisible, setIsTemplatePanelVisible] = useState<
+    boolean | null
+  >(null);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionError, setExtractionError] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -850,11 +852,11 @@ BULLETS:
           <EditorFooter saveStatus={saveStatusText} />
         </div>
 
-        {/* Template Panel - right side, collapsible */}
+        {/* Template Panel - right side, collapsible (hidden until preference loaded) */}
         <div
           className={cn(
             'flex flex-col border border-border rounded-lg overflow-hidden bg-card transition-[width] duration-200 ease-in-out shrink-0',
-            isTemplatePanelVisible ? 'w-80' : 'w-0 border-0'
+            isTemplatePanelVisible === true ? 'w-80' : 'w-0 border-0'
           )}
         >
           <div className="flex items-center justify-between px-3 py-2 bg-card border-b border-border shrink-0">

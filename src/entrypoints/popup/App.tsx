@@ -2,6 +2,13 @@ import { useState } from 'react';
 import { useLLMSettings } from '@/hooks/useLLMSettings';
 import { DEFAULT_ENDPOINT } from '@/utils/llm-utils';
 import { Button } from '@/components/ui/Button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export function App() {
   // Use shared LLM settings hook (no task = UI management mode)
@@ -116,27 +123,27 @@ export function App() {
               >
                 Model
               </label>
-              <select
-                id="model"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className="w-full px-2 py-2 border border-border rounded text-sm bg-background cursor-pointer focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
-              >
-                {availableModels.length === 0 ? (
-                  <option value={model}>{model}</option>
-                ) : (
-                  <>
-                    {!availableModels.includes(model) && model && (
-                      <option value={model}>{model}</option>
-                    )}
-                    {availableModels.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </>
-                )}
-              </select>
+              <Select value={model} onValueChange={setModel}>
+                <SelectTrigger id="model" className="w-full h-9">
+                  <SelectValue placeholder="Select a model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableModels.length === 0 ? (
+                    <SelectItem value={model}>{model}</SelectItem>
+                  ) : (
+                    <>
+                      {!availableModels.includes(model) && model && (
+                        <SelectItem value={model}>{model}</SelectItem>
+                      )}
+                      {availableModels.map((m) => (
+                        <SelectItem key={m} value={m}>
+                          {m}
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Advanced Settings Toggle */}

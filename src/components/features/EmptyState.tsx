@@ -1,6 +1,7 @@
 import React from 'react';
+import { Info, ArrowUpLeft } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { ArrowUpLeft } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface EmptyStateProps {
   onRestoreBackup: () => void;
@@ -18,10 +19,13 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ onRestoreBackup }) => {
         <ArrowUpLeft className="h-8 w-8" />
       </div>
 
-      <p className="text-sm text-muted-foreground text-center leading-relaxed">
-        Navigate to a job posting, then click{' '}
-        <strong className="text-foreground">Extract</strong>
-      </p>
+      <Alert variant="info" className="max-w-xs">
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          Navigate to a job posting, then click{' '}
+          <strong className="text-primary">Extract</strong>
+        </AlertDescription>
+      </Alert>
 
       {/* Footer with restore backup link */}
       <div className="absolute bottom-0 left-0 right-0 h-14 flex items-center justify-end px-4 bg-background border-t border-border">

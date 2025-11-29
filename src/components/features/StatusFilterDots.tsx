@@ -1,3 +1,4 @@
+import * as ToggleGroupPrimitive from '@radix-ui/react-toggle-group';
 import { statusOrder } from '@/config';
 import { getStatusColor } from '@/components/ui/StatusBadge';
 import { cn } from '@/lib/utils';
@@ -11,6 +12,7 @@ interface StatusFilterDotsProps {
 
 /**
  * Status filter as a row of togglable colored dots.
+ * Built on Radix ToggleGroup for keyboard navigation and accessibility.
  * - All dots filled = no filter (show all)
  * - Click a dot to select only that status
  * - Click more dots to add to selection
@@ -23,25 +25,17 @@ export function StatusFilterDots({
 }: StatusFilterDotsProps) {
   const isAllSelected = selectedStatuses.length === 0;
 
-  const handleDotClick = (status: string) => {
-    if (isAllSelected) {
-      // Nothing selected = all shown. Click one to filter to just that status
-      onChange([status]);
-    } else if (selectedStatuses.includes(status)) {
-      // Already selected - deselect it
-      const newSelection = selectedStatuses.filter((s) => s !== status);
-      // If nothing left, return to "all selected" state
-      onChange(newSelection);
-    } else {
-      // Not selected - add to selection
-      onChange([...selectedStatuses, status]);
-    }
+  const handleValueChange = (newValues: string[]) => {
+    // ToggleGroup gives us the new array directly
+    onChange(newValues);
   };
 
   return (
-    <div
+    <ToggleGroupPrimitive.Root
+      type="multiple"
+      value={selectedStatuses}
+      onValueChange={handleValueChange}
       className="flex items-center justify-center gap-1.5 py-1"
-      role="group"
       aria-label="Filter by status"
     >
       {statusOrder.map((status) => {
@@ -49,25 +43,24 @@ export function StatusFilterDots({
         const isFilled = isAllSelected || selectedStatuses.includes(status);
 
         return (
-          <button
+          <ToggleGroupPrimitive.Item
             key={status}
-            type="button"
+            value={status}
             className={cn(
               'w-3 h-3 rounded-full border-2 p-0 cursor-pointer',
               'transition-all duration-150',
               'hover:scale-125 active:scale-95',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
               isFilled ? 'border-transparent' : 'bg-transparent'
             )}
             style={
               isFilled ? { backgroundColor: color } : { borderColor: color }
             }
-            onClick={() => handleDotClick(status)}
             title={status}
             aria-label={`${status}${isFilled ? ' (active)' : ''}`}
-            aria-pressed={isFilled}
           />
         );
       })}
-    </div>
+    </ToggleGroupPrimitive.Root>
   );
 }

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import * as ToggleGroupPrimitive from '@radix-ui/react-toggle-group';
 import {
   ArrowUp,
   ArrowDown,
@@ -34,6 +35,7 @@ const tooltips: Record<SortField, string> = {
 
 /**
  * Icon-based sort selector.
+ * Built on Radix ToggleGroup for keyboard navigation and accessibility.
  * - Click an icon to sort by that field
  * - Click the same icon again to reverse direction
  * - Active sort shows direction arrow
@@ -43,7 +45,14 @@ export function SortIconButtons({
   sortDirection,
   onChange,
 }: SortIconButtonsProps) {
-  const handleClick = (field: SortField) => {
+  const handleValueChange = (value: string) => {
+    if (!value) {
+      // Clicking active item again - toggle direction
+      onChange(sortField, sortDirection === 'asc' ? 'desc' : 'asc');
+      return;
+    }
+
+    const field = value as SortField;
     if (field === sortField) {
       // Same field - toggle direction
       onChange(field, sortDirection === 'asc' ? 'desc' : 'asc');
@@ -57,31 +66,32 @@ export function SortIconButtons({
   const fields: SortField[] = ['date', 'company', 'title'];
 
   return (
-    <div
+    <ToggleGroupPrimitive.Root
+      type="single"
+      value={sortField}
+      onValueChange={handleValueChange}
       className="flex items-center justify-center gap-2 py-1"
-      role="group"
       aria-label="Sort options"
     >
       {fields.map((field) => {
         const isActive = field === sortField;
         return (
-          <button
+          <ToggleGroupPrimitive.Item
             key={field}
-            type="button"
+            value={field}
             className={cn(
               'relative flex items-center justify-center',
               'w-8 h-7 p-1 border-none rounded',
               'bg-transparent cursor-pointer',
               'transition-colors duration-150',
               'active:scale-95',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
               isActive
                 ? 'text-primary hover:text-primary/80'
                 : 'text-muted-foreground hover:text-foreground'
             )}
-            onClick={() => handleClick(field)}
             title={tooltips[field]}
             aria-label={`${tooltips[field]}${isActive ? ` (${sortDirection === 'asc' ? 'ascending' : 'descending'})` : ''}`}
-            aria-pressed={isActive}
           >
             {icons[field]}
             {isActive && (
@@ -93,9 +103,9 @@ export function SortIconButtons({
                 )}
               </span>
             )}
-          </button>
+          </ToggleGroupPrimitive.Item>
         );
       })}
-    </div>
+    </ToggleGroupPrimitive.Root>
   );
 }

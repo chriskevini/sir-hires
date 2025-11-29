@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
+import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 interface ErrorStateProps {
   error: string;
@@ -22,29 +24,28 @@ export const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry }) => {
   return (
     <div className="flex flex-1 flex-col relative">
       {/* Main content centered */}
-      <div className="flex flex-1 flex-col items-center justify-center p-4 text-center">
-        <h2 className="text-lg font-semibold text-foreground mb-4">
-          Couldn't connect to LLM
-        </h2>
-
-        <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-          Right-click the extension icon
-          <br />
-          and select "
-          <strong className="text-foreground">Open LLM Settings</strong>"
-        </p>
-
-        <p className="text-sm text-muted-foreground/70">
-          New to LM Studio?{' '}
-          <a
-            href={QUICK_START_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline"
-          >
-            Quick Start Guide ↗
-          </a>
-        </p>
+      <div className="flex flex-1 flex-col items-center justify-center p-4">
+        <Alert variant="destructive" className="max-w-sm">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Couldn't connect to LLM</AlertTitle>
+          <AlertDescription className="mt-2 space-y-3">
+            <p>
+              Right-click the extension icon and select "
+              <strong className="text-destructive">Open LLM Settings</strong>"
+            </p>
+            <p className="text-destructive/70">
+              New to LM Studio?{' '}
+              <a
+                href={QUICK_START_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-destructive"
+              >
+                Quick Start Guide ↗
+              </a>
+            </p>
+          </AlertDescription>
+        </Alert>
       </div>
 
       {/* Footer with retry button */}

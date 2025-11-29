@@ -1,5 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
+import * as CollapsiblePrimitive from '@radix-ui/react-collapsible';
 import { statusOrder, getStatusColor } from '@/config';
+import { cn } from '@/lib/utils';
 import type { ChecklistItem } from '../hooks';
 
 interface ChecklistProps {
@@ -12,6 +14,11 @@ interface ChecklistProps {
   onToggleItem: (_jobId: string, _itemId: string) => void;
 }
 
+/**
+ * Collapsible checklist component for job status progression.
+ * Built on Radix Collapsible for keyboard navigation and accessibility.
+ * Features animated expand/collapse with status-colored indicators.
+ */
 export const Checklist: React.FC<ChecklistProps> = ({
   checklist,
   status,
@@ -21,38 +28,6 @@ export const Checklist: React.FC<ChecklistProps> = ({
   onToggleExpand,
   onToggleItem,
 }) => {
-  const [animationState, setAnimationState] = useState<
-    'idle' | 'expanding' | 'collapsing'
-  >('idle');
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const prevExpandedRef = useRef(isExpanded);
-
-  // Handle expand/collapse animations
-  useEffect(() => {
-    const wasExpanded = prevExpandedRef.current;
-    const dropdown = dropdownRef.current;
-
-    if (animate && dropdown) {
-      if (wasExpanded && !isExpanded) {
-        // Collapsing
-        setAnimationState('collapsing');
-        const timeout = setTimeout(() => {
-          setAnimationState('idle');
-        }, 300);
-        return () => clearTimeout(timeout);
-      } else if (!wasExpanded && isExpanded) {
-        // Expanding
-        setAnimationState('expanding');
-        const timeout = setTimeout(() => {
-          setAnimationState('idle');
-        }, 300);
-        return () => clearTimeout(timeout);
-      }
-    }
-
-    prevExpandedRef.current = isExpanded;
-  }, [isExpanded, animate]);
-
   // Calculate next status color for styling
   const currentIndex = statusOrder.indexOf(status);
   const nextStatus =
@@ -67,31 +42,19 @@ export const Checklist: React.FC<ChecklistProps> = ({
   const items = checklist && checklist[status] ? checklist[status] : [];
   const sortedItems = [...items].sort((a, b) => a.order - b.order);
 
-  const handleExpanderClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onToggleExpand(!isExpanded);
-  };
-
   const handleItemClick = (e: React.MouseEvent, itemId: string) => {
     e.stopPropagation();
     onToggleItem(jobId, itemId);
   };
 
-  // Animation classes based on state
-  const getAnimationClass = () => {
-    if (animationState === 'expanding') {
-      return 'animate-[expandVertical_0.3s_cubic-bezier(0.4,0,0.2,1)_forwards]';
-    }
-    if (animationState === 'collapsing') {
-      return 'animate-[collapseVertical_0.3s_cubic-bezier(0.4,0,0.2,1)_forwards]';
-    }
-    return '';
-  };
-
   const renderExpander = () => (
-    <div
-      className="flex items-center justify-center w-10 h-10 bg-transparent border-none rounded-full cursor-pointer transition-all duration-200"
-      onClick={handleExpanderClick}
+    <CollapsiblePrimitive.Trigger
+      className={cn(
+        'flex items-center justify-center w-10 h-10',
+        'bg-transparent border-none rounded-full cursor-pointer',
+        'transition-all duration-200',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+      )}
     >
       <div className="flex flex-col gap-0.5 items-center">
         <span className="text-sm leading-none" style={{ color: nextColor }}>
@@ -104,55 +67,77 @@ export const Checklist: React.FC<ChecklistProps> = ({
           •
         </span>
       </div>
-    </div>
+    </CollapsiblePrimitive.Trigger>
   );
 
-  const renderExpandedDropdown = () => {
-    const dropdownClasses = `min-w-[280px] max-w-[320px] bg-background border-none rounded-xl overflow-visible origin-bottom-right mb-3 ${getAnimationClass()}`;
-
+  const renderContent = () => {
     if (!items || items.length === 0) {
       return (
-        <div ref={dropdownRef} className={dropdownClasses} data-job-id={jobId}>
-          <div className="py-3 max-h-[300px] overflow-y-auto origin-bottom-right">
-            <div className="p-3 text-center text-muted-foreground text-sm">
-              No checklist items yet
-            </div>
-          </div>
+        <div className="p-3 text-center text-muted-foreground text-sm">
+          No checklist items yet
         </div>
       );
     }
 
-    return (
-      <div ref={dropdownRef} className={dropdownClasses} data-job-id={jobId}>
-        <div className="py-3 max-h-[300px] overflow-y-auto origin-bottom-right">
-          {sortedItems.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-start justify-between gap-2.5 py-2.5 px-4 cursor-pointer transition-colors duration-150 select-none hover:bg-muted"
-              data-item-id={item.id}
-              data-job-id={jobId}
-              onClick={(e) => handleItemClick(e, item.id)}
-            >
-              <span className="text-sm text-foreground leading-relaxed flex-1 text-right">
-                {item.text}
-              </span>
-              <span
-                className={`text-sm leading-relaxed shrink-0 transition-colors duration-150 ml-2 ${item.checked ? 'text-primary' : 'text-muted-foreground/60'}`}
-                style={item.checked ? { color: nextColor } : undefined}
-              >
-                {item.checked ? '●' : '○'}
-              </span>
-            </div>
-          ))}
-        </div>
+    return sortedItems.map((item) => (
+      <div
+        key={item.id}
+        role="checkbox"
+        aria-checked={item.checked}
+        tabIndex={0}
+        className={cn(
+          'flex items-start justify-between gap-2.5 py-2.5 px-4',
+          'cursor-pointer transition-colors duration-150 select-none',
+          'hover:bg-muted',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
+        )}
+        data-item-id={item.id}
+        data-job-id={jobId}
+        onClick={(e) => handleItemClick(e, item.id)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleItemClick(e as unknown as React.MouseEvent, item.id);
+          }
+        }}
+      >
+        <span className="text-sm text-foreground leading-relaxed flex-1 text-right">
+          {item.text}
+        </span>
+        <span
+          className={cn(
+            'text-sm leading-relaxed shrink-0 transition-colors duration-150 ml-2',
+            item.checked ? 'text-primary' : 'text-muted-foreground/60'
+          )}
+          style={item.checked ? { color: nextColor } : undefined}
+          aria-hidden="true"
+        >
+          {item.checked ? '●' : '○'}
+        </span>
       </div>
-    );
+    ));
   };
 
   return (
-    <div className="relative flex flex-col items-end">
-      {isExpanded && renderExpandedDropdown()}
+    <CollapsiblePrimitive.Root
+      open={isExpanded}
+      onOpenChange={onToggleExpand}
+      className="relative flex flex-col items-end"
+    >
+      <CollapsiblePrimitive.Content
+        className={cn(
+          'min-w-[280px] max-w-[320px] bg-background border-none rounded-xl',
+          'overflow-hidden origin-bottom-right mb-3',
+          animate &&
+            'data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up'
+        )}
+        data-job-id={jobId}
+      >
+        <div className="py-3 max-h-[300px] overflow-y-auto origin-bottom-right">
+          {renderContent()}
+        </div>
+      </CollapsiblePrimitive.Content>
       {renderExpander()}
-    </div>
+    </CollapsiblePrimitive.Root>
   );
 };

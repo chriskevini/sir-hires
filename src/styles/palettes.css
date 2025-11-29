@@ -1,0 +1,76 @@
+/* 
+ * Color Palettes
+ * 
+ * Raw color scales used to build themes.
+ * Each palette provides 50-950 shades in HSL format.
+ * 
+ * Usage: Reference these in theme definitions, e.g.:
+ *   --primary: var(--evergreen-600);
+ */
+
+:root {
+  /* Evergreen - Primary brand color (nature, growth) */
+  --evergreen-50: 97.5 30.8% 94.9%;
+  --evergreen-100: 100 29.4% 90%;
+  --evergreen-200: 101.3 31.4% 80%;
+  --evergreen-300: 100.9 30.7% 70%;
+  --evergreen-400: 101.2 31.4% 60%;
+  --evergreen-500: 101 31% 50%;
+  --evergreen-600: 101.3 31.4% 40%;
+  --evergreen-700: 100.9 30.7% 30%;
+  --evergreen-800: 101.3 31.4% 20%;
+  --evergreen-900: 100 29.4% 10%;
+  --evergreen-950: 98.2 31.4% 6.9%;
+
+  /* Ivory Mist - Warm whites for backgrounds */
+  --ivory-mist-50: 48 60% 95.1%;
+  --ivory-mist-100: 48.4 60.8% 90%;
+  --ivory-mist-200: 48.4 60.8% 80%;
+  --ivory-mist-300: 49.5 59.5% 70%;
+  --ivory-mist-400: 49.2 59.8% 60%;
+  --ivory-mist-500: 49 60% 50%;
+  --ivory-mist-600: 49.2 59.8% 40%;
+  --ivory-mist-700: 49.5 59.5% 30%;
+  --ivory-mist-800: 48.4 60.8% 20%;
+  --ivory-mist-900: 48.4 60.8% 10%;
+  --ivory-mist-950: 49.1 61.1% 7.1%;
+
+  /* Mahogany Red - Destructive, errors, warnings */
+  --mahogany-red-50: 0 76.9% 94.9%;
+  --mahogany-red-100: 0 80.4% 90%;
+  --mahogany-red-200: 0 78.4% 80%;
+  --mahogany-red-300: 0 79.1% 70%;
+  --mahogany-red-400: 0 79.4% 60%;
+  --mahogany-red-500: 0 78.8% 50%;
+  --mahogany-red-600: 0 79.4% 40%;
+  --mahogany-red-700: 0 79.1% 30%;
+  --mahogany-red-800: 0 78.4% 20%;
+  --mahogany-red-900: 0 80.4% 10%;
+  --mahogany-red-950: 0 77.8% 7.1%;
+
+  /* Rosy Granite - Neutral tones with subtle warmth */
+  --rosy-granite-50: 240 4% 95.1%;
+  --rosy-granite-100: 280 5.9% 90%;
+  --rosy-granite-200: 270 3.9% 80%;
+  --rosy-granite-300: 274.3 4.6% 70%;
+  --rosy-granite-400: 270 3.9% 60%;
+  --rosy-granite-500: 272.7 4.3% 50%;
+  --rosy-granite-600: 270 3.9% 40%;
+  --rosy-granite-700: 274.3 4.6% 30%;
+  --rosy-granite-800: 270 3.9% 20%;
+  --rosy-granite-900: 280 5.9% 10%;
+  --rosy-granite-950: 270 5.6% 7.1%;
+
+  /* Wisteria Blue - Accent color (reserved for secondary CTAs) */
+  --wisteria-blue-50: 213.3 69.2% 94.9%;
+  --wisteria-blue-100: 214.3 68.6% 90%;
+  --wisteria-blue-200: 215.1 68.6% 80%;
+  --wisteria-blue-300: 214.9 68.6% 70%;
+  --wisteria-blue-400: 215.1 68.6% 60%;
+  --wisteria-blue-500: 215 68.6% 50%;
+  --wisteria-blue-600: 215.1 68.6% 40%;
+  --wisteria-blue-700: 214.9 68.6% 30%;
+  --wisteria-blue-800: 215.1 68.6% 20%;
+  --wisteria-blue-900: 214.3 68.6% 10%;
+  --wisteria-blue-950: 215 66.7% 7.1%;
+}

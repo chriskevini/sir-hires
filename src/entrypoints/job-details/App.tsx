@@ -479,7 +479,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar with filters and job list */}
         <div
-          className={`${sidebarCollapsed ? 'w-0' : 'w-80'} border-r border-border flex flex-col bg-muted shrink-0 transition-[width] duration-200 ease-in-out overflow-hidden ${sidebarCollapsed ? 'border-r-0' : ''}`}
+          className={`${sidebarCollapsed ? 'w-0' : 'w-80'} border-r border-border flex flex-col bg-background shrink-0 transition-[width] duration-200 ease-in-out overflow-hidden ${sidebarCollapsed ? 'border-r-0' : ''}`}
         >
           <div className="p-4 border-b border-border bg-background">
             <div className="flex flex-col gap-3">

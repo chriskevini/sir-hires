@@ -118,7 +118,7 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
       return {
         icon: '⚠',
         text: 'Warnings',
-        color: 'text-amber-600',
+        color: 'text-warning',
       };
     }
     if (isValid) {
@@ -143,7 +143,7 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
             </span>
           )}
           {warningCount > 0 && (
-            <span className="text-amber-600">
+            <span className="text-warning">
               {warningCount} warning{warningCount > 1 ? 's' : ''}
             </span>
           )}
@@ -169,7 +169,7 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
       m.type === 'error'
         ? 'bg-destructive/10 border-l-destructive text-destructive'
         : m.type === 'warning'
-          ? 'bg-amber-50 border-l-amber-500 text-amber-900'
+          ? 'bg-warning/10 border-l-warning text-warning-foreground'
           : 'bg-primary/10 border-l-primary text-primary';
 
     // Handle multi-value enum fixes (show multiple buttons)
@@ -263,7 +263,7 @@ export function getValidationEditorClass(
   if (hasErrors) {
     return 'border-l-4 border-l-destructive';
   } else if (hasWarnings) {
-    return 'border-l-4 border-l-amber-500';
+    return 'border-l-4 border-l-warning';
   } else if (hasContent) {
     return 'border-l-4 border-l-success';
   }

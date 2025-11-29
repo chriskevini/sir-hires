@@ -21,6 +21,8 @@
   --color-destructive-foreground: hsl(var(--destructive-foreground));
   --color-success: hsl(var(--success));
   --color-success-foreground: hsl(var(--success-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
@@ -99,13 +101,17 @@
     --accent: var(--wisteria-blue-100);
     --accent-foreground: var(--wisteria-blue-900);
 
-    /* Destructive - Errors, warnings */
+    /* Destructive - Errors */
     --destructive: var(--mahogany-red-500);
     --destructive-foreground: var(--ivory-mist-50);
 
     /* Success - Positive states */
     --success: var(--evergreen-600);
     --success-foreground: var(--ivory-mist-50);
+
+    /* Warning - Caution states */
+    --warning: var(--amber-flame-500);
+    --warning-foreground: var(--rosy-granite-950);
 
     /* Borders and inputs */
     --border: var(--rosy-granite-200);
@@ -150,13 +156,17 @@
     --accent: var(--wisteria-blue-800);
     --accent-foreground: var(--wisteria-blue-100);
 
-    /* Destructive - Errors, warnings (lighter for visibility) */
+    /* Destructive - Errors (lighter for visibility) */
     --destructive: var(--mahogany-red-400);
     --destructive-foreground: var(--ivory-mist-50);
 
     /* Success - Positive states (lighter for dark mode) */
     --success: var(--evergreen-400);
     --success-foreground: var(--rosy-granite-950);
+
+    /* Warning - Caution states */
+    --warning: var(--amber-flame-400);
+    --warning-foreground: var(--rosy-granite-950);
 
     /* Borders and inputs */
     --border: var(--rosy-granite-700);

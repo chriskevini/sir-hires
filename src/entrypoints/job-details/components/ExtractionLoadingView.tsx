@@ -36,7 +36,7 @@ export const ExtractionLoadingView: React.FC<ExtractionLoadingViewProps> = ({
             <div className="flex-1 flex flex-col overflow-hidden bg-background">
               <textarea
                 id="jobEditor"
-                className="flex-1 w-full p-4 border-none border-l-4 border-l-amber-400 text-sm font-mono leading-relaxed resize-none bg-muted overflow-y-auto cursor-wait opacity-95 focus:outline-none"
+                className="flex-1 w-full p-4 border-none border-l-4 border-l-warning text-sm font-mono leading-relaxed resize-none bg-muted overflow-y-auto cursor-wait opacity-95 focus:outline-none"
                 readOnly
                 data-job-id={jobId}
                 placeholder="Waiting for LLM response..."

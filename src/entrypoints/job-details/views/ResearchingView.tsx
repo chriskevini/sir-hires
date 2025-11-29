@@ -148,10 +148,10 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
             className={cn(
               'flex-1 border-l-4',
               validation?.valid
-                ? 'border-l-green-600'
+                ? 'border-l-success'
                 : validation?.errors?.length
-                  ? 'border-l-red-600'
-                  : 'border-l-gray-200'
+                  ? 'border-l-destructive'
+                  : 'border-l-border'
             )}
           />
         </div>

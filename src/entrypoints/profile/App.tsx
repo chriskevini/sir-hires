@@ -693,7 +693,7 @@ BULLETS:
         </div>
         <div className="flex items-center gap-3">
           <span
-            className={`text-sm ${statusMessage ? 'font-semibold text-amber-600' : 'text-muted-foreground'}`}
+            className={`text-sm ${statusMessage ? 'font-semibold text-warning' : 'text-muted-foreground'}`}
           >
             {statusMessage ||
               (lastSavedTime
@@ -759,10 +759,10 @@ BULLETS:
         title="Confirm Extraction"
       >
         <div className="p-6">
-          <div className="my-4 flex items-start gap-3 rounded-md border border-amber-400 bg-amber-50 p-4">
+          <div className="my-4 flex items-start gap-3 rounded-md border border-warning bg-warning/10 p-4">
             <span className="shrink-0 text-2xl">⚠️</span>
             <div className="flex-1">
-              <p className="text-sm font-medium text-amber-900">
+              <p className="text-sm font-medium text-warning-foreground">
                 LLM extraction may have errors. The current content will be
                 replaced. Save a backup first if needed.
               </p>

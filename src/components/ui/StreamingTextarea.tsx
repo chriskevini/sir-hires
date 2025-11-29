@@ -135,9 +135,9 @@ const StreamingTextarea = React.forwardRef<
             {warnings.map((warn, i) => (
               <p
                 key={`warning-${i}`}
-                className="text-sm text-amber-600 flex items-start gap-1.5"
+                className="text-sm text-warning flex items-start gap-1.5"
               >
-                <span className="text-amber-500 mt-0.5">●</span>
+                <span className="text-warning mt-0.5">●</span>
                 {warn.field && (
                   <span className="font-medium">{warn.field}:</span>
                 )}

@@ -99,7 +99,7 @@ export function JobSelector({
         <div className="fixed inset-0 -z-[1]" onClick={handleBackdropClick} />
       )}
       {/* Header with filters */}
-      <div className="shrink-0 p-4 border-b border-border bg-muted">
+      <div className="shrink-0 p-4 border-b border-border bg-background">
         <div className="flex flex-col gap-3">
           <input
             type="text"

@@ -83,28 +83,22 @@ A cross-browser web extension with job data extraction, application lifecycle tr
 
 ### 1. Install the extension
 
+Download the latest release from [GitHub Releases](https://github.com/chriskevini/sir-hires/releases).
+
 **Chrome/Edge:**
 
-```bash
-npm install
-npm run build
-```
-
+- Download `sir-hires-chrome.zip` and extract it
 - Open `chrome://extensions/` (or `edge://extensions/`)
 - Enable "Developer mode"
 - Click "Load unpacked"
-- Select `.output/chrome-mv3` directory
+- Select the extracted folder
 
 **Firefox:**
 
-```bash
-npm install
-npm run build:firefox
-```
-
+- Download `sir-hires-firefox.zip` and extract it
 - Open `about:debugging#/runtime/this-firefox`
 - Click "Load Temporary Add-on"
-- Select any file in `.output/firefox-mv3` directory
+- Select any file in the extracted folder
 
 ### 2. Pin the extension
 
@@ -143,11 +137,11 @@ You can also use OpenAI, Anthropic, or other OpenAI-compatible APIs.
 ### 5. Start tracking jobs
 
 - Navigate to any job posting (LinkedIn, Indeed, Greenhouse, etc.)
-- Right-click the Sir Hires icon and select "Extract Job"
+- Right-click anywhere on the page and select "Extract Job to Sir Hires"
 - The sidepanel will open with the extracted job details
 - Track your progress through the application lifecycle
 
-**Tip:** Click the Sir Hires icon to open the sidepanel and browse all your saved jobs.
+**Tip:** Click the Sir Hires icon to open the sidepanel, where you can browse saved jobs and click the Extract button to capture the current page.
 
 ## Development
 

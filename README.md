@@ -119,7 +119,7 @@ Sir Hires requires an AI provider for intelligent features like job extraction a
 **Option A: LM Studio (Recommended - Free & Private)**
 
 - Download from [lmstudio.ai](https://lmstudio.ai/)
-- Install a model (we recommend `qwen/qwen3-4b` or similar)
+- Install a model (we recommend `qwen/qwen3-4b-2507`)
 - Start the local server (default: `http://localhost:1234`)
 
 **Option B: Cloud Providers**

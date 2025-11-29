@@ -81,15 +81,6 @@ A cross-browser web extension with job data extraction, application lifecycle tr
 
 ## Quick Start
 
-### 0. Set up LM Studio
-
-- Download from [lmstudio.ai](https://lmstudio.ai/)
-- Install and launch LM Studio
-- Click the 🔍 icon
-- Install `qwen/qwen3-4b-2507` (or any compatible model)
-- Click the "Server" tab
-- Start the server (default: http://localhost:1234)
-
 ### 1. Install the extension
 
 **Chrome/Edge:**
@@ -115,13 +106,48 @@ npm run build:firefox
 - Click "Load Temporary Add-on"
 - Select any file in `.output/firefox-mv3` directory
 
-### 2. Use it
+### 2. Pin the extension
 
-- Navigate to any job posting (LinkedIn, Indeed, etc.)
-- Click the extension icon in toolbar
-- Click "Extract Job Data" to capture job details
-- View and manage jobs in the sidepanel
-- Track application progress with lifecycle statuses
+- Click the puzzle piece icon in your browser toolbar
+- Find "Sir Hires" and click the pin icon
+- The knight icon should now appear in your toolbar
+
+### 3. Connect an AI provider
+
+Sir Hires requires an AI provider for intelligent features like job extraction and document synthesis.
+
+**Option A: LM Studio (Recommended - Free & Private)**
+
+- Download from [lmstudio.ai](https://lmstudio.ai/)
+- Install a model (we recommend `qwen/qwen3-4b` or similar)
+- Start the local server (default: `http://localhost:1234`)
+
+**Option B: Cloud Providers**
+
+You can also use OpenAI, Anthropic, or other OpenAI-compatible APIs.
+
+**Configure your provider:**
+
+- Right-click the Sir Hires icon in your toolbar
+- Select "LLM Settings"
+- Enter your endpoint URL (and API key for cloud providers)
+- Click "Connect" to verify the connection
+
+### 4. Set up your profile
+
+- Right-click the Sir Hires icon and select "Edit Profile"
+- Paste your resume text and click "Extract" to parse it
+- Review and fix any validation warnings
+- Your profile will be used to generate tailored documents
+
+### 5. Start tracking jobs
+
+- Navigate to any job posting (LinkedIn, Indeed, Greenhouse, etc.)
+- Right-click the Sir Hires icon and select "Extract Job"
+- The sidepanel will open with the extracted job details
+- Track your progress through the application lifecycle
+
+**Tip:** Click the Sir Hires icon to open the sidepanel and browse all your saved jobs.
 
 ## Development
 

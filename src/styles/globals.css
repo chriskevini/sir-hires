@@ -114,15 +114,15 @@
 
     --radius: 0.5rem;
 
-    /* Job status colors (to be converted to HSL in future PR) */
-    --status-researching: #757575;
-    --status-drafting: #4caf50;
-    --status-awaiting-review: #2196f3;
-    --status-interviewing: #9c27b0;
-    --status-deciding: #ff9800;
-    --status-accepted: #4caf50;
-    --status-rejected: #f44336;
-    --status-withdrawn: #757575;
+    /* Job status colors - using theme palettes */
+    --status-researching: hsl(var(--rosy-granite-500));
+    --status-drafting: hsl(var(--evergreen-500));
+    --status-awaiting-review: hsl(var(--wisteria-blue-500));
+    --status-interviewing: hsl(var(--royal-orchid-500));
+    --status-deciding: hsl(var(--amber-flame-500));
+    --status-accepted: hsl(var(--evergreen-500));
+    --status-rejected: hsl(var(--mahogany-red-500));
+    --status-withdrawn: hsl(var(--rosy-granite-500));
   }
 
   .dark {
@@ -163,15 +163,15 @@
     --input: var(--rosy-granite-700);
     --ring: var(--evergreen-500);
 
-    /* Job status colors (dark mode - slightly lighter for visibility) */
-    --status-researching: #9e9e9e;
-    --status-drafting: #66bb6a;
-    --status-awaiting-review: #42a5f5;
-    --status-interviewing: #ab47bc;
-    --status-deciding: #ffb74d;
-    --status-accepted: #66bb6a;
-    --status-rejected: #ef5350;
-    --status-withdrawn: #9e9e9e;
+    /* Job status colors (lighter for dark mode visibility) */
+    --status-researching: hsl(var(--rosy-granite-400));
+    --status-drafting: hsl(var(--evergreen-400));
+    --status-awaiting-review: hsl(var(--wisteria-blue-400));
+    --status-interviewing: hsl(var(--royal-orchid-400));
+    --status-deciding: hsl(var(--amber-flame-500));
+    --status-accepted: hsl(var(--evergreen-400));
+    --status-rejected: hsl(var(--mahogany-red-400));
+    --status-withdrawn: hsl(var(--rosy-granite-400));
   }
 
   /* Common body styles for all entrypoints */

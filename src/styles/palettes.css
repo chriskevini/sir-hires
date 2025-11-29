@@ -73,4 +73,30 @@
   --wisteria-blue-800: 215.1 68.6% 20%;
   --wisteria-blue-900: 214.3 68.6% 10%;
   --wisteria-blue-950: 215 66.7% 7.1%;
+
+  /* Royal Orchid - Purple for Interviewing status */
+  --royal-orchid-50: 288.8 61.5% 94.9%;
+  --royal-orchid-100: 290.3 60.8% 90%;
+  --royal-orchid-200: 290.3 60.8% 80%;
+  --royal-orchid-300: 290.3 60.8% 70%;
+  --royal-orchid-400: 289.8 60.8% 60%;
+  --royal-orchid-500: 289.9 60.8% 50%;
+  --royal-orchid-600: 289.8 60.8% 40%;
+  --royal-orchid-700: 290.3 60.8% 30%;
+  --royal-orchid-800: 290.3 60.8% 20%;
+  --royal-orchid-900: 290.3 60.8% 10%;
+  --royal-orchid-950: 289.1 61.1% 7.1%;
+
+  /* Amber Flame - Orange/Gold for Deciding status */
+  --amber-flame-50: 40.8 100% 95.1%;
+  --amber-flame-100: 41.2 100% 90%;
+  --amber-flame-200: 41.4 98% 80%;
+  --amber-flame-300: 40.9 98.7% 70%;
+  --amber-flame-400: 41 99% 60%;
+  --amber-flame-500: 41 99.2% 50%;
+  --amber-flame-600: 41 99% 40%;
+  --amber-flame-700: 40.9 98.7% 30%;
+  --amber-flame-800: 41.4 98% 20%;
+  --amber-flame-900: 41.2 100% 10%;
+  --amber-flame-950: 40 100% 7.1%;
 }

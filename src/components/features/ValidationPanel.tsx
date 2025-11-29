@@ -164,13 +164,13 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
 
   const renderMessage = (m: ValidationMessage, index: number) => {
     const baseClasses =
-      'px-3 py-2 mb-2 last:mb-0 rounded text-sm leading-relaxed border-l-[3px]';
+      'px-3 py-2 mb-2 last:mb-0 rounded text-sm leading-relaxed';
     const typeClasses =
       m.type === 'error'
-        ? 'bg-destructive/10 border-l-destructive text-destructive'
+        ? 'bg-destructive/10 text-destructive'
         : m.type === 'warning'
-          ? 'bg-warning/10 border-l-warning text-warning-foreground'
-          : 'bg-primary/10 border-l-primary text-primary';
+          ? 'bg-warning/10 text-warning-foreground'
+          : 'bg-primary/10 text-primary';
 
     // Handle multi-value enum fixes (show multiple buttons)
     if (

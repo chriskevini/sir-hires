@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 
 interface EditorFooterProps {
   saveStatus: string;
-  wordCount: number;
+  wordCount?: number;
 }
 
 export const EditorFooter: React.FC<EditorFooterProps> = ({
@@ -28,11 +28,13 @@ export const EditorFooter: React.FC<EditorFooterProps> = ({
           {saveStatus}
         </span>
       </div>
-      <div className="flex items-center gap-4">
-        <span className="font-medium text-muted-foreground" id="wordCount">
-          {wordCount} words
-        </span>
-      </div>
+      {wordCount !== undefined && (
+        <div className="flex items-center gap-4">
+          <span className="font-medium text-muted-foreground" id="wordCount">
+            {wordCount} words
+          </span>
+        </div>
+      )}
     </div>
   );
 };

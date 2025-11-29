@@ -42,16 +42,16 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
               } as React.CSSProperties
             }
           >
-            <span className="text-xs font-semibold text-[var(--nav-color,#1a73e8)] uppercase tracking-wide leading-tight text-center max-w-[100px] break-words">
+            <span className="text-xs font-semibold text-[var(--nav-color,var(--status-researching))] uppercase tracking-wide leading-tight text-center max-w-[100px] break-words">
               {leftButton.label}
             </span>
             <button
               className={cn(
                 'flex items-center justify-center bg-background',
-                'border-2 border-[var(--nav-color,#1a73e8)] rounded-full',
+                'border-2 border-[var(--nav-color,var(--status-researching))] rounded-full',
                 'w-20 h-20 cursor-pointer transition-all duration-200',
                 'shadow-[0_2px_8px_rgba(0,0,0,0.1)] p-0',
-                'hover:bg-[var(--nav-color,#1a73e8)] hover:scale-105 hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)]',
+                'hover:bg-[var(--nav-color,var(--status-researching))] hover:scale-105 hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)]',
                 'group'
               )}
               onClick={() => onNavigate(leftButton.target, 'backward')}
@@ -60,7 +60,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
             >
               <i
                 className={cn(
-                  'w-0 h-0 border-solid border-[var(--nav-color,#1a73e8)]',
+                  'w-0 h-0 border-solid border-[var(--nav-color,var(--status-researching))]',
                   'border-[0_3px_3px_0] inline-block p-2.5',
                   'transition-colors duration-200',
                   'rotate-[135deg]',
@@ -89,16 +89,16 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
               } as React.CSSProperties
             }
           >
-            <span className="text-xs font-semibold text-[var(--nav-color,#1a73e8)] uppercase tracking-wide leading-tight text-center max-w-[100px] break-words">
+            <span className="text-xs font-semibold text-[var(--nav-color,var(--status-researching))] uppercase tracking-wide leading-tight text-center max-w-[100px] break-words">
               {button.label}
             </span>
             <button
               className={cn(
                 'flex items-center justify-center bg-background',
-                'border-2 border-[var(--nav-color,#1a73e8)] rounded-full',
+                'border-2 border-[var(--nav-color,var(--status-researching))] rounded-full',
                 'w-20 h-20 cursor-pointer transition-all duration-200',
                 'shadow-[0_2px_8px_rgba(0,0,0,0.1)] p-0',
-                'hover:bg-[var(--nav-color,#1a73e8)] hover:scale-105 hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)]',
+                'hover:bg-[var(--nav-color,var(--status-researching))] hover:scale-105 hover:shadow-[0_4px_12px_rgba(0,0,0,0.3)]',
                 'group'
               )}
               onClick={() => onNavigate(button.target, 'forward')}
@@ -107,7 +107,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
             >
               <i
                 className={cn(
-                  'w-0 h-0 border-solid border-[var(--nav-color,#1a73e8)]',
+                  'w-0 h-0 border-solid border-[var(--nav-color,var(--status-researching))]',
                   'border-[0_3px_3px_0] inline-block p-2.5',
                   'transition-colors duration-200',
                   '-rotate-45',

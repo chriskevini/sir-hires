@@ -28,56 +28,47 @@ export const statusOrder = [
 ];
 
 // Status visual styles (v0.3.0)
-// All color values in one place:
-// - color: base status color (badges, progress bar, borders)
-// - cardBg: 20% opacity (hex 33) for job card backgrounds
+// Colors reference CSS variables defined in globals.css for theming support
+// - color: CSS variable reference for status color
+// - fill: progress bar fill percentage
 export const statusStyles: Record<
   string,
   {
     color: string;
     fill: number;
-    cardBg: string;
   }
 > = {
   Researching: {
-    color: '#757575',
+    color: 'var(--status-researching)',
     fill: 0,
-    cardBg: '#75757533',
   },
   Drafting: {
-    color: '#4caf50',
+    color: 'var(--status-drafting)',
     fill: 15,
-    cardBg: '#4caf5033',
   },
   'Awaiting Review': {
-    color: '#2196f3',
+    color: 'var(--status-awaiting-review)',
     fill: 35,
-    cardBg: '#2196f333',
   },
   Interviewing: {
-    color: '#9c27b0',
+    color: 'var(--status-interviewing)',
     fill: 60,
-    cardBg: '#9c27b033',
   },
   Deciding: {
-    color: '#ff9800',
+    color: 'var(--status-deciding)',
     fill: 85,
-    cardBg: '#ff980033',
   },
   Accepted: {
-    color: '#4caf50',
+    color: 'var(--status-accepted)',
     fill: 100,
-    cardBg: '#4caf5033',
   },
   Rejected: {
-    color: '#f44336',
+    color: 'var(--status-rejected)',
     fill: 100,
-    cardBg: '#f4433633',
   },
   Withdrawn: {
-    color: '#757575',
+    color: 'var(--status-withdrawn)',
     fill: 100,
-    cardBg: '#75757533',
   },
 };
 

@@ -112,15 +112,11 @@ export const getStatusColor = (status: string): string => {
 
 /**
  * Get status background color with opacity (for cards, highlights)
+ * Derives 20% opacity background from the status color using color-mix()
  */
 export const getStatusBackground = (status: string): string => {
-  const normalizedStatus = status
-    .split(' ')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
-  return (
-    statusStyles[normalizedStatus]?.cardBg || statusStyles['Researching'].cardBg
-  );
+  const color = getStatusColor(status);
+  return `color-mix(in srgb, ${color} 20%, transparent)`;
 };
 
 export { StatusBadge };

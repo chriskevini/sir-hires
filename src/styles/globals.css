@@ -91,6 +91,16 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 262 83% 58%;
     --radius: 0.5rem;
+
+    /* Job status colors */
+    --status-researching: #757575;
+    --status-drafting: #4caf50;
+    --status-awaiting-review: #2196f3;
+    --status-interviewing: #9c27b0;
+    --status-deciding: #ff9800;
+    --status-accepted: #4caf50;
+    --status-rejected: #f44336;
+    --status-withdrawn: #757575;
   }
 
   .dark {
@@ -115,6 +125,16 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 262 83% 58%;
+
+    /* Job status colors (dark mode - slightly lighter for visibility) */
+    --status-researching: #9e9e9e;
+    --status-drafting: #66bb6a;
+    --status-awaiting-review: #42a5f5;
+    --status-interviewing: #ab47bc;
+    --status-deciding: #ffb74d;
+    --status-accepted: #66bb6a;
+    --status-rejected: #ef5350;
+    --status-withdrawn: #9e9e9e;
   }
 
   /* Common body styles for all entrypoints */

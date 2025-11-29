@@ -60,8 +60,8 @@ export const Checklist: React.FC<ChecklistProps> = ({
       ? statusOrder[currentIndex + 1]
       : null;
   const nextColor = nextStatus
-    ? statusStyles[nextStatus]?.color || '#666'
-    : '#666';
+    ? statusStyles[nextStatus]?.color || 'var(--status-researching)'
+    : 'var(--status-researching)';
 
   // Get items for current status
   const items = checklist && checklist[status] ? checklist[status] : [];

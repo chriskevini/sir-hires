@@ -42,9 +42,10 @@ export const JobFooter: React.FC<JobFooterProps> = ({
   const sortedItems = [...items].sort((a, b) => a.order - b.order);
 
   // Get colors for current and next status
-  const currentColor = statusStyles[status]?.color || '#757575';
+  const currentColor =
+    statusStyles[status]?.color || 'var(--status-researching)';
   const leftTargetColor = navButtons.left
-    ? statusStyles[navButtons.left.target]?.color || '#757575'
+    ? statusStyles[navButtons.left.target]?.color || 'var(--status-researching)'
     : currentColor;
 
   const handleChecklistToggle = () => {
@@ -129,8 +130,8 @@ export const JobFooter: React.FC<JobFooterProps> = ({
                 'bg-transparent rounded-md cursor-pointer',
                 'transition-all duration-200',
                 'text-sm font-medium whitespace-nowrap',
-                'border border-[var(--nav-color,#757575)] text-[var(--nav-color,#757575)]',
-                'hover:bg-[color-mix(in_srgb,var(--nav-color,#757575)_10%,transparent)]',
+                'border border-[var(--nav-color,var(--status-researching))] text-[var(--nav-color,var(--status-researching))]',
+                'hover:bg-[color-mix(in_srgb,var(--nav-color,var(--status-researching))_10%,transparent)]',
                 'active:scale-[0.98]',
                 'max-[480px]:py-1.5 max-[480px]:px-2.5 max-[480px]:text-xs'
               )}
@@ -178,7 +179,8 @@ export const JobFooter: React.FC<JobFooterProps> = ({
         {/* Right: Forward button(s) */}
         <div className="flex-1 flex justify-end gap-2">
           {navButtons.right.map((button, index) => {
-            const targetColor = statusStyles[button.target]?.color || '#757575';
+            const targetColor =
+              statusStyles[button.target]?.color || 'var(--status-researching)';
             return (
               <Button
                 key={index}
@@ -188,8 +190,8 @@ export const JobFooter: React.FC<JobFooterProps> = ({
                   'bg-transparent rounded-md cursor-pointer',
                   'transition-all duration-200',
                   'text-sm font-medium whitespace-nowrap',
-                  'border border-[var(--nav-color,#757575)] text-[var(--nav-color,#757575)]',
-                  'hover:bg-[color-mix(in_srgb,var(--nav-color,#757575)_10%,transparent)]',
+                  'border border-[var(--nav-color,var(--status-researching))] text-[var(--nav-color,var(--status-researching))]',
+                  'hover:bg-[color-mix(in_srgb,var(--nav-color,var(--status-researching))_10%,transparent)]',
                   'active:scale-[0.98]',
                   'max-[480px]:py-1.5 max-[480px]:px-2.5 max-[480px]:text-xs'
                 )}

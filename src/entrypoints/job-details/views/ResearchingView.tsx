@@ -135,16 +135,15 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex flex-row flex-1 overflow-hidden">
-        {/* Editor Panel */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-background p-2">
+      {/* Editor with Validation Panel */}
+      <div className="flex-1 flex flex-col overflow-hidden border border-border rounded-lg bg-background">
+        <div className="flex-1 flex flex-col p-4">
           <StreamingTextarea
             id="jobEditor"
             data-job-id={job.id}
             value={editorContent}
             onChange={setEditorContent}
             validationMessages={validationMessages}
-            minHeight="100%"
             className={cn(
               'flex-1 border-l-4',
               validation?.valid
@@ -155,21 +154,21 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
             )}
           />
         </div>
-      </div>
 
-      {/* Validation Panel */}
-      <ValidationPanel
-        isCollapsed={isValidationCollapsed}
-        onToggle={toggleValidationCollapsed}
-        isValid={validation?.valid ?? null}
-        errorCount={errorCount}
-        warningCount={warningCount}
-        infoCount={infoCount}
-        messages={messages.map((m) => ({
-          ...m,
-          message: escapeHtml(m.message),
-        }))}
-      />
+        {/* Validation Panel */}
+        <ValidationPanel
+          isCollapsed={isValidationCollapsed}
+          onToggle={toggleValidationCollapsed}
+          isValid={validation?.valid ?? null}
+          errorCount={errorCount}
+          warningCount={warningCount}
+          infoCount={infoCount}
+          messages={messages.map((m) => ({
+            ...m,
+            message: escapeHtml(m.message),
+          }))}
+        />
+      </div>
     </div>
   );
 };

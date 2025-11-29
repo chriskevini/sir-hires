@@ -554,7 +554,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     <>
       <div className="flex flex-col h-full gap-4">
         {/* Drafting Editor */}
-        <div className="mt-6 border border-border rounded-lg overflow-hidden bg-background">
+        <div className="flex-1 flex flex-col border border-border rounded-lg overflow-hidden bg-background">
           {/* Topbar with tabs and actions */}
           <EditorToolbar
             documentKeys={documentKeys}
@@ -575,7 +575,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           />
 
           {/* Editor wrapper */}
-          <div className="relative">
+          <div className="flex-1 flex flex-col relative overflow-hidden">
             {documentKeys.length === 0 ? (
               <div className="flex flex-col p-4 gap-3">
                 <StreamingTextarea

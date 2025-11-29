@@ -37,11 +37,11 @@ export const CollapsiblePanel: React.FC<CollapsiblePanelProps> = ({
       )}
     >
       <CollapsibleTrigger asChild>
-        <div className="flex w-full cursor-pointer select-none items-center justify-between border-b border-border bg-muted px-4 py-3 hover:bg-muted/80">
+        <div className="flex w-full cursor-pointer select-none items-center justify-between border-b border-border bg-card px-4 py-2 hover:bg-accent">
           {header}
         </div>
       </CollapsibleTrigger>
-      <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+      <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
         <div className="px-4 py-3">{children}</div>
       </CollapsibleContent>
     </Collapsible>

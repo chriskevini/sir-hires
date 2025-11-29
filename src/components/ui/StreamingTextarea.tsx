@@ -13,7 +13,7 @@ const streamingTextareaVariants = cva(
           'bg-primary/5 border-primary ring-2 ring-primary/20 animate-pulse',
         error:
           'bg-destructive/10 border-destructive/50 focus:border-destructive focus:ring-destructive/10',
-        disabled: 'bg-muted text-muted-foreground cursor-not-allowed',
+        disabled: 'bg-background text-muted-foreground cursor-not-allowed',
       },
     },
     defaultVariants: {

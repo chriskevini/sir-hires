@@ -1,5 +1,10 @@
 import * as React from 'react';
-import { statusStyles, statusOrder } from '@/config';
+import {
+  statusOrder,
+  getStatusConfig,
+  getStatusColor,
+  getStatusBackground,
+} from '@/config';
 import { cn } from '@/lib/utils';
 
 export type ApplicationStatus = (typeof statusOrder)[number];
@@ -29,7 +34,7 @@ const dotSizeClasses = {
 /**
  * StatusBadge - Display application status with consistent styling
  *
- * Uses colors from config.statusStyles for consistency across the app.
+ * Uses colors from centralized status config for consistency across the app.
  *
  * @example
  * // Full badge
@@ -43,15 +48,8 @@ const dotSizeClasses = {
  */
 const StatusBadge = React.forwardRef<HTMLSpanElement, StatusBadgeProps>(
   ({ status, size = 'md', variant = 'badge', className, ...props }, ref) => {
-    // Normalize status (capitalize first letter of each word)
-    const normalizedStatus = status
-      .split(' ')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
-
-    // Get style from config, fallback to Researching
-    const styles =
-      statusStyles[normalizedStatus] || statusStyles['Researching'];
+    const config = getStatusConfig(status);
+    const color = getStatusColor(status);
 
     if (variant === 'dot') {
       return (
@@ -62,8 +60,8 @@ const StatusBadge = React.forwardRef<HTMLSpanElement, StatusBadgeProps>(
             dotSizeClasses[size],
             className
           )}
-          style={{ backgroundColor: styles.color }}
-          title={normalizedStatus}
+          style={{ backgroundColor: color }}
+          title={config.name}
           {...props}
         />
       );
@@ -78,12 +76,12 @@ const StatusBadge = React.forwardRef<HTMLSpanElement, StatusBadgeProps>(
           className
         )}
         style={{
-          backgroundColor: styles.color,
+          backgroundColor: color,
           color: 'white',
         }}
         {...props}
       >
-        {normalizedStatus}
+        {config.name}
       </span>
     );
   }
@@ -97,26 +95,7 @@ export const getAvailableStatuses = (): ApplicationStatus[] => {
   return [...statusOrder];
 };
 
-/**
- * Get status color (useful for custom styling)
- */
-export const getStatusColor = (status: string): string => {
-  const normalizedStatus = status
-    .split(' ')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
-  return (
-    statusStyles[normalizedStatus]?.color || statusStyles['Researching'].color
-  );
-};
-
-/**
- * Get status background color with opacity (for cards, highlights)
- * Derives 20% opacity background from the status color using color-mix()
- */
-export const getStatusBackground = (status: string): string => {
-  const color = getStatusColor(status);
-  return `color-mix(in srgb, ${color} 20%, transparent)`;
-};
+// Re-export helpers from config for convenience
+export { getStatusColor, getStatusBackground };
 
 export { StatusBadge };

@@ -1,5 +1,5 @@
 import React from 'react';
-import { getNavigationButtons, statusStyles } from '@/config';
+import { getNavigationButtons, getStatusColor } from '@/config';
 import { Button } from '../ui/Button';
 import type { ChecklistItem } from '@/entrypoints/job-details/hooks';
 import { cn } from '@/lib/utils';
@@ -42,10 +42,9 @@ export const JobFooter: React.FC<JobFooterProps> = ({
   const sortedItems = [...items].sort((a, b) => a.order - b.order);
 
   // Get colors for current and next status
-  const currentColor =
-    statusStyles[status]?.color || 'var(--status-researching)';
+  const currentColor = getStatusColor(status);
   const leftTargetColor = navButtons.left
-    ? statusStyles[navButtons.left.target]?.color || 'var(--status-researching)'
+    ? getStatusColor(navButtons.left.target)
     : currentColor;
 
   const handleChecklistToggle = () => {
@@ -179,8 +178,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
         {/* Right: Forward button(s) */}
         <div className="flex-1 flex justify-end gap-2">
           {navButtons.right.map((button, index) => {
-            const targetColor =
-              statusStyles[button.target]?.color || 'var(--status-researching)';
+            const targetColor = getStatusColor(button.target);
             return (
               <Button
                 key={index}

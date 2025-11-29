@@ -15,61 +15,80 @@ export type {
   TaskConfig,
 } from './tasks';
 
-// Status progression order for state-based navigation (v0.3.0)
-export const statusOrder = [
-  'Researching',
-  'Drafting',
-  'Awaiting Review',
-  'Interviewing',
-  'Deciding',
-  'Accepted',
-  'Rejected',
-  'Withdrawn',
-];
+// =============================================================================
+// Status Configuration (Single Source of Truth)
+// =============================================================================
+// All status-related data in one place. To add a new status:
+// 1. Add entry to `statuses` array below
+// 2. Add CSS variable in globals.css (--status-{kebab-name})
+// 3. Add navigation buttons in getNavigationButtons() if needed
+// 4. Add checklist items in checklistTemplates if needed
 
-// Status visual styles (v0.3.0)
-// Colors reference CSS variables defined in globals.css for theming support
-// - color: CSS variable reference for status color
-// - fill: progress bar fill percentage
-export const statusStyles: Record<
-  string,
-  {
-    color: string;
-    fill: number;
-  }
-> = {
-  Researching: {
-    color: 'var(--status-researching)',
-    fill: 0,
-  },
-  Drafting: {
-    color: 'var(--status-drafting)',
-    fill: 15,
-  },
-  'Awaiting Review': {
-    color: 'var(--status-awaiting-review)',
-    fill: 35,
-  },
-  Interviewing: {
-    color: 'var(--status-interviewing)',
-    fill: 60,
-  },
-  Deciding: {
-    color: 'var(--status-deciding)',
-    fill: 85,
-  },
-  Accepted: {
-    color: 'var(--status-accepted)',
-    fill: 100,
-  },
-  Rejected: {
-    color: 'var(--status-rejected)',
-    fill: 100,
-  },
-  Withdrawn: {
-    color: 'var(--status-withdrawn)',
-    fill: 100,
-  },
+export interface StatusConfig {
+  name: string;
+  fill: number; // Progress bar percentage (0-100)
+  terminal: boolean; // Whether this is an end state
+}
+
+export const statuses: readonly StatusConfig[] = [
+  { name: 'Researching', fill: 0, terminal: false },
+  { name: 'Drafting', fill: 15, terminal: false },
+  { name: 'Awaiting Review', fill: 35, terminal: false },
+  { name: 'Interviewing', fill: 60, terminal: false },
+  { name: 'Deciding', fill: 85, terminal: false },
+  { name: 'Accepted', fill: 100, terminal: true },
+  { name: 'Rejected', fill: 100, terminal: true },
+  { name: 'Withdrawn', fill: 100, terminal: true },
+] as const;
+
+// Utility: convert status name to kebab-case for CSS variable lookup
+const toKebabCase = (s: string): string => s.toLowerCase().replace(/\s+/g, '-');
+
+// Utility: normalize status name (capitalize each word)
+const normalizeStatus = (status: string): string =>
+  status
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+
+// Derived arrays (backward compatible exports)
+export const statusOrder = statuses.map((s) => s.name);
+export const terminalStates = statuses
+  .filter((s) => s.terminal)
+  .map((s) => s.name);
+
+// Default status config (fallback)
+const defaultStatus = statuses[0];
+
+/**
+ * Get full status configuration by name
+ */
+export const getStatusConfig = (status: string): StatusConfig => {
+  const normalized = normalizeStatus(status);
+  return statuses.find((s) => s.name === normalized) ?? defaultStatus;
+};
+
+/**
+ * Get status color as CSS variable reference
+ * Returns: 'var(--status-researching)', 'var(--status-awaiting-review)', etc.
+ */
+export const getStatusColor = (status: string): string => {
+  const config = getStatusConfig(status);
+  return `var(--status-${toKebabCase(config.name)})`;
+};
+
+/**
+ * Get status progress bar fill percentage (0-100)
+ */
+export const getStatusFill = (status: string): number => {
+  return getStatusConfig(status).fill;
+};
+
+/**
+ * Get status background color with 20% opacity (for cards, highlights)
+ */
+export const getStatusBackground = (status: string): string => {
+  return `color-mix(in srgb, ${getStatusColor(status)} 20%, transparent)`;
 };
 
 // Navigation button configuration for each status (v0.3.0)
@@ -128,8 +147,7 @@ export function getNavigationButtons(status: string) {
   return buttons;
 }
 
-// Terminal states that cannot progress further
-export const terminalStates = ['Accepted', 'Rejected', 'Withdrawn'];
+// Terminal states - now derived from statuses array above
 
 // DOM element IDs
 export const domIds = {

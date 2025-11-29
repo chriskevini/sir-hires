@@ -1,5 +1,5 @@
 import React from 'react';
-import { statusStyles } from '@/config';
+import { getStatusColor } from '@/config';
 import { cn } from '@/lib/utils';
 
 interface NavigationButton {
@@ -38,7 +38,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
             className="flex flex-col items-center gap-2"
             style={
               {
-                '--nav-color': statusStyles[leftButton.target]?.color,
+                '--nav-color': getStatusColor(leftButton.target),
               } as React.CSSProperties
             }
           >
@@ -85,7 +85,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
             className="flex flex-col items-center gap-2"
             style={
               {
-                '--nav-color': statusStyles[button.target]?.color,
+                '--nav-color': getStatusColor(button.target),
               } as React.CSSProperties
             }
           >

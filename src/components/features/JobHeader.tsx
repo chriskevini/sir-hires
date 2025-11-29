@@ -1,6 +1,6 @@
 import React from 'react';
-import { statusStyles } from '@/config';
-import { StatusBadge, getStatusColor } from '@/components/ui/StatusBadge';
+import { getStatusColor, getStatusFill } from '@/config';
+import { StatusBadge } from '@/components/ui/StatusBadge';
 import { cn } from '@/lib/utils';
 
 interface JobHeaderProps {
@@ -27,7 +27,8 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
   status,
   className = '',
 }) => {
-  const styles = statusStyles[status] || statusStyles['Researching'];
+  const color = getStatusColor(status);
+  const fill = getStatusFill(status);
 
   return (
     <div
@@ -41,8 +42,8 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
         <div
           className="h-full transition-all duration-300 ease-out"
           style={{
-            width: `${styles.fill}%`,
-            backgroundColor: styles.color,
+            width: `${fill}%`,
+            backgroundColor: color,
           }}
         />
       </div>

@@ -99,4 +99,116 @@
   --amber-flame-800: 41.4 98% 20%;
   --amber-flame-900: 41.2 100% 10%;
   --amber-flame-950: 40 100% 7.1%;
+
+  /* Crimson - Sir Lancelot theme (red diagonal stripes) */
+  --crimson-50: 0 85% 95%;
+  --crimson-100: 0 84% 90%;
+  --crimson-200: 0 83% 80%;
+  --crimson-300: 0 82% 70%;
+  --crimson-400: 0 81% 60%;
+  --crimson-500: 0 80% 50%;
+  --crimson-600: 0 81% 40%;
+  --crimson-700: 0 82% 30%;
+  --crimson-800: 0 83% 20%;
+  --crimson-900: 0 84% 10%;
+  --crimson-950: 0 85% 7%;
+
+  /* Silver - Sir Lancelot theme (silver/white shield) */
+  --silver-50: 220 15% 97%;
+  --silver-100: 220 14% 93%;
+  --silver-200: 220 13% 85%;
+  --silver-300: 220 12% 75%;
+  --silver-400: 220 11% 65%;
+  --silver-500: 220 10% 55%;
+  --silver-600: 220 11% 45%;
+  --silver-700: 220 12% 35%;
+  --silver-800: 220 13% 25%;
+  --silver-900: 220 14% 15%;
+  --silver-950: 220 15% 8%;
+
+  /* Royal Purple - Sir Gawain theme (purple shield) */
+  --royal-purple-50: 270 60% 95%;
+  --royal-purple-100: 270 58% 90%;
+  --royal-purple-200: 270 56% 80%;
+  --royal-purple-300: 270 54% 70%;
+  --royal-purple-400: 270 52% 60%;
+  --royal-purple-500: 270 50% 50%;
+  --royal-purple-600: 270 52% 40%;
+  --royal-purple-700: 270 54% 30%;
+  --royal-purple-800: 270 56% 20%;
+  --royal-purple-900: 270 58% 12%;
+  --royal-purple-950: 270 60% 7%;
+
+  /* Heraldic Gold - Sir Gawain & Yvain themes (golden eagle/lion) */
+  --heraldic-gold-50: 45 100% 95%;
+  --heraldic-gold-100: 45 95% 88%;
+  --heraldic-gold-200: 45 90% 75%;
+  --heraldic-gold-300: 45 85% 62%;
+  --heraldic-gold-400: 45 80% 52%;
+  --heraldic-gold-500: 45 75% 45%;
+  --heraldic-gold-600: 45 80% 38%;
+  --heraldic-gold-700: 45 85% 28%;
+  --heraldic-gold-800: 45 90% 18%;
+  --heraldic-gold-900: 45 95% 10%;
+  --heraldic-gold-950: 45 100% 6%;
+
+  /* Sapphire - Sir Yvain theme (blue shield) */
+  --sapphire-50: 220 70% 95%;
+  --sapphire-100: 220 68% 90%;
+  --sapphire-200: 220 66% 80%;
+  --sapphire-300: 220 64% 70%;
+  --sapphire-400: 220 62% 58%;
+  --sapphire-500: 220 60% 48%;
+  --sapphire-600: 220 62% 40%;
+  --sapphire-700: 220 64% 30%;
+  --sapphire-800: 220 66% 22%;
+  --sapphire-900: 220 68% 14%;
+  --sapphire-950: 220 70% 8%;
+
+  /* ============================================
+   * THEMED BACKGROUNDS
+   * Distinctive background palettes for each knight
+   * ============================================ */
+
+  /* Parchment - Sir Lancelot backgrounds (aged manuscript feel)
+   * Warm cream/sepia tones like medieval documents */
+  --parchment-50: 35 45% 96%;
+  --parchment-100: 34 42% 91%;
+  --parchment-200: 33 38% 84%;
+  --parchment-300: 32 34% 74%;
+  --parchment-400: 30 28% 62%;
+  --parchment-500: 28 24% 50%;
+  --parchment-600: 26 28% 40%;
+  --parchment-700: 24 32% 30%;
+  --parchment-800: 22 36% 20%;
+  --parchment-900: 20 40% 12%;
+  --parchment-950: 18 45% 7%;
+
+  /* Twilight - Sir Gawain backgrounds (purple-tinted dusk)
+   * Deep violet atmosphere like a royal court at evening */
+  --twilight-50: 280 30% 96%;
+  --twilight-100: 278 28% 91%;
+  --twilight-200: 276 24% 84%;
+  --twilight-300: 274 20% 72%;
+  --twilight-400: 272 18% 58%;
+  --twilight-500: 270 16% 46%;
+  --twilight-600: 272 20% 36%;
+  --twilight-700: 274 24% 26%;
+  --twilight-800: 276 30% 16%;
+  --twilight-900: 278 36% 10%;
+  --twilight-950: 280 42% 6%;
+
+  /* Azure - Sir Yvain backgrounds (ocean-tinted)
+   * Cool blue-gray like coastal waters */
+  --azure-50: 210 40% 96%;
+  --azure-100: 212 38% 91%;
+  --azure-200: 214 34% 84%;
+  --azure-300: 216 28% 72%;
+  --azure-400: 218 24% 58%;
+  --azure-500: 220 20% 46%;
+  --azure-600: 218 24% 36%;
+  --azure-700: 216 28% 26%;
+  --azure-800: 214 34% 16%;
+  --azure-900: 212 40% 10%;
+  --azure-950: 210 45% 6%;
 }

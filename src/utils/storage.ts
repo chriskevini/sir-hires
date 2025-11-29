@@ -71,6 +71,24 @@ export interface DataVersion {
   migratedAt: string;
 }
 
+/**
+ * Theme mode preference
+ */
+export type ThemeMode = 'light' | 'dark' | 'system';
+
+/**
+ * Color theme preference
+ */
+export type ColorTheme = 'sir-hires' | 'lancelot' | 'gawain' | 'yvain';
+
+/**
+ * Theme preference settings
+ */
+export interface ThemePreference {
+  mode: ThemeMode;
+  colorTheme: ColorTheme;
+}
+
 // ===== Storage Item Definitions =====
 
 /**
@@ -194,6 +212,17 @@ export const sidebarCollapsedStorage = storage.defineItem<boolean>(
   }
 );
 
+/**
+ * Theme preference - User's preferred theme mode and color theme
+ */
+export const themePreferenceStorage = storage.defineItem<ThemePreference>(
+  'local:themePreference',
+  {
+    defaultValue: { mode: 'system', colorTheme: 'sir-hires' },
+    version: 1,
+  }
+);
+
 // ===== Helper Functions =====
 
 /**
@@ -209,6 +238,7 @@ export async function getAllStorageData(): Promise<Record<string, unknown>> {
     viewerFilters,
     checklistExpanded,
     dataVersion,
+    themePreference,
   ] = await Promise.all([
     jobsStorage.getValue(),
     jobInFocusStorage.getValue(),
@@ -217,6 +247,7 @@ export async function getAllStorageData(): Promise<Record<string, unknown>> {
     viewerFiltersStorage.getValue(),
     checklistExpandedStorage.getValue(),
     dataVersionStorage.getValue(),
+    themePreferenceStorage.getValue(),
   ]);
 
   return {
@@ -227,6 +258,7 @@ export async function getAllStorageData(): Promise<Record<string, unknown>> {
     viewerFilters,
     checklistExpanded,
     dataVersion,
+    themePreference,
   };
 }
 
@@ -245,6 +277,7 @@ export async function restoreStorageFromBackup(
     viewerFilters,
     checklistExpanded,
     dataVersion,
+    themePreference,
   } = data;
 
   await Promise.all([
@@ -269,6 +302,9 @@ export async function restoreStorageFromBackup(
     dataVersion !== undefined
       ? dataVersionStorage.setValue(dataVersion as DataVersion)
       : Promise.resolve(),
+    themePreference !== undefined
+      ? themePreferenceStorage.setValue(themePreference as ThemePreference)
+      : Promise.resolve(),
   ]);
 }
 
@@ -285,6 +321,7 @@ export async function clearAllStorage(): Promise<void> {
     checklistExpandedStorage.removeValue(),
     dataVersionStorage.removeValue(),
     keepaliveStorage.removeValue(),
+    themePreferenceStorage.removeValue(),
   ]);
 }
 

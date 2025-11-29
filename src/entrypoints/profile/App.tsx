@@ -29,6 +29,7 @@ import {
   useProfileValidation,
   type ValidationFix,
 } from './hooks/useProfileValidation';
+import { useTheme } from '@/hooks/useTheme';
 
 // Import components
 import {
@@ -113,6 +114,9 @@ export default function App() {
   const originalContentRef = useRef<string>(''); // Store original before extraction
   const hasReceivedContentRef = useRef<boolean>(false); // Track if real content has started streaming
   const streamedContentRef = useRef<string>(''); // Accumulate streamed content synchronously
+
+  // Apply theme from storage
+  useTheme();
 
   // Immediate save callback - saves to storage on every change
   const saveProfile = useCallback(async (newContent: string) => {

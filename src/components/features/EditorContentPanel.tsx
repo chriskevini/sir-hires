@@ -32,7 +32,7 @@ export const EditorContentPanel: React.FC<EditorContentPanelProps> = ({
 }) => {
   return (
     <div
-      className={`flex-col p-5 gap-3 ${isActive ? 'flex' : 'hidden'}`}
+      className={`flex-col p-4 gap-3 ${isActive ? 'flex' : 'hidden'}`}
       data-content={documentKey}
     >
       {/* Thinking panel (initially hidden) */}

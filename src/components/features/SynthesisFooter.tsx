@@ -55,7 +55,7 @@ export const SynthesisFooter: React.FC<SynthesisFooterProps> = ({
   isSynthesizing = false,
 }) => {
   return (
-    <div className="flex justify-between items-center px-5 py-3 bg-secondary/50 border-t border-border gap-4">
+    <div className="flex justify-between items-center px-4 py-2 bg-card border-t border-border gap-4">
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"

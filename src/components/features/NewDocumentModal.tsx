@@ -28,10 +28,6 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="New Document">
       <div className="p-4 max-h-[70vh] overflow-y-auto">
-        <p className="m-0 mb-4 text-muted-foreground text-sm">
-          Choose a template to get started:
-        </p>
-
         {/* Blank template - full width at top */}
         <Button
           variant="ghost"

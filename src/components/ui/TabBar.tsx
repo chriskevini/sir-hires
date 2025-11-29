@@ -31,9 +31,7 @@ export const TabBar: React.FC<TabBarProps> = ({
 }) => {
   return (
     <TabsPrimitive.Root value={activeTab} onValueChange={onTabChange}>
-      <TabsPrimitive.List
-        className={cn('flex gap-0.5 items-end pl-2', className)}
-      >
+      <TabsPrimitive.List className={cn('flex gap-0.5 items-end', className)}>
         {tabs.map((tab) => {
           const isActive = tab.key === activeTab;
           return (
@@ -41,14 +39,14 @@ export const TabBar: React.FC<TabBarProps> = ({
               key={tab.key}
               value={tab.key}
               className={cn(
-                'relative flex items-center justify-center px-5 py-2.5',
+                'relative flex items-center justify-center px-4 py-2',
                 'border border-b-0 rounded-t-lg cursor-pointer',
                 'text-sm font-medium transition-all duration-150',
                 'min-w-30 -mb-px',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 isActive
                   ? 'bg-background text-foreground border-border z-[1] shadow-[0_-2px_4px_rgba(0,0,0,0.05)]'
-                  : 'bg-muted text-muted-foreground border-border hover:bg-muted/80 hover:text-foreground'
+                  : 'bg-muted-foreground/10 text-muted-foreground border-border hover:bg-muted-foreground/20 hover:text-foreground'
               )}
             >
               <span className="text-center">{tab.label}</span>
@@ -78,7 +76,7 @@ export const TabBar: React.FC<TabBarProps> = ({
           <button
             type="button"
             className={cn(
-              'relative flex items-center justify-center px-3.5 py-2',
+              'relative flex items-center justify-center px-3 py-1.5',
               'border border-dashed border-border rounded-t-lg cursor-pointer',
               'text-lg font-normal leading-none text-muted-foreground',
               'bg-transparent transition-all duration-150',

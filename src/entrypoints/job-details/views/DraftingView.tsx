@@ -575,9 +575,9 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           />
 
           {/* Editor wrapper */}
-          <div className="relative min-h-[500px]">
+          <div className="relative">
             {documentKeys.length === 0 ? (
-              <div className="flex flex-col p-5 gap-3">
+              <div className="flex flex-col p-4 gap-3">
                 <StreamingTextarea
                   value=""
                   onChange={() => {}}
@@ -614,7 +614,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
           {/* Synthesis error display */}
           {synthesisError && (
-            <div className="py-3 px-5 mx-5 mb-3 bg-destructive/10 border border-destructive/50 rounded text-destructive text-sm">
+            <div className="py-2 px-4 mx-4 mb-2 bg-destructive/10 border border-destructive/50 rounded text-destructive text-sm">
               <strong className="block mb-1">Synthesis Error:</strong>{' '}
               {synthesisError}
             </div>

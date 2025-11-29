@@ -9,11 +9,33 @@ Migrate from hand-rolled CSS components to shadcn/ui + Tailwind CSS for:
 - Reduced maintenance burden
 - Better developer experience with utility classes
 
-## Scope
+**Principle:** Prefer shadcn/ui components over hand-rolled solutions wherever possible. New features must use shadcn primitives. Maintainability > custom code.
 
-- **28 CSS files** (~5500 lines) to delete
-- **25+ component TSX files** to convert
-- **4 entrypoints** to update (popup, sidepanel, job-details, profile)
+## Current Status: ⏳ Phase 6 Pending
+
+**Completed (42 commits):**
+
+- All CSS files deleted (~5500 lines removed)
+- All components converted to Tailwind utilities
+- shadcn primitives integrated (Button, Dialog, Dropdown, Sidebar, Sheet, Tooltip, etc.)
+- Lucide icons replaced custom SVG icons
+- Color palette system with semantic tokens
+- Unified JobSidebar with responsive behavior
+
+**Next:**
+
+- Phase 6: Replace remaining hand-rolled components with shadcn equivalents
+
+**After Phase 6:**
+
+- Phase 7: Update documentation (COMPONENTS_REFERENCE.md, STYLE_GUIDE.md)
+- Manual testing across entrypoints
+
+## Original Scope
+
+- **28 CSS files** (~5500 lines) to delete ✅
+- **25+ component TSX files** to convert ✅
+- **4 entrypoints** to update (popup, sidepanel, job-details, profile) ✅
 
 ---
 
@@ -637,8 +659,19 @@ rm src/components/ui/icons.tsx       # replaced by lucide-react
 
 ### Custom Components
 
-- [ ] Create StreamingTextarea (optional enhancement)
-- [ ] Create StatusBadge (optional enhancement)
+- [x] Create StreamingTextarea
+- [x] Create StatusBadge
+
+### Additional Refactors (Post-Migration)
+
+- [x] Centralize status configuration with derived helpers (`src/config.ts`)
+- [x] Migrate status colors to CSS variables for theming
+- [x] Add color palettes system (`src/styles/palettes.css`)
+- [x] Add warning semantic color token
+- [x] Replace JobSelector with unified JobSidebar using shadcn Sidebar primitives
+- [x] Remove redundant JobSidebarOverlay (shadcn Sidebar handles responsive behavior)
+- [x] Unify ValidationPanel for job and profile validation
+- [x] Extract useJobFilters hook and JobCard component
 
 ### Cleanup
 
@@ -647,9 +680,7 @@ rm src/components/ui/icons.tsx       # replaced by lucide-react
 - [x] Delete `src/components/ui/ProgressBar.tsx` (deprecated, removed)
 - [x] Keep Button/Modal/Dropdown/TabBar (converted to Tailwind/Radix, not deleted)
 - [x] Replace hardcoded colors with shadcn theme tokens
-- [ ] Update AGENTS.md
-- [ ] Update docs/COMPONENTS_REFERENCE.md
-- [ ] Update docs/STYLE_GUIDE.md
+- [x] Update AGENTS.md (condensed with links to reference docs)
 
 ### Testing
 
@@ -678,16 +709,18 @@ If issues arise:
 
 ## Estimated Effort
 
-| Phase                      | Time           |
-| -------------------------- | -------------- |
-| Phase 0: Pre-migration     | 30 min         |
-| Phase 1: Setup             | 30 min         |
-| Phase 2: shadcn primitives | 2-3 hours      |
-| Phase 3: Domain components | 3-4 hours      |
-| Phase 4: Custom components | 1 hour         |
-| Phase 5: Cleanup + docs    | 1 hour         |
-| Testing                    | 1-2 hours      |
-| **Total**                  | **9-13 hours** |
+| Phase                      | Time            | Status     |
+| -------------------------- | --------------- | ---------- |
+| Phase 0: Pre-migration     | 30 min          | ✅ Done    |
+| Phase 1: Setup             | 30 min          | ✅ Done    |
+| Phase 2: shadcn primitives | 2-3 hours       | ✅ Done    |
+| Phase 3: Domain components | 3-4 hours       | ✅ Done    |
+| Phase 4: Custom components | 1 hour          | ✅ Done    |
+| Phase 5: Cleanup           | 30 min          | ✅ Done    |
+| Phase 6: shadcn adoption   | 3-4 hours       | ⏳ Pending |
+| Phase 7: Documentation     | 1 hour          | ⏳ Pending |
+| Testing                    | 1-2 hours       | ⏳ Pending |
+| **Total**                  | **12-17 hours** |            |
 
 ---
 
@@ -695,5 +728,286 @@ If issues arise:
 
 1. **Dark mode:** YES - Include in migration. Add `.dark` class CSS variables to globals.css.
 2. **Icons:** YES - Replace all 16 custom SVG icons in `icons.tsx` with Lucide equivalents.
-3. **Animations:** Use Tailwind animate classes (`animate-spin`, `animate-pulse`, etc.).
+3. **Animations:** Use Tailwind animate classes (`animate-spin`, `animate-pulse`, etc.). Added `tw-animate-css` for sidebar animations.
 4. **Directory structure:** Keep `ui/` and `features/` separate, but reorganize misplaced components.
+5. **Sidebar:** Use shadcn Sidebar primitives for responsive behavior (desktop sidebar → mobile Sheet at <768px).
+6. **Color theming:** Implemented palettes system (`src/styles/palettes.css`) with semantic color tokens.
+
+---
+
+## Phase 6: Replace Remaining Hand-Rolled Components
+
+Replace all remaining custom implementations with shadcn equivalents for consistency, accessibility, and maintainability.
+
+### 6.1 CollapsiblePanel → Collapsible (High Priority)
+
+**Current:** `src/components/ui/CollapsiblePanel.tsx`
+
+- Manual state management and CSS transitions
+- Missing keyboard support (Enter/Space to toggle)
+- No ARIA attributes
+
+**Target:** shadcn `Collapsible` (Radix primitive)
+
+```bash
+npx shadcn@latest add collapsible
+```
+
+**Migration:**
+
+```tsx
+// Before
+<CollapsiblePanel isCollapsed={collapsed} onToggle={toggle} header={<span>Header</span>}>
+  {content}
+</CollapsiblePanel>
+
+// After
+<Collapsible open={!collapsed} onOpenChange={toggle}>
+  <CollapsibleTrigger>{header}</CollapsibleTrigger>
+  <CollapsibleContent>{content}</CollapsibleContent>
+</Collapsible>
+```
+
+**Files to update:**
+
+- `src/components/features/ValidationPanel.tsx`
+- `src/entrypoints/job-details/components/JobTemplatePanel.tsx`
+
+**Cleanup:** Delete `src/components/ui/CollapsiblePanel.tsx`
+
+---
+
+### 6.2 TabBar → Tabs (High Priority)
+
+**Current:** `src/components/ui/TabBar.tsx`
+
+- Custom browser-style tabs with add/delete functionality
+- Missing arrow key navigation
+- No roving tabindex
+
+**Target:** shadcn `Tabs` (Radix primitive)
+
+```bash
+npx shadcn@latest add tabs
+```
+
+**Note:** TabBar has custom features (add tab, delete tab, browser-style design). Options:
+
+1. Extend shadcn Tabs with custom trigger that includes add/delete buttons
+2. Keep visual design but use Radix Tabs primitives internally for accessibility
+
+**Files to update:**
+
+- `src/entrypoints/job-details/App.tsx`
+- `src/entrypoints/sidepanel/App.tsx`
+
+---
+
+### 6.3 StatusFilterDots → ToggleGroup (High Priority)
+
+**Current:** `src/components/features/StatusFilterDots.tsx`
+
+- Custom toggle buttons for multi-select status filtering
+- Basic click handling, no keyboard support
+
+**Target:** shadcn `ToggleGroup` with `type="multiple"`
+
+```bash
+npx shadcn@latest add toggle toggle-group
+```
+
+**Migration:**
+
+```tsx
+// Before
+<StatusFilterDots activeStatuses={active} onToggle={handleToggle} />
+
+// After
+<ToggleGroup type="multiple" value={active} onValueChange={setActive}>
+  {statuses.map(status => (
+    <ToggleGroupItem key={status} value={status} style={{ backgroundColor: statusColor }}>
+      <span className="sr-only">{status}</span>
+    </ToggleGroupItem>
+  ))}
+</ToggleGroup>
+```
+
+**Files to update:**
+
+- `src/components/features/StatusFilterDots.tsx` (refactor in place)
+- Consumers in sidepanel/job-details
+
+---
+
+### 6.4 SortIconButtons → ToggleGroup (Medium Priority)
+
+**Current:** `src/components/features/SortIconButtons.tsx:68-96`
+
+- Custom icon buttons for mutually exclusive sort options
+- Manual active state tracking
+
+**Target:** shadcn `ToggleGroup` with `type="single"`
+
+**Migration:** Similar to StatusFilterDots but with `type="single"` for mutual exclusion.
+
+---
+
+### 6.5 Checklist → Accordion + Checkbox (Medium Priority)
+
+**Current:** `src/entrypoints/job-details/components/checklist.tsx:24-54`
+
+- Custom expandable checklist with ~60 lines of animation logic
+- Manual animation states ('expanding', 'collapsing', 'idle')
+- Custom ref handling for height calculations
+
+**Target:** shadcn `Accordion` + `Checkbox`
+
+```bash
+npx shadcn@latest add accordion checkbox
+```
+
+**Benefits:** Eliminates custom animation code, proper ARIA for expandable regions.
+
+---
+
+### 6.6 Alert States → Alert (Medium Priority)
+
+**Current:** Multiple components with custom alert/message styling:
+
+- `src/components/features/ValidationPanel.tsx:106-128` - Error/warning/info messages
+- `src/components/features/EmptyState.tsx:15-35` - Empty state messaging
+- `src/components/features/ErrorState.tsx:23-48` - Error state messaging
+
+**Target:** shadcn `Alert` with variants
+
+```bash
+npx shadcn@latest add alert
+```
+
+**Variants needed:**
+
+- `destructive` - errors
+- `warning` - warnings (custom variant to add)
+- `default` - info/neutral
+
+---
+
+### 6.7 Card Components → Card (Medium Priority)
+
+**Current:** Multiple components with card-like styling:
+
+- `src/components/features/JobCard.tsx:58-99` - Job list cards
+- `src/components/features/NewDocumentModal.tsx:25-26` - Template selection cards
+
+**Target:** shadcn `Card`
+
+```bash
+npx shadcn@latest add card
+```
+
+**Migration:**
+
+```tsx
+// Before (JobCard)
+<div className="rounded-lg border p-4 hover:bg-muted/50">...</div>
+
+// After
+<Card className="hover:bg-muted/50">
+  <CardHeader>...</CardHeader>
+  <CardContent>...</CardContent>
+</Card>
+```
+
+---
+
+### 6.8 Popup Select → Select (Medium Priority)
+
+**Current:** `src/entrypoints/popup/App.tsx:119-139`
+
+- Native `<select>` element with custom styling
+- Limited keyboard navigation
+- Inconsistent with rest of UI
+
+**Target:** shadcn `Select`
+
+```bash
+npx shadcn@latest add select
+```
+
+---
+
+### 6.9 Form Inputs → Form Components (Low Priority)
+
+**Current:** Various form inputs with inconsistent styling
+
+**Target:** Complete form system
+
+```bash
+npx shadcn@latest add form label textarea
+```
+
+**Note:** Already have `input.tsx`. Add Form wrapper for validation integration if needed.
+
+---
+
+### Phase 6 Checklist
+
+#### High Priority
+
+- [ ] Replace CollapsiblePanel with Collapsible
+- [ ] Replace/extend TabBar with Tabs primitives
+- [ ] Replace StatusFilterDots with ToggleGroup
+
+#### Medium Priority
+
+- [ ] Replace SortIconButtons with ToggleGroup
+- [ ] Replace checklist accordion with Accordion + Checkbox
+- [ ] Add Alert component for ValidationPanel, EmptyState, ErrorState
+- [ ] Add Card component for JobCard, NewDocumentModal
+- [ ] Replace popup select with Select
+
+#### Low Priority
+
+- [ ] Add Form components for validation (if needed)
+
+#### Cleanup
+
+- [ ] Delete CollapsiblePanel.tsx after migration
+
+---
+
+## Phase 7: Documentation
+
+Update documentation after all component APIs are finalized.
+
+- [ ] Update docs/COMPONENTS_REFERENCE.md with new shadcn components
+- [ ] Update docs/STYLE_GUIDE.md with shadcn usage patterns
+- [ ] Review and update any outdated component examples
+
+---
+
+### Installation Commands (All Phase 6)
+
+```bash
+# High priority
+npx shadcn@latest add collapsible
+npx shadcn@latest add tabs
+npx shadcn@latest add toggle toggle-group
+
+# Medium priority
+npx shadcn@latest add accordion checkbox
+npx shadcn@latest add alert
+npx shadcn@latest add card
+npx shadcn@latest add select
+
+# Low priority (if needed)
+npx shadcn@latest add form label textarea
+```
+
+### Expected Impact
+
+- **~200-300 lines** of custom code eliminated
+- **Accessibility**: Full keyboard navigation, proper ARIA attributes, screen reader support
+- **Consistency**: All interactive components use Radix primitives
+- **Animations**: Smooth, consistent animations via Radix
+- **Maintainability**: Less custom code, leveraging well-tested library code

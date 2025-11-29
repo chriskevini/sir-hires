@@ -35,7 +35,7 @@ interface SidepanelHeaderProps {
  * Layout: [chevron toggle] [Job Title - Company] [Extract] [Delete] [Maximize]
  *
  * Features:
- * - Toggle arrow to open/close JobSidebarOverlay
+ * - Toggle arrow to open/close JobSelector overlay
  * - Job title and company display in center
  * - SVG icon buttons for common actions (consistent with SortIconButtons)
  * - Disabled states for context-appropriate actions

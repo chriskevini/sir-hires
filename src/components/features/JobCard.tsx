@@ -30,8 +30,7 @@ interface JobCardProps {
  * JobCard - Reusable job card component for job lists
  *
  * Used by:
- * - JobSidebarOverlay (sidepanel)
- * - JobSidebarLayout (job-details page)
+ * - JobSelector (sidepanel and job-details page)
  *
  * Features:
  * - Status-colored background

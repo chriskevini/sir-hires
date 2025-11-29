@@ -8,10 +8,10 @@ import {
   ParsedJobProvider,
   useGetParsedJob,
 } from '../../components/features/ParsedJobProvider';
-import { JobSidebar } from '../../components/features/JobSidebar';
+import { JobSelector } from '../../components/features/JobSelector';
 import { initDevModeValidation } from '../../utils/dev-validators';
 import { Dropdown } from '../../components/ui/Dropdown';
-import { PanelLeft, User } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User } from 'lucide-react';
 import {
   getAllStorageData,
   restoreStorageFromBackup,
@@ -36,14 +36,14 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   const [error, _setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Load sidebar collapsed state from storage on mount (inverted: collapsed = !open)
+  // Load sidebar open state from storage on mount (stored as "collapsed")
   useEffect(() => {
     sidebarCollapsedStorage.getValue().then((collapsed) => {
       setSidebarOpen(!collapsed);
     });
   }, []);
 
-  // Handle sidebar open state change with storage persistence
+  // Handle sidebar open change with storage persistence
   const handleSidebarOpenChange = useCallback((open: boolean) => {
     setSidebarOpen(open);
     sidebarCollapsedStorage.setValue(!open);
@@ -141,7 +141,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   /**
    * Select a job by ID
    */
-  const handleSelectJob = useCallback(
+  const selectJob = useCallback(
     async (jobId: string) => {
       // Find global index
       const globalIndex = store.jobs.findIndex((j: Job) => j.id === jobId);
@@ -287,7 +287,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   }, []);
 
   /**
-   * Auto-select job when jobInFocus changes
+   * Auto-select job when jobInFocus changes or on initial load
    */
   useEffect(() => {
     if (store.jobs.length === 0) {
@@ -306,7 +306,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
       }
     }
 
-    // Priority 2: Currently selected job
+    // Priority 2: Currently selected job is still valid
     const selectedIndex = store.selectedJobIndex;
     if (selectedIndex >= 0 && selectedIndex < store.jobs.length) {
       return; // Keep current selection
@@ -316,12 +316,6 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
     store.setSelectedIndex(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store.jobInFocusId, store.selectedJobIndex, store.jobs.length]);
-
-  // Get selected job ID for sidebar
-  const selectedJobId =
-    store.selectedJobIndex >= 0 && store.selectedJobIndex < store.jobs.length
-      ? store.jobs[store.selectedJobIndex]?.id || null
-      : null;
 
   /**
    * Get the view component for the current job
@@ -390,78 +384,87 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
 
   // Main app UI
   console.info('[Render] Main app UI', {
-    allJobs: store.jobs.length,
+    totalJobs: store.jobs.length,
     selectedIndex: store.selectedJobIndex,
   });
 
   return (
-    <JobSidebar
-      jobs={store.jobs}
-      selectedJobId={selectedJobId}
-      onSelectJob={handleSelectJob}
-      onDeleteJob={handleDeleteJob}
-      getParsedJob={getParsedJob}
-      open={sidebarOpen}
-      onOpenChange={handleSidebarOpenChange}
-    >
-      <div className="flex flex-col h-full">
-        {/* Header with branding and action buttons */}
-        <header className="flex justify-between items-center py-3 px-6 border-b border-border bg-background shrink-0">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
-              onClick={() => handleSidebarOpenChange(!sidebarOpen)}
-              title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-              aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-            >
-              <PanelLeft className="h-4 w-4" />
-            </Button>
-            <h1 className="text-lg font-semibold text-foreground">Sir Hires</h1>
-          </div>
-          <div className="flex gap-1 items-center">
-            <Button
-              variant="ghost"
-              className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
-              onClick={handleProfileClick}
-              title="Profile"
-            >
-              <User className="h-5 w-5" />
-            </Button>
-            <Dropdown
-              buttonLabel="More options"
-              buttonIcon="⋮"
-              iconOnly={true}
-              items={[
-                {
-                  label: 'Create Backup',
-                  onClick: handleCreateBackup,
-                },
-                {
-                  label: 'Restore Backup',
-                  onClick: handleRestoreBackup,
-                },
-                {
-                  label: 'Delete All',
-                  onClick: handleDeleteAll,
-                  variant: 'danger',
-                },
-              ]}
-            />
-          </div>
-        </header>
+    <div className="max-w-full h-screen m-0 bg-background flex flex-col">
+      {/* Header with branding and action buttons */}
+      <header className="flex justify-between items-center py-3 px-6 border-b border-border bg-background shrink-0">
+        <div className="flex items-baseline gap-3">
+          <Button
+            variant="ghost"
+            className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
+            onClick={() => handleSidebarOpenChange(!sidebarOpen)}
+            title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+            aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+          >
+            {sidebarOpen ? (
+              <ChevronLeft className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </Button>
+          <h1 className="text-lg font-semibold text-foreground">Sir Hires</h1>
+        </div>
+        <div className="flex gap-1 items-center">
+          <Button
+            variant="ghost"
+            className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
+            onClick={handleProfileClick}
+            title="Profile"
+          >
+            <User className="h-5 w-5" />
+          </Button>
+          <Dropdown
+            buttonLabel="More options"
+            buttonIcon="⋮"
+            iconOnly={true}
+            items={[
+              {
+                label: 'Create Backup',
+                onClick: handleCreateBackup,
+              },
+              {
+                label: 'Restore Backup',
+                onClick: handleRestoreBackup,
+              },
+              {
+                label: 'Delete All',
+                onClick: handleDeleteAll,
+                variant: 'danger',
+              },
+            ]}
+          />
+        </div>
+      </header>
+
+      {/* Main content area */}
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Job Selector (sidebar) */}
+        <JobSelector
+          jobs={store.jobs}
+          selectedJobId={store.jobs[store.selectedJobIndex]?.id ?? null}
+          onSelectJob={selectJob}
+          onDeleteJob={handleDeleteJob}
+          isOpen={sidebarOpen}
+          onOpenChange={handleSidebarOpenChange}
+          getParsedJob={getParsedJob}
+          mode="responsive"
+        />
 
         {/* Detail panel */}
-        <div className="relative flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden">
           <div
-            className="absolute inset-0 overflow-hidden bg-background"
+            className="h-full overflow-hidden bg-background"
             id="detailPanel"
           >
             {renderJobView()}
           </div>
         </div>
       </div>
-    </JobSidebar>
+    </div>
   );
 };
 

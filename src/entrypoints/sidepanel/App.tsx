@@ -8,7 +8,7 @@ import {
   ParsedJobProvider,
   useGetParsedJob,
 } from '../../components/features/ParsedJobProvider';
-import { JobSidebar } from '../../components/features/JobSidebar';
+import { JobSelector } from '../../components/features/JobSelector';
 import { SidepanelHeader } from '../../components/features/SidepanelHeader';
 import type { Job, ChecklistItem } from '../job-details/hooks';
 import { useJobExtraction, useBackupRestore } from './hooks';
@@ -50,7 +50,7 @@ interface SidepanelContentProps {
   selectorOpen: boolean;
   extracting: boolean;
   hasJob: boolean;
-  onSetSelectorOpen: (open: boolean) => void;
+  onSelectorOpenChange: (open: boolean) => void;
   onExtract: () => void;
   onDelete: () => void;
   onMaximize: () => void;
@@ -74,7 +74,7 @@ function SidepanelContent({
   selectorOpen,
   extracting,
   hasJob,
-  onSetSelectorOpen,
+  onSelectorOpenChange,
   onExtract,
   onDelete,
   onMaximize,
@@ -94,51 +94,48 @@ function SidepanelContent({
   const jobTitle = parsedJob?.topLevelFields['TITLE'];
   const company = parsedJob?.topLevelFields['COMPANY'];
 
-  // Toggle callback for the header
-  const handleToggleSelector = useCallback(() => {
-    onSetSelectorOpen(!selectorOpen);
-  }, [onSetSelectorOpen, selectorOpen]);
-
   return (
-    <JobSidebar
-      jobs={jobs}
-      selectedJobId={selectedJobId}
-      onSelectJob={onSelectJob}
-      onDeleteJob={onDeleteJobFromSelector}
-      getParsedJob={getParsedJob}
-      open={selectorOpen}
-      onOpenChange={onSetSelectorOpen}
-    >
-      <div className="flex flex-col h-screen">
-        {/* Header with toggle and action buttons */}
-        <SidepanelHeader
-          onToggleSelector={handleToggleSelector}
-          onExtract={onExtract}
-          onDelete={onDelete}
-          onMaximize={onMaximize}
-          extracting={extracting}
-          hasJob={hasJob}
-          selectorOpen={selectorOpen}
-          jobTitle={jobTitle}
-          company={company}
+    <div className="flex flex-col h-screen">
+      {/* Header with toggle and action buttons */}
+      <SidepanelHeader
+        onToggleSelector={() => onSelectorOpenChange(!selectorOpen)}
+        onExtract={onExtract}
+        onDelete={onDelete}
+        onMaximize={onMaximize}
+        extracting={extracting}
+        hasJob={hasJob}
+        selectorOpen={selectorOpen}
+        jobTitle={jobTitle}
+        company={company}
+      />
+
+      {/* Main content area with JobSelector overlay */}
+      <div className="flex-1 relative overflow-hidden flex flex-col">
+        {mainContent}
+
+        {/* Job selector overlay - positioned relative to content area */}
+        <JobSelector
+          jobs={jobs}
+          selectedJobId={selectedJobId}
+          onSelectJob={onSelectJob}
+          onDeleteJob={onDeleteJobFromSelector}
+          isOpen={selectorOpen}
+          onOpenChange={onSelectorOpenChange}
+          getParsedJob={getParsedJob}
+          mode="overlay"
         />
-
-        {/* Main content area */}
-        <div className="flex-1 relative overflow-hidden flex flex-col">
-          {mainContent}
-        </div>
-
-        {/* Duplicate Job Modal */}
-        {pendingExtraction && (
-          <DuplicateJobModal
-            isOpen={showDuplicateModal}
-            onRefresh={onRefresh}
-            onExtractNew={onExtractNew}
-            onCancel={onCancelDuplicate}
-          />
-        )}
       </div>
-    </JobSidebar>
+
+      {/* Duplicate Job Modal */}
+      {pendingExtraction && (
+        <DuplicateJobModal
+          isOpen={showDuplicateModal}
+          onRefresh={onRefresh}
+          onExtractNew={onExtractNew}
+          onCancel={onCancelDuplicate}
+        />
+      )}
+    </div>
   );
 }
 
@@ -299,14 +296,14 @@ export const App: React.FC = () => {
   );
 
   /**
-   * Handle selecting a job from the JobSidebarOverlay
+   * Handle selecting a job from the JobSelector
    */
   const handleSelectJob = useCallback(async (jobId: string) => {
     await browser.runtime.sendMessage({ action: 'setJobInFocus', jobId });
   }, []);
 
   /**
-   * Handle deleting a job from the JobSidebarOverlay
+   * Handle deleting a job from the JobSelector
    */
   const handleDeleteJobFromSelector = useCallback(
     async (jobId: string) => {
@@ -315,13 +312,6 @@ export const App: React.FC = () => {
     },
     [store]
   );
-
-  /**
-   * Set the job selector panel open state
-   */
-  const handleSetSelectorOpen = useCallback((open: boolean) => {
-    setSelectorOpen(open);
-  }, []);
 
   /**
    * Mark initial load as complete when store finishes loading
@@ -419,7 +409,7 @@ export const App: React.FC = () => {
         selectorOpen={selectorOpen}
         extracting={extraction.extracting}
         hasJob={!!currentJob}
-        onSetSelectorOpen={handleSetSelectorOpen}
+        onSelectorOpenChange={setSelectorOpen}
         onExtract={extraction.handleExtractJob}
         onDelete={handleDeleteJob}
         onMaximize={handleOpenJobDetails}

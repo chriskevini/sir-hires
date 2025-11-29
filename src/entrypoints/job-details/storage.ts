@@ -12,9 +12,6 @@ export type StorageChangeCallback = (
   changes: Record<string, { oldValue?: unknown; newValue?: unknown }>
 ) => void;
 
-// Document defaults type - uses Record for compatibility with Job.documents
-type DocumentDefaults = Record<string, JobDocument>;
-
 export class StorageService {
   private storageChangeListeners: StorageChangeCallback[] = [];
 
@@ -25,50 +22,15 @@ export class StorageService {
   // ===== Document Utilities =====
 
   /**
-   * Initialize empty documents for a job
-   * Creates default tailoredResume and coverLetter documents
+   * Get document by key
+   * Returns undefined if documents don't exist or document key not found
    */
-  initializeDocuments(job: Partial<Job>): DocumentDefaults {
-    return {
-      tailoredResume: {
-        title: `${job.content ? 'Resume' : 'Resume'} - ${job.content ? 'Company' : 'Company'}`,
-        text: '',
-        lastEdited: null,
-        order: 0,
-      },
-      coverLetter: {
-        title: `Cover Letter - Position at Company`,
-        text: '',
-        lastEdited: null,
-        order: 1,
-      },
-    };
-  }
-
-  /**
-   * Get document by key with fallback to defaults
-   */
-  getDocument(job: Job, documentKey: string): JobDocument {
-    // Ensure documents object exists
+  getDocument(job: Job, documentKey: string): JobDocument | undefined {
     if (!job.documents) {
-      job.documents = this.initializeDocuments(job);
+      return undefined;
     }
 
-    // Return the document or create default
-    if (job.documents && job.documents[documentKey]) {
-      return job.documents[documentKey];
-    }
-
-    // Fallback defaults
-    const defaults = this.initializeDocuments(job);
-    return (
-      defaults[documentKey] || {
-        title: 'Untitled Document',
-        text: '',
-        lastEdited: null,
-        order: 0,
-      }
-    );
+    return job.documents[documentKey];
   }
 
   /**
@@ -87,9 +49,9 @@ export class StorageService {
         throw new Error(`Job ${jobId} not found`);
       }
 
-      // Initialize documents if needed
+      // Initialize empty documents object if needed (no default documents)
       if (!jobsObj[jobId].documents) {
-        jobsObj[jobId].documents = this.initializeDocuments(jobsObj[jobId]);
+        jobsObj[jobId].documents = {};
       }
 
       // Update the document
@@ -111,10 +73,11 @@ export class StorageService {
 
   /**
    * Get sorted document keys from a job
+   * Returns empty array if no documents exist (documents must be explicitly created)
    */
   getDocumentKeys(job: Job): string[] {
     if (!job.documents) {
-      return ['tailoredResume', 'coverLetter'];
+      return [];
     }
 
     // Get all keys and sort by order

@@ -715,7 +715,7 @@ export function useJobStore(): JobStore {
         if (jobIndex === -1) return prev;
 
         const job = prev.jobs[jobIndex];
-        const documents = job.documents || createDefaultDocuments(job);
+        const documents = job.documents || {}; // Empty object, not default documents
 
         const updatedDocuments = {
           ...documents,
@@ -799,16 +799,12 @@ export function useJobStore(): JobStore {
 
   /**
    * Get a document from a job
+   * Returns undefined if job or document doesn't exist
    */
   const getDocument = useCallback(
     (jobId: string, documentKey: string): JobDocument | undefined => {
       const job = state.jobs.find((j) => j.id === jobId);
-      if (!job) return undefined;
-
-      if (!job.documents) {
-        const defaults = createDefaultDocuments(job);
-        return defaults[documentKey];
-      }
+      if (!job || !job.documents) return undefined;
 
       return job.documents[documentKey];
     },
@@ -817,12 +813,13 @@ export function useJobStore(): JobStore {
 
   /**
    * Get sorted document keys for a job
+   * Returns empty array if no documents exist (documents must be explicitly created)
    */
   const getDocumentKeys = useCallback(
     (jobId: string): string[] => {
       const job = state.jobs.find((j) => j.id === jobId);
       if (!job || !job.documents) {
-        return ['tailoredResume', 'coverLetter'];
+        return [];
       }
 
       return Object.keys(job.documents).sort((a, b) => {

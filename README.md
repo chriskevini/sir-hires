@@ -12,6 +12,42 @@ A cross-browser web extension with job data extraction, application lifecycle tr
 - 📤 **Export freedom**: Your data in JSON anytime
 - 🚫 **No tracking**: We don't collect, store, or transmit your data
 
+## Version 0.4.0 - UI Modernization & Theme System
+
+**Major UI overhaul with shadcn/ui components and theme customization:**
+
+- **Theme System**:
+  - 4 knight-themed color palettes (Sir Hires, Sir Lancelot, Sir Gawain, Sir Yvain)
+  - Light/Dark/System mode toggle with cross-tab synchronization
+  - Status-colored job cards with visual progress feedback
+
+- **UI Framework Migration**:
+  - Complete migration to shadcn/ui + Tailwind CSS
+  - Lucide React icons replacing custom SVG implementations
+  - Native HTML Popover API for dropdowns
+
+- **Enhanced Job Management**:
+  - Job Selector Panel with search, status filtering, and sorting
+  - Icon-based filter/sort controls (calendar, building, document icons)
+  - Status Filter Dots component for togglable status filtering
+
+- **Profile & Document Improvements**:
+  - Resume text extraction - LLM-powered conversion to MarkdownDB format
+  - Autofix validation buttons for profile warnings
+  - Document synthesis with inline streaming and tone selection
+  - New Document Modal for creating documents from templates
+
+- **Architecture Improvements**:
+  - Unified optimistic store replacing useJobState/useJobStorage/useJobHandlers
+  - Immediate-save pattern preventing focus loss and data overwrite
+  - Cross-tab sync with intelligent merging and echo cancellation
+  - 100% TypeScript type safety (eliminated all 'any' types)
+
+- **LLM Integration**:
+  - Model dropdown fetching available models from LLM server
+  - Auto-detect provider type (local vs cloud) from URL
+  - API key support for cloud providers (OpenAI, Anthropic)
+
 ## Version 0.3.0 - WXT Framework Migration
 
 **Complete architectural modernization with WXT framework:**
@@ -201,6 +237,9 @@ Local LLM via LM Studio (document synthesis & insights)
 - ✅ LLM-powered document synthesis (cover letters, tailored resumes)
 - ✅ Document export (Markdown, PDF)
 - ✅ WXT framework migration (v0.3.0)
+- ✅ UI modernization with shadcn/ui + Tailwind CSS (v0.4.0)
+- ✅ Theme system with multiple color palettes (v0.4.0)
+- ✅ Profile extraction and validation (v0.4.0)
 
 **Planned:**
 

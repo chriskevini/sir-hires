@@ -11,7 +11,7 @@ export default defineConfig({
   }),
   manifest: {
     name: 'Sir Hires',
-    version: '0.3.0',
+    version: '0.4.0',
     description:
       'Privacy-first job search assistant. Extract and manage job postings locally - no servers, no tracking.',
     permissions: [

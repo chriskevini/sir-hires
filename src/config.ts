@@ -1,5 +1,5 @@
 // Configuration and constants for job details viewer
-// Schema version: 0.3.0
+// Schema version: 0.4.0
 
 import {
   jobExtractionConfig,
@@ -91,7 +91,7 @@ export const getStatusBackground = (status: string): string => {
   return `color-mix(in srgb, ${getStatusColor(status)} 20%, transparent)`;
 };
 
-// Navigation button configuration for each status (v0.3.0)
+// Navigation button configuration for each status (v0.4.0)
 export function getNavigationButtons(status: string) {
   const buttons: {
     left: { label: string; target: string } | null;
@@ -184,7 +184,7 @@ export const animationConfig = {
   easing: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
 };
 
-// Default values (v0.3.0)
+// Default values (v0.4.0)
 export const defaults = {
   status: 'Researching',
   filters: {

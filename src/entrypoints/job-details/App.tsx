@@ -8,7 +8,7 @@ import {
   ParsedJobProvider,
   useGetParsedJob,
 } from '../../components/features/ParsedJobProvider';
-import { JobSidebarLayout } from '../../components/features/JobSidebar';
+import { JobSidebar } from '../../components/features/JobSidebar';
 import { initDevModeValidation } from '../../utils/dev-validators';
 import { Dropdown } from '../../components/ui/Dropdown';
 import { PanelLeft, User } from 'lucide-react';
@@ -395,7 +395,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   });
 
   return (
-    <JobSidebarLayout
+    <JobSidebar
       jobs={store.jobs}
       selectedJobId={selectedJobId}
       onSelectJob={handleSelectJob}
@@ -461,7 +461,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
           </div>
         </div>
       </div>
-    </JobSidebarLayout>
+    </JobSidebar>
   );
 };
 

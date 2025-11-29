@@ -8,7 +8,7 @@ import {
   ParsedJobProvider,
   useGetParsedJob,
 } from '../../components/features/ParsedJobProvider';
-import { JobSidebarOverlay } from '../../components/features/JobSidebar';
+import { JobSidebar } from '../../components/features/JobSidebar';
 import { SidepanelHeader } from '../../components/features/SidepanelHeader';
 import type { Job, ChecklistItem } from '../job-details/hooks';
 import { useJobExtraction, useBackupRestore } from './hooks';
@@ -50,7 +50,7 @@ interface SidepanelContentProps {
   selectorOpen: boolean;
   extracting: boolean;
   hasJob: boolean;
-  onToggleSelector: () => void;
+  onSetSelectorOpen: (open: boolean) => void;
   onExtract: () => void;
   onDelete: () => void;
   onMaximize: () => void;
@@ -74,7 +74,7 @@ function SidepanelContent({
   selectorOpen,
   extracting,
   hasJob,
-  onToggleSelector,
+  onSetSelectorOpen,
   onExtract,
   onDelete,
   onMaximize,
@@ -94,47 +94,51 @@ function SidepanelContent({
   const jobTitle = parsedJob?.topLevelFields['TITLE'];
   const company = parsedJob?.topLevelFields['COMPANY'];
 
+  // Toggle callback for the header
+  const handleToggleSelector = useCallback(() => {
+    onSetSelectorOpen(!selectorOpen);
+  }, [onSetSelectorOpen, selectorOpen]);
+
   return (
-    <div className="flex flex-col h-screen">
-      {/* Header with toggle and action buttons */}
-      <SidepanelHeader
-        onToggleSelector={onToggleSelector}
-        onExtract={onExtract}
-        onDelete={onDelete}
-        onMaximize={onMaximize}
-        extracting={extracting}
-        hasJob={hasJob}
-        selectorOpen={selectorOpen}
-        jobTitle={jobTitle}
-        company={company}
-      />
-
-      {/* Main content area with JobSidebarOverlay */}
-      <div className="flex-1 relative overflow-hidden flex flex-col">
-        {mainContent}
-      </div>
-
-      {/* Job selector overlay */}
-      <JobSidebarOverlay
-        jobs={jobs}
-        selectedJobId={selectedJobId}
-        onSelectJob={onSelectJob}
-        onDeleteJob={onDeleteJobFromSelector}
-        isOpen={selectorOpen}
-        onClose={onToggleSelector}
-        getParsedJob={getParsedJob}
-      />
-
-      {/* Duplicate Job Modal */}
-      {pendingExtraction && (
-        <DuplicateJobModal
-          isOpen={showDuplicateModal}
-          onRefresh={onRefresh}
-          onExtractNew={onExtractNew}
-          onCancel={onCancelDuplicate}
+    <JobSidebar
+      jobs={jobs}
+      selectedJobId={selectedJobId}
+      onSelectJob={onSelectJob}
+      onDeleteJob={onDeleteJobFromSelector}
+      getParsedJob={getParsedJob}
+      open={selectorOpen}
+      onOpenChange={onSetSelectorOpen}
+    >
+      <div className="flex flex-col h-screen">
+        {/* Header with toggle and action buttons */}
+        <SidepanelHeader
+          onToggleSelector={handleToggleSelector}
+          onExtract={onExtract}
+          onDelete={onDelete}
+          onMaximize={onMaximize}
+          extracting={extracting}
+          hasJob={hasJob}
+          selectorOpen={selectorOpen}
+          jobTitle={jobTitle}
+          company={company}
         />
-      )}
-    </div>
+
+        {/* Main content area */}
+        <div className="flex-1 relative overflow-hidden flex flex-col">
+          {mainContent}
+        </div>
+
+        {/* Duplicate Job Modal */}
+        {pendingExtraction && (
+          <DuplicateJobModal
+            isOpen={showDuplicateModal}
+            onRefresh={onRefresh}
+            onExtractNew={onExtractNew}
+            onCancel={onCancelDuplicate}
+          />
+        )}
+      </div>
+    </JobSidebar>
   );
 }
 
@@ -313,10 +317,10 @@ export const App: React.FC = () => {
   );
 
   /**
-   * Toggle the job selector panel
+   * Set the job selector panel open state
    */
-  const handleToggleSelector = useCallback(() => {
-    setSelectorOpen((prev) => !prev);
+  const handleSetSelectorOpen = useCallback((open: boolean) => {
+    setSelectorOpen(open);
   }, []);
 
   /**
@@ -415,7 +419,7 @@ export const App: React.FC = () => {
         selectorOpen={selectorOpen}
         extracting={extraction.extracting}
         hasJob={!!currentJob}
-        onToggleSelector={handleToggleSelector}
+        onSetSelectorOpen={handleSetSelectorOpen}
         onExtract={extraction.handleExtractJob}
         onDelete={handleDeleteJob}
         onMaximize={handleOpenJobDetails}

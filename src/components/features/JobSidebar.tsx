@@ -15,13 +15,6 @@ import {
   SidebarInset,
   useSidebar,
 } from '@/components/ui/sidebar';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet';
 
 // ============================================================================
 // Types
@@ -38,18 +31,6 @@ interface JobSidebarProps {
   onDeleteJob: (jobId: string) => void;
   /** Function to get parsed job data (from ParsedJobProvider) */
   getParsedJob: (jobId: string) => JobTemplateData | null;
-  /** Whether to auto-close on selection (only for overlay mode) */
-  closeOnSelect?: boolean;
-}
-
-interface JobSidebarOverlayProps extends JobSidebarProps {
-  /** Whether the overlay is open */
-  isOpen: boolean;
-  /** Callback to close the overlay */
-  onClose: () => void;
-}
-
-interface JobSidebarLayoutProps extends JobSidebarProps {
   /** Whether the sidebar is open/expanded */
   open: boolean;
   /** Callback when sidebar open state changes */
@@ -59,10 +40,10 @@ interface JobSidebarLayoutProps extends JobSidebarProps {
 }
 
 // ============================================================================
-// Shared Job List Content Component
+// JobSelector - Internal job list component
 // ============================================================================
 
-interface JobListContentProps {
+interface JobSelectorProps {
   jobs: Job[];
   selectedJobId: string | null;
   onSelectJob: (jobId: string) => void;
@@ -71,16 +52,18 @@ interface JobListContentProps {
 }
 
 /**
- * Shared job list content with search, filters, and job cards
- * Used by both overlay and layout variants
+ * JobSelector - Job list with search, filters, and job cards
+ * Internal component used by JobSidebar
  */
-function JobListContent({
+function JobSelector({
   jobs,
   selectedJobId,
   onSelectJob,
   onDeleteJob,
   getParsedJob,
-}: JobListContentProps) {
+}: JobSelectorProps) {
+  const { isMobile, setOpenMobile } = useSidebar();
+
   // Use shared job filtering hook
   const {
     searchTerm,
@@ -94,6 +77,19 @@ function JobListContent({
     totalCount,
     filteredCount,
   } = useJobFilters({ jobs, getParsedJob });
+
+  /**
+   * Handle job selection - close sidebar on mobile after selection
+   */
+  const handleSelectJob = useCallback(
+    (jobId: string) => {
+      onSelectJob(jobId);
+      if (isMobile) {
+        setOpenMobile(false);
+      }
+    },
+    [onSelectJob, isMobile, setOpenMobile]
+  );
 
   return (
     <>
@@ -146,7 +142,7 @@ function JobListContent({
               parsed={parsed}
               status={status}
               isSelected={isSelected}
-              onClick={() => onSelectJob(job.id)}
+              onClick={() => handleSelectJob(job.id)}
               onDelete={() => onDeleteJob(job.id)}
             />
           );
@@ -165,151 +161,34 @@ function JobListContent({
 }
 
 // ============================================================================
-// JobSidebarOverlay - Full-screen sliding overlay (for sidepanel)
+// JobSidebar - Exported layout component
 // ============================================================================
 
 /**
- * JobSidebarOverlay - Sliding overlay panel for selecting jobs
- *
- * Use this variant in narrow contexts (like sidepanel) where the job list
- * needs to overlay the content temporarily.
- *
- * Features:
- * - Full-width overlay with backdrop
- * - CSS transition for open/close
- * - Auto-closes on job selection (optional)
- */
-export function JobSidebarOverlay({
-  jobs,
-  selectedJobId,
-  onSelectJob,
-  onDeleteJob,
-  isOpen,
-  onClose,
-  getParsedJob,
-  closeOnSelect = true,
-}: JobSidebarOverlayProps) {
-  /**
-   * Handle job selection - select and optionally close panel
-   */
-  const handleSelectJob = useCallback(
-    (jobId: string) => {
-      onSelectJob(jobId);
-      if (closeOnSelect) {
-        onClose();
-      }
-    },
-    [onSelectJob, onClose, closeOnSelect]
-  );
-
-  return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent
-        side="left"
-        className="w-full sm:max-w-full p-0 bg-background"
-      >
-        <SheetHeader className="sr-only">
-          <SheetTitle>Job List</SheetTitle>
-          <SheetDescription>Select a job to view details</SheetDescription>
-        </SheetHeader>
-        <div className="flex flex-col h-full">
-          <JobListContent
-            jobs={jobs}
-            selectedJobId={selectedJobId}
-            onSelectJob={handleSelectJob}
-            onDeleteJob={onDeleteJob}
-            getParsedJob={getParsedJob}
-          />
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-// ============================================================================
-// JobSidebarLayout - Persistent sidebar with collapsible support
-// ============================================================================
-
-/**
- * Inner content component that uses useSidebar context
- */
-function JobSidebarLayoutInner({
-  jobs,
-  selectedJobId,
-  onSelectJob,
-  onDeleteJob,
-  getParsedJob,
-  children,
-}: Omit<JobSidebarLayoutProps, 'open' | 'onOpenChange'>) {
-  const { isMobile, openMobile, setOpenMobile } = useSidebar();
-
-  /**
-   * Handle job selection
-   * On mobile, close the sheet after selection
-   */
-  const handleSelectJob = useCallback(
-    (jobId: string) => {
-      onSelectJob(jobId);
-      if (isMobile) {
-        setOpenMobile(false);
-      }
-    },
-    [onSelectJob, isMobile, setOpenMobile]
-  );
-
-  return (
-    <>
-      {/* Desktop Sidebar */}
-      <Sidebar collapsible="offcanvas" className="border-r border-border">
-        <JobListContent
-          jobs={jobs}
-          selectedJobId={selectedJobId}
-          onSelectJob={handleSelectJob}
-          onDeleteJob={onDeleteJob}
-          getParsedJob={getParsedJob}
-        />
-      </Sidebar>
-
-      {/* Mobile Sheet (handled by shadcn Sidebar internally, but we need custom handling) */}
-      {isMobile && (
-        <Sheet open={openMobile} onOpenChange={setOpenMobile}>
-          <SheetContent side="left" className="w-80 p-0 bg-background">
-            <SheetHeader className="sr-only">
-              <SheetTitle>Job List</SheetTitle>
-              <SheetDescription>Select a job to view details</SheetDescription>
-            </SheetHeader>
-            <div className="flex flex-col h-full">
-              <JobListContent
-                jobs={jobs}
-                selectedJobId={selectedJobId}
-                onSelectJob={handleSelectJob}
-                onDeleteJob={onDeleteJob}
-                getParsedJob={getParsedJob}
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
-      )}
-
-      {/* Main content area */}
-      <SidebarInset>{children}</SidebarInset>
-    </>
-  );
-}
-
-/**
- * JobSidebarLayout - Desktop sidebar layout with responsive behavior
- *
- * Use this variant for full-page views (like job-details) where the sidebar
- * should be persistent but collapsible.
+ * JobSidebar - Responsive sidebar layout for job selection
  *
  * Features:
  * - Collapsible sidebar on desktop (Ctrl+B to toggle)
- * - Sheet/drawer on mobile screens
+ * - Sheet/drawer on mobile screens (<768px)
+ * - Auto-closes on job selection (mobile only)
  * - Keyboard shortcut support
- * - Persists collapsed state via cookie
+ *
+ * @example
+ * ```tsx
+ * <JobSidebar
+ *   jobs={jobs}
+ *   selectedJobId={selectedId}
+ *   onSelectJob={handleSelect}
+ *   onDeleteJob={handleDelete}
+ *   getParsedJob={getParsedJob}
+ *   open={sidebarOpen}
+ *   onOpenChange={setSidebarOpen}
+ * >
+ *   <MainContent />
+ * </JobSidebar>
+ * ```
  */
-export function JobSidebarLayout({
+export function JobSidebar({
   jobs,
   selectedJobId,
   onSelectJob,
@@ -318,7 +197,7 @@ export function JobSidebarLayout({
   open,
   onOpenChange,
   children,
-}: JobSidebarLayoutProps) {
+}: JobSidebarProps) {
   return (
     <SidebarProvider
       open={open}
@@ -326,25 +205,23 @@ export function JobSidebarLayout({
       className="h-screen"
       style={
         {
-          '--sidebar-width': '20rem', // w-80 = 20rem
+          '--sidebar-width': '20rem',
         } as React.CSSProperties
       }
     >
-      <JobSidebarLayoutInner
-        jobs={jobs}
-        selectedJobId={selectedJobId}
-        onSelectJob={onSelectJob}
-        onDeleteJob={onDeleteJob}
-        getParsedJob={getParsedJob}
-      >
-        {children}
-      </JobSidebarLayoutInner>
+      <Sidebar collapsible="offcanvas" className="border-r border-border">
+        <JobSelector
+          jobs={jobs}
+          selectedJobId={selectedJobId}
+          onSelectJob={onSelectJob}
+          onDeleteJob={onDeleteJob}
+          getParsedJob={getParsedJob}
+        />
+      </Sidebar>
+      <SidebarInset>{children}</SidebarInset>
     </SidebarProvider>
   );
 }
 
-// ============================================================================
-// Re-export useSidebar for external control
-// ============================================================================
-
+// Re-export useSidebar for external control if needed
 export { useSidebar } from '@/components/ui/sidebar';

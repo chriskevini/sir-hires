@@ -25,6 +25,8 @@ Migrate from hand-rolled CSS components to shadcn/ui + Tailwind CSS for:
 **Next:**
 
 - Phase 6: Replace remaining hand-rolled components with shadcn equivalents
+- Phase 6.5 (NEW): Replace raw HTML elements with shadcn components
+- Phase 6.6 (NEW): Replace arbitrary CSS values with Tailwind defaults
 
 **After Phase 6:**
 
@@ -709,18 +711,20 @@ If issues arise:
 
 ## Estimated Effort
 
-| Phase                      | Time            | Status     |
-| -------------------------- | --------------- | ---------- |
-| Phase 0: Pre-migration     | 30 min          | ✅ Done    |
-| Phase 1: Setup             | 30 min          | ✅ Done    |
-| Phase 2: shadcn primitives | 2-3 hours       | ✅ Done    |
-| Phase 3: Domain components | 3-4 hours       | ✅ Done    |
-| Phase 4: Custom components | 1 hour          | ✅ Done    |
-| Phase 5: Cleanup           | 30 min          | ✅ Done    |
-| Phase 6: shadcn adoption   | 3-4 hours       | ⏳ Pending |
-| Phase 7: Documentation     | 1 hour          | ⏳ Pending |
-| Testing                    | 1-2 hours       | ⏳ Pending |
-| **Total**                  | **12-17 hours** |            |
+| Phase                        | Time            | Status     |
+| ---------------------------- | --------------- | ---------- |
+| Phase 0: Pre-migration       | 30 min          | ✅ Done    |
+| Phase 1: Setup               | 30 min          | ✅ Done    |
+| Phase 2: shadcn primitives   | 2-3 hours       | ✅ Done    |
+| Phase 3: Domain components   | 3-4 hours       | ✅ Done    |
+| Phase 4: Custom components   | 1 hour          | ✅ Done    |
+| Phase 5: Cleanup             | 30 min          | ✅ Done    |
+| Phase 6: shadcn adoption     | 3-4 hours       | ⏳ Pending |
+| Phase 6.5: Raw HTML → shadcn | 2-3 hours       | ⏳ Pending |
+| Phase 6.6: Arbitrary CSS     | 1-2 hours       | ⏳ Pending |
+| Phase 7: Documentation       | 1 hour          | ⏳ Pending |
+| Testing                      | 1-2 hours       | ⏳ Pending |
+| **Total**                    | **16-22 hours** |            |
 
 ---
 
@@ -1011,3 +1015,409 @@ npx shadcn@latest add form label textarea
 - **Consistency**: All interactive components use Radix primitives
 - **Animations**: Smooth, consistent animations via Radix
 - **Maintainability**: Less custom code, leveraging well-tested library code
+
+---
+
+## Phase 6.5: Replace Raw HTML Elements with shadcn Components (NEW)
+
+Analysis revealed significant usage of raw HTML elements (`<input>`, `<textarea>`, styled `<a>`) that bypass existing shadcn components. This creates inconsistent styling, duplicated CSS classes (~3000 chars), and missing accessibility features.
+
+### 6.5.1 Raw `<input>` → Input Component (High Priority)
+
+**Current:** 11 instances of raw `<input>` elements with duplicated styling
+
+| File                                          | Lines                                                       | Count | Description                                         |
+| --------------------------------------------- | ----------------------------------------------------------- | ----- | --------------------------------------------------- |
+| `src/entrypoints/popup/App.tsx`               | 76-82, 107-114, 177-190, 199-212, 233-246, 255-268, 342-349 | 7     | Server URL, API key, max tokens, temperature inputs |
+| `src/components/features/SynthesisFooter.tsx` | 76-84                                                       | 1     | Tone input                                          |
+| `src/components/features/JobSelector.tsx`     | 188-200                                                     | 1     | Search input                                        |
+
+**Example of current duplication:**
+
+```tsx
+// ❌ CURRENT - repeated 11 times with ~100 chars each
+<input
+  type="text"
+  className="flex-1 px-2 py-2 border border-border rounded text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
+/>;
+
+// ✅ SHOULD BE
+import { Input } from '@/components/ui/input';
+<Input type="text" className="flex-1" />;
+```
+
+**Estimated savings:** ~1100 characters of duplicate CSS
+
+---
+
+### 6.5.2 Raw `<textarea>` → StreamingTextarea (High Priority)
+
+**Current:** 2 instances of raw `<textarea>` that should use existing StreamingTextarea
+
+| File                                                               | Lines | Description                      |
+| ------------------------------------------------------------------ | ----- | -------------------------------- |
+| `src/entrypoints/job-details/components/ExtractionLoadingView.tsx` | 37-44 | Readonly streaming display       |
+| `src/entrypoints/job-details/components/ExtractionErrorView.tsx`   | 51-57 | Editable error recovery textarea |
+
+**Migration:**
+
+```tsx
+// ❌ CURRENT
+<textarea
+  className="w-full min-h-[200px] p-3 font-mono text-sm border border-border rounded resize-y focus:outline-none focus:border-primary"
+  value={editorContent}
+  onChange={onEditorChange}
+/>;
+
+// ✅ SHOULD BE
+import { StreamingTextarea } from '@/components/ui/StreamingTextarea';
+<StreamingTextarea
+  value={editorContent}
+  onChange={(value) => onEditorChange({ target: { value } })}
+  minHeight="200px"
+/>;
+```
+
+---
+
+### 6.5.3 Styled `<a>` → Button asChild (High Priority)
+
+**Current:** 2 instances of `<a>` tags styled to look like buttons
+
+| File                                                             | Lines | Description                             |
+| ---------------------------------------------------------------- | ----- | --------------------------------------- |
+| `src/entrypoints/job-details/components/MigrationPromptView.tsx` | 31    | "Re-Extract from Original Posting" link |
+| `src/entrypoints/job-details/components/ExtractionErrorView.tsx` | 64    | Similar re-extract link                 |
+
+**Migration:**
+
+```tsx
+// ❌ CURRENT
+<a
+  href={jobUrl}
+  className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded font-semibold text-sm hover:bg-primary/90 transition-colors"
+  target="_blank"
+>
+  Re-Extract ↗
+</a>;
+
+// ✅ SHOULD BE - uses Radix Slot pattern
+import { Button } from '@/components/ui/Button';
+<Button variant="primary" asChild>
+  <a href={jobUrl} target="_blank" rel="noopener noreferrer">
+    Re-Extract ↗
+  </a>
+</Button>;
+```
+
+---
+
+### 6.5.4 Card-like Divs → Card Component (Medium Priority)
+
+**Current:** 4 instances of div elements styled as cards
+
+| File                                                             | Lines    | Description                 |
+| ---------------------------------------------------------------- | -------- | --------------------------- |
+| `src/entrypoints/popup/App.tsx`                                  | 160, 289 | Settings section containers |
+| `src/entrypoints/job-details/components/ExtractionErrorView.tsx` | 31       | Error content container     |
+| `src/entrypoints/job-details/components/MigrationPromptView.tsx` | 18       | Migration prompt container  |
+
+**Migration:**
+
+```tsx
+// ❌ CURRENT
+<div className="bg-muted border border-border rounded p-3 mt-1">{content}</div>;
+
+// ✅ SHOULD BE
+import { Card, CardContent } from '@/components/ui/card';
+<Card className="mt-1">
+  <CardContent className="p-3">{content}</CardContent>
+</Card>;
+```
+
+---
+
+### 6.5.5 Over-styled Button Components (Medium Priority)
+
+**Current:** 7 instances where Button component is used but variant is overridden with extensive className
+
+| File                                  | Lines                   | Count | Description                                           |
+| ------------------------------------- | ----------------------- | ----- | ----------------------------------------------------- |
+| `src/entrypoints/profile/App.tsx`     | 714, 739, 747, 755, 763 | 5     | Header buttons with ~150 chars of manual styling each |
+| `src/entrypoints/job-details/App.tsx` | 398, 414                | 2     | Icon buttons with manual sizing                       |
+
+**Example:**
+
+```tsx
+// ❌ CURRENT - variant="ghost" then overrides everything
+<Button
+  variant="ghost"
+  className="border border-border rounded px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-muted/80 hover:border-border hover:text-foreground active:bg-muted flex items-center justify-center gap-1.5 shrink-0 transition-all duration-200"
+>
+
+// ✅ SHOULD BE - use appropriate variant
+<Button variant="secondary" size="sm" className="gap-1.5">
+
+// ✅ OR for icon buttons
+<Button variant="ghost" size="icon">
+```
+
+**Options:**
+
+1. Use existing variants properly (`secondary`, `ghost`, `size="icon"`)
+2. Create new CVA variant if this pattern is intentional and reused
+
+---
+
+### 6.5.6 Native alert()/confirm() → AlertDialog (Medium Priority)
+
+**Current:** 7 instances of native browser dialogs in `src/entrypoints/job-details/App.tsx`
+
+| Lines                   | Type        | Usage                            |
+| ----------------------- | ----------- | -------------------------------- |
+| 202, 238, 246, 272, 276 | `alert()`   | Success/error messages           |
+| 231-234, 260-267        | `confirm()` | Destructive action confirmations |
+
+**Target:** shadcn `AlertDialog` for confirmations, Toast/Sonner for notifications
+
+```bash
+npx shadcn@latest add alert-dialog
+npx shadcn@latest add sonner  # or toast
+```
+
+**Migration:**
+
+```tsx
+// ❌ CURRENT
+const confirmed = confirm(
+  'This will overwrite all current data. Are you sure?'
+);
+
+// ✅ SHOULD BE
+<AlertDialog>
+  <AlertDialogTrigger asChild>
+    <Button variant="destructive">Restore Backup</Button>
+  </AlertDialogTrigger>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+      <AlertDialogDescription>
+        This will overwrite all current data.
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Cancel</AlertDialogCancel>
+      <AlertDialogAction onClick={handleRestore}>Continue</AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>;
+```
+
+---
+
+### 6.5.7 Placeholder Toast → Sonner/Toast (Low Priority)
+
+**Current:** `src/entrypoints/job-details/views/DraftingView.tsx:80-92`
+
+```tsx
+// ❌ CURRENT - placeholder that just logs
+const showToast = (
+  message: string,
+  type: 'success' | 'error' | 'info' = 'info'
+) => {
+  if (type === 'error') {
+    console.error(message);
+  } else {
+    console.info(message);
+  }
+};
+```
+
+**Target:** shadcn Sonner (recommended) or Toast
+
+```bash
+npx shadcn@latest add sonner
+```
+
+---
+
+### Phase 6.5 Checklist
+
+#### High Priority
+
+- [ ] Replace 7 raw `<input>` in popup/App.tsx with Input component
+- [ ] Replace 1 raw `<input>` in SynthesisFooter.tsx with Input component
+- [ ] Replace 1 raw `<input>` in JobSelector.tsx with Input component
+- [ ] Replace 2 raw `<textarea>` with StreamingTextarea
+- [ ] Replace 2 styled `<a>` with Button asChild pattern
+
+#### Medium Priority
+
+- [ ] Replace 4 card-like divs with Card component
+- [ ] Refactor 5 over-styled buttons in profile/App.tsx
+- [ ] Refactor 2 over-styled buttons in job-details/App.tsx
+- [ ] Replace native alert()/confirm() with AlertDialog
+
+#### Low Priority
+
+- [ ] Implement toast system with Sonner
+
+---
+
+## Phase 6.6: Replace Arbitrary CSS Values with Tailwind Defaults (NEW)
+
+Analysis found 31 instances of arbitrary values in Tailwind classes. Replace with Tailwind's default scale for consistency and smaller bundle size.
+
+### 6.6.1 Direct Replacements (High Priority)
+
+These have exact Tailwind equivalents:
+
+| File                                                   | Line | Current         | Replace With |
+| ------------------------------------------------------ | ---- | --------------- | ------------ |
+| `src/components/ui/sidebar.tsx`                        | 311  | `w-[2px]`       | `w-0.5`      |
+| `src/entrypoints/job-details/components/checklist.tsx` | 129  | `max-w-[320px]` | `max-w-xs`   |
+| `src/components/features/JobFooter.tsx`                | 200  | `max-w-[80px]`  | `max-w-20`   |
+| `src/components/ui/select.tsx`                         | 76   | `min-w-[8rem]`  | `min-w-32`   |
+| `src/components/ui/Dropdown.tsx`                       | 45   | `min-w-[8rem]`  | `min-w-32`   |
+
+---
+
+### 6.6.2 Close Replacements (Medium Priority)
+
+These are close to Tailwind defaults - pick nearest value:
+
+| File                                                             | Line   | Current         | Options                                   |
+| ---------------------------------------------------------------- | ------ | --------------- | ----------------------------------------- |
+| `src/components/ui/Modal.tsx`                                    | 37     | `max-w-[600px]` | `max-w-xl` (576px) or `max-w-2xl` (672px) |
+| `src/components/ui/Dropdown.tsx`                                 | 63     | `min-w-[200px]` | `min-w-52` (208px) or `min-w-48` (192px)  |
+| `src/components/features/SynthesisFooter.tsx`                    | 79     | `min-w-[150px]` | `min-w-36` (144px) or `min-w-40` (160px)  |
+| `src/components/features/JobViewRouter.tsx`                      | 142    | `min-h-[300px]` | `min-h-72` (288px) or `min-h-80` (320px)  |
+| `src/entrypoints/job-details/components/checklist.tsx`           | 129    | `min-w-[280px]` | `min-w-72` (288px)                        |
+| `src/entrypoints/job-details/components/checklist.tsx`           | 136    | `max-h-[300px]` | `max-h-72` (288px) or `max-h-80` (320px)  |
+| `src/entrypoints/job-details/components/ExtractionErrorView.tsx` | 53     | `min-h-[200px]` | `min-h-48` (192px) or `min-h-52` (208px)  |
+| `src/components/features/NavigationButtons.tsx`                  | 45, 92 | `max-w-[100px]` | `max-w-24` (96px) or `max-w-28` (112px)   |
+| `src/components/features/JobFooter.tsx`                          | 73     | `max-w-[400px]` | `max-w-sm` (384px) or `max-w-md` (448px)  |
+| `src/components/features/JobFooter.tsx`                          | 73     | `min-w-[280px]` | `min-w-72` (288px)                        |
+| `src/components/features/JobFooter.tsx`                          | 142    | `max-w-[140px]` | `max-w-36` (144px)                        |
+
+---
+
+### 6.6.3 Z-Index Standardization (Medium Priority)
+
+Consider extending Tailwind theme or using standard scale:
+
+| File                                      | Line     | Current     | Recommendation                                             |
+| ----------------------------------------- | -------- | ----------- | ---------------------------------------------------------- |
+| `src/components/ui/Modal.tsx`             | 20, 37   | `z-[10000]` | Extend theme: `z-modal: 10000` or use `z-50` if sufficient |
+| `src/components/features/JobSelector.tsx` | 146, 159 | `z-[100]`   | Use `z-50` or extend theme                                 |
+| `src/components/ui/TabBar.tsx`            | 48       | `z-[1]`     | Use `z-10`                                                 |
+
+**Recommended theme extension:**
+
+```js
+// tailwind.config.js (or CSS variables)
+theme: {
+  extend: {
+    zIndex: {
+      'modal': '10000',
+      'dropdown': '100',
+    }
+  }
+}
+```
+
+---
+
+### 6.6.4 Shadow Standardization (Low Priority)
+
+Replace arbitrary shadows with Tailwind defaults:
+
+| File                                            | Line    | Current                                | Replace With |
+| ----------------------------------------------- | ------- | -------------------------------------- | ------------ |
+| `src/components/ui/Dropdown.tsx`                | 63      | `shadow-[0_4px_12px_rgba(0,0,0,0.15)]` | `shadow-lg`  |
+| `src/components/features/NavigationButtons.tsx` | 53-54   | `shadow-[0_2px_8px_rgba(0,0,0,0.1)]`   | `shadow-md`  |
+| `src/components/features/NavigationButtons.tsx` | 100-101 | `shadow-[0_4px_12px_rgba(0,0,0,0.3)]`  | `shadow-lg`  |
+
+**Note:** Some shadows have specific directions (upward shadows on TabBar, JobFooter). These may need to stay as arbitrary values or be added as custom utilities.
+
+---
+
+### 6.6.5 Acceptable Arbitrary Values (No Change Needed)
+
+These are intentional and appropriate:
+
+| File                    | Value                         | Reason                                    |
+| ----------------------- | ----------------------------- | ----------------------------------------- |
+| `Modal.tsx`             | `w-[90%]`, `max-h-[90vh]`     | Viewport-relative, no Tailwind equivalent |
+| `NavigationButtons.tsx` | `text-[var(--nav-color,...)]` | CSS variable reference                    |
+| `NewDocumentModal.tsx`  | `max-h-[70vh]`                | Viewport-relative                         |
+| `JobFooter.tsx`         | `border-l-[6px]` etc.         | CSS triangle technique                    |
+| `StatusBadge.tsx`       | `text-[10px]`                 | Intentionally smaller than `text-xs`      |
+
+---
+
+### Phase 6.6 Checklist
+
+#### High Priority
+
+- [ ] Replace `w-[2px]` → `w-0.5` in sidebar.tsx
+- [ ] Replace `max-w-[320px]` → `max-w-xs` in checklist.tsx
+- [ ] Replace `max-w-[80px]` → `max-w-20` in JobFooter.tsx
+- [ ] Replace `min-w-[8rem]` → `min-w-32` in select.tsx and Dropdown.tsx
+
+#### Medium Priority
+
+- [ ] Replace remaining arbitrary sizing values with nearest Tailwind default
+- [ ] Standardize z-index values (extend theme or use `z-50`)
+- [ ] Replace arbitrary shadows with `shadow-md`, `shadow-lg`
+
+#### Low Priority
+
+- [ ] Document intentional arbitrary values in STYLE_GUIDE.md
+- [ ] Consider adding custom utilities for upward shadows if pattern is reused
+
+---
+
+## Installation Commands (All New Phases)
+
+```bash
+# Phase 6.5 - New shadcn components
+npx shadcn@latest add alert-dialog
+npx shadcn@latest add sonner
+
+# Note: Input, Card, StreamingTextarea already exist
+```
+
+---
+
+## Updated Estimated Effort
+
+| Phase                            | Time            | Status     |
+| -------------------------------- | --------------- | ---------- |
+| Phase 0: Pre-migration           | 30 min          | ✅ Done    |
+| Phase 1: Setup                   | 30 min          | ✅ Done    |
+| Phase 2: shadcn primitives       | 2-3 hours       | ✅ Done    |
+| Phase 3: Domain components       | 3-4 hours       | ✅ Done    |
+| Phase 4: Custom components       | 1 hour          | ✅ Done    |
+| Phase 5: Cleanup                 | 30 min          | ✅ Done    |
+| Phase 6: shadcn adoption         | 3-4 hours       | ⏳ Pending |
+| **Phase 6.5: Raw HTML → shadcn** | **2-3 hours**   | ⏳ **NEW** |
+| **Phase 6.6: Arbitrary CSS**     | **1-2 hours**   | ⏳ **NEW** |
+| Phase 7: Documentation           | 1 hour          | ⏳ Pending |
+| Testing                          | 1-2 hours       | ⏳ Pending |
+| **Total**                        | **16-22 hours** |            |
+
+---
+
+## Summary of New Work Discovered
+
+| Category                  | Count         | Estimated Savings   |
+| ------------------------- | ------------- | ------------------- |
+| Raw `<input>` elements    | 11            | ~1100 chars CSS     |
+| Raw `<textarea>` elements | 2             | ~300 chars CSS      |
+| Styled `<a>` as buttons   | 2             | ~300 chars CSS      |
+| Card-like divs            | 4             | ~250 chars CSS      |
+| Over-styled Buttons       | 7             | ~1050 chars CSS     |
+| Native alert/confirm      | 7             | Better UX/a11y      |
+| Arbitrary CSS values      | 31            | Consistency         |
+| **Total**                 | **64 issues** | **~3000 chars CSS** |

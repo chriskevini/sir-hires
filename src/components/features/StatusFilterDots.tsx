@@ -1,6 +1,5 @@
 import * as ToggleGroupPrimitive from '@radix-ui/react-toggle-group';
-import { statusOrder } from '@/config';
-import { getStatusColor } from '@/components/ui/StatusBadge';
+import { statusOrder, getStatusColor } from '@/config';
 import { cn } from '@/lib/utils';
 
 interface StatusFilterDotsProps {

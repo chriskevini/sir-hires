@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useState } from 'react';
-import { Button, buttonVariants } from '@/components/ui/Button';
+import { Button } from '@/components/ui/Button';
+import { buttonVariants } from '@/components/ui/button-variants';
 import { ResearchingView } from './views/ResearchingView';
 import { DraftingView } from './views/DraftingView';
 import { useJobStore } from './hooks';

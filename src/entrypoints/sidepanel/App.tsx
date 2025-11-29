@@ -19,7 +19,7 @@ import { DuplicateJobModal } from '@/components/features/DuplicateJobModal';
 import { checklistTemplates, defaults } from '@/config';
 import { jobsStorage, restoreStorageFromBackup } from '../../utils/storage';
 import { generateItemId } from '../../utils/shared-utils';
-import { buttonVariants } from '@/components/ui/Button';
+import { buttonVariants } from '@/components/ui/button-variants';
 import {
   AlertDialog,
   AlertDialogAction,

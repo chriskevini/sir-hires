@@ -152,4 +152,4 @@ const StreamingTextarea = React.forwardRef<
 );
 StreamingTextarea.displayName = 'StreamingTextarea';
 
-export { StreamingTextarea, streamingTextareaVariants };
+export { StreamingTextarea };

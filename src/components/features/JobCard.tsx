@@ -1,4 +1,4 @@
-import { defaults } from '@/config';
+import { defaults, getStatusBackground } from '@/config';
 import {
   getJobTitle,
   getCompanyName,
@@ -6,7 +6,7 @@ import {
 } from '@/utils/job-parser';
 import { X } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { StatusBadge, getStatusBackground } from '../ui/StatusBadge';
+import { StatusBadge } from '../ui/StatusBadge';
 import { cn } from '@/lib/utils';
 
 interface JobCardProps {

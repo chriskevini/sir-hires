@@ -32,10 +32,8 @@ import {
 import { useTheme } from '@/hooks/useTheme';
 
 // Import components
-import {
-  ValidationPanel,
-  getValidationEditorClass,
-} from '@/components/features/ValidationPanel';
+import { ValidationPanel } from '@/components/features/ValidationPanel';
+import { getValidationEditorClass } from '@/utils/validation-utils';
 import { EditorFooter } from '@/components/features/EditorFooter';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -104,7 +102,6 @@ export default function App() {
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionError, setExtractionError] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [wordCount, setWordCount] = useState(0);
 
   // Refs
   const editorRef = useRef<HTMLTextAreaElement>(null);

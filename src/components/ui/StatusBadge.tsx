@@ -1,10 +1,5 @@
 import * as React from 'react';
-import {
-  statusOrder,
-  getStatusConfig,
-  getStatusColor,
-  getStatusBackground,
-} from '@/config';
+import { statusOrder, getStatusConfig, getStatusColor } from '@/config';
 import { cn } from '@/lib/utils';
 
 export type ApplicationStatus = (typeof statusOrder)[number];
@@ -87,15 +82,5 @@ const StatusBadge = React.forwardRef<HTMLSpanElement, StatusBadgeProps>(
   }
 );
 StatusBadge.displayName = 'StatusBadge';
-
-/**
- * Get all available statuses (useful for filters, selects)
- */
-export const getAvailableStatuses = (): ApplicationStatus[] => {
-  return [...statusOrder];
-};
-
-// Re-export helpers from config for convenience
-export { getStatusColor, getStatusBackground };
 
 export { StatusBadge };

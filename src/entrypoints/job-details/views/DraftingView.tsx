@@ -15,10 +15,8 @@ import { EditorToolbar } from '@/components/features/EditorToolbar';
 import { EditorContentPanel } from '@/components/features/EditorContentPanel';
 import { StreamingTextarea } from '@/components/ui/StreamingTextarea';
 import { EditorFooter } from '@/components/features/EditorFooter';
-import {
-  SynthesisFooter,
-  getRandomTone,
-} from '@/components/features/SynthesisFooter';
+import { SynthesisFooter } from '@/components/features/SynthesisFooter';
+import { getRandomTone } from '@/utils/synthesis-utils';
 import { useParsedJob } from '@/components/features/ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '@/utils/job-parser';
 import { formatSaveTime } from '@/utils/date-utils';

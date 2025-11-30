@@ -53,7 +53,6 @@ interface TaskDefinition {
   label: string;
   config: TaskConfig;
   defaultPrompt: string;
-  contextKeys: string[];
   parser: ((content: string) => unknown) | null;
   parserName: string | null;
 }
@@ -65,8 +64,6 @@ interface ParseResult {
 }
 
 interface RunStats {
-  startTime: number;
-  endTime: number;
   duration: number;
   charCount: number;
 }
@@ -134,7 +131,6 @@ const TASKS: Record<TaskType, TaskDefinition> = {
     label: 'Job Extraction',
     config: jobExtractionConfig,
     defaultPrompt: JOB_EXTRACTION_PROMPT,
-    contextKeys: ['rawText'],
     parser: parseJobTemplate,
     parserName: 'parseJobTemplate',
   },
@@ -142,7 +138,6 @@ const TASKS: Record<TaskType, TaskDefinition> = {
     label: 'Profile Extraction',
     config: profileExtractionConfig,
     defaultPrompt: PROFILE_EXTRACTION_PROMPT,
-    contextKeys: ['rawText'],
     parser: parseProfileTemplate,
     parserName: 'parseProfileTemplate',
   },
@@ -150,7 +145,6 @@ const TASKS: Record<TaskType, TaskDefinition> = {
     label: 'Synthesis',
     config: synthesisConfig,
     defaultPrompt: SYNTHESIS_PROMPT,
-    contextKeys: ['profile', 'job', 'task', 'template', 'tone'],
     parser: null,
     parserName: null,
   },
@@ -193,12 +187,17 @@ const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
 
     // Abort controller ref
     const abortControllerRef = useRef<AbortController | null>(null);
+    // Keepalive cleanup ref
+    const stopKeepaliveRef = useRef<(() => void) | null>(null);
 
-    // Cleanup AbortController on unmount
+    // Cleanup AbortController and keepalive on unmount
     useEffect(() => {
       return () => {
         if (abortControllerRef.current) {
           abortControllerRef.current.abort();
+        }
+        if (stopKeepaliveRef.current) {
+          stopKeepaliveRef.current();
         }
       };
     }, []);
@@ -239,7 +238,7 @@ const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
       setIsRunning(true);
 
       abortControllerRef.current = new AbortController();
-      const stopKeepalive = startKeepalive();
+      stopKeepaliveRef.current = startKeepalive();
       const startTime = Date.now();
 
       try {
@@ -250,7 +249,13 @@ const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
         // Build context based on task type
         let context: Record<string, string>;
         if (taskType === 'synthesis') {
-          context = { ...synthesisContext };
+          context = {
+            profile: synthesisContext.profile,
+            job: synthesisContext.job,
+            task: synthesisContext.task,
+            template: synthesisContext.template,
+            tone: synthesisContext.tone,
+          };
         } else {
           context = { rawText: testInput };
         }
@@ -271,12 +276,10 @@ const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
           onThinking: (delta) => setThinking((prev) => prev + delta),
         });
 
-        const endTime = Date.now();
+        const duration = Date.now() - startTime;
 
         setStats({
-          startTime,
-          endTime,
-          duration: endTime - startTime,
+          duration,
           charCount: result.content.length,
         });
 
@@ -314,7 +317,10 @@ const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
-        stopKeepalive();
+        if (stopKeepaliveRef.current) {
+          stopKeepaliveRef.current();
+          stopKeepaliveRef.current = null;
+        }
         setIsRunning(false);
         abortControllerRef.current = null;
       }
@@ -323,7 +329,11 @@ const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
       llmSettings.endpoint,
       taskType,
       testInput,
-      synthesisContext,
+      synthesisContext.profile,
+      synthesisContext.job,
+      synthesisContext.task,
+      synthesisContext.template,
+      synthesisContext.tone,
       systemPrompt,
       taskDef,
     ]);
@@ -342,10 +352,22 @@ const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
     const canRun = useMemo(() => {
       if (!llmSettings.isConnected) return false;
       if (taskType === 'synthesis') {
-        return synthesisContext.profile.trim() && synthesisContext.job.trim();
+        // Synthesis requires profile, job, and template
+        return (
+          synthesisContext.profile.trim() &&
+          synthesisContext.job.trim() &&
+          synthesisContext.template.trim()
+        );
       }
       return testInput.trim().length > 0;
-    }, [llmSettings.isConnected, taskType, testInput, synthesisContext]);
+    }, [
+      llmSettings.isConnected,
+      taskType,
+      testInput,
+      synthesisContext.profile,
+      synthesisContext.job,
+      synthesisContext.template,
+    ]);
 
     return (
       <div

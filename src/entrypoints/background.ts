@@ -108,18 +108,15 @@ export default defineBackground(() => {
 
     // Create context menu items
     try {
+      // Page context menu (right-click on page)
       await browser.contextMenus.create({
         id: 'extract-job',
         title: 'Extract Job from This Page',
         contexts: ['page', 'selection'],
       });
 
-      await browser.contextMenus.create({
-        id: 'open-settings',
-        title: 'Open LLM Settings',
-        contexts: ['action'],
-      });
-
+      // Extension icon context menu (right-click on extension icon)
+      // User features
       await browser.contextMenus.create({
         id: 'view-all-jobs',
         title: 'View All Jobs',
@@ -129,6 +126,13 @@ export default defineBackground(() => {
       await browser.contextMenus.create({
         id: 'edit-profile',
         title: 'Edit Profile',
+        contexts: ['action'],
+      });
+
+      // Developer/settings features
+      await browser.contextMenus.create({
+        id: 'open-settings',
+        title: 'Open LLM Settings',
         contexts: ['action'],
       });
 

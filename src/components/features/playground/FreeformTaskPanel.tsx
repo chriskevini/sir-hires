@@ -317,7 +317,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
           <textarea
             value={systemPrompt}
             onChange={(e) => setSystemPrompt(e.target.value)}
-            className="w-full h-48 p-3 rounded-lg border bg-card font-mono text-sm resize-y"
+            className="w-full h-64 p-3 rounded-lg border bg-card font-mono text-sm resize-y"
             placeholder="Enter system prompt..."
           />
         </div>
@@ -424,7 +424,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
                   value={ctx.content}
                   onChange={(e) => updateContextContent(index, e.target.value)}
                   placeholder="Content..."
-                  className="w-full h-24 p-2 rounded border bg-background font-mono text-sm resize-y"
+                  className="w-full h-48 p-2 rounded border bg-background font-mono text-sm resize-y"
                 />
               </div>
             ))}
@@ -494,7 +494,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
             readOnly
             value={output}
             placeholder="Output will appear here..."
-            className="w-full p-3 rounded-lg border bg-card font-mono text-sm h-96 resize-y overflow-auto"
+            className="w-full p-3 rounded-lg border bg-card font-mono text-sm h-64 resize-y overflow-auto"
           />
         </div>
       </div>

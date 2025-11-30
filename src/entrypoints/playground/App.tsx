@@ -12,7 +12,13 @@
  * - "Reset to Default" button per prompt
  */
 
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+} from 'react';
 import { LLMClient } from '@/utils/llm-client';
 import { runTask, startKeepalive } from '@/utils/llm-task-runner';
 import {
@@ -25,17 +31,19 @@ import {
 } from '@/tasks';
 import type { TaskConfig } from '@/tasks';
 import { parseJobTemplate, type JobTemplateData } from '@/utils/job-parser';
-import { parseProfileTemplate } from '@/utils/profile-parser';
+import {
+  parseProfileTemplate,
+  type ParsedProfile,
+} from '@/utils/profile-parser';
 import { useLLMSettings } from '@/hooks/useLLMSettings';
 import { useTheme } from '@/hooks/useTheme';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
+import { FIXTURES, type TaskType } from './fixtures';
 
 // =============================================================================
 // TYPES
 // =============================================================================
-
-type TaskType = 'job-extraction' | 'profile-extraction' | 'synthesis';
 
 interface TaskDefinition {
   label: string;
@@ -60,129 +68,34 @@ interface RunStats {
 }
 
 // =============================================================================
-// FIXTURES
+// VALIDATION HELPERS
 // =============================================================================
 
-const JOB_FIXTURE_COMPLETE = `Software Engineer - Full Stack
-TechCorp Inc.
-San Francisco, CA (Hybrid - 2 days in office)
+/**
+ * Type guard for JobTemplateData
+ */
+function isValidJobData(data: unknown): data is JobTemplateData {
+  if (!data || typeof data !== 'object') return false;
+  const jobData = data as JobTemplateData;
+  // Valid if it has a type or has extracted top-level fields
+  return (
+    jobData.type !== null ||
+    Object.keys(jobData.topLevelFields || {}).length > 0
+  );
+}
 
-Salary: $150,000 - $200,000 per year
-
-About the Role:
-We're looking for a Senior Full Stack Engineer to join our growing team. You'll be working on our flagship product, helping to build scalable web applications that serve millions of users.
-
-Requirements:
-- 5+ years of experience in software development
-- Strong proficiency in React, TypeScript, and Node.js
-- Experience with PostgreSQL and Redis
-- Familiarity with AWS services (EC2, S3, Lambda)
-- Excellent communication skills
-
-Nice to Have:
-- Experience with GraphQL
-- Knowledge of Kubernetes
-- Previous startup experience
-
-Benefits:
-- Unlimited PTO
-- 401(k) matching
-- Health, dental, and vision insurance
-- Remote work flexibility
-
-Posted: November 15, 2025
-Application Deadline: December 31, 2025`;
-
-const JOB_FIXTURE_MINIMAL = `Hiring: Web Developer at StartupXYZ
-Remote position, $80k-$100k
-Must know JavaScript and React
-Apply now!`;
-
-const JOB_FIXTURE_MESSY = `🚀 AMAZING OPPORTUNITY 🚀
-
-We're looking for a rockstar developer!!!
-
-Position: Maybe Senior? Or Mid? IDK, depends on experience
-Company: CoolTech (we're in stealth mode)
-Location: Anywhere! Or maybe NYC sometimes? 
-
-Pay: Competitive (trust us bro)
-
-What we need:
-* coding skills (duh)
-* someone who can work fast
-* 10x developer mindset
-* must be passionate about disrupting industries
-
-We offer:
-- pizza fridays
-- ping pong table
-- "unlimited" vacation (but don't actually take it lol)
-
-DM us if interested, no deadline, first come first serve!`;
-
-const PROFILE_FIXTURE_COMPLETE = `JANE DOE
-123 Main Street, San Francisco, CA 94102
-jane.doe@email.com | (555) 123-4567
-linkedin.com/in/janedoe | github.com/janedoe
-
-SUMMARY
-Experienced software engineer with 8+ years of full-stack development experience. Passionate about building scalable systems and mentoring junior developers.
-
-EXPERIENCE
-
-Senior Software Engineer | TechCorp Inc.
-January 2020 - Present
-- Led development of microservices architecture serving 2M+ daily users
-- Mentored team of 5 junior developers
-- Reduced API response time by 40% through optimization
-- Implemented CI/CD pipeline reducing deployment time from 2 hours to 15 minutes
-
-Software Engineer | StartupXYZ
-June 2016 - December 2019
-- Built customer-facing dashboard using React and TypeScript
-- Designed and implemented RESTful APIs
-- Collaborated with product team to define technical requirements
-
-EDUCATION
-
-Master of Science in Computer Science
-Stanford University | 2014 - 2016
-GPA: 3.8
-
-Bachelor of Science in Computer Science
-UC Berkeley | 2010 - 2014
-GPA: 3.6
-
-SKILLS
-JavaScript, TypeScript, Python, React, Node.js, PostgreSQL, MongoDB, AWS, Docker, Kubernetes
-
-CERTIFICATIONS
-- AWS Certified Solutions Architect
-- Google Cloud Professional Data Engineer`;
-
-const PROFILE_FIXTURE_MINIMAL = `John Smith
-john@email.com
-
-Developer at SomeCo (2020-present)
-- Built stuff
-- Fixed bugs
-
-BS Computer Science, State University 2019`;
-
-// Fixture definitions
-const FIXTURES: Record<TaskType, Array<{ label: string; content: string }>> = {
-  'job-extraction': [
-    { label: 'Complete Job Posting', content: JOB_FIXTURE_COMPLETE },
-    { label: 'Minimal Job', content: JOB_FIXTURE_MINIMAL },
-    { label: 'Messy/Informal Job', content: JOB_FIXTURE_MESSY },
-  ],
-  'profile-extraction': [
-    { label: 'Complete Profile', content: PROFILE_FIXTURE_COMPLETE },
-    { label: 'Minimal Profile', content: PROFILE_FIXTURE_MINIMAL },
-  ],
-  synthesis: [],
-};
+/**
+ * Type guard for ParsedProfile
+ */
+function isValidProfileData(data: unknown): data is ParsedProfile {
+  if (!data || typeof data !== 'object') return false;
+  const profileData = data as ParsedProfile;
+  // Valid if it has extracted any meaningful content
+  return (
+    Object.keys(profileData.topLevelFields || {}).length > 0 ||
+    Object.keys(profileData.sections || {}).length > 0
+  );
+}
 
 // =============================================================================
 // TASK DEFINITIONS
@@ -256,6 +169,15 @@ export const App: React.FC = () => {
   // Current task definition
   const currentTask = TASKS[selectedTask];
 
+  // Cleanup AbortController on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   // Handle task change
   const handleTaskChange = useCallback((task: TaskType) => {
     setSelectedTask(task);
@@ -280,7 +202,9 @@ export const App: React.FC = () => {
 
   // Run the test
   const handleRunTest = useCallback(async () => {
-    if (!llmSettings.model) {
+    // Capture model in local variable for type safety in async flow
+    const model = llmSettings.model;
+    if (!model) {
       setError('Please select a model in LLM settings');
       return;
     }
@@ -326,7 +250,7 @@ export const App: React.FC = () => {
         config: modifiedConfig,
         context,
         llmClient,
-        model: llmSettings.model,
+        model,
         signal: abortControllerRef.current.signal,
         onChunk: (delta) => setOutput((prev) => prev + delta),
         onThinking: (delta) => setThinking((prev) => prev + delta),
@@ -342,19 +266,21 @@ export const App: React.FC = () => {
         charCount: result.content.length,
       });
 
-      // Run parser if available
+      // Run parser if available with task-specific validation
       if (currentTask.parser && result.content) {
         try {
           const parsed = currentTask.parser(result.content);
-          // Check if parsing produced valid data
-          const isValid =
-            parsed &&
-            typeof parsed === 'object' &&
-            ((parsed as JobTemplateData).type !== null ||
-              Object.keys((parsed as JobTemplateData).topLevelFields || {})
-                .length > 0);
+
+          // Use task-specific validation
+          let isValid = false;
+          if (selectedTask === 'job-extraction') {
+            isValid = isValidJobData(parsed);
+          } else if (selectedTask === 'profile-extraction') {
+            isValid = isValidProfileData(parsed);
+          }
+
           setParseResult({
-            valid: !!isValid,
+            valid: isValid,
             data: parsed,
           });
         } catch (parseError) {

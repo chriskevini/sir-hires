@@ -252,3 +252,6 @@ export {
   extractInterests,
   getTopLevelField,
 };
+
+// Type exports
+export type { ParsedProfile, ProfileSection };

@@ -481,9 +481,11 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
         {thinking && (
           <div>
             <label className="block text-sm font-medium mb-2">Thinking</label>
-            <div className="p-3 rounded-lg border bg-muted/30 font-mono text-sm max-h-32 overflow-auto whitespace-pre-wrap">
-              {thinking}
-            </div>
+            <textarea
+              readOnly
+              value={thinking}
+              className="w-full p-3 rounded-lg border bg-muted/30 font-mono text-sm h-32 resize-y overflow-auto"
+            />
           </div>
         )}
 

@@ -132,6 +132,12 @@ export default defineBackground(() => {
         contexts: ['action'],
       });
 
+      await browser.contextMenus.create({
+        id: 'prompt-playground',
+        title: 'Prompt Playground',
+        contexts: ['action'],
+      });
+
       console.info('[Background] Context menus created');
     } catch (error) {
       console.error('[Background] Error creating context menus:', error);
@@ -211,6 +217,23 @@ export default defineBackground(() => {
           })
           .catch((error: unknown) => {
             console.error('[Background] Error opening profile:', error);
+          });
+      } else if (info.menuItemId === 'prompt-playground') {
+        console.info('[Background] Opening prompt playground');
+
+        // Open prompt playground in a new tab
+        browser.tabs
+          .create({
+            url: browser.runtime.getURL('/playground.html'),
+          })
+          .then(() => {
+            console.info('[Background] Prompt playground opened successfully');
+          })
+          .catch((error: unknown) => {
+            console.error(
+              '[Background] Error opening prompt playground:',
+              error
+            );
           });
       }
     }

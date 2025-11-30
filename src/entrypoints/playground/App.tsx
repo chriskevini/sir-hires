@@ -607,13 +607,12 @@ const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
           {/* LLM Output */}
           <div>
             <label className="block text-sm font-medium mb-2">LLM Output</label>
-            <div className="p-3 rounded-lg border bg-card font-mono text-sm h-64 overflow-auto whitespace-pre-wrap">
-              {output || (
-                <span className="text-muted-foreground italic">
-                  Output will appear here...
-                </span>
-              )}
-            </div>
+            <textarea
+              readOnly
+              value={output}
+              placeholder="Output will appear here..."
+              className="w-full p-3 rounded-lg border bg-card font-mono text-sm h-64 resize-y overflow-auto"
+            />
           </div>
 
           {/* Parser Validation */}

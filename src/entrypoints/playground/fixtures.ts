@@ -3,6 +3,8 @@
  * Pre-built test data for quick iteration on LLM prompts
  */
 
+import { documentTemplates } from '@/tasks/synthesis';
+
 // =============================================================================
 // JOB EXTRACTION FIXTURES
 // =============================================================================
@@ -137,5 +139,8 @@ export const FIXTURES: Record<
     { label: 'Complete Profile', content: PROFILE_FIXTURE_COMPLETE },
     { label: 'Minimal Profile', content: PROFILE_FIXTURE_MINIMAL },
   ],
-  synthesis: [],
+  synthesis: [
+    { label: 'Resume/CV', content: documentTemplates.tailoredResume },
+    { label: 'Cover Letter', content: documentTemplates.coverLetter },
+  ],
 };

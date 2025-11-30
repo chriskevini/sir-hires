@@ -463,9 +463,37 @@ const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
                 />
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">
-                  Template
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs text-muted-foreground">
+                    Template
+                  </label>
+                  {FIXTURES.synthesis.length > 0 && (
+                    <select
+                      className="text-xs p-1 rounded border bg-card"
+                      onChange={(e) => {
+                        const fixture = FIXTURES.synthesis.find(
+                          (f) => f.label === e.target.value
+                        );
+                        if (fixture) {
+                          setSynthesisContext((prev) => ({
+                            ...prev,
+                            template: fixture.content,
+                          }));
+                        }
+                      }}
+                      value=""
+                    >
+                      <option value="" disabled>
+                        Load Template...
+                      </option>
+                      {FIXTURES.synthesis.map((fixture) => (
+                        <option key={fixture.label} value={fixture.label}>
+                          {fixture.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
                 <textarea
                   value={synthesisContext.template}
                   onChange={(e) =>

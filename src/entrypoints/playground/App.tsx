@@ -43,6 +43,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { FIXTURES, type TaskType } from './fixtures';
+import { getRandomTone } from '@/utils/synthesis-utils';
 
 // =============================================================================
 // TYPES
@@ -422,7 +423,7 @@ const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
                       profile: e.target.value,
                     }))
                   }
-                  className="w-full h-24 p-2 rounded-lg border bg-card font-mono text-sm resize-y"
+                  className="w-full h-64 p-2 rounded-lg border bg-card font-mono text-sm resize-y"
                   placeholder="Enter profile content..."
                 />
               </div>
@@ -458,7 +459,7 @@ const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
                       job: e.target.value,
                     }))
                   }
-                  className="w-full h-24 p-2 rounded-lg border bg-card font-mono text-sm resize-y"
+                  className="w-full h-64 p-2 rounded-lg border bg-card font-mono text-sm resize-y"
                   placeholder="Enter job content..."
                 />
               </div>
@@ -502,7 +503,7 @@ const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
                       template: e.target.value,
                     }))
                   }
-                  className="w-full h-16 p-2 rounded-lg border bg-card font-mono text-sm resize-y"
+                  className="w-full h-64 p-2 rounded-lg border bg-card font-mono text-sm resize-y"
                   placeholder="Enter template..."
                 />
               </div>
@@ -511,8 +512,7 @@ const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
                   <label className="block text-xs text-muted-foreground mb-1">
                     Task Instruction
                   </label>
-                  <input
-                    type="text"
+                  <textarea
                     value={synthesisContext.task}
                     onChange={(e) =>
                       setSynthesisContext((prev) => ({
@@ -520,13 +520,28 @@ const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
                         task: e.target.value,
                       }))
                     }
-                    className="w-full p-2 rounded-lg border bg-card text-sm"
+                    className="w-full h-16 p-2 rounded-lg border bg-card text-sm resize-y"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-muted-foreground mb-1">
-                    Tone
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs text-muted-foreground">
+                      Tone
+                    </label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-5 text-xs px-2"
+                      onClick={() => {
+                        setSynthesisContext((prev) => ({
+                          ...prev,
+                          tone: getRandomTone(),
+                        }));
+                      }}
+                    >
+                      Randomize
+                    </Button>
+                  </div>
                   <input
                     type="text"
                     value={synthesisContext.tone}

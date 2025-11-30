@@ -337,7 +337,7 @@ export const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
               <textarea
                 value={testInput}
                 onChange={(e) => setTestInput(e.target.value)}
-                className="w-full h-48 p-3 rounded-lg border bg-card font-mono text-sm resize-y"
+                className="w-full h-64 p-3 rounded-lg border bg-card font-mono text-sm resize-y"
                 placeholder={`Enter ${taskType === 'job-extraction' ? 'job posting' : 'resume/profile'} text to extract...`}
               />
             </div>
@@ -396,7 +396,7 @@ export const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
               <textarea
                 readOnly
                 value={thinking}
-                className="w-full p-3 rounded-lg border bg-muted/30 font-mono text-sm h-32 resize-y overflow-auto"
+                className="w-full p-3 rounded-lg border bg-muted/30 font-mono text-sm h-64 resize-y overflow-auto"
               />
             </div>
           )}
@@ -448,7 +448,7 @@ export const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
                     <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
                       View parsed data
                     </summary>
-                    <pre className="mt-2 p-2 rounded bg-background overflow-auto max-h-48 text-xs">
+                    <pre className="mt-2 p-2 rounded bg-background overflow-auto max-h-64 text-xs">
                       {JSON.stringify(parseResult.data, null, 2)}
                     </pre>
                   </details>

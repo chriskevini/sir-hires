@@ -484,7 +484,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
             <textarea
               readOnly
               value={thinking}
-              className="w-full p-3 rounded-lg border bg-muted/30 font-mono text-sm h-32 resize-y overflow-auto"
+              className="w-full p-3 rounded-lg border bg-muted/30 font-mono text-sm h-64 resize-y overflow-auto"
             />
           </div>
         )}

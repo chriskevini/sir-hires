@@ -276,74 +276,28 @@ export const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
       >
         {/* Left Column: Inputs */}
         <div className="space-y-4">
-          {/* System Prompt */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium">
-                System Prompt
-                {isPromptModified && (
-                  <span className="ml-2 text-xs text-amber-500">
-                    (modified)
-                  </span>
-                )}
-              </label>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleResetPrompt}
-                disabled={!isPromptModified}
-              >
-                Reset to Default
-              </Button>
-            </div>
-            <textarea
-              value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
-              className="w-full h-64 p-3 rounded-lg border bg-card font-mono text-sm resize-y"
-              placeholder="Enter system prompt..."
-            />
-          </div>
-
-          {/* Test Input - varies by task type */}
+          {/* Task Inputs - tabbed interface for all task types */}
           {taskType === 'synthesis' ? (
             <SynthesisInputs
               synthesisContext={synthesisContext}
               setSynthesisContext={setSynthesisContext}
               getExtractionOutput={getExtractionOutput}
+              systemPrompt={systemPrompt}
+              setSystemPrompt={setSystemPrompt}
+              isPromptModified={isPromptModified}
+              onResetPrompt={handleResetPrompt}
             />
           ) : (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium">Test Input</label>
-                {FIXTURES[taskType].length > 0 && (
-                  <select
-                    className="text-sm p-1 rounded border bg-card"
-                    onChange={(e) => {
-                      const fixture = FIXTURES[taskType].find(
-                        (f) => f.label === e.target.value
-                      );
-                      if (fixture) handleLoadFixture(fixture.content);
-                    }}
-                    value=""
-                  >
-                    <option value="" disabled>
-                      Load Fixture...
-                    </option>
-                    {FIXTURES[taskType].map((fixture) => (
-                      <option key={fixture.label} value={fixture.label}>
-                        {fixture.label}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <textarea
-                value={testInput}
-                onChange={(e) => setTestInput(e.target.value)}
-                className="w-full h-64 p-3 rounded-lg border bg-card font-mono text-sm resize-y"
-                placeholder={`Enter ${taskType === 'job-extraction' ? 'job posting' : 'resume/profile'} text to extract...`}
-              />
-            </div>
+            <ExtractionInputs
+              taskType={taskType}
+              systemPrompt={systemPrompt}
+              setSystemPrompt={setSystemPrompt}
+              isPromptModified={isPromptModified}
+              onResetPrompt={handleResetPrompt}
+              testInput={testInput}
+              setTestInput={setTestInput}
+              onLoadFixture={handleLoadFixture}
+            />
           )}
 
           {/* Run Button */}
@@ -506,177 +460,531 @@ interface SynthesisInputsProps {
   getExtractionOutput?: (
     task: 'job-extraction' | 'profile-extraction'
   ) => string;
+  systemPrompt: string;
+  setSystemPrompt: (value: string) => void;
+  isPromptModified: boolean;
+  onResetPrompt: () => void;
 }
+
+type SynthesisTab = 'system' | 'profile' | 'job' | 'template' | 'task' | 'tone';
 
 const SynthesisInputs: React.FC<SynthesisInputsProps> = ({
   synthesisContext,
   setSynthesisContext,
   getExtractionOutput,
+  systemPrompt,
+  setSystemPrompt,
+  isPromptModified,
+  onResetPrompt,
 }) => {
+  const [selectedTab, setSelectedTab] = useState<SynthesisTab>('system');
+
+  const tabs: Array<{
+    id: SynthesisTab;
+    label: string;
+    color: string;
+    selectedColor: string;
+    panelBg: string;
+    panelBorder: string;
+  }> = [
+    {
+      id: 'system',
+      label: 'System',
+      color:
+        'border-slate-500/50 text-slate-600 dark:text-slate-400 hover:bg-slate-500/10',
+      selectedColor:
+        'bg-slate-500/20 border-slate-500/50 text-slate-700 dark:text-slate-300',
+      panelBg: 'bg-slate-500/5',
+      panelBorder: 'border-slate-500/50',
+    },
+    {
+      id: 'profile',
+      label: 'Profile',
+      color:
+        'border-blue-500/50 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10',
+      selectedColor:
+        'bg-blue-500/20 border-blue-500/50 text-blue-700 dark:text-blue-300',
+      panelBg: 'bg-blue-500/5',
+      panelBorder: 'border-blue-500/50',
+    },
+    {
+      id: 'job',
+      label: 'Job',
+      color:
+        'border-green-500/50 text-green-600 dark:text-green-400 hover:bg-green-500/10',
+      selectedColor:
+        'bg-green-500/20 border-green-500/50 text-green-700 dark:text-green-300',
+      panelBg: 'bg-green-500/5',
+      panelBorder: 'border-green-500/50',
+    },
+    {
+      id: 'template',
+      label: 'Template',
+      color:
+        'border-purple-500/50 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10',
+      selectedColor:
+        'bg-purple-500/20 border-purple-500/50 text-purple-700 dark:text-purple-300',
+      panelBg: 'bg-purple-500/5',
+      panelBorder: 'border-purple-500/50',
+    },
+    {
+      id: 'task',
+      label: 'Task',
+      color:
+        'border-amber-500/50 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10',
+      selectedColor:
+        'bg-amber-500/20 border-amber-500/50 text-amber-700 dark:text-amber-300',
+      panelBg: 'bg-amber-500/5',
+      panelBorder: 'border-amber-500/50',
+    },
+    {
+      id: 'tone',
+      label: 'Tone',
+      color:
+        'border-pink-500/50 text-pink-600 dark:text-pink-400 hover:bg-pink-500/10',
+      selectedColor:
+        'bg-pink-500/20 border-pink-500/50 text-pink-700 dark:text-pink-300',
+      panelBg: 'bg-pink-500/5',
+      panelBorder: 'border-pink-500/50',
+    },
+  ];
+
+  const selectedTabConfig = tabs.find((t) => t.id === selectedTab)!;
+
   return (
-    <div className="space-y-3">
-      <label className="block text-sm font-medium">Synthesis Context</label>
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <label className="block text-xs text-muted-foreground">
-            Profile (MarkdownDB)
-          </label>
-          {getExtractionOutput && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-5 text-xs px-2"
-              onClick={() => {
-                const output = getExtractionOutput('profile-extraction');
-                if (output) {
-                  setSynthesisContext((prev) => ({
-                    ...prev,
-                    profile: output,
-                  }));
-                }
-              }}
+    <div>
+      <label className="block text-sm font-medium mb-2">
+        Synthesis Context
+      </label>
+
+      {/* Tab Row */}
+      <div className="flex items-end gap-0.5">
+        {tabs.map((tab) => {
+          const isSelected = selectedTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setSelectedTab(tab.id)}
+              className={cn(
+                'relative flex items-center justify-center px-4 py-2',
+                'border border-b-0 rounded-t-lg cursor-pointer',
+                'text-xs font-medium transition-all duration-150',
+                '-mb-px',
+                isSelected
+                  ? cn(
+                      'bg-background text-foreground z-[1]',
+                      'shadow-[0_-2px_4px_rgba(0,0,0,0.05)]',
+                      tab.panelBorder
+                    )
+                  : 'bg-muted-foreground/10 text-muted-foreground border-border hover:bg-muted-foreground/20 hover:text-foreground'
+              )}
             >
-              Copy from Extraction
-            </Button>
-          )}
-        </div>
-        <textarea
-          value={synthesisContext.profile}
-          onChange={(e) =>
-            setSynthesisContext((prev) => ({
-              ...prev,
-              profile: e.target.value,
-            }))
-          }
-          className="w-full h-64 p-2 rounded-lg border bg-card font-mono text-sm resize-y"
-          placeholder="Enter profile content..."
-        />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <label className="block text-xs text-muted-foreground">
-            Job (MarkdownDB)
-          </label>
-          {getExtractionOutput && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-5 text-xs px-2"
-              onClick={() => {
-                const output = getExtractionOutput('job-extraction');
-                if (output) {
-                  setSynthesisContext((prev) => ({
-                    ...prev,
-                    job: output,
-                  }));
-                }
-              }}
-            >
-              Copy from Extraction
-            </Button>
-          )}
-        </div>
-        <textarea
-          value={synthesisContext.job}
-          onChange={(e) =>
-            setSynthesisContext((prev) => ({
-              ...prev,
-              job: e.target.value,
-            }))
-          }
-          className="w-full h-64 p-2 rounded-lg border bg-card font-mono text-sm resize-y"
-          placeholder="Enter job content..."
-        />
-      </div>
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <label className="block text-xs text-muted-foreground">
-            Template
-          </label>
-          {FIXTURES.synthesis.length > 0 && (
-            <select
-              className="text-xs p-1 rounded border bg-card"
-              onChange={(e) => {
-                const fixture = FIXTURES.synthesis.find(
-                  (f) => f.label === e.target.value
-                );
-                if (fixture) {
-                  setSynthesisContext((prev) => ({
-                    ...prev,
-                    template: fixture.content,
-                  }));
-                }
-              }}
-              value=""
-            >
-              <option value="" disabled>
-                Load Template...
-              </option>
-              {FIXTURES.synthesis.map((fixture) => (
-                <option key={fixture.label} value={fixture.label}>
-                  {fixture.label}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
-        <textarea
-          value={synthesisContext.template}
-          onChange={(e) =>
-            setSynthesisContext((prev) => ({
-              ...prev,
-              template: e.target.value,
-            }))
-          }
-          className="w-full h-64 p-2 rounded-lg border bg-card font-mono text-sm resize-y"
-          placeholder="Enter template..."
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs text-muted-foreground mb-1">
-            Task Instruction
-          </label>
-          <textarea
-            value={synthesisContext.task}
-            onChange={(e) =>
-              setSynthesisContext((prev) => ({
-                ...prev,
-                task: e.target.value,
-              }))
-            }
-            className="w-full h-16 p-2 rounded-lg border bg-card text-sm resize-y"
-          />
-        </div>
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-xs text-muted-foreground">Tone</label>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-5 text-xs px-2"
-              onClick={() => {
+
+      {/* Tab Content */}
+      <div
+        className={cn(
+          'border rounded-b-lg p-3',
+          selectedTabConfig.panelBorder,
+          selectedTabConfig.panelBg
+        )}
+      >
+        {selectedTab === 'system' && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">
+                System Prompt
+                {isPromptModified && (
+                  <span className="ml-2 text-amber-500">(modified)</span>
+                )}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs px-2"
+                onClick={onResetPrompt}
+                disabled={!isPromptModified}
+              >
+                Reset to Default
+              </Button>
+            </div>
+            <textarea
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+              className="w-full h-96 p-2 rounded border bg-background font-mono text-sm resize-y"
+              placeholder="Enter system prompt..."
+            />
+          </div>
+        )}
+
+        {selectedTab === 'profile' && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">
+                Profile (MarkdownDB)
+              </span>
+              {getExtractionOutput && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs px-2"
+                  onClick={() => {
+                    const output = getExtractionOutput('profile-extraction');
+                    if (output) {
+                      setSynthesisContext((prev) => ({
+                        ...prev,
+                        profile: output,
+                      }));
+                    }
+                  }}
+                >
+                  Copy from Extraction
+                </Button>
+              )}
+            </div>
+            <textarea
+              value={synthesisContext.profile}
+              onChange={(e) =>
                 setSynthesisContext((prev) => ({
                   ...prev,
-                  tone: getRandomTone(),
-                }));
-              }}
-            >
-              Randomize
-            </Button>
+                  profile: e.target.value,
+                }))
+              }
+              className="w-full h-96 p-2 rounded border bg-background font-mono text-sm resize-y"
+              placeholder="Enter profile content..."
+            />
           </div>
-          <input
-            type="text"
-            value={synthesisContext.tone}
-            onChange={(e) =>
-              setSynthesisContext((prev) => ({
-                ...prev,
-                tone: e.target.value,
-              }))
-            }
-            className="w-full p-2 rounded-lg border bg-card text-sm"
-          />
-        </div>
+        )}
+
+        {selectedTab === 'job' && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">
+                Job (MarkdownDB)
+              </span>
+              {getExtractionOutput && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs px-2"
+                  onClick={() => {
+                    const output = getExtractionOutput('job-extraction');
+                    if (output) {
+                      setSynthesisContext((prev) => ({
+                        ...prev,
+                        job: output,
+                      }));
+                    }
+                  }}
+                >
+                  Copy from Extraction
+                </Button>
+              )}
+            </div>
+            <textarea
+              value={synthesisContext.job}
+              onChange={(e) =>
+                setSynthesisContext((prev) => ({
+                  ...prev,
+                  job: e.target.value,
+                }))
+              }
+              className="w-full h-96 p-2 rounded border bg-background font-mono text-sm resize-y"
+              placeholder="Enter job content..."
+            />
+          </div>
+        )}
+
+        {selectedTab === 'template' && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">Template</span>
+              {FIXTURES.synthesis.length > 0 && (
+                <select
+                  className="text-xs p-1 rounded border bg-background"
+                  onChange={(e) => {
+                    const fixture = FIXTURES.synthesis.find(
+                      (f) => f.label === e.target.value
+                    );
+                    if (fixture) {
+                      setSynthesisContext((prev) => ({
+                        ...prev,
+                        template: fixture.content,
+                      }));
+                    }
+                  }}
+                  value=""
+                >
+                  <option value="" disabled>
+                    Load Template...
+                  </option>
+                  {FIXTURES.synthesis.map((fixture) => (
+                    <option key={fixture.label} value={fixture.label}>
+                      {fixture.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <textarea
+              value={synthesisContext.template}
+              onChange={(e) =>
+                setSynthesisContext((prev) => ({
+                  ...prev,
+                  template: e.target.value,
+                }))
+              }
+              className="w-full h-96 p-2 rounded border bg-background font-mono text-sm resize-y"
+              placeholder="Enter template..."
+            />
+          </div>
+        )}
+
+        {selectedTab === 'task' && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">
+                Task Instruction
+              </span>
+            </div>
+            <textarea
+              value={synthesisContext.task}
+              onChange={(e) =>
+                setSynthesisContext((prev) => ({
+                  ...prev,
+                  task: e.target.value,
+                }))
+              }
+              className="w-full h-96 p-2 rounded border bg-background text-sm resize-y"
+              placeholder="Enter task instruction..."
+            />
+          </div>
+        )}
+
+        {selectedTab === 'tone' && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">Tone</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs px-2"
+                onClick={() => {
+                  setSynthesisContext((prev) => ({
+                    ...prev,
+                    tone: getRandomTone(),
+                  }));
+                }}
+              >
+                Randomize
+              </Button>
+            </div>
+            <input
+              type="text"
+              value={synthesisContext.tone}
+              onChange={(e) =>
+                setSynthesisContext((prev) => ({
+                  ...prev,
+                  tone: e.target.value,
+                }))
+              }
+              className="w-full p-2 rounded border bg-background text-sm"
+              placeholder="Enter tone..."
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// =============================================================================
+// EXTRACTION INPUTS SUBCOMPONENT
+// =============================================================================
+
+interface ExtractionInputsProps {
+  taskType: Exclude<TaskType, 'synthesis'>;
+  systemPrompt: string;
+  setSystemPrompt: (value: string) => void;
+  isPromptModified: boolean;
+  onResetPrompt: () => void;
+  testInput: string;
+  setTestInput: (value: string) => void;
+  onLoadFixture: (content: string) => void;
+}
+
+type ExtractionTab = 'system' | 'input';
+
+const ExtractionInputs: React.FC<ExtractionInputsProps> = ({
+  taskType,
+  systemPrompt,
+  setSystemPrompt,
+  isPromptModified,
+  onResetPrompt,
+  testInput,
+  setTestInput,
+  onLoadFixture,
+}) => {
+  const [selectedTab, setSelectedTab] = useState<ExtractionTab>('system');
+
+  const tabs: Array<{
+    id: ExtractionTab;
+    label: string;
+    color: string;
+    selectedColor: string;
+    panelBg: string;
+    panelBorder: string;
+  }> = [
+    {
+      id: 'system',
+      label: 'System',
+      color:
+        'border-slate-500/50 text-slate-600 dark:text-slate-400 hover:bg-slate-500/10',
+      selectedColor:
+        'bg-slate-500/20 border-slate-500/50 text-slate-700 dark:text-slate-300',
+      panelBg: 'bg-slate-500/5',
+      panelBorder: 'border-slate-500/50',
+    },
+    {
+      id: 'input',
+      label: 'Raw Input',
+      color:
+        'border-cyan-500/50 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/10',
+      selectedColor:
+        'bg-cyan-500/20 border-cyan-500/50 text-cyan-700 dark:text-cyan-300',
+      panelBg: 'bg-cyan-500/5',
+      panelBorder: 'border-cyan-500/50',
+    },
+  ];
+
+  const selectedTabConfig = tabs.find((t) => t.id === selectedTab)!;
+
+  return (
+    <div>
+      <label className="block text-sm font-medium mb-2">
+        {taskType === 'job-extraction'
+          ? 'Job Extraction'
+          : taskType === 'profile-extraction'
+            ? 'Profile Extraction'
+            : 'Custom Task'}
+      </label>
+
+      {/* Tab Row */}
+      <div className="flex items-end gap-0.5">
+        {tabs.map((tab) => {
+          const isSelected = selectedTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setSelectedTab(tab.id)}
+              className={cn(
+                'relative flex items-center justify-center px-4 py-2',
+                'border border-b-0 rounded-t-lg cursor-pointer',
+                'text-xs font-medium transition-all duration-150',
+                '-mb-px',
+                isSelected
+                  ? cn(
+                      'bg-background text-foreground z-[1]',
+                      'shadow-[0_-2px_4px_rgba(0,0,0,0.05)]',
+                      tab.panelBorder
+                    )
+                  : 'bg-muted-foreground/10 text-muted-foreground border-border hover:bg-muted-foreground/20 hover:text-foreground'
+              )}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tab Content */}
+      <div
+        className={cn(
+          'border rounded-b-lg p-3',
+          selectedTabConfig.panelBorder,
+          selectedTabConfig.panelBg
+        )}
+      >
+        {selectedTab === 'system' && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">
+                System Prompt
+                {isPromptModified && (
+                  <span className="ml-2 text-amber-500">(modified)</span>
+                )}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs px-2"
+                onClick={onResetPrompt}
+                disabled={!isPromptModified}
+              >
+                Reset to Default
+              </Button>
+            </div>
+            <textarea
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+              className="w-full h-96 p-2 rounded border bg-background font-mono text-sm resize-y"
+              placeholder="Enter system prompt..."
+            />
+          </div>
+        )}
+
+        {selectedTab === 'input' && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">
+                {taskType === 'job-extraction'
+                  ? 'Job Posting'
+                  : taskType === 'profile-extraction'
+                    ? 'Resume/Profile'
+                    : 'Raw Text'}
+              </span>
+              {FIXTURES[taskType].length > 0 && (
+                <select
+                  className="text-xs p-1 rounded border bg-background"
+                  onChange={(e) => {
+                    const fixture = FIXTURES[taskType].find(
+                      (f) => f.label === e.target.value
+                    );
+                    if (fixture) onLoadFixture(fixture.content);
+                  }}
+                  value=""
+                >
+                  <option value="" disabled>
+                    Load Fixture...
+                  </option>
+                  {FIXTURES[taskType].map((fixture) => (
+                    <option key={fixture.label} value={fixture.label}>
+                      {fixture.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <textarea
+              value={testInput}
+              onChange={(e) => setTestInput(e.target.value)}
+              className="w-full h-96 p-2 rounded border bg-background font-mono text-sm resize-y"
+              placeholder={
+                taskType === 'job-extraction'
+                  ? 'Enter job posting text to extract...'
+                  : taskType === 'profile-extraction'
+                    ? 'Enter resume/profile text to extract...'
+                    : 'Enter text...'
+              }
+            />
+          </div>
+        )}
       </div>
     </div>
   );

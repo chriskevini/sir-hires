@@ -72,6 +72,10 @@ export const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
       tone: 'professional',
     });
 
+    // LLM parameters (initialized from task config)
+    const [temperature, setTemperature] = useState(taskDef.config.temperature);
+    const [maxTokens, setMaxTokens] = useState(taskDef.config.maxTokens);
+
     // Output state
     const [output, setOutput] = useState('');
     const [thinking, setThinking] = useState('');
@@ -166,6 +170,8 @@ export const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
           context,
           llmClient,
           model,
+          temperature,
+          maxTokens,
           signal: abortControllerRef.current.signal,
           onChunk: (delta) => setOutput((prev) => prev + delta),
           onThinking: (delta) => setThinking((prev) => prev + delta),
@@ -233,6 +239,8 @@ export const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
       synthesisContext.template,
       synthesisContext.tone,
       systemPrompt,
+      temperature,
+      maxTokens,
       taskDef,
     ]);
 
@@ -299,6 +307,62 @@ export const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
               onLoadFixture={handleLoadFixture}
             />
           )}
+
+          {/* LLM Parameters */}
+          <div className="p-3 rounded-lg border bg-card">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium">LLM Parameters</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs px-2"
+                onClick={() => {
+                  setTemperature(taskDef.config.temperature);
+                  setMaxTokens(taskDef.config.maxTokens);
+                }}
+                disabled={
+                  temperature === taskDef.config.temperature &&
+                  maxTokens === taskDef.config.maxTokens
+                }
+              >
+                Reset to Defaults
+              </Button>
+            </div>
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <label className="block text-xs text-muted-foreground mb-1">
+                  Temperature
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="2"
+                  step="0.05"
+                  value={temperature}
+                  onChange={(e) =>
+                    setTemperature(parseFloat(e.target.value) || 0)
+                  }
+                  className="w-full p-2 rounded border bg-background text-sm font-mono"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs text-muted-foreground mb-1">
+                  Max Tokens
+                </label>
+                <input
+                  type="number"
+                  min="100"
+                  max="32000"
+                  step="100"
+                  value={maxTokens}
+                  onChange={(e) =>
+                    setMaxTokens(parseInt(e.target.value, 10) || 100)
+                  }
+                  className="w-full p-2 rounded border bg-background text-sm font-mono"
+                />
+              </div>
+            </div>
+          </div>
 
           {/* Run Button */}
           <div className="flex gap-2">

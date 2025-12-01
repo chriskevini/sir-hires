@@ -27,6 +27,8 @@ import {
   PROFILE_EXTRACTION_PROMPT,
   SYNTHESIS_PROMPT,
 } from '@/tasks';
+import { FIXTURES } from '@/data/playground-fixtures';
+import { ArrowLeft, ArrowRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import type { useLLMSettings } from '@/hooks/useLLMSettings';
@@ -695,6 +697,34 @@ interface ContextModeInputsProps {
   moveContext: (fromIndex: number, toIndex: number) => void;
 }
 
+// Flatten fixtures for the dropdown with category grouping
+const FIXTURE_OPTIONS = [
+  {
+    category: 'Job Extraction',
+    items: FIXTURES['job-extraction'].map((f, i) => ({
+      key: `job-${i}`,
+      label: f.label,
+      content: f.content,
+    })),
+  },
+  {
+    category: 'Profile Extraction',
+    items: FIXTURES['profile-extraction'].map((f, i) => ({
+      key: `profile-${i}`,
+      label: f.label,
+      content: f.content,
+    })),
+  },
+  {
+    category: 'Synthesis Templates',
+    items: FIXTURES['synthesis'].map((f, i) => ({
+      key: `synthesis-${i}`,
+      label: f.label,
+      content: f.content,
+    })),
+  },
+];
+
 type ContextModeTab = 'system' | number; // number = context index
 
 const ContextModeInputs: React.FC<ContextModeInputsProps> = ({
@@ -813,7 +843,7 @@ const ContextModeInputs: React.FC<ContextModeInputsProps> = ({
           className="px-3 py-2 text-xs rounded-t-lg border border-b-0 border-dashed border-muted-foreground/50 text-muted-foreground hover:bg-muted-foreground/10 hover:text-foreground -mb-px"
           title="Add context field"
         >
-          + Add
+          +
         </button>
       </div>
 
@@ -845,6 +875,49 @@ const ContextModeInputs: React.FC<ContextModeInputsProps> = ({
           <div>
             {/* Context Controls */}
             <div className="flex items-center gap-2 mb-2">
+              {/* Name input */}
+              <input
+                type="text"
+                value={contexts[selectedTab].name}
+                onChange={(e) => updateContextName(selectedTab, e.target.value)}
+                placeholder="Field name"
+                className="w-28 p-1.5 rounded border bg-background text-sm font-mono"
+              />
+
+              {/* Load Fixture dropdown */}
+              <select
+                className="text-xs p-1.5 rounded border bg-card min-w-0"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value) return;
+                  // Find the fixture content
+                  for (const group of FIXTURE_OPTIONS) {
+                    const item = group.items.find((f) => f.key === value);
+                    if (item) {
+                      updateContextContent(selectedTab, item.content);
+                      break;
+                    }
+                  }
+                  e.target.value = '';
+                }}
+                value=""
+              >
+                <option value="" disabled>
+                  Load Fixture...
+                </option>
+                {FIXTURE_OPTIONS.map((group) => (
+                  <optgroup key={group.category} label={group.category}>
+                    {group.items.map((item) => (
+                      <option key={item.key} value={item.key}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+
+              <div className="flex-1" />
+
               {/* Reorder buttons */}
               <button
                 type="button"
@@ -853,10 +926,10 @@ const ContextModeInputs: React.FC<ContextModeInputsProps> = ({
                   setSelectedTab(selectedTab - 1);
                 }}
                 disabled={selectedTab === 0}
-                className="px-2 py-1 text-xs rounded border bg-background hover:bg-muted disabled:opacity-30"
+                className="p-1.5 rounded border bg-background hover:bg-muted disabled:opacity-30"
                 title="Move left"
               >
-                ← Move
+                <ArrowLeft className="w-4 h-4" />
               </button>
               <button
                 type="button"
@@ -865,32 +938,21 @@ const ContextModeInputs: React.FC<ContextModeInputsProps> = ({
                   setSelectedTab(selectedTab + 1);
                 }}
                 disabled={selectedTab === contexts.length - 1}
-                className="px-2 py-1 text-xs rounded border bg-background hover:bg-muted disabled:opacity-30"
+                className="p-1.5 rounded border bg-background hover:bg-muted disabled:opacity-30"
                 title="Move right"
               >
-                Move →
+                <ArrowRight className="w-4 h-4" />
               </button>
-
-              {/* Name input */}
-              <input
-                type="text"
-                value={contexts[selectedTab].name}
-                onChange={(e) => updateContextName(selectedTab, e.target.value)}
-                placeholder="Field name"
-                className="p-1.5 rounded border bg-background text-sm font-mono flex-1"
-              />
-
-              <div className="flex-1" />
 
               {/* Delete button */}
               <button
                 type="button"
                 onClick={() => handleRemoveContext(selectedTab)}
                 disabled={contexts.length === 1}
-                className="px-2 py-1 text-xs rounded border border-destructive/50 text-destructive hover:bg-destructive/10 disabled:opacity-30"
+                className="p-1.5 rounded border border-destructive/50 text-destructive hover:bg-destructive/10 disabled:opacity-30"
                 title="Delete field"
               >
-                Delete
+                <X className="w-4 h-4" />
               </button>
             </div>
 

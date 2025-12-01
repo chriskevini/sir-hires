@@ -117,6 +117,11 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
     Array<{ id: string; message: ConversationMessage }>
   >([{ id: crypto.randomUUID(), message: { role: 'system', content: '' } }]);
 
+  // Currently selected message tab
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(
+    null
+  );
+
   // Shared settings
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(4096);
@@ -144,6 +149,17 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
       }
     };
   }, []);
+
+  // Auto-select first message when entering conversation mode with no selection
+  useEffect(() => {
+    if (
+      mode === 'conversation' &&
+      selectedMessageId === null &&
+      messages.length > 0
+    ) {
+      setSelectedMessageId(messages[0].id);
+    }
+  }, [mode, selectedMessageId, messages]);
 
   // =============================================================================
   // CONTEXT FIELD OPERATIONS
@@ -186,17 +202,35 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
 
   const addMessage = useCallback(
     (role: ConversationMessage['role'] = 'user') => {
+      const newId = crypto.randomUUID();
       setMessages((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), message: { role, content: '' } },
+        { id: newId, message: { role, content: '' } },
       ]);
+      setSelectedMessageId(newId);
     },
     []
   );
 
-  const removeMessage = useCallback((id: string) => {
-    setMessages((prev) => prev.filter((m) => m.id !== id));
-  }, []);
+  const removeMessage = useCallback(
+    (id: string) => {
+      setMessages((prev) => {
+        const index = prev.findIndex((m) => m.id === id);
+        const filtered = prev.filter((m) => m.id !== id);
+
+        // If we're removing the selected message, select an adjacent one
+        if (selectedMessageId === id && filtered.length > 0) {
+          const newIndex = Math.min(index, filtered.length - 1);
+          setSelectedMessageId(filtered[newIndex].id);
+        } else if (filtered.length === 0) {
+          setSelectedMessageId(null);
+        }
+
+        return filtered;
+      });
+    },
+    [selectedMessageId]
+  );
 
   const updateMessageRole = useCallback(
     (id: string, role: ConversationMessage['role']) => {
@@ -283,6 +317,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
     }
 
     setMessages(newMessages);
+    setSelectedMessageId(newMessages[0].id);
     setMode('conversation');
   }, [systemPrompt, contexts]);
 
@@ -372,12 +407,16 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
             // Conversation mode config
             setMode('conversation');
             if (Array.isArray(config.messages)) {
-              setMessages(
-                config.messages.map((m: ConversationMessage) => ({
+              const importedMessages = config.messages.map(
+                (m: ConversationMessage) => ({
                   id: crypto.randomUUID(),
                   message: m,
-                }))
+                })
               );
+              setMessages(importedMessages);
+              if (importedMessages.length > 0) {
+                setSelectedMessageId(importedMessages[0].id);
+              }
             }
           } else {
             // Context mode config (default, for backwards compatibility)
@@ -722,81 +761,125 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
           </>
         )}
 
-        {/* Conversation Mode: Message List */}
+        {/* Conversation Mode: Tabbed Message Interface */}
         {mode === 'conversation' && (
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium">
-                Messages ({messages.length})
-              </label>
-              <div className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
+            {/* Tab Row */}
+            <div className="flex items-end gap-0.5 mb-0 border-b border-border">
+              {/* Message Tabs */}
+              {messages.map((msg, index) => {
+                const isSelected = selectedMessageId === msg.id;
+                const roleColors = {
+                  system:
+                    'bg-blue-500/20 border-blue-500/50 text-blue-700 dark:text-blue-300',
+                  user: 'bg-green-500/20 border-green-500/50 text-green-700 dark:text-green-300',
+                  assistant:
+                    'bg-purple-500/20 border-purple-500/50 text-purple-700 dark:text-purple-300',
+                };
+                return (
+                  <button
+                    key={msg.id}
+                    type="button"
+                    onClick={() => setSelectedMessageId(msg.id)}
+                    className={cn(
+                      'px-3 py-1.5 text-xs font-medium rounded-t-md border border-b-0 -mb-px',
+                      'transition-all duration-150',
+                      isSelected
+                        ? cn(roleColors[msg.message.role], 'z-10')
+                        : 'bg-muted/50 border-border text-muted-foreground hover:bg-muted hover:text-foreground'
+                    )}
+                  >
+                    {index + 1}. {msg.message.role}
+                  </button>
+                );
+              })}
+
+              {/* Add Message Buttons */}
+              <div className="flex gap-0.5 ml-2 pb-1">
+                <button
+                  type="button"
                   onClick={() => addMessage('system')}
+                  className="px-2 py-1 text-xs rounded border border-dashed border-blue-500/50 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10"
+                  title="Add system message"
                 >
-                  + System
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                  +S
+                </button>
+                <button
+                  type="button"
                   onClick={() => addMessage('user')}
+                  className="px-2 py-1 text-xs rounded border border-dashed border-green-500/50 text-green-600 dark:text-green-400 hover:bg-green-500/10"
+                  title="Add user message"
                 >
-                  + User
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                  +U
+                </button>
+                <button
+                  type="button"
                   onClick={() => addMessage('assistant')}
+                  className="px-2 py-1 text-xs rounded border border-dashed border-purple-500/50 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
+                  title="Add assistant message"
                 >
-                  + Assistant
-                </Button>
+                  +A
+                </button>
               </div>
             </div>
 
-            <div className="space-y-3">
-              {messages.map((msg, index) => (
+            {/* Selected Message Content */}
+            {(() => {
+              const selectedMsg = messages.find(
+                (m) => m.id === selectedMessageId
+              );
+              if (!selectedMsg) {
+                return (
+                  <div className="p-4 text-center text-muted-foreground text-sm border border-t-0 rounded-b-lg bg-card">
+                    Select a message tab to edit
+                  </div>
+                );
+              }
+
+              const index = messages.findIndex(
+                (m) => m.id === selectedMessageId
+              );
+              const roleColors = {
+                system: 'border-blue-500/30 bg-blue-500/5',
+                user: 'border-green-500/30 bg-green-500/5',
+                assistant: 'border-purple-500/30 bg-purple-500/5',
+              };
+
+              return (
                 <div
-                  key={msg.id}
                   className={cn(
-                    'border rounded-lg p-3',
-                    msg.message.role === 'system' &&
-                      'bg-blue-500/10 border-blue-500/30',
-                    msg.message.role === 'user' &&
-                      'bg-green-500/10 border-green-500/30',
-                    msg.message.role === 'assistant' &&
-                      'bg-purple-500/10 border-purple-500/30'
+                    'border border-t-0 rounded-b-lg p-3',
+                    roleColors[selectedMsg.message.role]
                   )}
                 >
+                  {/* Message Controls */}
                   <div className="flex items-center gap-2 mb-2">
                     {/* Reorder buttons */}
-                    <div className="flex flex-col gap-0.5">
-                      <button
-                        type="button"
-                        onClick={() => moveMessage(index, index - 1)}
-                        disabled={index === 0}
-                        className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
-                        title="Move up"
-                      >
-                        ▲
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveMessage(index, index + 1)}
-                        disabled={index === messages.length - 1}
-                        className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
-                        title="Move down"
-                      >
-                        ▼
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => moveMessage(index, index - 1)}
+                      disabled={index === 0}
+                      className="px-2 py-1 text-xs rounded border bg-background hover:bg-muted disabled:opacity-30"
+                      title="Move left"
+                    >
+                      ← Move
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveMessage(index, index + 1)}
+                      disabled={index === messages.length - 1}
+                      className="px-2 py-1 text-xs rounded border bg-background hover:bg-muted disabled:opacity-30"
+                      title="Move right"
+                    >
+                      Move →
+                    </button>
 
                     {/* Role selector */}
                     <select
-                      value={msg.message.role}
+                      value={selectedMsg.message.role}
                       onChange={(e) =>
                         updateMessageRole(
-                          msg.id,
+                          selectedMsg.id,
                           e.target.value as ConversationMessage['role']
                         )
                       }
@@ -808,11 +891,11 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
                     </select>
 
                     {/* Think tag button for assistant messages */}
-                    {msg.message.role === 'assistant' && (
+                    {selectedMsg.message.role === 'assistant' && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => insertThinkTag(msg.id)}
+                        onClick={() => insertThinkTag(selectedMsg.id)}
                         title="Insert <think> tag to skip thinking phase"
                         className="text-xs"
                       >
@@ -825,27 +908,27 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
                     {/* Delete button */}
                     <button
                       type="button"
-                      onClick={() => removeMessage(msg.id)}
+                      onClick={() => removeMessage(selectedMsg.id)}
                       disabled={messages.length === 1}
-                      className="text-destructive hover:text-destructive/80 disabled:opacity-30 text-sm px-2"
-                      title="Remove message"
+                      className="px-2 py-1 text-xs rounded border border-destructive/50 text-destructive hover:bg-destructive/10 disabled:opacity-30"
+                      title="Delete message"
                     >
-                      ×
+                      Delete
                     </button>
                   </div>
 
                   {/* Content textarea */}
                   <textarea
-                    value={msg.message.content}
+                    value={selectedMsg.message.content}
                     onChange={(e) =>
-                      updateMessageContent(msg.id, e.target.value)
+                      updateMessageContent(selectedMsg.id, e.target.value)
                     }
-                    placeholder={`${msg.message.role} message content...`}
-                    className="w-full h-48 p-2 rounded border bg-background font-mono text-sm resize-y"
+                    placeholder={`${selectedMsg.message.role} message content...`}
+                    className="w-full h-96 p-2 rounded border bg-background font-mono text-sm resize-y"
                   />
                 </div>
-              ))}
-            </div>
+              );
+            })()}
           </div>
         )}
 

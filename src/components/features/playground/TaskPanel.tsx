@@ -637,7 +637,8 @@ const SynthesisInputs: React.FC<SynthesisInputsProps> = ({
                 '-mb-px',
                 isSelected
                   ? cn(
-                      'bg-background text-foreground z-[1]',
+                      tab.panelBg,
+                      'text-foreground z-[2]',
                       'shadow-[0_-2px_4px_rgba(0,0,0,0.05)]',
                       tab.panelBorder
                     )
@@ -645,6 +646,10 @@ const SynthesisInputs: React.FC<SynthesisInputsProps> = ({
               )}
             >
               {tab.label}
+              {/* Border cover - creates seamless connection to panel */}
+              {isSelected && (
+                <span className="absolute bottom-0 left-0 right-0 h-px -mb-px bg-background" />
+              )}
             </button>
           );
         })}
@@ -954,7 +959,8 @@ const ExtractionInputs: React.FC<ExtractionInputsProps> = ({
                 '-mb-px',
                 isSelected
                   ? cn(
-                      'bg-background text-foreground z-[1]',
+                      tab.panelBg,
+                      'text-foreground z-[2]',
                       'shadow-[0_-2px_4px_rgba(0,0,0,0.05)]',
                       tab.panelBorder
                     )
@@ -962,6 +968,10 @@ const ExtractionInputs: React.FC<ExtractionInputsProps> = ({
               )}
             >
               {tab.label}
+              {/* Border cover - creates seamless connection to panel */}
+              {isSelected && (
+                <span className="absolute bottom-0 left-0 right-0 h-px -mb-px bg-background" />
+              )}
             </button>
           );
         })}

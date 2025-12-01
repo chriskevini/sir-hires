@@ -662,274 +662,33 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
           </span>
         </div>
 
-        {/* Context Mode: System Prompt + Context Fields */}
+        {/* Context Mode: Tabbed System Prompt + Context Fields */}
         {mode === 'context' && (
-          <>
-            {/* System Prompt */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                System Prompt
-              </label>
-              <textarea
-                value={systemPrompt}
-                onChange={(e) => setSystemPrompt(e.target.value)}
-                className="w-full h-64 p-3 rounded-lg border bg-card font-mono text-sm resize-y"
-                placeholder="Enter system prompt..."
-              />
-            </div>
-
-            {/* Context Fields */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium">
-                  Context Fields ({contexts.length})
-                </label>
-                <Button variant="ghost" size="sm" onClick={addContext}>
-                  + Add Context
-                </Button>
-              </div>
-
-              <div className="space-y-3">
-                {contexts.map((ctx, index) => (
-                  <div key={index} className="border rounded-lg p-3 bg-card">
-                    <div className="flex items-center gap-2 mb-2">
-                      {/* Reorder buttons */}
-                      <div className="flex flex-col gap-0.5">
-                        <button
-                          type="button"
-                          onClick={() => moveContext(index, index - 1)}
-                          disabled={index === 0}
-                          className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
-                          title="Move up"
-                        >
-                          ▲
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moveContext(index, index + 1)}
-                          disabled={index === contexts.length - 1}
-                          className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
-                          title="Move down"
-                        >
-                          ▼
-                        </button>
-                      </div>
-
-                      {/* Name input */}
-                      <input
-                        type="text"
-                        value={ctx.name}
-                        onChange={(e) =>
-                          updateContextName(index, e.target.value)
-                        }
-                        placeholder="context name"
-                        className="flex-1 p-1.5 rounded border bg-background text-sm font-mono"
-                      />
-
-                      {/* XML tag preview */}
-                      {ctx.name.trim() && (
-                        <span className="text-xs text-muted-foreground font-mono">
-                          &lt;{ctx.name.trim().toUpperCase()}&gt;
-                        </span>
-                      )}
-
-                      {/* Delete button */}
-                      <button
-                        type="button"
-                        onClick={() => removeContext(index)}
-                        disabled={contexts.length === 1}
-                        className="text-destructive hover:text-destructive/80 disabled:opacity-30 text-sm px-2"
-                        title="Remove context"
-                      >
-                        ×
-                      </button>
-                    </div>
-
-                    {/* Content textarea */}
-                    <textarea
-                      value={ctx.content}
-                      onChange={(e) =>
-                        updateContextContent(index, e.target.value)
-                      }
-                      placeholder="Content..."
-                      className="w-full h-64 p-2 rounded border bg-background font-mono text-sm resize-y"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
+          <ContextModeInputs
+            systemPrompt={systemPrompt}
+            setSystemPrompt={setSystemPrompt}
+            contexts={contexts}
+            addContext={addContext}
+            removeContext={removeContext}
+            updateContextName={updateContextName}
+            updateContextContent={updateContextContent}
+            moveContext={moveContext}
+          />
         )}
 
         {/* Conversation Mode: Tabbed Message Interface */}
         {mode === 'conversation' && (
-          <div>
-            {/* Tab Row */}
-            <div className="flex items-end gap-0.5 mb-0 border-b border-border">
-              {/* Message Tabs */}
-              {messages.map((msg, index) => {
-                const isSelected = selectedMessageId === msg.id;
-                const roleColors = {
-                  system:
-                    'bg-blue-500/20 border-blue-500/50 text-blue-700 dark:text-blue-300',
-                  user: 'bg-green-500/20 border-green-500/50 text-green-700 dark:text-green-300',
-                  assistant:
-                    'bg-purple-500/20 border-purple-500/50 text-purple-700 dark:text-purple-300',
-                };
-                return (
-                  <button
-                    key={msg.id}
-                    type="button"
-                    onClick={() => setSelectedMessageId(msg.id)}
-                    className={cn(
-                      'px-3 py-1.5 text-xs font-medium rounded-t-md border border-b-0 -mb-px',
-                      'transition-all duration-150',
-                      isSelected
-                        ? cn(roleColors[msg.message.role], 'z-10')
-                        : 'bg-muted/50 border-border text-muted-foreground hover:bg-muted hover:text-foreground'
-                    )}
-                  >
-                    {index + 1}. {msg.message.role}
-                  </button>
-                );
-              })}
-
-              {/* Add Message Buttons */}
-              <div className="flex gap-0.5 ml-2 pb-1">
-                <button
-                  type="button"
-                  onClick={() => addMessage('system')}
-                  className="px-2 py-1 text-xs rounded border border-dashed border-blue-500/50 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10"
-                  title="Add system message"
-                >
-                  +S
-                </button>
-                <button
-                  type="button"
-                  onClick={() => addMessage('user')}
-                  className="px-2 py-1 text-xs rounded border border-dashed border-green-500/50 text-green-600 dark:text-green-400 hover:bg-green-500/10"
-                  title="Add user message"
-                >
-                  +U
-                </button>
-                <button
-                  type="button"
-                  onClick={() => addMessage('assistant')}
-                  className="px-2 py-1 text-xs rounded border border-dashed border-purple-500/50 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
-                  title="Add assistant message"
-                >
-                  +A
-                </button>
-              </div>
-            </div>
-
-            {/* Selected Message Content */}
-            {(() => {
-              const selectedMsg = messages.find(
-                (m) => m.id === selectedMessageId
-              );
-              if (!selectedMsg) {
-                return (
-                  <div className="p-4 text-center text-muted-foreground text-sm border border-t-0 rounded-b-lg bg-card">
-                    Select a message tab to edit
-                  </div>
-                );
-              }
-
-              const index = messages.findIndex(
-                (m) => m.id === selectedMessageId
-              );
-              const roleColors = {
-                system: 'border-blue-500/30 bg-blue-500/5',
-                user: 'border-green-500/30 bg-green-500/5',
-                assistant: 'border-purple-500/30 bg-purple-500/5',
-              };
-
-              return (
-                <div
-                  className={cn(
-                    'border border-t-0 rounded-b-lg p-3',
-                    roleColors[selectedMsg.message.role]
-                  )}
-                >
-                  {/* Message Controls */}
-                  <div className="flex items-center gap-2 mb-2">
-                    {/* Reorder buttons */}
-                    <button
-                      type="button"
-                      onClick={() => moveMessage(index, index - 1)}
-                      disabled={index === 0}
-                      className="px-2 py-1 text-xs rounded border bg-background hover:bg-muted disabled:opacity-30"
-                      title="Move left"
-                    >
-                      ← Move
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => moveMessage(index, index + 1)}
-                      disabled={index === messages.length - 1}
-                      className="px-2 py-1 text-xs rounded border bg-background hover:bg-muted disabled:opacity-30"
-                      title="Move right"
-                    >
-                      Move →
-                    </button>
-
-                    {/* Role selector */}
-                    <select
-                      value={selectedMsg.message.role}
-                      onChange={(e) =>
-                        updateMessageRole(
-                          selectedMsg.id,
-                          e.target.value as ConversationMessage['role']
-                        )
-                      }
-                      className="p-1.5 rounded border bg-background text-sm font-mono"
-                    >
-                      <option value="system">system</option>
-                      <option value="user">user</option>
-                      <option value="assistant">assistant</option>
-                    </select>
-
-                    {/* Think tag button for assistant messages */}
-                    {selectedMsg.message.role === 'assistant' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => insertThinkTag(selectedMsg.id)}
-                        title="Insert <think> tag to skip thinking phase"
-                        className="text-xs"
-                      >
-                        Insert &lt;think&gt;
-                      </Button>
-                    )}
-
-                    <div className="flex-1" />
-
-                    {/* Delete button */}
-                    <button
-                      type="button"
-                      onClick={() => removeMessage(selectedMsg.id)}
-                      disabled={messages.length === 1}
-                      className="px-2 py-1 text-xs rounded border border-destructive/50 text-destructive hover:bg-destructive/10 disabled:opacity-30"
-                      title="Delete message"
-                    >
-                      Delete
-                    </button>
-                  </div>
-
-                  {/* Content textarea */}
-                  <textarea
-                    value={selectedMsg.message.content}
-                    onChange={(e) =>
-                      updateMessageContent(selectedMsg.id, e.target.value)
-                    }
-                    placeholder={`${selectedMsg.message.role} message content...`}
-                    className="w-full h-96 p-2 rounded border bg-background font-mono text-sm resize-y"
-                  />
-                </div>
-              );
-            })()}
-          </div>
+          <ConversationModeInputs
+            messages={messages}
+            selectedMessageId={selectedMessageId}
+            setSelectedMessageId={setSelectedMessageId}
+            addMessage={addMessage}
+            removeMessage={removeMessage}
+            updateMessageRole={updateMessageRole}
+            updateMessageContent={updateMessageContent}
+            moveMessage={moveMessage}
+            insertThinkTag={insertThinkTag}
+          />
         )}
 
         {/* Model Settings */}
@@ -1063,3 +822,493 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
 };
 
 FreeformTaskPanel.displayName = 'FreeformTaskPanel';
+
+// =============================================================================
+// CONTEXT MODE INPUTS SUBCOMPONENT
+// =============================================================================
+
+interface ContextModeInputsProps {
+  systemPrompt: string;
+  setSystemPrompt: (value: string) => void;
+  contexts: ContextField[];
+  addContext: () => void;
+  removeContext: (index: number) => void;
+  updateContextName: (index: number, name: string) => void;
+  updateContextContent: (index: number, content: string) => void;
+  moveContext: (fromIndex: number, toIndex: number) => void;
+}
+
+type ContextModeTab = 'system' | number; // number = context index
+
+const ContextModeInputs: React.FC<ContextModeInputsProps> = ({
+  systemPrompt,
+  setSystemPrompt,
+  contexts,
+  addContext,
+  removeContext,
+  updateContextName,
+  updateContextContent,
+  moveContext,
+}) => {
+  const [selectedTab, setSelectedTab] = useState<ContextModeTab>('system');
+
+  // Color cycle for context tabs
+  const contextColors = [
+    {
+      panelBg: 'bg-cyan-500/5',
+      panelBorder: 'border-cyan-500/50',
+    },
+    {
+      panelBg: 'bg-green-500/5',
+      panelBorder: 'border-green-500/50',
+    },
+    {
+      panelBg: 'bg-purple-500/5',
+      panelBorder: 'border-purple-500/50',
+    },
+    {
+      panelBg: 'bg-amber-500/5',
+      panelBorder: 'border-amber-500/50',
+    },
+    {
+      panelBg: 'bg-pink-500/5',
+      panelBorder: 'border-pink-500/50',
+    },
+    {
+      panelBg: 'bg-blue-500/5',
+      panelBorder: 'border-blue-500/50',
+    },
+  ];
+
+  // System tab config
+  const systemTabConfig = {
+    panelBg: 'bg-slate-500/5',
+    panelBorder: 'border-slate-500/50',
+  };
+
+  // Get current panel config
+  const currentPanelConfig =
+    selectedTab === 'system'
+      ? systemTabConfig
+      : contextColors[(selectedTab as number) % contextColors.length];
+
+  // Handle adding new context and selecting it
+  const handleAddContext = () => {
+    addContext();
+    // Select the new context tab (which will be at the end)
+    setSelectedTab(contexts.length);
+  };
+
+  // Handle removing context
+  const handleRemoveContext = (index: number) => {
+    // If we're removing the selected tab, select something else
+    if (selectedTab === index) {
+      if (index > 0) {
+        setSelectedTab(index - 1);
+      } else if (contexts.length > 1) {
+        setSelectedTab(0);
+      } else {
+        setSelectedTab('system');
+      }
+    } else if (typeof selectedTab === 'number' && selectedTab > index) {
+      // Adjust selected index if removing a tab before it
+      setSelectedTab(selectedTab - 1);
+    }
+    removeContext(index);
+  };
+
+  return (
+    <div>
+      <label className="block text-sm font-medium mb-2">Context Fields</label>
+
+      {/* Tab Row */}
+      <div className="flex items-end gap-0.5">
+        {/* System Tab */}
+        <button
+          type="button"
+          onClick={() => setSelectedTab('system')}
+          className={cn(
+            'relative flex items-center justify-center px-4 py-2',
+            'border border-b-0 rounded-t-lg cursor-pointer',
+            'text-xs font-medium transition-all duration-150',
+            '-mb-px',
+            selectedTab === 'system'
+              ? cn(
+                  'text-foreground z-[2]',
+                  'shadow-[0_-2px_4px_rgba(0,0,0,0.05)]',
+                  systemTabConfig.panelBorder,
+                  systemTabConfig.panelBg
+                )
+              : 'bg-muted-foreground/10 text-muted-foreground border-border hover:bg-muted-foreground/20 hover:text-foreground'
+          )}
+        >
+          System
+          {/* Border cover - creates seamless connection to panel */}
+          {selectedTab === 'system' && (
+            <span className="absolute bottom-0 left-0 right-0 h-px -mb-px bg-background" />
+          )}
+        </button>
+
+        {/* Context Tabs */}
+        {contexts.map((ctx, index) => {
+          const isSelected = selectedTab === index;
+          const colorConfig = contextColors[index % contextColors.length];
+          return (
+            <button
+              key={index}
+              type="button"
+              onClick={() => setSelectedTab(index)}
+              className={cn(
+                'relative flex items-center justify-center px-4 py-2',
+                'border border-b-0 rounded-t-lg cursor-pointer',
+                'text-xs font-medium transition-all duration-150',
+                '-mb-px',
+                isSelected
+                  ? cn(
+                      'text-foreground z-[2]',
+                      'shadow-[0_-2px_4px_rgba(0,0,0,0.05)]',
+                      colorConfig.panelBorder,
+                      colorConfig.panelBg
+                    )
+                  : 'bg-muted-foreground/10 text-muted-foreground border-border hover:bg-muted-foreground/20 hover:text-foreground'
+              )}
+            >
+              {ctx.name || `Field ${index + 1}`}
+              {/* Border cover - creates seamless connection to panel */}
+              {isSelected && (
+                <span className="absolute bottom-0 left-0 right-0 h-px -mb-px bg-background" />
+              )}
+            </button>
+          );
+        })}
+
+        {/* Add Context Button */}
+        <button
+          type="button"
+          onClick={handleAddContext}
+          className="px-3 py-2 text-xs rounded-t-lg border border-b-0 border-dashed border-muted-foreground/50 text-muted-foreground hover:bg-muted-foreground/10 hover:text-foreground -mb-px"
+          title="Add context field"
+        >
+          + Add
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      <div
+        className={cn(
+          'border rounded-b-lg p-3',
+          currentPanelConfig.panelBorder,
+          currentPanelConfig.panelBg
+        )}
+      >
+        {selectedTab === 'system' && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">
+                System Prompt
+              </span>
+            </div>
+            <textarea
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+              className="w-full h-96 p-2 rounded border bg-background font-mono text-sm resize-y"
+              placeholder="Enter system prompt..."
+            />
+          </div>
+        )}
+
+        {typeof selectedTab === 'number' && contexts[selectedTab] && (
+          <div>
+            {/* Context Controls */}
+            <div className="flex items-center gap-2 mb-2">
+              {/* Reorder buttons */}
+              <button
+                type="button"
+                onClick={() => {
+                  moveContext(selectedTab, selectedTab - 1);
+                  setSelectedTab(selectedTab - 1);
+                }}
+                disabled={selectedTab === 0}
+                className="px-2 py-1 text-xs rounded border bg-background hover:bg-muted disabled:opacity-30"
+                title="Move left"
+              >
+                ← Move
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  moveContext(selectedTab, selectedTab + 1);
+                  setSelectedTab(selectedTab + 1);
+                }}
+                disabled={selectedTab === contexts.length - 1}
+                className="px-2 py-1 text-xs rounded border bg-background hover:bg-muted disabled:opacity-30"
+                title="Move right"
+              >
+                Move →
+              </button>
+
+              {/* Name input */}
+              <input
+                type="text"
+                value={contexts[selectedTab].name}
+                onChange={(e) => updateContextName(selectedTab, e.target.value)}
+                placeholder="Field name"
+                className="p-1.5 rounded border bg-background text-sm font-mono flex-1"
+              />
+
+              <div className="flex-1" />
+
+              {/* Delete button */}
+              <button
+                type="button"
+                onClick={() => handleRemoveContext(selectedTab)}
+                disabled={contexts.length === 1}
+                className="px-2 py-1 text-xs rounded border border-destructive/50 text-destructive hover:bg-destructive/10 disabled:opacity-30"
+                title="Delete field"
+              >
+                Delete
+              </button>
+            </div>
+
+            {/* Content textarea */}
+            <textarea
+              value={contexts[selectedTab].content}
+              onChange={(e) =>
+                updateContextContent(selectedTab, e.target.value)
+              }
+              placeholder="Enter content..."
+              className="w-full h-96 p-2 rounded border bg-background font-mono text-sm resize-y"
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// =============================================================================
+// CONVERSATION MODE INPUTS SUBCOMPONENT
+// =============================================================================
+
+interface ConversationModeInputsProps {
+  messages: Array<{ id: string; message: ConversationMessage }>;
+  selectedMessageId: string | null;
+  setSelectedMessageId: (id: string) => void;
+  addMessage: (role?: ConversationMessage['role']) => void;
+  removeMessage: (id: string) => void;
+  updateMessageRole: (id: string, role: ConversationMessage['role']) => void;
+  updateMessageContent: (id: string, content: string) => void;
+  moveMessage: (fromIndex: number, toIndex: number) => void;
+  insertThinkTag: (id: string) => void;
+}
+
+const ConversationModeInputs: React.FC<ConversationModeInputsProps> = ({
+  messages,
+  selectedMessageId,
+  setSelectedMessageId,
+  addMessage,
+  removeMessage,
+  updateMessageRole,
+  updateMessageContent,
+  moveMessage,
+  insertThinkTag,
+}) => {
+  // Role-based colors for tabs and panels
+  const roleConfig = {
+    system: {
+      panelBg: 'bg-blue-500/5',
+      panelBorder: 'border-blue-500/50',
+    },
+    user: {
+      panelBg: 'bg-green-500/5',
+      panelBorder: 'border-green-500/50',
+    },
+    assistant: {
+      panelBg: 'bg-purple-500/5',
+      panelBorder: 'border-purple-500/50',
+    },
+  };
+
+  // Get selected message and its config
+  const selectedMsg = messages.find((m) => m.id === selectedMessageId);
+  const currentPanelConfig = selectedMsg
+    ? roleConfig[selectedMsg.message.role]
+    : roleConfig.system;
+
+  return (
+    <div>
+      <label className="block text-sm font-medium mb-2">Messages</label>
+
+      {/* Tab Row */}
+      <div className="flex items-end gap-0.5">
+        {/* Message Tabs */}
+        {messages.map((msg, index) => {
+          const isSelected = selectedMessageId === msg.id;
+          const colorConfig = roleConfig[msg.message.role];
+          return (
+            <button
+              key={msg.id}
+              type="button"
+              onClick={() => setSelectedMessageId(msg.id)}
+              className={cn(
+                'relative flex items-center justify-center px-4 py-2',
+                'border border-b-0 rounded-t-lg cursor-pointer',
+                'text-xs font-medium transition-all duration-150',
+                '-mb-px',
+                isSelected
+                  ? cn(
+                      colorConfig.panelBg,
+                      'text-foreground z-[2]',
+                      'shadow-[0_-2px_4px_rgba(0,0,0,0.05)]',
+                      colorConfig.panelBorder
+                    )
+                  : 'bg-muted-foreground/10 text-muted-foreground border-border hover:bg-muted-foreground/20 hover:text-foreground'
+              )}
+            >
+              {index + 1}. {msg.message.role}
+              {/* Border cover - creates seamless connection to panel */}
+              {isSelected && (
+                <span className="absolute bottom-0 left-0 right-0 h-px -mb-px bg-background" />
+              )}
+            </button>
+          );
+        })}
+
+        {/* Add Message Buttons */}
+        <div className="flex gap-0.5 ml-1">
+          <button
+            type="button"
+            onClick={() => addMessage('system')}
+            className="px-2 py-2 text-xs rounded-t-lg border border-b-0 border-dashed border-blue-500/50 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 -mb-px"
+            title="Add system message"
+          >
+            +S
+          </button>
+          <button
+            type="button"
+            onClick={() => addMessage('user')}
+            className="px-2 py-2 text-xs rounded-t-lg border border-b-0 border-dashed border-green-500/50 text-green-600 dark:text-green-400 hover:bg-green-500/10 -mb-px"
+            title="Add user message"
+          >
+            +U
+          </button>
+          <button
+            type="button"
+            onClick={() => addMessage('assistant')}
+            className="px-2 py-2 text-xs rounded-t-lg border border-b-0 border-dashed border-purple-500/50 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 -mb-px"
+            title="Add assistant message"
+          >
+            +A
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div
+        className={cn(
+          'border rounded-b-lg p-3',
+          currentPanelConfig.panelBorder,
+          currentPanelConfig.panelBg
+        )}
+      >
+        {!selectedMsg ? (
+          <div className="p-4 text-center text-muted-foreground text-sm">
+            Select a message tab to edit
+          </div>
+        ) : (
+          <div>
+            {/* Message Controls */}
+            <div className="flex items-center gap-2 mb-2">
+              {/* Reorder buttons */}
+              <button
+                type="button"
+                onClick={() => {
+                  const index = messages.findIndex(
+                    (m) => m.id === selectedMessageId
+                  );
+                  moveMessage(index, index - 1);
+                }}
+                disabled={
+                  messages.findIndex((m) => m.id === selectedMessageId) === 0
+                }
+                className="px-2 py-1 text-xs rounded border bg-background hover:bg-muted disabled:opacity-30"
+                title="Move left"
+              >
+                ← Move
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const index = messages.findIndex(
+                    (m) => m.id === selectedMessageId
+                  );
+                  moveMessage(index, index + 1);
+                }}
+                disabled={
+                  messages.findIndex((m) => m.id === selectedMessageId) ===
+                  messages.length - 1
+                }
+                className="px-2 py-1 text-xs rounded border bg-background hover:bg-muted disabled:opacity-30"
+                title="Move right"
+              >
+                Move →
+              </button>
+
+              {/* Role selector */}
+              <select
+                value={selectedMsg.message.role}
+                onChange={(e) =>
+                  updateMessageRole(
+                    selectedMsg.id,
+                    e.target.value as ConversationMessage['role']
+                  )
+                }
+                className="p-1.5 rounded border bg-background text-sm font-mono"
+              >
+                <option value="system">system</option>
+                <option value="user">user</option>
+                <option value="assistant">assistant</option>
+              </select>
+
+              {/* Think tag button for assistant messages */}
+              {selectedMsg.message.role === 'assistant' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => insertThinkTag(selectedMsg.id)}
+                  title="Insert <think> tag to skip thinking phase"
+                  className="text-xs"
+                >
+                  Insert &lt;think&gt;
+                </Button>
+              )}
+
+              <div className="flex-1" />
+
+              {/* Delete button */}
+              <button
+                type="button"
+                onClick={() => removeMessage(selectedMsg.id)}
+                disabled={messages.length === 1}
+                className="px-2 py-1 text-xs rounded border border-destructive/50 text-destructive hover:bg-destructive/10 disabled:opacity-30"
+                title="Delete message"
+              >
+                Delete
+              </button>
+            </div>
+
+            {/* Content textarea */}
+            <textarea
+              value={selectedMsg.message.content}
+              onChange={(e) =>
+                updateMessageContent(selectedMsg.id, e.target.value)
+              }
+              placeholder={`${selectedMsg.message.role} message content...`}
+              className="w-full h-96 p-2 rounded border bg-background font-mono text-sm resize-y"
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

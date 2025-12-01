@@ -12,6 +12,7 @@ First off, thank you for considering contributing to Sir Hires! It's people like
 - [Commit Messages](#commit-messages)
 - [Pull Request Process](#pull-request-process)
 - [Testing](#testing)
+  - [Prompt Playground](#prompt-playground)
 - [Getting Help](#getting-help)
 
 ## Code of Conduct
@@ -339,6 +340,55 @@ If your changes involve LLM features:
 2. Start the local server with a compatible model
 3. Test the feature with various inputs
 4. Verify error handling when LM Studio is offline
+
+### Prompt Playground
+
+The Prompt Playground (`src/entrypoints/playground/`) is an internal developer tool for testing LLM prompts and tasks without navigating through the full extension UI.
+
+**To access the playground:**
+
+1. Run `npm run dev` to start the development server
+2. Open your browser and navigate to `http://localhost:3000/playground.html`
+
+**Features:**
+
+- **Context Mode**: Test prompts with system prompt + named context fields (mirrors how tasks work in production)
+- **Conversation Mode**: Test raw message arrays with full control over system/user/assistant roles
+- **Fixture Loading**: Quickly load test data from the dropdown (job postings, profiles, templates)
+- **Assistant Prefill**: Insert `<think>` tags to skip extended thinking phases during testing
+- **Import/Export**: Save and restore playground configurations as JSON files
+
+**When to use the playground:**
+
+- Iterating on system prompts for extraction or synthesis tasks
+- Testing new task configurations before integrating them
+- Debugging LLM output parsing issues
+- Experimenting with different temperature/maxTokens settings
+- Testing conversation flows with multiple message exchanges
+
+**Adding new fixtures:**
+
+Add test data to `src/data/playground-fixtures.ts`:
+
+```typescript
+export const FIXTURES = {
+  'job-extraction': [
+    { label: 'My New Job Posting', content: '...' },
+  ],
+  'profile-extraction': [...],
+  'synthesis': [...],
+};
+```
+
+**Creating new tasks:**
+
+Tasks are defined in `src/tasks/`. Each task has:
+
+- A prompt template with context placeholders
+- Temperature and maxTokens settings
+- Context field requirements
+
+See existing tasks (`job-extraction.ts`, `profile-extraction.ts`, `synthesis.ts`) as examples.
 
 ## Getting Help
 

@@ -24,6 +24,16 @@ interface StreamCompletionOptions {
   onDocumentUpdate?: ((delta: string) => void) | null;
 }
 
+interface StreamCompletionWithMessagesOptions {
+  streamId?: string;
+  model: string;
+  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+  maxTokens?: number;
+  temperature?: number;
+  onThinkingUpdate?: ((delta: string) => void) | null;
+  onDocumentUpdate?: ((delta: string) => void) | null;
+}
+
 interface StreamCompletionTiming {
   /** Time to first token (any content) in ms */
   ttft: number | null;
@@ -530,6 +540,360 @@ export class LLMClient {
       throw error;
     } finally {
       // Clean up stream registration
+      this.activeStreams.delete(streamId);
+      console.info('[LLMClient] Cleaned up stream:', streamId);
+    }
+  }
+
+  /**
+   * Stream completion from LLM with raw messages array
+   * Supports any sequence of system/user/assistant messages including assistant prefill
+   *
+   * @param options - Completion options with messages array
+   * @returns Promise resolving to { thinkingContent, documentContent, finishReason, cancelled }
+   */
+  async streamCompletionWithMessages(
+    options: StreamCompletionWithMessagesOptions
+  ): Promise<StreamCompletionResult> {
+    const {
+      streamId = crypto.randomUUID(),
+      model,
+      messages,
+      maxTokens = 2000,
+      temperature = 0.7,
+      onThinkingUpdate = null,
+      onDocumentUpdate = null,
+    } = options;
+
+    // Create abort controller for cancellation
+    const abortController = new AbortController();
+
+    // Register this stream for cancellation BEFORE any async work
+    this.activeStreams.set(streamId, {
+      abortController,
+      reader: null,
+    });
+
+    console.info(
+      '[LLMClient] Registered stream for cancellation (messages mode):',
+      streamId
+    );
+
+    // Test connection first
+    const isConnected = await this.testConnection();
+    if (!isConnected) {
+      this.activeStreams.delete(streamId);
+      throw new Error(
+        'Cannot connect to LM Studio. Please ensure LM Studio is running on http://localhost:1234'
+      );
+    }
+
+    try {
+      // Call LM Studio API with streaming enabled
+      const response = await fetch(this.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: model,
+          messages: messages,
+          max_tokens: maxTokens,
+          temperature: temperature,
+          stream: true,
+          stream_options: { include_usage: true },
+        }),
+        signal: abortController.signal,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[LLMClient] LLM API error:', errorText);
+
+        try {
+          const errorJson = JSON.parse(errorText);
+          const errorMsg = errorJson.error?.message || '';
+
+          if (
+            errorJson.error?.code === 'model_not_found' ||
+            errorMsg.toLowerCase().includes('no models loaded') ||
+            errorMsg.toLowerCase().includes('please load a model')
+          ) {
+            throw new Error(
+              `Model "${model}" is not loaded in LM Studio.\n\n` +
+                `Option 1 - Enable JIT Loading (Recommended):\n` +
+                `1. Open LM Studio → Developer tab → Server Settings\n` +
+                `2. Enable "Automatically Load Model" (should be on by default)\n` +
+                `3. Restart LM Studio server\n` +
+                `4. Try generating again (model will auto-load)\n\n` +
+                `Option 2 - Manually Load:\n` +
+                `• In LM Studio: Click "${model}" in the left sidebar\n` +
+                `• Or via CLI: lms load "${model}" --yes\n\n` +
+                `Option 3 - Check Model Status:\n` +
+                `• The model might not be downloaded yet\n` +
+                `• Download it from LM Studio's model library first`
+            );
+          }
+          throw new Error(
+            errorJson.error?.message || `LLM API error: HTTP ${response.status}`
+          );
+        } catch (parseError) {
+          if (
+            parseError instanceof Error &&
+            parseError.message.includes('is not loaded')
+          ) {
+            throw parseError;
+          }
+          throw new Error(
+            `LLM API error: HTTP ${response.status} - ${errorText}`
+          );
+        }
+      }
+
+      // Process SSE stream - reuse the same streaming logic
+      if (!response.body) {
+        throw new Error('Response body is null');
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      const streamInfo = this.activeStreams.get(streamId);
+      if (streamInfo) {
+        streamInfo.reader = reader;
+      }
+
+      type State = 'DETECTING' | 'IN_THINKING' | 'IN_DOCUMENT';
+      let state: State = 'DETECTING';
+      let buffer = '';
+      let thinkingContent = '';
+      let documentContent = '';
+      let finishReason = null;
+
+      const startTime = Date.now();
+      let ttft: number | null = null;
+      let ttFirstThinking: number | null = null;
+      let ttFirstDocument: number | null = null;
+      let promptTokens: number | null = null;
+      let completionTokens: number | null = null;
+
+      const flushBufferAsDocument = () => {
+        if (buffer) {
+          if (onDocumentUpdate) {
+            onDocumentUpdate(buffer);
+          }
+          documentContent += buffer;
+          buffer = '';
+        }
+      };
+
+      const processThinkingBuffer = () => {
+        const closeMatch = buffer.match(/<\/(?:think|thinking|reasoning)>/i);
+        if (closeMatch) {
+          const thinkingPart = buffer.slice(0, closeMatch.index!);
+          const afterClose = buffer.slice(
+            closeMatch.index! + closeMatch[0].length
+          );
+
+          if (onThinkingUpdate && thinkingPart) {
+            onThinkingUpdate(thinkingPart);
+          }
+          thinkingContent += thinkingPart;
+
+          state = 'IN_DOCUMENT';
+          buffer = '';
+
+          const trimmedDoc = afterClose.trimStart();
+          if (trimmedDoc) {
+            if (onDocumentUpdate) {
+              onDocumentUpdate(trimmedDoc);
+            }
+            documentContent += trimmedDoc;
+          }
+        }
+      };
+
+      console.info('[LLMClient] Starting stream processing (messages mode)...');
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (!line.trim() || line.trim() === 'data: [DONE]') continue;
+            if (!line.startsWith('data: ')) continue;
+
+            try {
+              const jsonStr = line.slice(6);
+              const data = JSON.parse(jsonStr);
+
+              if (data.usage) {
+                promptTokens = data.usage.prompt_tokens ?? null;
+                completionTokens = data.usage.completion_tokens ?? null;
+              }
+
+              const delta = data.choices?.[0]?.delta?.content || '';
+              if (!delta) {
+                finishReason = data.choices?.[0]?.finish_reason || finishReason;
+                continue;
+              }
+
+              if (ttft === null) {
+                ttft = Date.now() - startTime;
+              }
+
+              if (state === 'DETECTING') {
+                buffer += delta;
+
+                const openingMatch = buffer.match(
+                  /<(?:think|thinking|reasoning)>/i
+                );
+                if (openingMatch) {
+                  console.info('[LLMClient] Detected thinking mode');
+                  state = 'IN_THINKING';
+                  if (ttFirstThinking === null) {
+                    ttFirstThinking = Date.now() - startTime;
+                  }
+                  buffer = buffer.slice(
+                    openingMatch.index! + openingMatch[0].length
+                  );
+                  processThinkingBuffer();
+                } else if (buffer.length >= this.detectionWindow) {
+                  console.info(
+                    '[LLMClient] Detected standard mode (no thinking tags)'
+                  );
+                  state = 'IN_DOCUMENT';
+                  if (ttFirstDocument === null) {
+                    ttFirstDocument = Date.now() - startTime;
+                  }
+                  flushBufferAsDocument();
+                }
+              } else if (state === 'IN_THINKING') {
+                buffer += delta;
+
+                const closeMatch = buffer.match(
+                  /<\/(?:think|thinking|reasoning)>/i
+                );
+
+                if (closeMatch) {
+                  const thinkingPart = buffer.slice(0, closeMatch.index!);
+                  const afterClose = buffer.slice(
+                    closeMatch.index! + closeMatch[0].length
+                  );
+
+                  const parsedThinking = this.parseThinking(thinkingPart);
+                  if (onThinkingUpdate && parsedThinking) {
+                    onThinkingUpdate(parsedThinking);
+                  }
+                  thinkingContent += parsedThinking;
+
+                  console.info(
+                    '[LLMClient] Thinking block complete, switching to document mode'
+                  );
+                  state = 'IN_DOCUMENT';
+                  if (ttFirstDocument === null) {
+                    ttFirstDocument = Date.now() - startTime;
+                  }
+                  buffer = '';
+
+                  const trimmedDoc = afterClose.trimStart();
+                  if (trimmedDoc) {
+                    if (onDocumentUpdate) {
+                      onDocumentUpdate(trimmedDoc);
+                    }
+                    documentContent += trimmedDoc;
+                  }
+                } else {
+                  const holdBackLength = 12;
+                  if (buffer.length > holdBackLength) {
+                    const safeContent = buffer.slice(
+                      0,
+                      buffer.length - holdBackLength
+                    );
+                    buffer = buffer.slice(-holdBackLength);
+
+                    const parsedSafe = this.parseThinking(safeContent);
+                    if (onThinkingUpdate && parsedSafe) {
+                      onThinkingUpdate(parsedSafe);
+                    }
+                    thinkingContent += parsedSafe;
+                  }
+                }
+              } else if (state === 'IN_DOCUMENT') {
+                if (onDocumentUpdate) {
+                  onDocumentUpdate(delta);
+                }
+                documentContent += delta;
+              }
+            } catch (error) {
+              console.error(
+                '[LLMClient] Failed to parse SSE line:',
+                line,
+                error
+              );
+            }
+          }
+        }
+
+        if (state === 'DETECTING' && buffer) {
+          console.info(
+            '[LLMClient] Stream ended in DETECTING, flushing as document'
+          );
+          flushBufferAsDocument();
+        } else if (state === 'IN_THINKING' && buffer) {
+          console.info(
+            '[LLMClient] Stream ended in IN_THINKING, flushing remaining'
+          );
+          const remainingThinking = this.parseThinking(buffer);
+          if (onThinkingUpdate && remainingThinking) {
+            onThinkingUpdate(remainingThinking);
+          }
+          thinkingContent += remainingThinking;
+        }
+      } catch (error) {
+        console.error('[LLMClient] Stream processing error:', error);
+        throw error;
+      }
+
+      console.info('[LLMClient] Stream complete, final state:', state);
+
+      return {
+        thinkingContent: thinkingContent.trim(),
+        documentContent: documentContent.trim(),
+        finishReason: finishReason,
+        cancelled: false,
+        timing: {
+          ttft,
+          ttFirstThinking,
+          ttFirstDocument,
+        },
+        usage: {
+          promptTokens,
+          completionTokens,
+        },
+      };
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.info('[LLMClient] Stream cancelled:', streamId);
+        return {
+          thinkingContent: '',
+          documentContent: '',
+          finishReason: 'cancelled',
+          cancelled: true,
+          timing: {
+            ttft: null,
+            ttFirstThinking: null,
+            ttFirstDocument: null,
+          },
+          usage: {
+            promptTokens: null,
+            completionTokens: null,
+          },
+        };
+      }
+      throw error;
+    } finally {
       this.activeStreams.delete(streamId);
       console.info('[LLMClient] Cleaned up stream:', streamId);
     }

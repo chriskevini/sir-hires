@@ -64,6 +64,36 @@ export interface RunTaskOptions {
 }
 
 /**
+ * Options for running an LLM task with raw messages
+ * Used by conversation mode for full control over message sequence
+ */
+export interface RunTaskWithMessagesOptions {
+  /** Raw messages array (system/user/assistant in any order) */
+  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+
+  /** LLM client instance */
+  llmClient: LLMClient;
+
+  /** Model to use */
+  model: string;
+
+  /** Max tokens for completion */
+  maxTokens?: number;
+
+  /** Temperature for completion */
+  temperature?: number;
+
+  /** Callback for document content chunks */
+  onChunk?: (delta: string) => void;
+
+  /** Callback for thinking content chunks (if model supports it) */
+  onThinking?: (delta: string) => void;
+
+  /** AbortSignal for cancellation */
+  signal?: AbortSignal;
+}
+
+/**
  * Timing stats from LLM streaming
  */
 export interface TaskTiming {
@@ -275,6 +305,92 @@ export async function runTask(options: RunTaskOptions): Promise<TaskResult> {
     userPrompt,
     maxTokens: maxTokens ?? config.maxTokens,
     temperature: temperature ?? config.temperature,
+    onDocumentUpdate: onChunk || null,
+    onThinkingUpdate: onThinking || null,
+  });
+
+  return {
+    content: result.documentContent,
+    thinking: result.thinkingContent,
+    finishReason: result.finishReason,
+    cancelled: result.cancelled,
+    timing: result.timing,
+    usage: result.usage,
+  };
+}
+
+/**
+ * Run an LLM task with raw messages array
+ * Used by conversation mode for full control over message sequence
+ *
+ * @param options - Task options with messages array
+ * @returns Promise resolving to task result
+ *
+ * @example
+ * // Basic usage with conversation messages
+ * const result = await runTaskWithMessages({
+ *   messages: [
+ *     { role: 'system', content: 'You are a helpful assistant.' },
+ *     { role: 'user', content: 'Hello!' },
+ *     { role: 'assistant', content: '<think>' }, // Prefill to skip thinking
+ *   ],
+ *   llmClient,
+ *   model: 'qwen-32b',
+ *   onChunk: (delta) => setContent(prev => prev + delta),
+ * });
+ */
+export async function runTaskWithMessages(
+  options: RunTaskWithMessagesOptions
+): Promise<TaskResult> {
+  const {
+    messages,
+    llmClient,
+    model,
+    maxTokens = 4096,
+    temperature = 0.7,
+    onChunk,
+    onThinking,
+    signal,
+  } = options;
+
+  // Generate unique stream ID for cancellation tracking
+  const streamId = crypto.randomUUID();
+
+  // Set up abort handling
+  if (signal) {
+    if (signal.aborted) {
+      return {
+        content: '',
+        thinking: '',
+        finishReason: 'cancelled',
+        cancelled: true,
+        timing: {
+          ttft: null,
+          ttFirstThinking: null,
+          ttFirstDocument: null,
+        },
+        usage: {
+          promptTokens: null,
+          completionTokens: null,
+        },
+      };
+    }
+    signal.addEventListener(
+      'abort',
+      () => {
+        llmClient.cancelStream(streamId);
+      },
+      { once: true }
+    );
+  }
+
+  // Call LLM with streaming using raw messages
+  const result = await llmClient.streamCompletionWithMessages({
+    streamId,
+    model,
+    messages,
+    maxTokens,
+    temperature,
     onDocumentUpdate: onChunk || null,
     onThinkingUpdate: onThinking || null,
   });

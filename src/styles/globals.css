@@ -455,6 +455,7 @@
   * {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted-foreground) / 0.4) transparent;
+    scrollbar-gutter: stable;
   }
 
   *::-webkit-scrollbar {

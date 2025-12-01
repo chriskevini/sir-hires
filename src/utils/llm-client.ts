@@ -24,11 +24,29 @@ interface StreamCompletionOptions {
   onDocumentUpdate?: ((delta: string) => void) | null;
 }
 
+interface StreamCompletionTiming {
+  /** Time to first token (any content) in ms */
+  ttft: number | null;
+  /** Time to first thinking token in ms */
+  ttFirstThinking: number | null;
+  /** Time to first document token in ms */
+  ttFirstDocument: number | null;
+}
+
+interface StreamCompletionUsage {
+  /** Number of prompt tokens (from API) */
+  promptTokens: number | null;
+  /** Number of completion tokens (from API) */
+  completionTokens: number | null;
+}
+
 interface StreamCompletionResult {
   thinkingContent: string;
   documentContent: string;
   finishReason: string | null;
   cancelled: boolean;
+  timing: StreamCompletionTiming;
+  usage: StreamCompletionUsage;
 }
 
 /**
@@ -172,6 +190,7 @@ export class LLMClient {
           max_tokens: maxTokens,
           temperature: temperature,
           stream: true, // Enable streaming
+          stream_options: { include_usage: true }, // Request token usage stats
         }),
         signal: abortController.signal, // Enable cancellation
       });
@@ -238,13 +257,70 @@ export class LLMClient {
         streamInfo.reader = reader;
       }
 
-      // Simplified state machine: null → IN_THINKING | IN_DOCUMENT
-      // State is determined by first delta, no detection window needed
-      let state = null; // null → IN_THINKING | IN_DOCUMENT
+      // Three-state machine: DETECTING → IN_THINKING → IN_DOCUMENT
+      //                   or: DETECTING → IN_DOCUMENT
+      // DETECTING buffers content until we can determine mode
+      type State = 'DETECTING' | 'IN_THINKING' | 'IN_DOCUMENT';
+      let state: State = 'DETECTING';
       let buffer = '';
       let thinkingContent = '';
       let documentContent = '';
       let finishReason = null;
+
+      // Timing tracking
+      const startTime = Date.now();
+      let ttft: number | null = null;
+      let ttFirstThinking: number | null = null;
+      let ttFirstDocument: number | null = null;
+
+      // Usage tracking (from API response)
+      let promptTokens: number | null = null;
+      let completionTokens: number | null = null;
+
+      // Helper to flush buffer as document content
+      const flushBufferAsDocument = () => {
+        if (buffer) {
+          if (onDocumentUpdate) {
+            onDocumentUpdate(buffer);
+          }
+          documentContent += buffer;
+          buffer = '';
+        }
+      };
+
+      // Helper to check if buffer already contains full thinking block (both open and close)
+      // Called after opening tag is detected and stripped from buffer
+      const processThinkingBuffer = () => {
+        // Opening tag already stripped - check if closing tag is in buffer
+        const closeMatch = buffer.match(/<\/(?:think|thinking|reasoning)>/i);
+        if (closeMatch) {
+          // Full thinking block found - extract thinking content
+          const thinkingPart = buffer.slice(0, closeMatch.index!);
+          const afterClose = buffer.slice(
+            closeMatch.index! + closeMatch[0].length
+          );
+
+          // Stream thinking content
+          if (onThinkingUpdate && thinkingPart) {
+            onThinkingUpdate(thinkingPart);
+          }
+          thinkingContent += thinkingPart;
+
+          // Transition to document mode
+          state = 'IN_DOCUMENT';
+          buffer = '';
+
+          // Stream any content after closing tag
+          const trimmedDoc = afterClose.trimStart();
+          if (trimmedDoc) {
+            if (onDocumentUpdate) {
+              onDocumentUpdate(trimmedDoc);
+            }
+            documentContent += trimmedDoc;
+          }
+        }
+        // If no closing tag yet, stay in IN_THINKING and wait for more
+      };
 
       console.info('[LLMClient] Starting stream processing...');
 
@@ -264,6 +340,12 @@ export class LLMClient {
               const jsonStr = line.slice(6); // Remove "data: " prefix
               const data = JSON.parse(jsonStr);
 
+              // Check for usage stats (comes in final chunk with stream_options.include_usage)
+              if (data.usage) {
+                promptTokens = data.usage.prompt_tokens ?? null;
+                completionTokens = data.usage.completion_tokens ?? null;
+              }
+
               const delta = data.choices?.[0]?.delta?.content || '';
               if (!delta) {
                 // Check for finish reason
@@ -271,87 +353,105 @@ export class LLMClient {
                 continue;
               }
 
-              // State determination: First delta decides the mode
-              if (state === null) {
-                // Check if first delta contains thinking tag
-                if (/<(?:think|thinking|reasoning)>/i.test(delta)) {
+              // Track time to first token
+              if (ttft === null) {
+                ttft = Date.now() - startTime;
+              }
+
+              if (state === 'DETECTING') {
+                buffer += delta;
+
+                // Check if buffer contains a complete opening thinking tag
+                const openingMatch = buffer.match(
+                  /<(?:think|thinking|reasoning)>/i
+                );
+                if (openingMatch) {
                   console.info('[LLMClient] Detected thinking mode');
                   state = 'IN_THINKING';
-                  buffer = delta;
-
-                  // Check if opening tag is complete in first delta
-                  // If so, extract any content after it
-                  const match = delta.match(
-                    /^(.*?)<(?:think|thinking|reasoning)>(.*)$/is
-                  );
-                  if (match) {
-                    const afterTag = match[2];
-                    if (afterTag) {
-                      // Content after opening tag in same delta
-                      const parsedDelta = this.parseThinking(afterTag);
-                      if (onThinkingUpdate && parsedDelta) {
-                        onThinkingUpdate(parsedDelta);
-                      }
-                      thinkingContent += parsedDelta;
-                    }
+                  // Track time to first thinking
+                  if (ttFirstThinking === null) {
+                    ttFirstThinking = Date.now() - startTime;
                   }
-                } else {
-                  // Standard model without thinking tags
+                  // Strip everything up to and including the opening tag
+                  buffer = buffer.slice(
+                    openingMatch.index! + openingMatch[0].length
+                  );
+                  // Check if closing tag is already in buffer (model output both in one chunk)
+                  processThinkingBuffer();
+                } else if (buffer.length >= this.detectionWindow) {
+                  // Buffer is long enough without thinking tag - assume document mode
                   console.info(
                     '[LLMClient] Detected standard mode (no thinking tags)'
                   );
                   state = 'IN_DOCUMENT';
-                  if (onDocumentUpdate) {
-                    onDocumentUpdate(delta);
+                  // Track time to first document
+                  if (ttFirstDocument === null) {
+                    ttFirstDocument = Date.now() - startTime;
                   }
-                  documentContent += delta;
+                  flushBufferAsDocument();
                 }
-                continue;
-              }
-
-              // Process subsequent deltas based on state
-              if (state === 'IN_THINKING') {
+                // Otherwise keep buffering in DETECTING state
+              } else if (state === 'IN_THINKING') {
                 buffer += delta;
 
-                // Check for end of thinking block
-                if (/<\/(?:think|thinking|reasoning)>/i.test(buffer)) {
+                // Check for closing tag in buffer
+                const closeMatch = buffer.match(
+                  /<\/(?:think|thinking|reasoning)>/i
+                );
+
+                if (closeMatch) {
+                  // Found closing tag - extract and stream thinking content
+                  const thinkingPart = buffer.slice(0, closeMatch.index!);
+                  const afterClose = buffer.slice(
+                    closeMatch.index! + closeMatch[0].length
+                  );
+
+                  // Stream thinking content (strip any remaining opening tags)
+                  const parsedThinking = this.parseThinking(thinkingPart);
+                  if (onThinkingUpdate && parsedThinking) {
+                    onThinkingUpdate(parsedThinking);
+                  }
+                  thinkingContent += parsedThinking;
+
+                  // Transition to document mode
                   console.info(
                     '[LLMClient] Thinking block complete, switching to document mode'
                   );
                   state = 'IN_DOCUMENT';
+                  // Track time to first document
+                  if (ttFirstDocument === null) {
+                    ttFirstDocument = Date.now() - startTime;
+                  }
+                  buffer = '';
 
-                  // Extract thinking content and document start
-                  const match = buffer.match(
-                    /^.*?<(?:think|thinking|reasoning)>(.*?)<\/(?:think|thinking|reasoning)>(.*)$/is
-                  );
-                  if (match) {
-                    const thinkingPart = match[1];
-                    const documentPart = match[2];
-
-                    // Send final thinking content (without tags)
-                    const parsedThinking = this.parseThinking(thinkingPart);
-                    if (onThinkingUpdate && parsedThinking) {
-                      onThinkingUpdate(parsedThinking);
+                  // Stream any content after closing tag
+                  const trimmedDoc = afterClose.trimStart();
+                  if (trimmedDoc) {
+                    if (onDocumentUpdate) {
+                      onDocumentUpdate(trimmedDoc);
                     }
-                    thinkingContent += parsedThinking;
-
-                    // Start document content
-                    if (onDocumentUpdate && documentPart) {
-                      onDocumentUpdate(documentPart);
-                    }
-                    documentContent += documentPart;
-                    buffer = '';
+                    documentContent += trimmedDoc;
                   }
                 } else {
-                  // Still in thinking block, send parsed delta
-                  const parsedDelta = this.parseThinking(delta);
-                  if (onThinkingUpdate && parsedDelta) {
-                    onThinkingUpdate(parsedDelta);
+                  // No closing tag yet - stream safe content incrementally
+                  // Keep last 12 chars in buffer (max length of "</reasoning>")
+                  const holdBackLength = 12;
+                  if (buffer.length > holdBackLength) {
+                    const safeContent = buffer.slice(
+                      0,
+                      buffer.length - holdBackLength
+                    );
+                    buffer = buffer.slice(-holdBackLength);
+
+                    const parsedSafe = this.parseThinking(safeContent);
+                    if (onThinkingUpdate && parsedSafe) {
+                      onThinkingUpdate(parsedSafe);
+                    }
+                    thinkingContent += parsedSafe;
                   }
-                  thinkingContent += parsedDelta;
                 }
               } else if (state === 'IN_DOCUMENT') {
-                // Route to document stream
+                // Direct streaming to document
                 if (onDocumentUpdate) {
                   onDocumentUpdate(delta);
                 }
@@ -366,6 +466,25 @@ export class LLMClient {
             }
           }
         }
+
+        // Handle any remaining buffer at end of stream
+        if (state === 'DETECTING' && buffer) {
+          // Never detected thinking, treat as document
+          console.info(
+            '[LLMClient] Stream ended in DETECTING, flushing as document'
+          );
+          flushBufferAsDocument();
+        } else if (state === 'IN_THINKING' && buffer) {
+          // Thinking block never closed - flush remaining buffer as thinking
+          console.info(
+            '[LLMClient] Stream ended in IN_THINKING, flushing remaining'
+          );
+          const remainingThinking = this.parseThinking(buffer);
+          if (onThinkingUpdate && remainingThinking) {
+            onThinkingUpdate(remainingThinking);
+          }
+          thinkingContent += remainingThinking;
+        }
       } catch (error) {
         console.error('[LLMClient] Stream processing error:', error);
         throw error;
@@ -378,6 +497,15 @@ export class LLMClient {
         documentContent: documentContent.trim(),
         finishReason: finishReason,
         cancelled: false,
+        timing: {
+          ttft,
+          ttFirstThinking,
+          ttFirstDocument,
+        },
+        usage: {
+          promptTokens,
+          completionTokens,
+        },
       };
     } catch (error) {
       // Handle abortion/cancellation
@@ -388,6 +516,15 @@ export class LLMClient {
           documentContent: '',
           finishReason: 'cancelled',
           cancelled: true,
+          timing: {
+            ttft: null,
+            ttFirstThinking: null,
+            ttFirstDocument: null,
+          },
+          usage: {
+            promptTokens: null,
+            completionTokens: null,
+          },
         };
       }
       throw error;

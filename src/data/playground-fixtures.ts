@@ -44,7 +44,7 @@ Remote position, $80k-$100k
 Must know JavaScript and React
 Apply now!`;
 
-export const JOB_FIXTURE_MESSY = `🚀 AMAZING OPPORTUNITY 🚀
+export const JOB_FIXTURE_MESSY = `AMAZING OPPORTUNITY
 
 We're looking for a rockstar developer!!!
 
@@ -124,7 +124,11 @@ BS Computer Science, State University 2019`;
 // FIXTURE DEFINITIONS BY TASK TYPE
 // =============================================================================
 
-export type TaskType = 'job-extraction' | 'profile-extraction' | 'synthesis';
+export type TaskType =
+  | 'job-extraction'
+  | 'profile-extraction'
+  | 'synthesis'
+  | 'custom';
 
 export const FIXTURES: Record<
   TaskType,
@@ -143,4 +147,5 @@ export const FIXTURES: Record<
     { label: 'Resume/CV', content: documentTemplates.tailoredResume },
     { label: 'Cover Letter', content: documentTemplates.coverLetter },
   ],
+  custom: [], // Freeform panel manages its own inputs
 };

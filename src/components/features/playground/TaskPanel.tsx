@@ -14,26 +14,29 @@ import React, {
   useState,
   useCallback,
   useMemo,
-  useRef,
-  useEffect,
   useImperativeHandle,
   forwardRef,
 } from 'react';
-import { LLMClient } from '@/utils/llm-client';
-import { runTask, startKeepalive } from '@/utils/llm-task-runner';
-import type { TaskConfig } from '@/tasks';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { FIXTURES, type TaskType } from '@/data/playground-fixtures';
 import { getRandomTone } from '@/utils/synthesis-utils';
 import type { useLLMSettings } from '@/hooks/useLLMSettings';
-import type {
-  TaskDefinition,
-  ParseResult,
-  RunStats,
-  SynthesisContext,
-} from './types';
+import { usePlaygroundTaskExecution } from '@/hooks/usePlaygroundTaskExecution';
+import type { TaskDefinition, ParseResult, SynthesisContext } from './types';
 import { isValidJobData, isValidProfileData } from './validation';
+import { LLMParametersPanel } from './LLMParametersPanel';
+import {
+  TaskErrorDisplay,
+  TaskStatsDisplay,
+  TaskOutputDisplay,
+} from './OutputDisplay';
+import {
+  synthesisTabConfigs,
+  extractionTabConfigs,
+  type SynthesisTabId,
+  type ExtractionTabId,
+} from './colors';
 
 // =============================================================================
 // TYPES
@@ -76,30 +79,19 @@ export const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
     const [temperature, setTemperature] = useState(taskDef.config.temperature);
     const [maxTokens, setMaxTokens] = useState(taskDef.config.maxTokens);
 
-    // Output state
-    const [output, setOutput] = useState('');
-    const [thinking, setThinking] = useState('');
-    const [isRunning, setIsRunning] = useState(false);
-    const [stats, setStats] = useState<RunStats | null>(null);
+    // Parser result state (separate from execution state)
     const [parseResult, setParseResult] = useState<ParseResult | null>(null);
-    const [error, setError] = useState<string | null>(null);
 
-    // Abort controller ref
-    const abortControllerRef = useRef<AbortController | null>(null);
-    // Keepalive cleanup ref
-    const stopKeepaliveRef = useRef<(() => void) | null>(null);
-
-    // Cleanup AbortController and keepalive on unmount
-    useEffect(() => {
-      return () => {
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-        }
-        if (stopKeepaliveRef.current) {
-          stopKeepaliveRef.current();
-        }
-      };
-    }, []);
+    // Use shared task execution hook
+    const {
+      output,
+      thinking,
+      stats,
+      error,
+      isRunning,
+      executeContextTask,
+      cancel: handleCancel,
+    } = usePlaygroundTaskExecution({ llmSettings });
 
     // Expose output getter via ref (for parent to access)
     useImperativeHandle(
@@ -122,115 +114,62 @@ export const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
 
     // Run the test
     const handleRunTest = useCallback(async () => {
-      const model = llmSettings.model;
-      if (!model) {
-        setError('Please select a model in LLM settings');
-        return;
+      // Reset parse result before running
+      setParseResult(null);
+
+      // Build context based on task type
+      let context: Record<string, string>;
+      if (taskType === 'synthesis') {
+        context = {
+          profile: synthesisContext.profile,
+          job: synthesisContext.job,
+          task: synthesisContext.task,
+          template: synthesisContext.template,
+          tone: synthesisContext.tone,
+        };
+      } else {
+        context = { rawText: testInput };
       }
 
-      // Reset output state
-      setOutput('');
-      setThinking('');
-      setStats(null);
-      setParseResult(null);
-      setError(null);
-      setIsRunning(true);
+      // Create modified config with custom prompt
+      const modifiedConfig = {
+        ...taskDef.config,
+        prompt: systemPrompt,
+      };
 
-      abortControllerRef.current = new AbortController();
-      stopKeepaliveRef.current = startKeepalive();
-      const startTime = Date.now();
+      const result = await executeContextTask({
+        config: modifiedConfig,
+        context,
+        temperature,
+        maxTokens,
+      });
 
-      try {
-        const llmClient = new LLMClient({
-          endpoint: llmSettings.endpoint,
-        });
+      // Run parser if available with task-specific validation
+      if (result.success && taskDef.parser && result.content) {
+        try {
+          const parsed = taskDef.parser(result.content);
 
-        // Build context based on task type
-        let context: Record<string, string>;
-        if (taskType === 'synthesis') {
-          context = {
-            profile: synthesisContext.profile,
-            job: synthesisContext.job,
-            task: synthesisContext.task,
-            template: synthesisContext.template,
-            tone: synthesisContext.tone,
-          };
-        } else {
-          context = { rawText: testInput };
-        }
-
-        // Create modified config with custom prompt
-        const modifiedConfig: TaskConfig = {
-          ...taskDef.config,
-          prompt: systemPrompt,
-        };
-
-        const result = await runTask({
-          config: modifiedConfig,
-          context,
-          llmClient,
-          model,
-          temperature,
-          maxTokens,
-          signal: abortControllerRef.current.signal,
-          onChunk: (delta) => setOutput((prev) => prev + delta),
-          onThinking: (delta) => setThinking((prev) => prev + delta),
-        });
-
-        const duration = Date.now() - startTime;
-
-        setStats({
-          duration,
-          ttft: result.timing.ttft,
-          ttFirstDocument: result.timing.ttFirstDocument,
-          promptTokens: result.usage.promptTokens,
-          completionTokens: result.usage.completionTokens,
-        });
-
-        // Run parser if available with task-specific validation
-        if (taskDef.parser && result.content) {
-          try {
-            const parsed = taskDef.parser(result.content);
-
-            let isValid = false;
-            if (taskType === 'job-extraction') {
-              isValid = isValidJobData(parsed);
-            } else if (taskType === 'profile-extraction') {
-              isValid = isValidProfileData(parsed);
-            }
-
-            setParseResult({
-              valid: isValid,
-              data: parsed,
-            });
-          } catch (parseError) {
-            setParseResult({
-              valid: false,
-              data: null,
-              error:
-                parseError instanceof Error
-                  ? parseError.message
-                  : 'Parse error',
-            });
+          let isValid = false;
+          if (taskType === 'job-extraction') {
+            isValid = isValidJobData(parsed);
+          } else if (taskType === 'profile-extraction') {
+            isValid = isValidProfileData(parsed);
           }
-        }
 
-        if (result.cancelled) {
-          setError('Task was cancelled');
+          setParseResult({
+            valid: isValid,
+            data: parsed,
+          });
+        } catch (parseError) {
+          setParseResult({
+            valid: false,
+            data: null,
+            error:
+              parseError instanceof Error ? parseError.message : 'Parse error',
+          });
         }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        if (stopKeepaliveRef.current) {
-          stopKeepaliveRef.current();
-          stopKeepaliveRef.current = null;
-        }
-        setIsRunning(false);
-        abortControllerRef.current = null;
       }
     }, [
-      llmSettings.model,
-      llmSettings.endpoint,
       taskType,
       testInput,
       synthesisContext.profile,
@@ -242,14 +181,8 @@ export const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
       temperature,
       maxTokens,
       taskDef,
+      executeContextTask,
     ]);
-
-    // Cancel running task
-    const handleCancel = useCallback(() => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    }, []);
 
     // Check if prompt is modified
     const isPromptModified = systemPrompt !== taskDef.defaultPrompt;
@@ -309,60 +242,15 @@ export const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
           )}
 
           {/* LLM Parameters */}
-          <div className="p-3 rounded-lg border bg-card">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium">LLM Parameters</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 text-xs px-2"
-                onClick={() => {
-                  setTemperature(taskDef.config.temperature);
-                  setMaxTokens(taskDef.config.maxTokens);
-                }}
-                disabled={
-                  temperature === taskDef.config.temperature &&
-                  maxTokens === taskDef.config.maxTokens
-                }
-              >
-                Reset to Defaults
-              </Button>
-            </div>
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <label className="block text-xs text-muted-foreground mb-1">
-                  Temperature
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="2"
-                  step="0.05"
-                  value={temperature}
-                  onChange={(e) =>
-                    setTemperature(parseFloat(e.target.value) || 0)
-                  }
-                  className="w-full p-2 rounded border bg-background text-sm font-mono"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="block text-xs text-muted-foreground mb-1">
-                  Max Tokens
-                </label>
-                <input
-                  type="number"
-                  min="100"
-                  max="32000"
-                  step="100"
-                  value={maxTokens}
-                  onChange={(e) =>
-                    setMaxTokens(parseInt(e.target.value, 10) || 100)
-                  }
-                  className="w-full p-2 rounded border bg-background text-sm font-mono"
-                />
-              </div>
-            </div>
-          </div>
+          <LLMParametersPanel
+            temperature={temperature}
+            onTemperatureChange={setTemperature}
+            maxTokens={maxTokens}
+            onMaxTokensChange={setMaxTokens}
+            defaultTemperature={taskDef.config.temperature}
+            defaultMaxTokens={taskDef.config.maxTokens}
+            className="p-3 rounded-lg border bg-card"
+          />
 
           {/* Run Button */}
           <div className="flex gap-2">
@@ -385,78 +273,13 @@ export const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
         {/* Right Column: Output */}
         <div className="space-y-4">
           {/* Error */}
-          {error && (
-            <div className="p-3 rounded-lg border border-destructive bg-destructive/10 text-destructive">
-              <p className="text-sm font-medium">Error</p>
-              <p className="text-sm mt-1 whitespace-pre-wrap">{error}</p>
-            </div>
-          )}
+          <TaskErrorDisplay error={error} />
 
           {/* Stats */}
-          <div className="p-3 rounded-lg border bg-card min-h-11">
-            {stats ? (
-              <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Duration:</span>{' '}
-                  <span className="font-mono">
-                    {(stats.duration / 1000).toFixed(2)}s
-                  </span>
-                </div>
-                {stats.ttft !== null && (
-                  <div>
-                    <span className="text-muted-foreground">TTFT:</span>{' '}
-                    <span className="font-mono">
-                      {(stats.ttft / 1000).toFixed(2)}s
-                    </span>
-                  </div>
-                )}
-                {stats.ttFirstDocument !== null && (
-                  <div>
-                    <span className="text-muted-foreground">First output:</span>{' '}
-                    <span className="font-mono">
-                      {(stats.ttFirstDocument / 1000).toFixed(2)}s
-                    </span>
-                  </div>
-                )}
-                {(stats.promptTokens !== null ||
-                  stats.completionTokens !== null) && (
-                  <div>
-                    <span className="text-muted-foreground">Tokens:</span>{' '}
-                    <span className="font-mono">
-                      {stats.promptTokens ?? '?'} in →{' '}
-                      {stats.completionTokens ?? '?'} out
-                    </span>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground italic">
-                Stats will appear here after running...
-              </div>
-            )}
-          </div>
-          {/* Thinking Output (if any) */}
-          {thinking && (
-            <div>
-              <label className="block text-sm font-medium mb-2">Thinking</label>
-              <textarea
-                readOnly
-                value={thinking}
-                className="w-full p-3 rounded-lg border bg-muted/30 font-mono text-sm h-96 resize-y overflow-auto"
-              />
-            </div>
-          )}
+          <TaskStatsDisplay stats={stats} />
 
-          {/* LLM Output */}
-          <div>
-            <label className="block text-sm font-medium mb-2">LLM Output</label>
-            <textarea
-              readOnly
-              value={output}
-              placeholder="Output will appear here..."
-              className="w-full p-3 rounded-lg border bg-card font-mono text-sm h-96 resize-y overflow-auto"
-            />
-          </div>
+          {/* Thinking + LLM Output */}
+          <TaskOutputDisplay thinking={thinking} output={output} />
 
           {/* Parser Validation */}
           {taskDef.parser && (
@@ -530,8 +353,6 @@ interface SynthesisInputsProps {
   onResetPrompt: () => void;
 }
 
-type SynthesisTab = 'system' | 'profile' | 'job' | 'template' | 'task' | 'tone';
-
 const SynthesisInputs: React.FC<SynthesisInputsProps> = ({
   synthesisContext,
   setSynthesisContext,
@@ -541,79 +362,11 @@ const SynthesisInputs: React.FC<SynthesisInputsProps> = ({
   isPromptModified,
   onResetPrompt,
 }) => {
-  const [selectedTab, setSelectedTab] = useState<SynthesisTab>('system');
+  const [selectedTab, setSelectedTab] = useState<SynthesisTabId>('system');
 
-  const tabs: Array<{
-    id: SynthesisTab;
-    label: string;
-    color: string;
-    selectedColor: string;
-    panelBg: string;
-    panelBorder: string;
-  }> = [
-    {
-      id: 'system',
-      label: 'System',
-      color:
-        'border-slate-500/50 text-slate-600 dark:text-slate-400 hover:bg-slate-500/10',
-      selectedColor:
-        'bg-slate-500/20 border-slate-500/50 text-slate-700 dark:text-slate-300',
-      panelBg: 'bg-slate-500/5',
-      panelBorder: 'border-slate-500/50',
-    },
-    {
-      id: 'profile',
-      label: 'Profile',
-      color:
-        'border-blue-500/50 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10',
-      selectedColor:
-        'bg-blue-500/20 border-blue-500/50 text-blue-700 dark:text-blue-300',
-      panelBg: 'bg-blue-500/5',
-      panelBorder: 'border-blue-500/50',
-    },
-    {
-      id: 'job',
-      label: 'Job',
-      color:
-        'border-green-500/50 text-green-600 dark:text-green-400 hover:bg-green-500/10',
-      selectedColor:
-        'bg-green-500/20 border-green-500/50 text-green-700 dark:text-green-300',
-      panelBg: 'bg-green-500/5',
-      panelBorder: 'border-green-500/50',
-    },
-    {
-      id: 'template',
-      label: 'Template',
-      color:
-        'border-purple-500/50 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10',
-      selectedColor:
-        'bg-purple-500/20 border-purple-500/50 text-purple-700 dark:text-purple-300',
-      panelBg: 'bg-purple-500/5',
-      panelBorder: 'border-purple-500/50',
-    },
-    {
-      id: 'task',
-      label: 'Task',
-      color:
-        'border-amber-500/50 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10',
-      selectedColor:
-        'bg-amber-500/20 border-amber-500/50 text-amber-700 dark:text-amber-300',
-      panelBg: 'bg-amber-500/5',
-      panelBorder: 'border-amber-500/50',
-    },
-    {
-      id: 'tone',
-      label: 'Tone',
-      color:
-        'border-pink-500/50 text-pink-600 dark:text-pink-400 hover:bg-pink-500/10',
-      selectedColor:
-        'bg-pink-500/20 border-pink-500/50 text-pink-700 dark:text-pink-300',
-      panelBg: 'bg-pink-500/5',
-      panelBorder: 'border-pink-500/50',
-    },
-  ];
-
-  const selectedTabConfig = tabs.find((t) => t.id === selectedTab)!;
+  const selectedTabConfig = synthesisTabConfigs.find(
+    (t) => t.id === selectedTab
+  )!;
 
   return (
     <div>
@@ -623,7 +376,7 @@ const SynthesisInputs: React.FC<SynthesisInputsProps> = ({
 
       {/* Tab Row */}
       <div className="flex items-end gap-0.5">
-        {tabs.map((tab) => {
+        {synthesisTabConfigs.map((tab) => {
           const isSelected = selectedTab === tab.id;
           return (
             <button
@@ -887,8 +640,6 @@ interface ExtractionInputsProps {
   onLoadFixture: (content: string) => void;
 }
 
-type ExtractionTab = 'system' | 'input';
-
 const ExtractionInputs: React.FC<ExtractionInputsProps> = ({
   taskType,
   systemPrompt,
@@ -899,39 +650,11 @@ const ExtractionInputs: React.FC<ExtractionInputsProps> = ({
   setTestInput,
   onLoadFixture,
 }) => {
-  const [selectedTab, setSelectedTab] = useState<ExtractionTab>('system');
+  const [selectedTab, setSelectedTab] = useState<ExtractionTabId>('system');
 
-  const tabs: Array<{
-    id: ExtractionTab;
-    label: string;
-    color: string;
-    selectedColor: string;
-    panelBg: string;
-    panelBorder: string;
-  }> = [
-    {
-      id: 'system',
-      label: 'System',
-      color:
-        'border-slate-500/50 text-slate-600 dark:text-slate-400 hover:bg-slate-500/10',
-      selectedColor:
-        'bg-slate-500/20 border-slate-500/50 text-slate-700 dark:text-slate-300',
-      panelBg: 'bg-slate-500/5',
-      panelBorder: 'border-slate-500/50',
-    },
-    {
-      id: 'input',
-      label: 'Raw Input',
-      color:
-        'border-cyan-500/50 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/10',
-      selectedColor:
-        'bg-cyan-500/20 border-cyan-500/50 text-cyan-700 dark:text-cyan-300',
-      panelBg: 'bg-cyan-500/5',
-      panelBorder: 'border-cyan-500/50',
-    },
-  ];
-
-  const selectedTabConfig = tabs.find((t) => t.id === selectedTab)!;
+  const selectedTabConfig = extractionTabConfigs.find(
+    (t) => t.id === selectedTab
+  )!;
 
   return (
     <div>
@@ -945,7 +668,7 @@ const ExtractionInputs: React.FC<ExtractionInputsProps> = ({
 
       {/* Tab Row */}
       <div className="flex items-end gap-0.5">
-        {tabs.map((tab) => {
+        {extractionTabConfigs.map((tab) => {
           const isSelected = selectedTab === tab.id;
           return (
             <button

@@ -4,17 +4,28 @@
 
 import type { TaskConfig } from '@/tasks';
 
-export interface TaskDefinition {
+/**
+ * Generic task definition that can specify the parser return type.
+ * Use TaskDefinition (without type param) for heterogeneous collections.
+ *
+ * @typeParam TParseResult - The type returned by the parser function
+ */
+export interface TaskDefinition<TParseResult = unknown> {
   label: string;
   config: TaskConfig;
   defaultPrompt: string;
-  parser: ((content: string) => unknown) | null;
+  parser: ((content: string) => TParseResult) | null;
   parserName: string | null;
 }
 
-export interface ParseResult {
+/**
+ * Result of parsing task output.
+ *
+ * @typeParam TData - The type of the parsed data
+ */
+export interface ParseResult<TData = unknown> {
   valid: boolean;
-  data: unknown;
+  data: TData | null;
   error?: string;
 }
 

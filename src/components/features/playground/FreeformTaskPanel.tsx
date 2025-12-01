@@ -19,12 +19,6 @@ import React, {
   useEffect,
   useMemo,
 } from 'react';
-import { LLMClient } from '@/utils/llm-client';
-import {
-  runTask,
-  runTaskWithMessages,
-  startKeepalive,
-} from '@/utils/llm-task-runner';
 import {
   jobExtractionConfig,
   profileExtractionConfig,
@@ -33,15 +27,25 @@ import {
   PROFILE_EXTRACTION_PROMPT,
   SYNTHESIS_PROMPT,
 } from '@/tasks';
-import type { TaskConfig } from '@/tasks';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import type { useLLMSettings } from '@/hooks/useLLMSettings';
+import { usePlaygroundTaskExecution } from '@/hooks/usePlaygroundTaskExecution';
+import { LLMParametersPanel } from './LLMParametersPanel';
+import {
+  TaskErrorDisplay,
+  TaskStatsDisplay,
+  TaskOutputDisplay,
+} from './OutputDisplay';
+import {
+  systemTabColor,
+  contextFieldColors,
+  conversationRoleColors,
+} from './colors';
 import type {
   ContextField,
   ConversationMessage,
   PlaygroundMode,
-  RunStats,
 } from './types';
 
 // =============================================================================
@@ -126,29 +130,23 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(4096);
 
-  // Output state
-  const [output, setOutput] = useState('');
-  const [thinking, setThinking] = useState('');
-  const [isRunning, setIsRunning] = useState(false);
-  const [stats, setStats] = useState<RunStats | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Import error state (separate from task execution errors)
+  const [importError, setImportError] = useState<string | null>(null);
 
-  // Refs
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const stopKeepaliveRef = useRef<(() => void) | null>(null);
+  // Use shared task execution hook
+  const {
+    output,
+    thinking,
+    stats,
+    error,
+    isRunning,
+    executeContextTask,
+    executeMessagesTask,
+    cancel: handleCancel,
+  } = usePlaygroundTaskExecution({ llmSettings });
+
+  // File input ref
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      if (stopKeepaliveRef.current) {
-        stopKeepaliveRef.current();
-      }
-    };
-  }, []);
 
   // Auto-select first message when entering conversation mode with no selection
   useEffect(() => {
@@ -394,6 +392,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
       const file = event.target.files?.[0];
       if (!file) return;
 
+      setImportError(null); // Clear any previous import error
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
@@ -432,7 +431,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
           if (typeof config.maxTokens === 'number')
             setMaxTokens(config.maxTokens);
         } catch {
-          setError('Failed to parse config file');
+          setImportError('Failed to parse config file');
         }
       };
       reader.readAsText(file);
@@ -460,115 +459,55 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
   }, [llmSettings.isConnected, mode, systemPrompt, contexts, messages]);
 
   const handleRunTest = useCallback(async () => {
-    const model = llmSettings.model;
-    if (!model) {
-      setError('Please select a model in LLM settings');
-      return;
-    }
-
-    // Reset output state
-    setOutput('');
-    setThinking('');
-    setStats(null);
-    setError(null);
-    setIsRunning(true);
-
-    abortControllerRef.current = new AbortController();
-    stopKeepaliveRef.current = startKeepalive();
-    const startTime = Date.now();
-
-    try {
-      const llmClient = new LLMClient({
-        endpoint: llmSettings.endpoint,
+    if (mode === 'context') {
+      // Context mode: use executeContextTask with systemPrompt + context fields
+      // Build context record from array (order preserved)
+      const contextRecord: Record<string, string> = {};
+      contexts.forEach(({ name, content }) => {
+        const trimmedName = name.trim();
+        if (trimmedName) {
+          contextRecord[trimmedName] = content;
+        }
       });
 
-      let result;
+      // Build config with context field names array
+      const contextNames = contexts
+        .map((c) => c.name.trim())
+        .filter(Boolean) as Array<
+        'rawText' | 'profile' | 'job' | 'template' | 'tone' | 'task'
+      >;
 
-      if (mode === 'context') {
-        // Context mode: use runTask with systemPrompt + context fields
-        // Build context record from array (order preserved)
-        const contextRecord: Record<string, string> = {};
-        contexts.forEach(({ name, content }) => {
-          const trimmedName = name.trim();
-          if (trimmedName) {
-            contextRecord[trimmedName] = content;
-          }
-        });
-
-        // Build config
-        const config: TaskConfig = {
+      await executeContextTask({
+        config: {
           prompt: systemPrompt,
           temperature,
           maxTokens,
-          context: contexts.map((c) => c.name.trim()).filter(Boolean) as Array<
-            (typeof config.context)[number]
-          >,
-        };
-
-        result = await runTask({
-          config,
-          context: contextRecord,
-          llmClient,
-          model,
-          signal: abortControllerRef.current.signal,
-          onChunk: (delta) => setOutput((prev) => prev + delta),
-          onThinking: (delta) => setThinking((prev) => prev + delta),
-        });
-      } else {
-        // Conversation mode: use runTaskWithMessages with raw messages
-        const rawMessages = messages.map((m) => m.message);
-
-        result = await runTaskWithMessages({
-          messages: rawMessages,
-          llmClient,
-          model,
-          maxTokens,
-          temperature,
-          signal: abortControllerRef.current.signal,
-          onChunk: (delta) => setOutput((prev) => prev + delta),
-          onThinking: (delta) => setThinking((prev) => prev + delta),
-        });
-      }
-
-      const duration = Date.now() - startTime;
-
-      setStats({
-        duration,
-        ttft: result.timing.ttft,
-        ttFirstDocument: result.timing.ttFirstDocument,
-        promptTokens: result.usage.promptTokens,
-        completionTokens: result.usage.completionTokens,
+          context: contextNames,
+        },
+        context: contextRecord,
+        temperature,
+        maxTokens,
       });
+    } else {
+      // Conversation mode: use executeMessagesTask with raw messages
+      const rawMessages = messages.map((m) => m.message);
 
-      if (result.cancelled) {
-        setError('Task was cancelled');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      if (stopKeepaliveRef.current) {
-        stopKeepaliveRef.current();
-        stopKeepaliveRef.current = null;
-      }
-      setIsRunning(false);
-      abortControllerRef.current = null;
+      await executeMessagesTask({
+        messages: rawMessages,
+        temperature,
+        maxTokens,
+      });
     }
   }, [
-    llmSettings.model,
-    llmSettings.endpoint,
     mode,
     systemPrompt,
     contexts,
     messages,
     temperature,
     maxTokens,
+    executeContextTask,
+    executeMessagesTask,
   ]);
-
-  const handleCancel = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-  }, []);
 
   // =============================================================================
   // RENDER
@@ -623,6 +562,13 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
             Export
           </Button>
         </div>
+
+        {/* Import Error */}
+        {importError && (
+          <div className="p-2 rounded border border-destructive bg-destructive/10 text-destructive text-sm">
+            {importError}
+          </div>
+        )}
 
         {/* Mode Toggle */}
         <div className="flex items-center gap-3">
@@ -692,36 +638,12 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
         )}
 
         {/* Model Settings */}
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <label className="block text-xs text-muted-foreground mb-1">
-              Temperature
-            </label>
-            <input
-              type="number"
-              min="0"
-              max="2"
-              step="0.1"
-              value={temperature}
-              onChange={(e) => setTemperature(parseFloat(e.target.value) || 0)}
-              className="w-full p-2 rounded border bg-card text-sm"
-            />
-          </div>
-          <div className="flex-1">
-            <label className="block text-xs text-muted-foreground mb-1">
-              Max Tokens
-            </label>
-            <input
-              type="number"
-              min="1"
-              max="128000"
-              step="100"
-              value={maxTokens}
-              onChange={(e) => setMaxTokens(parseInt(e.target.value) || 4096)}
-              className="w-full p-2 rounded border bg-card text-sm"
-            />
-          </div>
-        </div>
+        <LLMParametersPanel
+          temperature={temperature}
+          onTemperatureChange={setTemperature}
+          maxTokens={maxTokens}
+          onMaxTokensChange={setMaxTokens}
+        />
 
         {/* Run Button */}
         <div className="flex gap-2">
@@ -744,78 +666,13 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
       {/* Right Column: Output */}
       <div className="space-y-4">
         {/* Error */}
-        {error && (
-          <div className="p-3 rounded-lg border border-destructive bg-destructive/10 text-destructive">
-            <p className="text-sm font-medium">Error</p>
-            <p className="text-sm mt-1 whitespace-pre-wrap">{error}</p>
-          </div>
-        )}
+        <TaskErrorDisplay error={error} />
 
         {/* Stats */}
-        <div className="p-3 rounded-lg border bg-card min-h-11">
-          {stats ? (
-            <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-              <div>
-                <span className="text-muted-foreground">Duration:</span>{' '}
-                <span className="font-mono">
-                  {(stats.duration / 1000).toFixed(2)}s
-                </span>
-              </div>
-              {stats.ttft !== null && (
-                <div>
-                  <span className="text-muted-foreground">TTFT:</span>{' '}
-                  <span className="font-mono">
-                    {(stats.ttft / 1000).toFixed(2)}s
-                  </span>
-                </div>
-              )}
-              {stats.ttFirstDocument !== null && (
-                <div>
-                  <span className="text-muted-foreground">First output:</span>{' '}
-                  <span className="font-mono">
-                    {(stats.ttFirstDocument / 1000).toFixed(2)}s
-                  </span>
-                </div>
-              )}
-              {(stats.promptTokens !== null ||
-                stats.completionTokens !== null) && (
-                <div>
-                  <span className="text-muted-foreground">Tokens:</span>{' '}
-                  <span className="font-mono">
-                    {stats.promptTokens ?? '?'} in →{' '}
-                    {stats.completionTokens ?? '?'} out
-                  </span>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-sm text-muted-foreground italic">
-              Stats will appear here after running...
-            </div>
-          )}
-        </div>
-        {/* Thinking Output (if any) */}
-        {thinking && (
-          <div>
-            <label className="block text-sm font-medium mb-2">Thinking</label>
-            <textarea
-              readOnly
-              value={thinking}
-              className="w-full p-3 rounded-lg border bg-muted/30 font-mono text-sm h-96 resize-y overflow-auto"
-            />
-          </div>
-        )}
+        <TaskStatsDisplay stats={stats} />
 
-        {/* LLM Output */}
-        <div>
-          <label className="block text-sm font-medium mb-2">LLM Output</label>
-          <textarea
-            readOnly
-            value={output}
-            placeholder="Output will appear here..."
-            className="w-full p-3 rounded-lg border bg-card font-mono text-sm h-96 resize-y overflow-auto"
-          />
-        </div>
+        {/* Thinking + LLM Output */}
+        <TaskOutputDisplay thinking={thinking} output={output} />
       </div>
     </div>
   );
@@ -852,45 +709,11 @@ const ContextModeInputs: React.FC<ContextModeInputsProps> = ({
 }) => {
   const [selectedTab, setSelectedTab] = useState<ContextModeTab>('system');
 
-  // Color cycle for context tabs
-  const contextColors = [
-    {
-      panelBg: 'bg-cyan-500/5',
-      panelBorder: 'border-cyan-500/50',
-    },
-    {
-      panelBg: 'bg-green-500/5',
-      panelBorder: 'border-green-500/50',
-    },
-    {
-      panelBg: 'bg-purple-500/5',
-      panelBorder: 'border-purple-500/50',
-    },
-    {
-      panelBg: 'bg-amber-500/5',
-      panelBorder: 'border-amber-500/50',
-    },
-    {
-      panelBg: 'bg-pink-500/5',
-      panelBorder: 'border-pink-500/50',
-    },
-    {
-      panelBg: 'bg-blue-500/5',
-      panelBorder: 'border-blue-500/50',
-    },
-  ];
-
-  // System tab config
-  const systemTabConfig = {
-    panelBg: 'bg-slate-500/5',
-    panelBorder: 'border-slate-500/50',
-  };
-
   // Get current panel config
   const currentPanelConfig =
     selectedTab === 'system'
-      ? systemTabConfig
-      : contextColors[(selectedTab as number) % contextColors.length];
+      ? systemTabColor
+      : contextFieldColors[(selectedTab as number) % contextFieldColors.length];
 
   // Handle adding new context and selecting it
   const handleAddContext = () => {
@@ -936,8 +759,8 @@ const ContextModeInputs: React.FC<ContextModeInputsProps> = ({
               ? cn(
                   'text-foreground z-[2]',
                   'shadow-[0_-2px_4px_rgba(0,0,0,0.05)]',
-                  systemTabConfig.panelBorder,
-                  systemTabConfig.panelBg
+                  systemTabColor.panelBorder,
+                  systemTabColor.panelBg
                 )
               : 'bg-muted-foreground/10 text-muted-foreground border-border hover:bg-muted-foreground/20 hover:text-foreground'
           )}
@@ -952,7 +775,8 @@ const ContextModeInputs: React.FC<ContextModeInputsProps> = ({
         {/* Context Tabs */}
         {contexts.map((ctx, index) => {
           const isSelected = selectedTab === index;
-          const colorConfig = contextColors[index % contextColors.length];
+          const colorConfig =
+            contextFieldColors[index % contextFieldColors.length];
           return (
             <button
               key={index}
@@ -1113,27 +937,11 @@ const ConversationModeInputs: React.FC<ConversationModeInputsProps> = ({
   moveMessage,
   insertThinkTag,
 }) => {
-  // Role-based colors for tabs and panels
-  const roleConfig = {
-    system: {
-      panelBg: 'bg-blue-500/5',
-      panelBorder: 'border-blue-500/50',
-    },
-    user: {
-      panelBg: 'bg-green-500/5',
-      panelBorder: 'border-green-500/50',
-    },
-    assistant: {
-      panelBg: 'bg-purple-500/5',
-      panelBorder: 'border-purple-500/50',
-    },
-  };
-
   // Get selected message and its config
   const selectedMsg = messages.find((m) => m.id === selectedMessageId);
   const currentPanelConfig = selectedMsg
-    ? roleConfig[selectedMsg.message.role]
-    : roleConfig.system;
+    ? conversationRoleColors[selectedMsg.message.role]
+    : conversationRoleColors.system;
 
   return (
     <div>
@@ -1144,7 +952,7 @@ const ConversationModeInputs: React.FC<ConversationModeInputsProps> = ({
         {/* Message Tabs */}
         {messages.map((msg, index) => {
           const isSelected = selectedMessageId === msg.id;
-          const colorConfig = roleConfig[msg.message.role];
+          const colorConfig = conversationRoleColors[msg.message.role];
           return (
             <button
               key={msg.id}

@@ -64,6 +64,28 @@ export interface RunTaskOptions {
 }
 
 /**
+ * Timing stats from LLM streaming
+ */
+export interface TaskTiming {
+  /** Time to first token (any content) in ms */
+  ttft: number | null;
+  /** Time to first thinking token in ms */
+  ttFirstThinking: number | null;
+  /** Time to first document token in ms */
+  ttFirstDocument: number | null;
+}
+
+/**
+ * Token usage stats from LLM
+ */
+export interface TaskUsage {
+  /** Number of prompt tokens */
+  promptTokens: number | null;
+  /** Number of completion tokens */
+  completionTokens: number | null;
+}
+
+/**
  * Result from running an LLM task
  */
 export interface TaskResult {
@@ -78,6 +100,12 @@ export interface TaskResult {
 
   /** Whether the task was cancelled */
   cancelled: boolean;
+
+  /** Timing stats */
+  timing: TaskTiming;
+
+  /** Token usage stats */
+  usage: TaskUsage;
 }
 
 // =============================================================================
@@ -219,6 +247,15 @@ export async function runTask(options: RunTaskOptions): Promise<TaskResult> {
         thinking: '',
         finishReason: 'cancelled',
         cancelled: true,
+        timing: {
+          ttft: null,
+          ttFirstThinking: null,
+          ttFirstDocument: null,
+        },
+        usage: {
+          promptTokens: null,
+          completionTokens: null,
+        },
       };
     }
     signal.addEventListener(
@@ -247,6 +284,8 @@ export async function runTask(options: RunTaskOptions): Promise<TaskResult> {
     thinking: result.thinkingContent,
     finishReason: result.finishReason,
     cancelled: result.cancelled,
+    timing: result.timing,
+    usage: result.usage,
   };
 }
 

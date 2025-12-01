@@ -19,8 +19,16 @@ export interface ParseResult {
 }
 
 export interface RunStats {
+  /** Total duration in ms */
   duration: number;
-  charCount: number;
+  /** Time to first token in ms */
+  ttft: number | null;
+  /** Time to first document token in ms (after thinking) */
+  ttFirstDocument: number | null;
+  /** Number of prompt tokens (from API) */
+  promptTokens: number | null;
+  /** Number of completion tokens (from API) */
+  completionTokens: number | null;
 }
 
 export interface SynthesisContext {

@@ -112,6 +112,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
   // Refs
   const abortControllerRef = useRef<AbortController | null>(null);
   const stopKeepaliveRef = useRef<(() => void) | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -173,6 +174,55 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
     setTemperature(preset.temperature);
     setMaxTokens(preset.maxTokens);
   }, []);
+
+  // =============================================================================
+  // IMPORT / EXPORT
+  // =============================================================================
+
+  const handleExport = useCallback(() => {
+    const config = {
+      systemPrompt,
+      contexts,
+      temperature,
+      maxTokens,
+    };
+    const blob = new Blob([JSON.stringify(config, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `playground-config-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [systemPrompt, contexts, temperature, maxTokens]);
+
+  const handleImport = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const config = JSON.parse(e.target?.result as string);
+          if (config.systemPrompt !== undefined)
+            setSystemPrompt(config.systemPrompt);
+          if (Array.isArray(config.contexts)) setContexts(config.contexts);
+          if (typeof config.temperature === 'number')
+            setTemperature(config.temperature);
+          if (typeof config.maxTokens === 'number')
+            setMaxTokens(config.maxTokens);
+        } catch {
+          setError('Failed to parse config file');
+        }
+      };
+      reader.readAsText(file);
+      // Reset input so same file can be imported again
+      event.target.value = '';
+    },
+    []
+  );
 
   // =============================================================================
   // RUN TASK
@@ -241,7 +291,10 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
 
       setStats({
         duration,
-        charCount: result.content.length,
+        ttft: result.timing.ttft,
+        ttFirstDocument: result.timing.ttFirstDocument,
+        promptTokens: result.usage.promptTokens,
+        completionTokens: result.usage.completionTokens,
       });
 
       if (result.cancelled) {
@@ -307,6 +360,23 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
               </option>
             ))}
           </select>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleImport}
+            className="hidden"
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Import
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleExport}>
+            Export
+          </Button>
         </div>
 
         {/* System Prompt */}
@@ -460,23 +530,48 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
         )}
 
         {/* Stats */}
-        {stats && (
-          <div className="p-3 rounded-lg border bg-card">
-            <div className="flex gap-6 text-sm">
+        <div className="p-3 rounded-lg border bg-card min-h-11">
+          {stats ? (
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
               <div>
                 <span className="text-muted-foreground">Duration:</span>{' '}
                 <span className="font-mono">
                   {(stats.duration / 1000).toFixed(2)}s
                 </span>
               </div>
-              <div>
-                <span className="text-muted-foreground">Output:</span>{' '}
-                <span className="font-mono">{stats.charCount} chars</span>
-              </div>
+              {stats.ttft !== null && (
+                <div>
+                  <span className="text-muted-foreground">TTFT:</span>{' '}
+                  <span className="font-mono">
+                    {(stats.ttft / 1000).toFixed(2)}s
+                  </span>
+                </div>
+              )}
+              {stats.ttFirstDocument !== null && (
+                <div>
+                  <span className="text-muted-foreground">First output:</span>{' '}
+                  <span className="font-mono">
+                    {(stats.ttFirstDocument / 1000).toFixed(2)}s
+                  </span>
+                </div>
+              )}
+              {(stats.promptTokens !== null ||
+                stats.completionTokens !== null) && (
+                <div>
+                  <span className="text-muted-foreground">Tokens:</span>{' '}
+                  <span className="font-mono">
+                    {stats.promptTokens ?? '?'} in →{' '}
+                    {stats.completionTokens ?? '?'} out
+                  </span>
+                </div>
+              )}
             </div>
-          </div>
-        )}
-
+          ) : (
+            <div className="text-sm text-muted-foreground italic">
+              Stats will appear here after running...
+            </div>
+          )}
+        </div>
         {/* Thinking Output (if any) */}
         {thinking && (
           <div>
@@ -484,7 +579,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
             <textarea
               readOnly
               value={thinking}
-              className="w-full p-3 rounded-lg border bg-muted/30 font-mono text-sm h-64 resize-y overflow-auto"
+              className="w-full p-3 rounded-lg border bg-muted/30 font-mono text-sm h-96 resize-y overflow-auto"
             />
           </div>
         )}
@@ -496,7 +591,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
             readOnly
             value={output}
             placeholder="Output will appear here..."
-            className="w-full p-3 rounded-lg border bg-card font-mono text-sm h-64 resize-y overflow-auto"
+            className="w-full p-3 rounded-lg border bg-card font-mono text-sm h-96 resize-y overflow-auto"
           />
         </div>
       </div>

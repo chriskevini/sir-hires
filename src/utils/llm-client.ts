@@ -24,11 +24,29 @@ interface StreamCompletionOptions {
   onDocumentUpdate?: ((delta: string) => void) | null;
 }
 
+interface StreamCompletionTiming {
+  /** Time to first token (any content) in ms */
+  ttft: number | null;
+  /** Time to first thinking token in ms */
+  ttFirstThinking: number | null;
+  /** Time to first document token in ms */
+  ttFirstDocument: number | null;
+}
+
+interface StreamCompletionUsage {
+  /** Number of prompt tokens (from API) */
+  promptTokens: number | null;
+  /** Number of completion tokens (from API) */
+  completionTokens: number | null;
+}
+
 interface StreamCompletionResult {
   thinkingContent: string;
   documentContent: string;
   finishReason: string | null;
   cancelled: boolean;
+  timing: StreamCompletionTiming;
+  usage: StreamCompletionUsage;
 }
 
 /**
@@ -172,6 +190,7 @@ export class LLMClient {
           max_tokens: maxTokens,
           temperature: temperature,
           stream: true, // Enable streaming
+          stream_options: { include_usage: true }, // Request token usage stats
         }),
         signal: abortController.signal, // Enable cancellation
       });
@@ -248,6 +267,16 @@ export class LLMClient {
       let documentContent = '';
       let finishReason = null;
 
+      // Timing tracking
+      const startTime = Date.now();
+      let ttft: number | null = null;
+      let ttFirstThinking: number | null = null;
+      let ttFirstDocument: number | null = null;
+
+      // Usage tracking (from API response)
+      let promptTokens: number | null = null;
+      let completionTokens: number | null = null;
+
       // Helper to flush buffer as document content
       const flushBufferAsDocument = () => {
         if (buffer) {
@@ -311,11 +340,22 @@ export class LLMClient {
               const jsonStr = line.slice(6); // Remove "data: " prefix
               const data = JSON.parse(jsonStr);
 
+              // Check for usage stats (comes in final chunk with stream_options.include_usage)
+              if (data.usage) {
+                promptTokens = data.usage.prompt_tokens ?? null;
+                completionTokens = data.usage.completion_tokens ?? null;
+              }
+
               const delta = data.choices?.[0]?.delta?.content || '';
               if (!delta) {
                 // Check for finish reason
                 finishReason = data.choices?.[0]?.finish_reason || finishReason;
                 continue;
+              }
+
+              // Track time to first token
+              if (ttft === null) {
+                ttft = Date.now() - startTime;
               }
 
               if (state === 'DETECTING') {
@@ -328,6 +368,10 @@ export class LLMClient {
                 if (openingMatch) {
                   console.info('[LLMClient] Detected thinking mode');
                   state = 'IN_THINKING';
+                  // Track time to first thinking
+                  if (ttFirstThinking === null) {
+                    ttFirstThinking = Date.now() - startTime;
+                  }
                   // Strip everything up to and including the opening tag
                   buffer = buffer.slice(
                     openingMatch.index! + openingMatch[0].length
@@ -340,6 +384,10 @@ export class LLMClient {
                     '[LLMClient] Detected standard mode (no thinking tags)'
                   );
                   state = 'IN_DOCUMENT';
+                  // Track time to first document
+                  if (ttFirstDocument === null) {
+                    ttFirstDocument = Date.now() - startTime;
+                  }
                   flushBufferAsDocument();
                 }
                 // Otherwise keep buffering in DETECTING state
@@ -370,6 +418,10 @@ export class LLMClient {
                     '[LLMClient] Thinking block complete, switching to document mode'
                   );
                   state = 'IN_DOCUMENT';
+                  // Track time to first document
+                  if (ttFirstDocument === null) {
+                    ttFirstDocument = Date.now() - startTime;
+                  }
                   buffer = '';
 
                   // Stream any content after closing tag
@@ -445,6 +497,15 @@ export class LLMClient {
         documentContent: documentContent.trim(),
         finishReason: finishReason,
         cancelled: false,
+        timing: {
+          ttft,
+          ttFirstThinking,
+          ttFirstDocument,
+        },
+        usage: {
+          promptTokens,
+          completionTokens,
+        },
       };
     } catch (error) {
       // Handle abortion/cancellation
@@ -455,6 +516,15 @@ export class LLMClient {
           documentContent: '',
           finishReason: 'cancelled',
           cancelled: true,
+          timing: {
+            ttft: null,
+            ttFirstThinking: null,
+            ttFirstDocument: null,
+          },
+          usage: {
+            promptTokens: null,
+            completionTokens: null,
+          },
         };
       }
       throw error;

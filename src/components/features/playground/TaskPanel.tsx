@@ -175,7 +175,10 @@ export const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
 
         setStats({
           duration,
-          charCount: result.content.length,
+          ttft: result.timing.ttft,
+          ttFirstDocument: result.timing.ttFirstDocument,
+          promptTokens: result.usage.promptTokens,
+          completionTokens: result.usage.completionTokens,
         });
 
         // Run parser if available with task-specific validation
@@ -372,23 +375,48 @@ export const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
           )}
 
           {/* Stats */}
-          {stats && (
-            <div className="p-3 rounded-lg border bg-card">
-              <div className="flex gap-6 text-sm">
+          <div className="p-3 rounded-lg border bg-card min-h-11">
+            {stats ? (
+              <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
                 <div>
                   <span className="text-muted-foreground">Duration:</span>{' '}
                   <span className="font-mono">
                     {(stats.duration / 1000).toFixed(2)}s
                   </span>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Output:</span>{' '}
-                  <span className="font-mono">{stats.charCount} chars</span>
-                </div>
+                {stats.ttft !== null && (
+                  <div>
+                    <span className="text-muted-foreground">TTFT:</span>{' '}
+                    <span className="font-mono">
+                      {(stats.ttft / 1000).toFixed(2)}s
+                    </span>
+                  </div>
+                )}
+                {stats.ttFirstDocument !== null && (
+                  <div>
+                    <span className="text-muted-foreground">First output:</span>{' '}
+                    <span className="font-mono">
+                      {(stats.ttFirstDocument / 1000).toFixed(2)}s
+                    </span>
+                  </div>
+                )}
+                {(stats.promptTokens !== null ||
+                  stats.completionTokens !== null) && (
+                  <div>
+                    <span className="text-muted-foreground">Tokens:</span>{' '}
+                    <span className="font-mono">
+                      {stats.promptTokens ?? '?'} in →{' '}
+                      {stats.completionTokens ?? '?'} out
+                    </span>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
-
+            ) : (
+              <div className="text-sm text-muted-foreground italic">
+                Stats will appear here after running...
+              </div>
+            )}
+          </div>
           {/* Thinking Output (if any) */}
           {thinking && (
             <div>
@@ -396,7 +424,7 @@ export const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
               <textarea
                 readOnly
                 value={thinking}
-                className="w-full p-3 rounded-lg border bg-muted/30 font-mono text-sm h-64 resize-y overflow-auto"
+                className="w-full p-3 rounded-lg border bg-muted/30 font-mono text-sm h-96 resize-y overflow-auto"
               />
             </div>
           )}
@@ -408,7 +436,7 @@ export const TaskPanel = forwardRef<TaskPanelHandle, TaskPanelProps>(
               readOnly
               value={output}
               placeholder="Output will appear here..."
-              className="w-full p-3 rounded-lg border bg-card font-mono text-sm h-64 resize-y overflow-auto"
+              className="w-full p-3 rounded-lg border bg-card font-mono text-sm h-96 resize-y overflow-auto"
             />
           </div>
 

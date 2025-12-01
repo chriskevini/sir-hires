@@ -47,3 +47,19 @@ export interface ContextField {
   name: string; // XML tag name (e.g., "input", "examples")
   content: string; // The actual content
 }
+
+/**
+ * A message in conversation mode
+ * Used for full control over the message sequence sent to the LLM
+ */
+export interface ConversationMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+/**
+ * Playground input mode
+ * - context: System prompt + context fields (ergonomic for most tasks)
+ * - conversation: Raw message list (full control, supports assistant prefill)
+ */
+export type PlaygroundMode = 'context' | 'conversation';

@@ -2,11 +2,13 @@
 // Validates parsed MarkdownDB Profile Template against schema rules
 // Philosophy: Validate structure, celebrate creativity
 //
-// New format (v2):
-// - ### SECTION for section headers
-// - # Item Title for items within sections
+// New unified format:
+// - # SECTION for section headers
+// - ## Item Title for items within sections
 // - Only NAME is required - everything else optional
 // - Custom sections/fields are encouraged
+//
+// Backward compatible with old format (### SECTION, # Item)
 
 import type { ParsedProfile } from './profile-parser';
 import type { BaseValidationResult, ValidationFix } from './validation-types';

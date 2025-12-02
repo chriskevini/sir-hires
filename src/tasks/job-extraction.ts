@@ -20,36 +20,42 @@ import type { TaskConfig } from './types';
 /**
  * Standard job template showing all available fields with examples
  * SINGLE SOURCE OF TRUTH for MarkdownDB job schema
+ *
+ * Format:
+ * - <JOB> wrapper
+ * - KEY: value for top-level fields
+ * - # SECTION NAME for sections (spaces, not underscores)
+ * - - bullet for list items
  */
 export const JOB_TEMPLATE = `<JOB>
 TITLE: Senior Cloud Infrastructure Engineer // required
 COMPANY: Stellar Innovations Inc. // required
 ADDRESS: San Francisco, CA
-REMOTE_TYPE: HYBRID // [ONSITE|REMOTE|HYBRID]
-SALARY_RANGE_MIN: 100,000
-SALARY_RANGE_MAX: 150,000
-PAY_PERIOD: ANNUAL // [HOURLY|ANNUAL|MONTHLY|WEEKLY|BIWEEKLY|SEMIMONTHLY]
-EMPLOYMENT_TYPE: FULL-TIME // [FULL-TIME|PART-TIME|CONTRACT|INTERNSHIP]
-EXPERIENCE_LEVEL: SENIOR // [ENTRY|MID|SENIOR|LEAD]
-POSTED_DATE: 2025-11-15
-CLOSING_DATE: 2025-12-31
+REMOTE TYPE: HYBRID // [ONSITE|REMOTE|HYBRID]
+SALARY RANGE MIN: 100,000
+SALARY RANGE MAX: 150,000
+PAY PERIOD: ANNUAL // [HOURLY|ANNUAL|MONTHLY|WEEKLY|BIWEEKLY|SEMIMONTHLY]
+EMPLOYMENT TYPE: FULL-TIME // [FULL-TIME|PART-TIME|CONTRACT|INTERNSHIP]
+EXPERIENCE LEVEL: SENIOR // [ENTRY|MID|SENIOR|LEAD]
+POSTED DATE: 2025-11-15
+CLOSING DATE: 2025-12-31
 
 # DESCRIPTION
 - Design, implement, and maintain scalable cloud infrastructure on AWS/Azure.
 - Develop and manage CI/CD pipelines using GitLab or Jenkins.
 - Provide subject matter expertise on security, reliability, and cost optimization.
 
-# REQUIRED_SKILLS // required
+# REQUIRED SKILLS // required
 - 7+ years of experience in DevOps or SRE roles.
 - Expert-level proficiency with Terraform and Kubernetes.
 - Strong knowledge of Python or Go for scripting.
 
-# PREFERRED_SKILLS
+# PREFERRED SKILLS
 - Experience with FinOps principles and tooling.
 - AWS Certified DevOps Engineer - Professional.
 - Background in the FinTech industry.
 
-# ABOUT_COMPANY
+# ABOUT COMPANY
 - Stellar Innovations is a high-growth Series C FinTech startup based in the Bay Area.
 - **Culture:** We emphasize radical ownership, transparency, and continuous learning.
 - **Team Structure:** Teams are cross-functional, highly autonomous, and empowered to make core product decisions.
@@ -74,16 +80,17 @@ You are an expert Data Extraction Engine. Parse unstructured job descriptions in
 1. **Missing Fields:** Output "UNKNOWN" for missing key-value fields.
 2. **Missing Lists:** Omit empty list sections entirely (no header, no "UNKNOWN").
 3. **Dates:** YYYY-MM-DD format. Assume 2025 if year not specified.
-4. **Salary:** Numbers only (no symbols). Set PAY_PERIOD to HOURLY or ANNUAL.
+4. **Salary:** Numbers only (no symbols). Set PAY PERIOD to HOURLY or ANNUAL.
 5. **Location:** Expand abbreviations (e.g., "NYC" -> "New York, NY").
 6. **Lists:** Format as bullet points.
+7. **Section Names:** Use spaces, not underscores (e.g., "# REQUIRED SKILLS" not "# REQUIRED_SKILLS").
 
 ### ENUMERATIONS (STRICT)
-* REMOTE_TYPE: [ONSITE | REMOTE | HYBRID]. Default: ONSITE.
-* EMPLOYMENT_TYPE: [FULL-TIME | PART-TIME | CONTRACT | INTERNSHIP]. Default: FULL-TIME.
+* REMOTE TYPE: [ONSITE | REMOTE | HYBRID]. Default: ONSITE.
+* EMPLOYMENT TYPE: [FULL-TIME | PART-TIME | CONTRACT | INTERNSHIP]. Default: FULL-TIME.
   - "Intern", "Co-op", "Student Position" -> INTERNSHIP
   - "Freelance", "C2C" -> CONTRACT
-* EXPERIENCE_LEVEL: [ENTRY | MID | SENIOR | LEAD].
+* EXPERIENCE LEVEL: [ENTRY | MID | SENIOR | LEAD].
   - 0-2 years -> ENTRY, 3-5 -> MID, 5-8 -> SENIOR, 8+ -> LEAD
 
 ### EXAMPLES
@@ -95,19 +102,19 @@ You are an expert Data Extraction Engine. Parse unstructured job descriptions in
 TITLE: Junior Web Developer
 COMPANY: TechStart
 ADDRESS: N/A
-REMOTE_TYPE: REMOTE
-SALARY_RANGE_MIN: 60,000
-SALARY_RANGE_MAX: 80,000
-PAY_PERIOD: ANNUAL
-EMPLOYMENT_TYPE: FULL-TIME
-EXPERIENCE_LEVEL: ENTRY
-POSTED_DATE: N/A
-CLOSING_DATE: 2025-12-01
+REMOTE TYPE: REMOTE
+SALARY RANGE MIN: 60,000
+SALARY RANGE MAX: 80,000
+PAY PERIOD: ANNUAL
+EMPLOYMENT TYPE: FULL-TIME
+EXPERIENCE LEVEL: ENTRY
+POSTED DATE: N/A
+CLOSING DATE: 2025-12-01
 
 # DESCRIPTION
 - Develop web applications using React and HTML.
 
-# REQUIRED_SKILLS
+# REQUIRED SKILLS
 - React
 - HTML
 
@@ -118,18 +125,18 @@ CLOSING_DATE: 2025-12-01
 TITLE: Principal Architect
 COMPANY: UNKNOWN
 ADDRESS: New York City, NY
-REMOTE_TYPE: ONSITE
-SALARY_RANGE_MIN: N/A
-SALARY_RANGE_MAX: N/A
-EMPLOYMENT_TYPE: CONTRACT
-EXPERIENCE_LEVEL: LEAD
-POSTED_DATE: N/A
-CLOSING_DATE: N/A
+REMOTE TYPE: ONSITE
+SALARY RANGE MIN: N/A
+SALARY RANGE MAX: N/A
+EMPLOYMENT TYPE: CONTRACT
+EXPERIENCE LEVEL: LEAD
+POSTED DATE: N/A
+CLOSING DATE: N/A
 
 # DESCRIPTION
 - Lead architectural design for complex systems.
 
-# REQUIRED_SKILLS
+# REQUIRED SKILLS
 - 10+ years experience
 - System Architecture
 
@@ -140,22 +147,22 @@ CLOSING_DATE: N/A
 TITLE: Marketing Manager
 COMPANY: Acme Corp
 ADDRESS: San Francisco, CA
-REMOTE_TYPE: HYBRID
-SALARY_RANGE_MIN: 120,000
-SALARY_RANGE_MAX: 120,000
-PAY_PERIOD: ANNUAL
-EMPLOYMENT_TYPE: FULL-TIME
-EXPERIENCE_LEVEL: MID
-POSTED_DATE: N/A
-CLOSING_DATE: N/A
+REMOTE TYPE: HYBRID
+SALARY RANGE MIN: 120,000
+SALARY RANGE MAX: 120,000
+PAY PERIOD: ANNUAL
+EMPLOYMENT TYPE: FULL-TIME
+EXPERIENCE LEVEL: MID
+POSTED DATE: N/A
+CLOSING DATE: N/A
 
 # DESCRIPTION
 - Manage marketing campaigns and strategy.
 
-# REQUIRED_SKILLS
+# REQUIRED SKILLS
 - Marketing Strategy
 
-# ABOUT_COMPANY
+# ABOUT COMPANY
 - Offers great benefits.
 
 Output ONLY the <JOB> data block. No conversational text.

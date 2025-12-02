@@ -1,38 +1,71 @@
 // Profile Template Parser
-// Parses MarkdownDB Profile Template format into structured data
+// Thin wrapper around unified template parser for profile-specific functionality
 //
-// New format (v2):
-// - ### SECTION for section headers
-// - # Item Title for items within sections
-// - No entry IDs - items identified by title
-// - Bullets directly under items (no BULLETS: label)
+// New unified format:
+// - <PROFILE> wrapper
+// - KEY: value for top-level fields (NAME, EMAIL, etc.)
+// - # SECTION for section headers (EDUCATION, PROFESSIONAL EXPERIENCE, etc.)
+// - ## Item Title for items within sections
+// - KEY: value for fields within items (DATES, LOCATION, etc.)
+// - - bullet for achievements/responsibilities
+// - Plain text for freeform content (SUMMARY, OBJECTIVE, etc.)
+//
+// Backward compatibility:
+// - Supports old format (### SECTION, # Item) for existing templates
+
+import {
+  parseTemplate,
+  getSection,
+  getSectionItems,
+  getSectionList,
+  getSectionText,
+  isSectionEmpty,
+  type ParsedTemplate,
+  type TemplateSection,
+  type TemplateItem,
+} from './template-parser';
+
+// Re-export types with profile-specific names for convenience
+export type ProfileItem = TemplateItem;
+export type ProfileSection = TemplateSection;
+export type ParsedProfile = ParsedTemplate;
 
 /**
- * Parsed item within a section
+ * Normalize content from old format (### section, # item) to new format (# section, ## item)
+ * This provides backward compatibility with existing profile templates
  */
-interface ProfileItem {
-  title: string;
-  fields: Record<string, string>;
-  bullets: string[];
-}
-
-/**
- * Parsed section containing items or a simple list
- */
-interface ProfileSection {
-  items: ProfileItem[];
-  list: string[]; // For simple list sections (INTERESTS, SKILLS)
-  text: string[]; // Plain text lines (for SUMMARY, OBJECTIVE, etc.)
-}
-
-/**
- * Parsed profile data structure
- */
-interface ParsedProfile {
-  type: string | null;
-  topLevelFields: Record<string, string>;
-  sections: Record<string, ProfileSection>;
-  raw: string;
+function normalizeProfileFormat(content: string): string {
+  // If content uses old format (### for sections), convert it
+  if (content.includes('### ')) {
+    return (
+      content
+        // Convert ### SECTION to # SECTION (must do this first)
+        .replace(/^### /gm, '# ')
+        // Convert # Item Title to ## Item Title (only for lines that aren't sections)
+        // We need to be careful here - after the above replacement, we need to identify items
+        // Items are lines starting with # that are NOT uppercase section names
+        .split('\n')
+        .map((line) => {
+          const trimmed = line.trim();
+          // Check if this is a # line that's NOT a section (i.e., it's an item title)
+          // Sections are typically ALL CAPS or Title Case with spaces
+          // Items are typically mixed case like "Senior Engineer at Acme Corp"
+          if (trimmed.startsWith('# ')) {
+            const afterHash = trimmed.slice(2).trim();
+            // If it looks like a section name (ALL CAPS with possible spaces), keep as #
+            // Otherwise, convert to ## for item
+            if (afterHash.match(/^[A-Z][A-Z ]+$/)) {
+              return line; // Keep as section
+            } else {
+              return line.replace(/^(\s*)# /, '$1## '); // Convert to item
+            }
+          }
+          return line;
+        })
+        .join('\n')
+    );
+  }
+  return content;
 }
 
 /**
@@ -41,132 +74,9 @@ interface ParsedProfile {
  * @returns Parsed profile data
  */
 function parseProfileTemplate(content: string): ParsedProfile {
-  if (!content || typeof content !== 'string') {
-    return {
-      type: null,
-      topLevelFields: {},
-      sections: {},
-      raw: content || '',
-    };
-  }
-
-  const lines = content.split('\n');
-  const result: ParsedProfile = {
-    type: null,
-    topLevelFields: {},
-    sections: {},
-    raw: content,
-  };
-
-  let currentSection: string | null = null;
-  let currentItem: ProfileItem | null = null;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmedLine = line.trim();
-
-    // Skip empty lines and comments
-    if (!trimmedLine || trimmedLine.startsWith('//')) {
-      continue;
-    }
-
-    // Skip closing tags (</PROFILE>, etc.)
-    if (trimmedLine.match(/^<\/\w+>$/)) {
-      continue;
-    }
-
-    // Check for <PROFILE> type declaration
-    const typeMatch = trimmedLine.match(/^<(\w+)>$/);
-    if (typeMatch) {
-      result.type = typeMatch[1];
-      continue;
-    }
-
-    // Check for section header (### SECTION_NAME)
-    // Matches: ### EDUCATION, ### PROFESSIONAL EXPERIENCE, etc.
-    const sectionMatch = trimmedLine.match(/^###\s+(.+?)(?:\s*\/\/.*)?$/);
-    if (sectionMatch) {
-      const sectionName = sectionMatch[1].trim().toUpperCase();
-      currentSection = sectionName;
-      currentItem = null;
-      result.sections[currentSection] = {
-        items: [],
-        list: [],
-        text: [],
-      };
-      continue;
-    }
-
-    // Check for item header (# Item Title)
-    // Must be within a section
-    const itemMatch = trimmedLine.match(/^#\s+(.+?)(?:\s*\/\/.*)?$/);
-    if (itemMatch && currentSection) {
-      const itemTitle = itemMatch[1].trim();
-      currentItem = {
-        title: itemTitle,
-        fields: {},
-        bullets: [],
-      };
-      result.sections[currentSection].items.push(currentItem);
-      continue;
-    }
-
-    // Check for list item (- item)
-    const listMatch = trimmedLine.match(/^-\s+(.+)$/);
-    if (listMatch) {
-      const itemValue = listMatch[1];
-
-      if (currentItem) {
-        // Bullet within an item
-        currentItem.bullets.push(itemValue);
-      } else if (currentSection) {
-        // Simple list item within section (e.g., INTERESTS, SKILLS)
-        result.sections[currentSection].list.push(itemValue);
-      }
-      continue;
-    }
-
-    // Check for key-value pair (KEY: value)
-    const kvMatch = trimmedLine.match(/^([A-Z_]+):\s*(.*)$/);
-    if (kvMatch) {
-      const key = kvMatch[1];
-      let value = kvMatch[2].trim();
-
-      // Remove inline comments (// comment)
-      if (value.includes('//')) {
-        value = value.split('//')[0].trim();
-      }
-
-      if (currentItem) {
-        // Field within an item
-        currentItem.fields[key] = value;
-      } else if (currentSection) {
-        // Field within a section but not an item (unusual but supported)
-        // Create an anonymous item to hold it
-        if (result.sections[currentSection].items.length === 0) {
-          currentItem = { title: '', fields: {}, bullets: [] };
-          result.sections[currentSection].items.push(currentItem);
-        }
-        currentItem =
-          result.sections[currentSection].items[
-            result.sections[currentSection].items.length - 1
-          ];
-        currentItem.fields[key] = value;
-      } else {
-        // Top-level field
-        result.topLevelFields[key] = value;
-      }
-      continue;
-    }
-
-    // Unmatched line within a section (not in an item) - capture as text
-    // This supports SUMMARY, OBJECTIVE, and other freeform text sections
-    if (currentSection && !currentItem) {
-      result.sections[currentSection].text.push(trimmedLine);
-    }
-  }
-
-  return result;
+  // Normalize old format to new format before parsing
+  const normalizedContent = normalizeProfileFormat(content);
+  return parseTemplate(normalizedContent);
 }
 
 /**
@@ -175,7 +85,7 @@ function parseProfileTemplate(content: string): ParsedProfile {
  * @returns Array of education items
  */
 function extractEducation(parsedProfile: ParsedProfile): ProfileItem[] {
-  return parsedProfile.sections.EDUCATION?.items || [];
+  return getSectionItems(parsedProfile, 'EDUCATION');
 }
 
 /**
@@ -196,11 +106,9 @@ function extractExperience(
   ];
 
   for (const { key, type } of experienceSections) {
-    const section = parsedProfile.sections[key];
-    if (section?.items) {
-      for (const item of section.items) {
-        result.push({ ...item, type });
-      }
+    const items = getSectionItems(parsedProfile, key);
+    for (const item of items) {
+      result.push({ ...item, type });
     }
   }
 
@@ -213,7 +121,7 @@ function extractExperience(
  * @returns Array of interest strings
  */
 function extractInterests(parsedProfile: ParsedProfile): string[] {
-  return parsedProfile.sections.INTERESTS?.list || [];
+  return getSectionList(parsedProfile, 'INTERESTS');
 }
 
 /**
@@ -222,7 +130,16 @@ function extractInterests(parsedProfile: ParsedProfile): string[] {
  * @returns Array of skill strings
  */
 function extractSkills(parsedProfile: ParsedProfile): string[] {
-  return parsedProfile.sections.SKILLS?.list || [];
+  return getSectionList(parsedProfile, 'SKILLS');
+}
+
+/**
+ * Extract summary text from parsed profile
+ * @param parsedProfile - Result from parseProfileTemplate()
+ * @returns Summary as a single string (lines joined)
+ */
+function extractSummary(parsedProfile: ParsedProfile): string {
+  return getSectionText(parsedProfile, 'SUMMARY').join(' ');
 }
 
 /**
@@ -256,6 +173,34 @@ function getEmail(parsedProfile: ParsedProfile): string | null {
   return getTopLevelField(parsedProfile, 'EMAIL');
 }
 
+/**
+ * Get a specific section
+ * @param parsedProfile - Result from parseProfileTemplate()
+ * @param sectionName - Name of the section
+ * @returns Section data or null
+ */
+function getProfileSection(
+  parsedProfile: ParsedProfile,
+  sectionName: string
+): ProfileSection | null {
+  return getSection(parsedProfile, sectionName);
+}
+
+/**
+ * Check if a profile section is empty
+ * @param parsedProfile - Result from parseProfileTemplate()
+ * @param sectionName - Name of the section
+ * @returns true if section doesn't exist or is empty
+ */
+function isProfileSectionEmpty(
+  parsedProfile: ParsedProfile,
+  sectionName: string
+): boolean {
+  const section = getSection(parsedProfile, sectionName);
+  if (!section) return true;
+  return isSectionEmpty(section);
+}
+
 // Short aliases for convenience
 const parseProfile = parseProfileTemplate;
 
@@ -267,10 +212,10 @@ export {
   extractExperience,
   extractInterests,
   extractSkills,
+  extractSummary,
   getTopLevelField,
   getName,
   getEmail,
+  getProfileSection,
+  isProfileSectionEmpty,
 };
-
-// Type exports
-export type { ParsedProfile, ProfileSection, ProfileItem };

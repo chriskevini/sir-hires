@@ -20,6 +20,14 @@ import type { TaskConfig } from './types';
 /**
  * Standard profile template showing all available fields with examples
  * SINGLE SOURCE OF TRUTH for MarkdownDB profile schema
+ *
+ * Format:
+ * - <PROFILE> wrapper
+ * - KEY: value for top-level fields
+ * - # SECTION NAME for sections
+ * - ## Item Title for items within sections
+ * - KEY: value for fields within items
+ * - - bullet for achievements/responsibilities
  */
 export const PROFILE_TEMPLATE = `<PROFILE>
 NAME: Place Holder // required
@@ -27,41 +35,41 @@ ADDRESS: 123 Main Street, Anytown, CA 45678
 EMAIL: name@email.com
 // PHONE, WEBSITE, GITHUB
 
-### EDUCATION
+# EDUCATION
 
-# Master of Science in Computer Science
+## Master of Science in Computer Science
 SCHOOL: University of Helsinki
 LOCATION: Helsinki, Finland
 START: September 1988
 END: March 1997
 // GPA
 
-### PROFESSIONAL EXPERIENCE
+# PROFESSIONAL EXPERIENCE
 
-# Senior Developer
+## Senior Developer
 AT: Tech Solutions Inc.
 START: October 2020
 END: ONGOING
 - Built API...
 - Led team...
 
-### TECHNICAL PROJECT EXPERIENCE
+# TECHNICAL PROJECT EXPERIENCE
 
-# Linux Kernel
+## Linux Kernel
 - Architected kernel...
 - Integrated Rust...
 
-### VOLUNTEER
+# VOLUNTEER
 
-# Community Volunteer
+## Community Volunteer
 AT: Local Non-Profit
 - Supported educational...
 - Helped organize...
 
-### INTERESTS
+# INTERESTS
 - Scuba diving
 - Reading
-// ### CERTIFICATIONS
+// # CERTIFICATIONS
 `;
 
 // =============================================================================
@@ -80,8 +88,8 @@ You are an expert Resume Parser. Transform resumes into the MarkdownDB format sh
 
 ### RULES
 1. **Dates:** "Month Year" format. Use "ONGOING" for current positions.
-2. **Sections:** Use "### SECTION_NAME" for sections (EDUCATION, PROFESSIONAL EXPERIENCE, etc.)
-3. **Items:** Use "# Item Title" for each entry within a section.
+2. **Sections:** Use "# SECTION NAME" for sections (EDUCATION, PROFESSIONAL EXPERIENCE, etc.)
+3. **Items:** Use "## Item Title" for each entry within a section.
 4. **Lists:** Use "- bullet" directly under items. For simple lists (INTERESTS, SKILLS), bullets go directly under section.
 5. **Missing Data:** Omit fields with unknown values entirely.
 
@@ -107,28 +115,28 @@ NAME: Jordan Lee
 ADDRESS: SF, CA
 EMAIL: jordan@example.com
 
-### EDUCATION
+# EDUCATION
 
-# B.S. Computer Science
+## B.S. Computer Science
 SCHOOL: UC Berkeley
 START: 2012
 END: 2016
 
-### PROFESSIONAL EXPERIENCE
+# PROFESSIONAL EXPERIENCE
 
-# Engineer
+## Engineer
 AT: TechFlow
 START: January 2020
 END: ONGOING
 - Led migration.
 - Managed 5 devs.
 
-### TECHNICAL PROJECT EXPERIENCE
+# TECHNICAL PROJECT EXPERIENCE
 
-# CryptoTracker
+## CryptoTracker
 - Python script.
 
-### SKILLS
+# SKILLS
 - Python
 - React
 

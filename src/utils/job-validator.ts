@@ -32,28 +32,63 @@ interface JobSchema {
  * Validation schema for Job Template
  * Only validates REQUIRED fields - optional fields are never validated
  * This ensures schema can evolve without breaking validation
+ *
+ * Note: Section names use spaces (new format) but we also check underscore variants
+ * for backward compatibility
  */
 const JOB_SCHEMA: JobSchema = {
   // Top-level required fields (ONLY THESE ARE VALIDATED)
   topLevelRequired: ['TITLE', 'COMPANY'],
 
   // Standard sections (all are list-based)
+  // Using new format with spaces, but we check both formats in validation
   standardSections: {
-    REQUIRED_SKILLS: {
+    'REQUIRED SKILLS': {
       isList: true,
       required: true, // This section is required
     },
     DESCRIPTION: {
       isList: true,
     },
-    PREFERRED_SKILLS: {
+    'PREFERRED SKILLS': {
       isList: true,
     },
-    ABOUT_COMPANY: {
+    'ABOUT COMPANY': {
       isList: true,
     },
   },
 };
+
+/**
+ * Map of old section names (underscore) to new format (spaces)
+ * Used for backward compatibility
+ */
+const SECTION_NAME_ALIASES: Record<string, string> = {
+  REQUIRED_SKILLS: 'REQUIRED SKILLS',
+  PREFERRED_SKILLS: 'PREFERRED SKILLS',
+  ABOUT_COMPANY: 'ABOUT COMPANY',
+};
+
+/**
+ * Find a section by name, checking both new format and legacy underscore format
+ */
+function findSection(
+  sections: Record<string, { list: string[]; fields?: Record<string, string> }>,
+  sectionName: string
+): { list: string[]; fields?: Record<string, string> } | undefined {
+  // Check exact match first (new format)
+  if (sections[sectionName]) {
+    return sections[sectionName];
+  }
+
+  // Check underscore variant (legacy format)
+  const underscoreVariant = sectionName.replace(/ /g, '_');
+  if (sections[underscoreVariant]) {
+    return sections[underscoreVariant];
+  }
+
+  return undefined;
+}
 
 /**
  * Validate a parsed job template
@@ -174,19 +209,20 @@ function validateSections(
   const sections = parsedJob.sections || {};
   const sectionNames = Object.keys(sections);
 
-  // Check for required sections
+  // Check for required sections (using findSection for backward compatibility)
   Object.keys(JOB_SCHEMA.standardSections).forEach((sectionName) => {
     const schema = JOB_SCHEMA.standardSections[sectionName];
 
     if (schema.required) {
-      if (!sections[sectionName]) {
+      const section = findSection(sections, sectionName);
+      if (!section) {
         result.errors.push({
           type: 'missing_required_section',
           section: sectionName,
           message: `Required section "${sectionName}" is missing`,
         });
         result.valid = false;
-      } else if (sections[sectionName].list.length === 0) {
+      } else if (section.list.length === 0) {
         result.warnings.push({
           type: 'empty_section',
           section: sectionName,
@@ -202,10 +238,20 @@ function validateSections(
     }
   });
 
+  // Build list of all known section names (both formats)
+  const knownSectionNames = new Set<string>();
+  for (const name of Object.keys(JOB_SCHEMA.standardSections)) {
+    knownSectionNames.add(name);
+    knownSectionNames.add(name.replace(/ /g, '_')); // underscore variant
+  }
+
   // Validate each section
   sectionNames.forEach((sectionName) => {
     const section = sections[sectionName];
-    const schema = JOB_SCHEMA.standardSections[sectionName];
+
+    // Normalize section name (convert underscore to space for schema lookup)
+    const normalizedName = SECTION_NAME_ALIASES[sectionName] || sectionName;
+    const schema = JOB_SCHEMA.standardSections[normalizedName];
 
     if (!schema) {
       // Custom section - this is encouraged!

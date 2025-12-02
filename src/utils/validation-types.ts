@@ -15,6 +15,7 @@ export interface ValidationMessage {
   allowedValues?: string[];
   suggestedValue?: string; // For typo/case fix suggestions
   fields?: string[]; // Used by profile validator for field lists
+  fix?: ValidationFix | null; // Optional fix action for this message
 }
 
 /**

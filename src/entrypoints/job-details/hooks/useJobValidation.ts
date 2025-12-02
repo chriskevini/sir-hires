@@ -7,12 +7,14 @@ import { useState, useEffect } from 'react';
 import { parseJobTemplate } from '@/utils/job-parser';
 import { validateJobTemplate } from '@/utils/job-validator';
 import { useDebounce } from './useDebounce';
+import type { ValidationFix } from '@/utils/validation-types';
 
 interface ValidationResult {
   valid: boolean;
-  errors: Array<{ message: string }>;
-  warnings: Array<{ message: string }>;
+  errors: Array<{ message: string; fix?: ValidationFix | null }>;
+  warnings: Array<{ message: string; fix?: ValidationFix | null }>;
   info: Array<{ message: string }>;
+  fixes?: ValidationFix[];
 }
 
 interface UseJobValidationOptions {

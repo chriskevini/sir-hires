@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
+import { Button } from './Button';
+import type { ValidationFix } from '@/utils/validation-types';
 
 const streamingTextareaVariants = cva(
   'w-full p-4 font-mono text-sm leading-relaxed border rounded resize-none transition-all duration-200 focus:outline-none focus:ring-2',
@@ -26,6 +28,7 @@ export interface ValidationMessage {
   type: 'error' | 'warning' | 'info';
   message: string;
   field?: string;
+  fix?: ValidationFix | null;
 }
 
 export interface StreamingTextareaProps
@@ -39,6 +42,8 @@ export interface StreamingTextareaProps
   onChange?: (value: string) => void;
   /** Callback when validation should run */
   onValidate?: (content: string) => void;
+  /** Callback when a fix button is clicked */
+  onApplyFix?: (fix: ValidationFix) => void;
   /** Minimum height for the textarea */
   minHeight?: string;
 }
@@ -55,6 +60,7 @@ const StreamingTextarea = React.forwardRef<
       validationMessages,
       onChange,
       onValidate,
+      onApplyFix,
       onBlur,
       disabled,
       minHeight = '450px',
@@ -123,26 +129,48 @@ const StreamingTextarea = React.forwardRef<
         {(errors.length > 0 || warnings.length > 0) && (
           <div className="mt-2 space-y-1">
             {errors.map((err, i) => (
-              <p
+              <div
                 key={`error-${i}`}
-                className="text-sm text-destructive flex items-start gap-1.5"
+                className="text-sm text-destructive flex items-center gap-1.5"
               >
-                <span className="text-destructive mt-0.5">●</span>
+                <span className="text-destructive">●</span>
                 {err.field && <span className="font-medium">{err.field}:</span>}
-                {err.message}
-              </p>
+                <span>{err.message}</span>
+                {err.fix && onApplyFix && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={() => onApplyFix(err.fix!)}
+                    title={err.fix.description}
+                    className="h-auto py-0 px-1 text-destructive"
+                  >
+                    {err.fix.buttonLabel}
+                  </Button>
+                )}
+              </div>
             ))}
             {warnings.map((warn, i) => (
-              <p
+              <div
                 key={`warning-${i}`}
-                className="text-sm text-warning flex items-start gap-1.5"
+                className="text-sm text-warning flex items-center gap-1.5"
               >
-                <span className="text-warning mt-0.5">●</span>
+                <span className="text-warning">●</span>
                 {warn.field && (
                   <span className="font-medium">{warn.field}:</span>
                 )}
-                {warn.message}
-              </p>
+                <span>{warn.message}</span>
+                {warn.fix && onApplyFix && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={() => onApplyFix(warn.fix!)}
+                    title={warn.fix.description}
+                    className="h-auto py-0 px-1 text-warning"
+                  >
+                    {warn.fix.buttonLabel}
+                  </Button>
+                )}
+              </div>
             ))}
           </div>
         )}

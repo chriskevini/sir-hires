@@ -1,13 +1,12 @@
 import React, { useCallback } from 'react';
-import { escapeHtml } from '@/utils/shared-utils';
-import { useToggleState, useJobValidation, ChecklistItem } from '../hooks';
+import { useJobValidation, ChecklistItem } from '../hooks';
 import { useImmediateSave } from '@/hooks/useImmediateSave';
-import { ValidationPanel } from '@/components/features/ValidationPanel';
 import { StreamingTextarea } from '@/components/ui/StreamingTextarea';
 import { ExtractionLoadingView } from '../components/ExtractionLoadingView';
 import { ExtractionErrorView } from '../components/ExtractionErrorView';
 import { MigrationPromptView } from '../components/MigrationPromptView';
 import { cn } from '@/lib/utils';
+import type { ValidationFix } from '@/utils/validation-types';
 
 interface Job {
   id: string;
@@ -36,9 +35,6 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   onDeleteJob,
   onSaveField,
 }) => {
-  const [isValidationCollapsed, toggleValidationCollapsed] =
-    useToggleState(true);
-
   // Immediate-save hook: saves to storage on every change
   // Uses resetKey to re-initialize only when switching jobs (not on storage reload)
   const { value: editorContent, setValue: setEditorContent } = useImmediateSave(
@@ -68,6 +64,23 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   const handleDelete = () => {
     onDeleteJob(job.id);
   };
+
+  // Handle fix button clicks (must be before early returns)
+  const handleApplyFix = useCallback(
+    (fix: ValidationFix) => {
+      if (fix.type === 'delete_section' && fix.section) {
+        // Delete section from content
+        // Match both formats: "# SECTION_NAME" and "# SECTION NAME"
+        const sectionPattern = new RegExp(
+          `\\n?# ${fix.section.replace(/_/g, '[_ ]')}\\n[\\s\\S]*?(?=\\n# |$)`,
+          'g'
+        );
+        const newContent = editorContent.replace(sectionPattern, '');
+        setEditorContent(newContent.trim());
+      }
+    },
+    [editorContent, setEditorContent]
+  );
 
   // Render extraction state (streaming)
   if (job.isExtracting) {
@@ -102,40 +115,23 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   }
 
   // Render normal editing state
-  // Build validation messages for StreamingTextarea
+  // Build validation messages for StreamingTextarea (with fix support)
   const validationMessages = [
     ...(validation?.errors.map((e) => ({
       type: 'error' as const,
       message: e.message,
+      fix: e.fix,
     })) || []),
     ...(validation?.warnings.map((w) => ({
       type: 'warning' as const,
       message: w.message,
-    })) || []),
-  ];
-
-  const errorCount = validation?.errors.length || 0;
-  const warningCount = validation?.warnings.length || 0;
-  const infoCount = validation?.info.length || 0;
-
-  const messages = [
-    ...(validation?.errors.map((e) => ({
-      type: 'error' as const,
-      message: e.message,
-    })) || []),
-    ...(validation?.warnings.map((w) => ({
-      type: 'warning' as const,
-      message: w.message,
-    })) || []),
-    ...(validation?.info.map((i) => ({
-      type: 'info' as const,
-      message: i.message,
+      fix: w.fix,
     })) || []),
   ];
 
   return (
     <div className="flex flex-col h-full">
-      {/* Editor with Validation Panel */}
+      {/* Editor with inline validation */}
       <div className="flex-1 flex flex-col overflow-hidden border border-border rounded-lg bg-background">
         <div className="flex-1 flex flex-col p-4">
           <StreamingTextarea
@@ -144,6 +140,7 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
             value={editorContent}
             onChange={setEditorContent}
             validationMessages={validationMessages}
+            onApplyFix={handleApplyFix}
             className={cn(
               'flex-1 border-l-4',
               validation?.valid
@@ -154,20 +151,6 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
             )}
           />
         </div>
-
-        {/* Validation Panel */}
-        <ValidationPanel
-          isCollapsed={isValidationCollapsed}
-          onToggle={toggleValidationCollapsed}
-          isValid={validation?.valid ?? null}
-          errorCount={errorCount}
-          warningCount={warningCount}
-          infoCount={infoCount}
-          messages={messages.map((m) => ({
-            ...m,
-            message: escapeHtml(m.message),
-          }))}
-        />
       </div>
     </div>
   );

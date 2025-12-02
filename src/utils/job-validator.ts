@@ -186,17 +186,19 @@ function validateSections(
         });
         result.valid = false;
       } else if (section.list.length === 0) {
+        const fix = {
+          type: 'delete_section' as const,
+          section: sectionName,
+          buttonLabel: 'Delete',
+          description: `Delete empty section "${sectionName}"`,
+        };
         result.warnings.push({
           type: 'empty_section',
           section: sectionName,
           message: `Required section "${sectionName}" is empty`,
+          fix,
         });
-        result.fixes?.push({
-          type: 'delete_section',
-          section: sectionName,
-          buttonLabel: 'Delete',
-          description: `Delete empty section "${sectionName}"`,
-        });
+        result.fixes?.push(fix);
       }
     }
   });
@@ -232,17 +234,19 @@ function validateListSection(
 ): void {
   if (!section.list || section.list.length === 0) {
     if (!isRequired) {
+      const fix = {
+        type: 'delete_section' as const,
+        section: sectionName,
+        buttonLabel: 'Delete',
+        description: `Delete empty section "${sectionName}"`,
+      };
       result.warnings.push({
         type: 'empty_section',
         section: sectionName,
         message: `Section "${sectionName}" is empty`,
+        fix,
       });
-      result.fixes?.push({
-        type: 'delete_section',
-        section: sectionName,
-        buttonLabel: 'Delete',
-        description: `Delete empty section "${sectionName}"`,
-      });
+      result.fixes?.push(fix);
     }
   }
 }

@@ -135,21 +135,6 @@ function validateJobTemplate(parsedJob: JobTemplateData): JobValidationResult {
   // Validate sections
   validateSections(parsedJob, result);
 
-  // Add informational messages about custom content
-  if (result.customFields.length > 0) {
-    result.info.push({
-      type: 'custom_fields',
-      message: `Custom fields: ${result.customFields.join(', ')}`,
-    });
-  }
-
-  if (result.customSections.length > 0) {
-    result.info.push({
-      type: 'custom_sections',
-      message: `Custom sections: ${result.customSections.join(', ')}`,
-    });
-  }
-
   return result;
 }
 
@@ -163,7 +148,6 @@ function validateTopLevelFields(
   result: JobValidationResult
 ): void {
   const fields = parsedJob.topLevelFields || {};
-  const fieldNames = Object.keys(fields);
 
   // Check required fields only
   JOB_SCHEMA.topLevelRequired.forEach((requiredField) => {
@@ -174,27 +158,6 @@ function validateTopLevelFields(
         message: `Missing required field "${requiredField}"`,
       });
       result.valid = false;
-    }
-  });
-
-  // Identify custom fields (anything not in standard list)
-  // Note: We don't validate optional fields, but we still track custom ones
-  const knownStandardFields = [
-    'TITLE',
-    'COMPANY',
-    'ADDRESS',
-    'REMOTE_TYPE',
-    'SALARY_RANGE_MIN',
-    'SALARY_RANGE_MAX',
-    'PAY_PERIOD',
-    'EMPLOYMENT_TYPE',
-    'EXPERIENCE_LEVEL',
-    'POSTED_DATE',
-    'CLOSING_DATE',
-  ];
-  fieldNames.forEach((fieldName) => {
-    if (!knownStandardFields.includes(fieldName)) {
-      result.customFields.push(fieldName);
     }
   });
 }
@@ -238,14 +201,7 @@ function validateSections(
     }
   });
 
-  // Build list of all known section names (both formats)
-  const knownSectionNames = new Set<string>();
-  for (const name of Object.keys(JOB_SCHEMA.standardSections)) {
-    knownSectionNames.add(name);
-    knownSectionNames.add(name.replace(/ /g, '_')); // underscore variant
-  }
-
-  // Validate each section
+  // Validate each known section for emptiness
   sectionNames.forEach((sectionName) => {
     const section = sections[sectionName];
 
@@ -253,15 +209,13 @@ function validateSections(
     const normalizedName = SECTION_NAME_ALIASES[sectionName] || sectionName;
     const schema = JOB_SCHEMA.standardSections[normalizedName];
 
+    // Skip custom sections - they're accepted without validation
     if (!schema) {
-      // Custom section - this is encouraged!
-      result.customSections.push(sectionName);
       return;
     }
 
     // Validate standard section
     if (schema.isList) {
-      // Section should be a list
       validateListSection(sectionName, section, result, schema.required);
     }
   });

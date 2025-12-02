@@ -77,13 +77,12 @@ export const JOB_EXTRACTION_PROMPT = `
 You are an expert Data Extraction Engine. Parse unstructured job descriptions into the MarkdownDB format shown in TEMPLATE.
 
 ### RULES
-1. **Missing Fields:** Output "UNKNOWN" for missing key-value fields.
-2. **Missing Lists:** Omit empty list sections entirely (no header, no "UNKNOWN").
-3. **Dates:** YYYY-MM-DD format. Assume 2025 if year not specified.
-4. **Salary:** Numbers only (no symbols). Set PAY PERIOD to HOURLY or ANNUAL.
-5. **Location:** Expand abbreviations (e.g., "NYC" -> "New York, NY").
-6. **Lists:** Format as bullet points.
-7. **Section Names:** Use spaces, not underscores (e.g., "# REQUIRED SKILLS" not "# REQUIRED_SKILLS").
+1. **Missing Data:** Omit any field or section where data is not available. Do not output "N/A", "UNKNOWN", or placeholders.
+2. **Dates:** YYYY-MM-DD format. Assume current year if not specified.
+3. **Salary:** Numbers only (no symbols). Set PAY PERIOD to HOURLY or ANNUAL.
+4. **Location:** Expand abbreviations (e.g., "NYC" -> "New York, NY").
+5. **Lists:** Format as bullet points.
+6. **Section Names:** Use spaces, not underscores (e.g., "# REQUIRED SKILLS" not "# REQUIRED_SKILLS").
 
 ### ENUMERATIONS (STRICT)
 * REMOTE TYPE: [ONSITE | REMOTE | HYBRID]. Default: ONSITE.
@@ -101,14 +100,12 @@ You are an expert Data Extraction Engine. Parse unstructured job descriptions in
 <JOB>
 TITLE: Junior Web Developer
 COMPANY: TechStart
-ADDRESS: N/A
 REMOTE TYPE: REMOTE
 SALARY RANGE MIN: 60,000
 SALARY RANGE MAX: 80,000
 PAY PERIOD: ANNUAL
 EMPLOYMENT TYPE: FULL-TIME
 EXPERIENCE LEVEL: ENTRY
-POSTED DATE: N/A
 CLOSING DATE: 2025-12-01
 
 # DESCRIPTION
@@ -123,15 +120,13 @@ CLOSING DATE: 2025-12-01
 **Output:**
 <JOB>
 TITLE: Principal Architect
-COMPANY: UNKNOWN
 ADDRESS: New York City, NY
 REMOTE TYPE: ONSITE
-SALARY RANGE MIN: N/A
-SALARY RANGE MAX: N/A
+SALARY RANGE MIN: 150
+SALARY RANGE MAX: 150
+PAY PERIOD: HOURLY
 EMPLOYMENT TYPE: CONTRACT
 EXPERIENCE LEVEL: LEAD
-POSTED DATE: N/A
-CLOSING DATE: N/A
 
 # DESCRIPTION
 - Lead architectural design for complex systems.
@@ -153,8 +148,6 @@ SALARY RANGE MAX: 120,000
 PAY PERIOD: ANNUAL
 EMPLOYMENT TYPE: FULL-TIME
 EXPERIENCE LEVEL: MID
-POSTED DATE: N/A
-CLOSING DATE: N/A
 
 # DESCRIPTION
 - Manage marketing campaigns and strategy.

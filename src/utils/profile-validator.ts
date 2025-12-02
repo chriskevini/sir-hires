@@ -195,7 +195,8 @@ function validateSections(
     // Check for empty section
     const hasItems = section.items && section.items.length > 0;
     const hasList = section.list && section.list.length > 0;
-    if (!hasItems && !hasList) {
+    const hasText = section.text && section.text.length > 0;
+    if (!hasItems && !hasList && !hasText) {
       result.warnings.push({
         type: 'empty_section',
         section: sectionName,

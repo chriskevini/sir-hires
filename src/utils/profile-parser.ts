@@ -22,6 +22,7 @@ interface ProfileItem {
 interface ProfileSection {
   items: ProfileItem[];
   list: string[]; // For simple list sections (INTERESTS, SKILLS)
+  text: string[]; // Plain text lines (for SUMMARY, OBJECTIVE, etc.)
 }
 
 /**
@@ -91,6 +92,7 @@ function parseProfileTemplate(content: string): ParsedProfile {
       result.sections[currentSection] = {
         items: [],
         list: [],
+        text: [],
       };
       continue;
     }
@@ -155,6 +157,12 @@ function parseProfileTemplate(content: string): ParsedProfile {
         result.topLevelFields[key] = value;
       }
       continue;
+    }
+
+    // Unmatched line within a section (not in an item) - capture as text
+    // This supports SUMMARY, OBJECTIVE, and other freeform text sections
+    if (currentSection && !currentItem) {
+      result.sections[currentSection].text.push(trimmedLine);
     }
   }
 

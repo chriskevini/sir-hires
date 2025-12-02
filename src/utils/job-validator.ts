@@ -152,11 +152,20 @@ function validateTopLevelFields(
   // Check required fields only
   JOB_SCHEMA.topLevelRequired.forEach((requiredField) => {
     if (!fields[requiredField] || fields[requiredField].trim() === '') {
+      const fix = {
+        type: 'insert_top_level_field' as const,
+        field: requiredField,
+        text: `${requiredField}: `,
+        buttonLabel: 'Insert',
+        description: `Insert ${requiredField} field`,
+      };
       result.errors.push({
         type: 'missing_required_field',
         field: requiredField,
         message: `Missing required field "${requiredField}"`,
+        fix,
       });
+      result.fixes?.push(fix);
       result.valid = false;
     }
   });

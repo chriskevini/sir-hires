@@ -17,6 +17,21 @@ export const FIELD_ORDER = {
   EXPERIENCE: ['TYPE', 'TITLE', 'AT', 'START', 'END', 'BULLETS'],
 };
 
+// Job template field order
+export const JOB_FIELD_ORDER = {
+  TOP_LEVEL: [
+    'TITLE',
+    'COMPANY',
+    'LOCATION',
+    'JOB_TYPE',
+    'REMOTE_TYPE',
+    'EXPERIENCE_LEVEL',
+    'SALARY',
+    'POSTED_DATE',
+    'DEADLINE',
+  ],
+};
+
 /**
  * Sets cursor position and scrolls the editor to show the cursor
  */
@@ -357,12 +372,22 @@ export const generateFix = (
 };
 
 /**
+ * Template type for applyFix function
+ */
+export type TemplateType = 'JOB' | 'PROFILE';
+
+/**
  * Applies a validation fix to the content
+ * @param fix - The fix to apply
+ * @param currentContent - The current content
+ * @param enumValue - Optional enum value for replace_enum_value_multi fixes
+ * @param templateType - The template type (JOB or PROFILE), defaults to PROFILE for backwards compatibility
  */
 export const applyFix = (
   fix: ValidationFix,
   currentContent: string,
-  enumValue?: string
+  enumValue?: string,
+  templateType: TemplateType = 'PROFILE'
 ): { newContent: string; cursorPosition: number } | null => {
   let newContent = currentContent;
   let cursorPosition = 0;
@@ -388,9 +413,18 @@ export const applyFix = (
     newContent = fix.text! + currentContent;
     cursorPosition = fix.text!.length;
   } else if (fix.type === 'insert_top_level_field') {
-    const profileMatch = currentContent.match(/^<PROFILE>\s*\n/m);
-    if (profileMatch) {
-      const topLevelStart = profileMatch.index! + profileMatch[0].length;
+    // Use template-specific regex and field order
+    const templateTag = templateType === 'JOB' ? 'JOB' : 'PROFILE';
+    const fieldOrder =
+      templateType === 'JOB'
+        ? JOB_FIELD_ORDER.TOP_LEVEL
+        : FIELD_ORDER.TOP_LEVEL;
+
+    const templateMatch = currentContent.match(
+      new RegExp(`^<${templateTag}>\\s*\\n`, 'm')
+    );
+    if (templateMatch) {
+      const topLevelStart = templateMatch.index! + templateMatch[0].length;
       const topLevelEnd = findNextSectionPosition(
         currentContent,
         topLevelStart
@@ -400,14 +434,16 @@ export const applyFix = (
         topLevelStart,
         topLevelEnd,
         fix.field!,
-        FIELD_ORDER.TOP_LEVEL
+        fieldOrder
       );
       const result = insertTextAtPosition(currentContent, insertPos, fix.text!);
       newContent = result.newContent;
       cursorPosition = result.cursorPosition;
     } else {
-      newContent = '<PROFILE>\n' + fix.text! + '\n' + currentContent;
-      cursorPosition = '<PROFILE>\n'.length + fix.text!.length;
+      // No template tag found, insert at start with template tag
+      const templateTag = templateType === 'JOB' ? '<JOB>' : '<PROFILE>';
+      newContent = templateTag + '\n' + fix.text! + '\n' + currentContent;
+      cursorPosition = templateTag.length + 1 + fix.text!.length;
     }
   } else if (fix.type === 'insert_field_in_entry') {
     const entryRegex = new RegExp(`^##\\s+${fix.entry}\\s*$`, 'm');

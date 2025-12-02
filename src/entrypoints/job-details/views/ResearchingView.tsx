@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { useJobValidation, ChecklistItem } from '../hooks';
 import { useImmediateSave } from '@/hooks/useImmediateSave';
 import { StreamingTextarea } from '@/components/ui/StreamingTextarea';
@@ -7,6 +7,7 @@ import { ExtractionErrorView } from '../components/ExtractionErrorView';
 import { MigrationPromptView } from '../components/MigrationPromptView';
 import { cn } from '@/lib/utils';
 import type { ValidationFix } from '@/utils/validation-types';
+import { applyFix, setCursorAndScroll } from '@/utils/profile-utils';
 
 interface Job {
   id: string;
@@ -65,18 +66,25 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
     onDeleteJob(job.id);
   };
 
+  // Ref for the textarea element (for cursor positioning after fix)
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   // Handle fix button clicks (must be before early returns)
   const handleApplyFix = useCallback(
     (fix: ValidationFix) => {
-      if (fix.type === 'delete_section' && fix.section) {
-        // Delete section from content
-        // Match both formats: "# SECTION_NAME" and "# SECTION NAME"
-        const sectionPattern = new RegExp(
-          `\\n?# ${fix.section.replace(/_/g, '[_ ]')}\\n[\\s\\S]*?(?=\\n# |$)`,
-          'g'
-        );
-        const newContent = editorContent.replace(sectionPattern, '');
-        setEditorContent(newContent.trim());
+      const result = applyFix(fix, editorContent, undefined, 'JOB');
+      if (result) {
+        setEditorContent(result.newContent);
+        // Set cursor position after React re-renders
+        requestAnimationFrame(() => {
+          if (textareaRef.current) {
+            setCursorAndScroll(
+              textareaRef.current,
+              result.newContent,
+              result.cursorPosition
+            );
+          }
+        });
       }
     },
     [editorContent, setEditorContent]
@@ -135,6 +143,7 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
       <div className="flex-1 flex flex-col overflow-hidden border border-border rounded-lg bg-background">
         <div className="flex-1 flex flex-col p-4">
           <StreamingTextarea
+            ref={textareaRef}
             id="jobEditor"
             data-job-id={job.id}
             value={editorContent}

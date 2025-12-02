@@ -99,6 +99,17 @@ const PRESET_TASKS: Record<string, PresetTask> = {
     temperature: synthesisConfig.temperature,
     maxTokens: synthesisConfig.maxTokens,
   },
+  'fit-calculation': {
+    label: 'Fit Calculation',
+    prompt:
+      '/no_think Based ONLY on explicitly stated bullet points and without assuming additional information, calculate a precise fit score for this candidate. Output only a number between 0 and 100. You will be punished for bad judgement.',
+    contexts: [
+      { name: 'job', content: '' },
+      { name: 'profile', content: '' },
+    ],
+    temperature: 0,
+    maxTokens: 20,
+  },
 };
 
 // =============================================================================

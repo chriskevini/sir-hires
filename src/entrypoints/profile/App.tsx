@@ -22,22 +22,17 @@ import { UI_UPDATE_INTERVAL_MS } from '@/config';
 import { LLMClient } from '@/utils/llm-client';
 import { runTask, startKeepalive } from '@/utils/llm-task-runner';
 import { DEFAULT_TASK_SETTINGS } from '@/utils/llm-utils';
-import { escapeHtml } from '@/utils/shared-utils';
 
 // Import hooks
-import {
-  useProfileValidation,
-  type ValidationFix,
-} from './hooks/useProfileValidation';
+import { useProfileValidation } from './hooks/useProfileValidation';
 import { useTheme } from '@/hooks/useTheme';
+import type { ValidationFix } from '@/utils/validation-types';
 
 // Import components
-import { ValidationPanel } from '@/components/features/ValidationPanel';
-import { getValidationEditorClass } from '@/utils/validation-utils';
 import { EditorFooter } from '@/components/features/EditorFooter';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { StreamingTextarea } from '@/components/ui/StreamingTextarea';
+import { ValidatedEditor } from '@/components/ui/ValidatedEditor';
 import {
   ArrowLeft,
   Download,
@@ -151,7 +146,7 @@ export default function App() {
   );
 
   // Validation hook - disable during extraction to avoid performance issues
-  const { validation, validationFixes, warningFixes } = useProfileValidation({
+  const { validation } = useProfileValidation({
     content: isExtracting ? '' : content,
   });
 
@@ -672,37 +667,26 @@ BULLETS:
 
   // Compute editor className based on validation state
   const hasErrors = validation.errors.length > 0;
-  const hasWarnings = validation.warnings.length > 0;
   const hasContent = content.trim().length > 0;
-  const editorClassName = getValidationEditorClass(
-    hasErrors,
-    hasWarnings,
-    hasContent
-  );
 
-  // Build messages array for ValidationPanel
+  // Build messages array for ValidatedEditor
+  // Fixes are attached directly to validation messages by the validator
   const validationMessages = [
-    ...validation.errors.map((error, index) => ({
+    ...validation.errors.map((error) => ({
       type: 'error' as const,
       message: error.message,
-      fix: validationFixes[index],
+      fix: error.fix,
     })),
-    ...validation.warnings.map((warning, index) => ({
+    ...validation.warnings.map((warning) => ({
       type: 'warning' as const,
       message: warning.message,
-      fix: warningFixes[index],
+      fix: warning.fix,
     })),
     ...validation.info.map((info) => ({
       type: 'info' as const,
       message: info.message,
     })),
   ];
-
-  // Compute counts
-  const errorCount = validation.errors.length;
-  const warningCount = validation.warnings.length;
-  const customCount =
-    validation.customFields.length + validation.customSections.length;
 
   // Compute validity
   const isValid = hasContent && !hasErrors;
@@ -775,7 +759,7 @@ BULLETS:
       {/* Main content area */}
       <div className="flex flex-1 overflow-hidden p-4 gap-4">
         {/* Editor container - matches DraftingView/ResearchingView pattern */}
-        <div className="flex-1 flex flex-col border border-border rounded-lg overflow-hidden bg-background">
+        <div className="flex-1 flex flex-col border border-border rounded-lg overflow-hidden bg-background max-w-4xl mx-auto">
           {/* Toolbar with insert actions */}
           <div className="flex items-center justify-between px-3 py-2 bg-card border-b border-border shrink-0">
             <div className="flex items-center gap-1">
@@ -810,9 +794,9 @@ BULLETS:
             </Button>
           </div>
 
-          {/* Editor */}
+          {/* Editor with inline validation */}
           <div className="flex-1 flex flex-col p-4 overflow-hidden">
-            <StreamingTextarea
+            <ValidatedEditor
               ref={editorRef}
               id="profileEditor"
               value={content}
@@ -820,7 +804,10 @@ BULLETS:
               placeholder="Paste your resume text here and click 'Extract with LLM' to convert it to the profile format, or follow the template to write it manually."
               disabled={isExtracting}
               isStreaming={isExtracting}
-              className={cn('flex-1', editorClassName)}
+              isValid={isValid}
+              hasErrors={hasErrors}
+              validationMessages={validationMessages}
+              onApplyFix={applyFix}
             />
           </div>
 
@@ -831,22 +818,6 @@ BULLETS:
               {extractionError}
             </div>
           )}
-
-          {/* Validation Panel - inside the editor container */}
-          <ValidationPanel
-            initialCollapsed={true}
-            isValid={isValid}
-            errorCount={errorCount}
-            warningCount={warningCount}
-            infoCount={customCount}
-            messages={validationMessages.map((m) => ({
-              ...m,
-              message: escapeHtml(m.message),
-            }))}
-            onApplyFix={applyFix}
-            validLabel="Valid Profile"
-            invalidLabel="Validation Errors"
-          />
 
           {/* Footer with save status */}
           <EditorFooter saveStatus={saveStatusText} />

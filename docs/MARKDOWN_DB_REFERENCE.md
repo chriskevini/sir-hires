@@ -31,14 +31,20 @@ The primary consumers of our data are **humans** and **LLMs** (Large Language Mo
 ### Syntax Rules
 
 1. **First line:** Data type wrapped in chevrons: `<TYPE>`
-2. **Keys:** Always `ALL_CAPS` (no quotes needed)
-3. **Values:** No quotes needed (plain text)
-4. **Nesting:** Use `#` headers (markdown-style)
-5. **Lists:**
-   - List names end with `:` (e.g., `# SKILLS:`)
-   - List items start with `-` (no commas needed)
-6. **Comments:** Use `//` for inline comments or examples
-7. **Required fields:** Mark with `// required` comment
+2. **Top-level fields:** `KEY: value` format with spaces in names (e.g., `REMOTE TYPE: HYBRID`)
+3. **Sections:** Use `# SECTION NAME` headers (spaces, not underscores)
+4. **Items within sections:** Use `## Item Title` for entries (e.g., `## Senior Engineer`)
+5. **Item fields:** `KEY: value` format within items (e.g., `AT: Company Name`)
+6. **Lists:** Bullet items start with `-` (no commas needed)
+7. **Freeform text:** Plain text lines for sections like SUMMARY
+8. **Comments:** Use `//` for inline comments or examples
+9. **Required fields:** Mark with `// required` comment
+
+### Unified Parser
+
+All templates are parsed by the unified parser in `src/utils/template-parser.ts`. Type-specific parsers (`job-parser.ts`, `profile-parser.ts`) are thin wrappers that provide backward compatibility and type-safe interfaces.
+
+**Backward Compatibility:** Both underscore (`REQUIRED_SKILLS`) and space (`REQUIRED SKILLS`) formats are supported for section names and top-level fields.
 
 ---
 
@@ -61,51 +67,56 @@ The primary consumers of our data are **humans** and **LLMs** (Large Language Mo
 TITLE: Senior Cloud Infrastructure Engineer // required
 COMPANY: Stellar Innovations Inc. // required
 ADDRESS: San Francisco, CA
-REMOTE_TYPE: HYBRID // [ONSITE|REMOTE|HYBRID]
-SALARY_RANGE_MIN: 100,000
-SALARY_RANGE_MAX: 150,000
-EMPLOYMENT_TYPE: FULL-TIME // [FULL-TIME|PART-TIME|CONTRACT|INTERNSHIP|COOP]
-EXPERIENCE_LEVEL: SENIOR // [ENTRY|MID|SENIOR|LEAD]
-POSTED_DATE: 2025-11-15
-CLOSING_DATE: 2025-12-31
-# DESCRIPTION:
+REMOTE TYPE: HYBRID // [ONSITE|REMOTE|HYBRID]
+SALARY RANGE MIN: 100,000
+SALARY RANGE MAX: 150,000
+EMPLOYMENT TYPE: FULL-TIME // [FULL-TIME|PART-TIME|CONTRACT|INTERNSHIP|COOP]
+EXPERIENCE LEVEL: SENIOR // [ENTRY|MID|SENIOR|LEAD]
+POSTED DATE: 2025-11-15
+CLOSING DATE: 2025-12-31
+
+# DESCRIPTION
 - Design, implement, and maintain scalable cloud infrastructure on AWS/Azure.
 - Develop and manage CI/CD pipelines using GitLab or Jenkins.
 - Provide subject matter expertise on security, reliability, and cost optimization.
-# REQUIRED_SKILLS: // required
+
+# REQUIRED SKILLS // required
 - 7+ years of experience in DevOps or SRE roles.
 - Expert-level proficiency with Terraform and Kubernetes.
 - Strong knowledge of Python or Go for scripting.
-# PREFERRED_SKILLS:
+
+# PREFERRED SKILLS
 - Experience with FinOps principles and tooling.
 - AWS Certified DevOps Engineer - Professional.
 - Background in the FinTech industry.
-# ABOUT_COMPANY:
+
+# ABOUT COMPANY
 - Stellar Innovations is a high-growth Series C FinTech startup based in the Bay Area.
 - **Culture:** We emphasize radical ownership, transparency, and continuous learning.
 - **Team Structure:** Teams are cross-functional, highly autonomous, and empowered to make core product decisions.
 - **Benefits:** We offer unlimited PTO, 1000% 401(k) matching and excellent health coverage.
 - **Values:** We are committed to fostering diversity, equity, and inclusion in the workplace.
+</JOB>
 ```
 
 ### Required Fields
 
 - `TITLE` - Job title
 - `COMPANY` - Company name
-- `REQUIRED_SKILLS` - List of required qualifications
+- `REQUIRED SKILLS` - List of required qualifications (section)
 
 ### Optional Fields
 
 - `ADDRESS` - Job location
-- `REMOTE_TYPE` - Onsite/Remote/Hybrid
-- `SALARY_RANGE_MIN` / `SALARY_RANGE_MAX` - Compensation range
-- `EMPLOYMENT_TYPE` - Full-time/Part-time/Contract/Internship/Co-op
-- `EXPERIENCE_LEVEL` - Entry/Mid/Senior/Lead
-- `POSTED_DATE` - When job was posted
-- `CLOSING_DATE` - Application deadline
-- `DESCRIPTION` - Job description bullets
-- `PREFERRED_SKILLS` - Nice-to-have qualifications
-- `ABOUT_COMPANY` - Company info, culture, benefits
+- `REMOTE TYPE` - Onsite/Remote/Hybrid
+- `SALARY RANGE MIN` / `SALARY RANGE MAX` - Compensation range
+- `EMPLOYMENT TYPE` - Full-time/Part-time/Contract/Internship/Co-op
+- `EXPERIENCE LEVEL` - Entry/Mid/Senior/Lead
+- `POSTED DATE` - When job was posted
+- `CLOSING DATE` - Application deadline
+- `DESCRIPTION` - Job description bullets (section)
+- `PREFERRED SKILLS` - Nice-to-have qualifications (section)
+- `ABOUT COMPANY` - Company info, culture, benefits (section)
 
 ---
 
@@ -124,45 +135,46 @@ ADDRESS: 123 Main Street, Anytown, CA 45678
 EMAIL: name@email.com
 // ex: PHONE, WEBSITE, GITHUB
 
+# SUMMARY
+Experienced software engineer with 10+ years building scalable systems.
+Passionate about clean code and mentoring junior developers.
+
 # EDUCATION
-## EDU_1
-DEGREE: Master of Science in Computer Science // required
+
+## Master of Science in Computer Science
 SCHOOL: University of Helsinki // required
 LOCATION: Helsinki, Finland
 START: September 1988
 END: March 1997
 // ex: GPA
 
-# EXPERIENCE
-## EXP_1
-TYPE: PROFESSIONAL // required [PROFESSIONAL|PROJECT|VOLUNTEER]
-TITLE: Senior Developer // required
+# PROFESSIONAL EXPERIENCE
+
+## Senior Developer
 AT: Tech Solutions Inc.
 START: October 2020
 END: ONGOING
-BULLETS:
 - Built API...
 - Led team...
 
-## EXP_2
-TYPE: PROJECT // required [PROFESSIONAL|PROJECT|VOLUNTEER]
-TITLE: Linux Kernel // required
-BULLETS:
+# PROJECTS
+
+## Linux Kernel
 - Architected kernel...
 - Integrated Rust...
 
-## EXP_3
-TYPE: VOLUNTEER // required [PROFESSIONAL|PROJECT|VOLUNTEER]
-TITLE: Community Volunteer // required
+# VOLUNTEER
+
+## Community Volunteer
 AT: Local Non-Profit
-BULLETS:
 - Supported educational...
 - Helped organize...
 
-# INTERESTS:
+# INTERESTS
 - Scuba diving
 - Reading
-// ex: # CERTIFICATIONS:
+// ex: # CERTIFICATIONS
+</PROFILE>
 ```
 
 ### Required Fields (Profile)
@@ -171,13 +183,12 @@ BULLETS:
 
 ### Required Fields (Education Entry)
 
-- `DEGREE` - Degree name
+- `## Degree Name` - Item title is the degree name
 - `SCHOOL` - School name
 
 ### Required Fields (Experience Entry)
 
-- `TYPE` - Professional/Project/Volunteer
-- `TITLE` - Role title
+- `## Role Title` - Item title is the role/project title
 
 ### Optional Fields
 
@@ -185,9 +196,20 @@ BULLETS:
 - `LOCATION` - Education location
 - `START` / `END` - Date ranges (use "ONGOING" for current roles)
 - `AT` - Company/organization name
-- `BULLETS` - Bullet points for achievements
-- `INTERESTS` - Personal interests
-- `CERTIFICATIONS` - Professional certifications
+- Bullet points (`-`) for achievements/description
+- `SUMMARY` - Freeform text section for profile summary
+- `INTERESTS` - Personal interests (section)
+- `CERTIFICATIONS` - Professional certifications (section)
+
+### Section Types
+
+- `# SUMMARY` - Freeform text (no items, no bullets required)
+- `# EDUCATION` - Contains `## Degree Name` items with fields
+- `# PROFESSIONAL EXPERIENCE` - Contains `## Role Title` items with fields and bullets
+- `# PROJECTS` - Contains `## Project Name` items with bullets
+- `# VOLUNTEER` - Contains `## Role Title` items with fields and bullets
+- `# INTERESTS` - Simple bullet list
+- `# CERTIFICATIONS` - Simple bullet list
 
 ---
 
@@ -410,8 +432,9 @@ const parsed3 = parseJobTemplate(job.content); // Wasteful
 
 ### Utilities
 
-- `src/utils/job-parser.ts` - Parse job MarkdownDB templates
-- `src/utils/profile-parser.ts` - Parse profile MarkdownDB templates
+- `src/utils/template-parser.ts` - **Unified parser** for all MarkdownDB templates
+- `src/utils/job-parser.ts` - Job-specific wrapper with backward compatibility
+- `src/utils/profile-parser.ts` - Profile-specific wrapper with backward compatibility
 - `src/utils/job-templates.ts` - Generate default job templates
 - `src/utils/job-validator.ts` - Validate job templates
 - `src/utils/profile-validator.ts` - Validate profile templates

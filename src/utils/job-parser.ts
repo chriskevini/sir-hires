@@ -16,7 +16,15 @@ import { parseTemplate, type ParsedTemplate } from './template-parser';
 export interface JobTemplateData {
   type: string | null;
   topLevelFields: Record<string, string>;
-  sections: Record<string, { list: string[]; fields?: Record<string, string> }>;
+  sections: Record<
+    string,
+    {
+      list: string[];
+      fields?: Record<string, string>;
+      text?: string[];
+      originalName?: string;
+    }
+  >;
   raw: string;
 }
 
@@ -40,10 +48,7 @@ export interface MappedJobFields {
  * This maintains backward compatibility with existing code
  */
 function convertToJobTemplateData(parsed: ParsedTemplate): JobTemplateData {
-  const sections: Record<
-    string,
-    { list: string[]; fields?: Record<string, string> }
-  > = {};
+  const sections: JobTemplateData['sections'] = {};
 
   for (const [name, section] of Object.entries(parsed.sections)) {
     sections[name] = {
@@ -51,6 +56,12 @@ function convertToJobTemplateData(parsed: ParsedTemplate): JobTemplateData {
     };
     if (Object.keys(section.fields).length > 0) {
       sections[name].fields = section.fields;
+    }
+    if (section.text && section.text.length > 0) {
+      sections[name].text = section.text;
+    }
+    if (section.originalName) {
+      sections[name].originalName = section.originalName;
     }
   }
 

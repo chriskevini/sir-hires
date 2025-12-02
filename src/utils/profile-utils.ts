@@ -568,6 +568,77 @@ export const applyFix = (
         newContent = newContent.replace(/\n{3,}/g, '\n\n');
       }
     }
+  } else if (fix.type === 'add_section_bullet') {
+    // Add bullet placeholder to empty section
+    const sectionName = fix.section;
+    if (!sectionName) return null;
+
+    // Match section header (with optional trailing colon)
+    const sectionRegex = new RegExp(
+      `^(#\\s+${escapeRegex(sectionName)}:?)\\s*$`,
+      'm'
+    );
+    const sectionMatch = currentContent.match(sectionRegex);
+
+    if (sectionMatch) {
+      const headerEnd = sectionMatch.index! + sectionMatch[0].length;
+      // Insert newline + bullet after header
+      const insertText = '\n' + (fix.text || '- ');
+      newContent =
+        currentContent.slice(0, headerEnd) +
+        insertText +
+        currentContent.slice(headerEnd);
+      // Position cursor after the bullet
+      cursorPosition = headerEnd + insertText.length;
+    }
+  } else if (fix.type === 'replace_type') {
+    // Replace incorrect type declaration (e.g., <PROFILE> -> <JOB>)
+    const currentType = fix.currentValue;
+    const newType = fix.newValue;
+    if (!currentType || !newType) return null;
+
+    // Match the type declaration tag
+    const typeRegex = new RegExp(`<${escapeRegex(currentType)}>`, 'g');
+    const typeMatch = currentContent.match(typeRegex);
+
+    if (typeMatch) {
+      // Replace first occurrence
+      const matchIndex = currentContent.indexOf(`<${currentType}>`);
+      if (matchIndex !== -1) {
+        const replaceEnd = matchIndex + currentType.length + 2; // +2 for < and >
+        const replacement = `<${newType}>`;
+        newContent =
+          currentContent.slice(0, matchIndex) +
+          replacement +
+          currentContent.slice(replaceEnd);
+        cursorPosition = matchIndex + replacement.length;
+      }
+    }
+  } else if (fix.type === 'rename_field') {
+    // Rename a field (e.g., lowercase to uppercase)
+    const currentFieldName = fix.currentValue;
+    const newFieldName = fix.newValue;
+    if (!currentFieldName || !newFieldName) return null;
+
+    // Match the field at the start of a line (with optional leading whitespace)
+    // Pattern: optional whitespace, field name, colon
+    const fieldRegex = new RegExp(
+      `^(\\s*)${escapeRegex(currentFieldName)}:`,
+      'gm'
+    );
+    const fieldMatch = currentContent.match(fieldRegex);
+
+    if (fieldMatch) {
+      // Replace first occurrence
+      newContent = currentContent.replace(fieldRegex, `$1${newFieldName}:`);
+      // Find cursor position after the renamed field
+      const newFieldMatch = newContent.match(
+        new RegExp(`^(\\s*)${escapeRegex(newFieldName)}:`, 'm')
+      );
+      if (newFieldMatch && newFieldMatch.index !== undefined) {
+        cursorPosition = newFieldMatch.index + newFieldMatch[0].length;
+      }
+    }
   }
 
   return { newContent, cursorPosition };

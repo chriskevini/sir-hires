@@ -27,6 +27,7 @@ export interface TemplateSection {
   list: string[]; // Simple bullet lists
   text: string[]; // Freeform text lines
   fields: Record<string, string>; // Section-level fields (rare)
+  originalName?: string; // Original case for validation
 }
 
 /**
@@ -100,12 +101,16 @@ export function parseTemplate(content: string): ParsedTemplate {
 
     // Check for section header (# SECTION NAME)
     // Must not be ## (that's an item)
+    // Preserve original case for validation, but use uppercase as key for consistent lookups
     const sectionMatch = trimmedLine.match(/^#\s+([^#].+?)(?:\s*\/\/.*)?$/);
     if (sectionMatch && !trimmedLine.startsWith('##')) {
-      const sectionName = sectionMatch[1].trim().toUpperCase();
+      const originalName = sectionMatch[1].trim();
+      const sectionName = originalName.toUpperCase();
       currentSection = sectionName;
       currentItem = null;
-      result.sections[currentSection] = createEmptySection();
+      const section = createEmptySection();
+      section.originalName = originalName;
+      result.sections[currentSection] = section;
       continue;
     }
 
@@ -139,8 +144,11 @@ export function parseTemplate(content: string): ParsedTemplate {
     }
 
     // Check for key-value pair (KEY: value or Key Name: value)
-    // Supports both SCREAMING_CASE and Title Case with spaces
-    const kvMatch = trimmedLine.match(/^([A-Z][A-Z0-9_ ]*[A-Z0-9]):\s*(.*)$/);
+    // Supports both SCREAMING_CASE and lowercase (to detect and warn)
+    // Pattern: starts with letter, contains letters/numbers/spaces/underscores, ends with letter/number
+    const kvMatch = trimmedLine.match(
+      /^([A-Za-z][A-Za-z0-9_ ]*[A-Za-z0-9]):\s*(.*)$/
+    );
     if (kvMatch) {
       const key = kvMatch[1].trim();
       let value = kvMatch[2].trim();

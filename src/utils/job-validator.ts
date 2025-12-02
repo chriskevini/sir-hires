@@ -1,93 +1,88 @@
 // Job Template Validator
-// Validates parsed MarkdownDB Job Template against schema rules
-// Philosophy: Validate structure, celebrate creativity
+// Thin wrapper around unified template validator with job-specific schema
 
 import type { JobTemplateData } from './job-parser';
-import type { BaseValidationResult, ValidationFix } from './validation-types';
+import type { ParsedTemplate } from './template-parser';
+import {
+  validateTemplate,
+  getValidationSummary,
+  type ValidationResult,
+  type ValidationSchema,
+} from './template-validator';
 
 /**
- * Job validation result interface
+ * Job validation result interface (alias for unified result)
  */
-export interface JobValidationResult extends BaseValidationResult {
-  fixes?: ValidationFix[];
-}
+export type JobValidationResult = ValidationResult;
 
 /**
- * Job schema definition (SIMPLIFIED)
- * Philosophy: Only validate REQUIRED fields. Accept everything else.
- * This prevents validator from becoming a maintenance bottleneck.
+ * Standard top-level fields for jobs
  */
-interface JobSchema {
-  topLevelRequired: string[];
-  standardSections: Record<
-    string,
-    {
-      isList: boolean;
-      required?: boolean;
-    }
-  >;
-}
+const STANDARD_JOB_FIELDS = [
+  'TITLE',
+  'COMPANY',
+  'ADDRESS',
+  'EMPLOYMENT TYPE',
+  'REMOTE TYPE',
+  'POSTED DATE',
+  'CLOSING DATE',
+  'EXPERIENCE LEVEL',
+  'SALARY RANGE MIN',
+  'SALARY RANGE MAX',
+];
 
 /**
- * Validation schema for Job Template
- * Only validates REQUIRED fields - optional fields are never validated
- * This ensures schema can evolve without breaking validation
- *
- * Note: Section names use spaces (new format) but we also check underscore variants
- * for backward compatibility
+ * Standard section names for jobs
  */
-const JOB_SCHEMA: JobSchema = {
-  // Top-level required fields (ONLY THESE ARE VALIDATED)
-  topLevelRequired: ['TITLE', 'COMPANY'],
+const STANDARD_JOB_SECTIONS = [
+  'REQUIRED SKILLS',
+  'PREFERRED SKILLS',
+  'DESCRIPTION',
+  'ABOUT COMPANY',
+];
 
-  // Standard sections (all are list-based)
-  // Using new format with spaces, but we check both formats in validation
-  standardSections: {
-    'REQUIRED SKILLS': {
-      isList: true,
-      required: true, // This section is required
-    },
-    DESCRIPTION: {
-      isList: true,
-    },
-    'PREFERRED SKILLS': {
-      isList: true,
-    },
-    'ABOUT COMPANY': {
-      isList: true,
-    },
+/**
+ * Job validation schema
+ */
+const JOB_SCHEMA: ValidationSchema = {
+  expectedType: 'JOB',
+  missingTypeIsError: true,
+  requiredFields: ['TITLE', 'COMPANY'],
+  standardFields: STANDARD_JOB_FIELDS,
+  sections: {
+    'REQUIRED SKILLS': { required: true },
+    'PREFERRED SKILLS': {},
+    DESCRIPTION: {},
+    'ABOUT COMPANY': {},
   },
+  standardSections: STANDARD_JOB_SECTIONS,
+  validateItems: false, // Jobs don't have ## items
 };
 
 /**
- * Map of old section names (underscore) to new format (spaces)
- * Used for backward compatibility
+ * Convert JobTemplateData to ParsedTemplate for validation
+ * JobTemplateData has a simplified section structure (list + fields + text)
+ * ParsedTemplate has full structure (items, list, text, fields)
  */
-const SECTION_NAME_ALIASES: Record<string, string> = {
-  REQUIRED_SKILLS: 'REQUIRED SKILLS',
-  PREFERRED_SKILLS: 'PREFERRED SKILLS',
-  ABOUT_COMPANY: 'ABOUT COMPANY',
-};
+function convertToParssedTemplate(jobData: JobTemplateData): ParsedTemplate {
+  const sections: ParsedTemplate['sections'] = {};
 
-/**
- * Find a section by name, checking both new format and legacy underscore format
- */
-function findSection(
-  sections: Record<string, { list: string[]; fields?: Record<string, string> }>,
-  sectionName: string
-): { list: string[]; fields?: Record<string, string> } | undefined {
-  // Check exact match first (new format)
-  if (sections[sectionName]) {
-    return sections[sectionName];
+  for (const [name, section] of Object.entries(jobData.sections)) {
+    sections[name] = {
+      items: [],
+      list: section.list || [],
+      text: section.text || [],
+      fields: section.fields || {},
+      originalName: section.originalName,
+    };
   }
 
-  // Check underscore variant (legacy format)
-  const underscoreVariant = sectionName.replace(/ /g, '_');
-  if (sections[underscoreVariant]) {
-    return sections[underscoreVariant];
-  }
-
-  return undefined;
+  return {
+    type: jobData.type,
+    topLevelFields: jobData.topLevelFields,
+    sections,
+    raw: jobData.raw,
+  };
 }
 
 /**
@@ -96,168 +91,20 @@ function findSection(
  * @returns Validation result with errors, warnings, and info
  */
 function validateJobTemplate(parsedJob: JobTemplateData): JobValidationResult {
-  const result: JobValidationResult = {
-    valid: true,
-    errors: [],
-    warnings: [],
-    info: [],
-    customFields: [],
-    customSections: [],
-    fixes: [],
-  };
-
   if (!parsedJob) {
-    result.valid = false;
-    result.errors.push({
-      type: 'invalid_input',
-      message: 'No parsed job provided',
-    });
-    return result;
+    return {
+      valid: false,
+      errors: [{ type: 'invalid_input', message: 'No parsed job provided' }],
+      warnings: [],
+      info: [],
+      customFields: [],
+      customSections: [],
+      fixes: [],
+    };
   }
 
-  // Validate type declaration
-  if (!parsedJob.type) {
-    result.errors.push({
-      type: 'missing_type',
-      message: 'Missing <JOB> type declaration at the start',
-    });
-    result.valid = false;
-  } else if (parsedJob.type !== 'JOB') {
-    result.warnings.push({
-      type: 'unexpected_type',
-      message: `Expected <JOB> but found <${parsedJob.type}>`,
-    });
-  }
-
-  // Validate top-level fields
-  validateTopLevelFields(parsedJob, result);
-
-  // Validate sections
-  validateSections(parsedJob, result);
-
-  return result;
-}
-
-/**
- * Validate top-level fields (SIMPLIFIED)
- * Only validates REQUIRED fields exist and are non-empty
- * All optional fields are accepted without validation
- */
-function validateTopLevelFields(
-  parsedJob: JobTemplateData,
-  result: JobValidationResult
-): void {
-  const fields = parsedJob.topLevelFields || {};
-
-  // Check required fields only
-  JOB_SCHEMA.topLevelRequired.forEach((requiredField) => {
-    if (!fields[requiredField] || fields[requiredField].trim() === '') {
-      const fix = {
-        type: 'insert_top_level_field' as const,
-        field: requiredField,
-        text: `${requiredField}: `,
-        buttonLabel: 'Insert',
-        description: `Insert ${requiredField} field`,
-      };
-      result.errors.push({
-        type: 'missing_required_field',
-        field: requiredField,
-        message: `Missing required field "${requiredField}"`,
-        fix,
-      });
-      result.fixes?.push(fix);
-      result.valid = false;
-    }
-  });
-}
-
-/**
- * Validate sections
- */
-function validateSections(
-  parsedJob: JobTemplateData,
-  result: JobValidationResult
-): void {
-  const sections = parsedJob.sections || {};
-  const sectionNames = Object.keys(sections);
-
-  // Check for required sections (using findSection for backward compatibility)
-  Object.keys(JOB_SCHEMA.standardSections).forEach((sectionName) => {
-    const schema = JOB_SCHEMA.standardSections[sectionName];
-
-    if (schema.required) {
-      const section = findSection(sections, sectionName);
-      if (!section) {
-        result.errors.push({
-          type: 'missing_required_section',
-          section: sectionName,
-          message: `Required section "${sectionName}" is missing`,
-        });
-        result.valid = false;
-      } else if (section.list.length === 0) {
-        const fix = {
-          type: 'delete_section' as const,
-          section: sectionName,
-          buttonLabel: 'Delete',
-          description: `Delete empty section "${sectionName}"`,
-        };
-        result.warnings.push({
-          type: 'empty_section',
-          section: sectionName,
-          message: `Required section "${sectionName}" is empty`,
-          fix,
-        });
-        result.fixes?.push(fix);
-      }
-    }
-  });
-
-  // Validate each known section for emptiness
-  sectionNames.forEach((sectionName) => {
-    const section = sections[sectionName];
-
-    // Normalize section name (convert underscore to space for schema lookup)
-    const normalizedName = SECTION_NAME_ALIASES[sectionName] || sectionName;
-    const schema = JOB_SCHEMA.standardSections[normalizedName];
-
-    // Skip custom sections - they're accepted without validation
-    if (!schema) {
-      return;
-    }
-
-    // Validate standard section
-    if (schema.isList) {
-      validateListSection(sectionName, section, result, schema.required);
-    }
-  });
-}
-
-/**
- * Validate a list-type section
- */
-function validateListSection(
-  sectionName: string,
-  section: { list: string[]; fields?: Record<string, string> },
-  result: JobValidationResult,
-  isRequired?: boolean
-): void {
-  if (!section.list || section.list.length === 0) {
-    if (!isRequired) {
-      const fix = {
-        type: 'delete_section' as const,
-        section: sectionName,
-        buttonLabel: 'Delete',
-        description: `Delete empty section "${sectionName}"`,
-      };
-      result.warnings.push({
-        type: 'empty_section',
-        section: sectionName,
-        message: `Section "${sectionName}" is empty`,
-        fix,
-      });
-      result.fixes?.push(fix);
-    }
-  }
+  const parsed = convertToParssedTemplate(parsedJob);
+  return validateTemplate(parsed, JOB_SCHEMA);
 }
 
 /**
@@ -268,36 +115,7 @@ function validateListSection(
 function getJobValidationSummary(
   validationResult: JobValidationResult
 ): string {
-  const parts: string[] = [];
-
-  if (validationResult.valid) {
-    parts.push('✅ Job is valid!');
-  } else {
-    parts.push('❌ Job has errors that should be fixed.');
-  }
-
-  if (validationResult.errors.length > 0) {
-    parts.push(`\n\n🔴 Errors (${validationResult.errors.length}):`);
-    validationResult.errors.forEach((err) => {
-      parts.push(`  - ${err.message}`);
-    });
-  }
-
-  if (validationResult.warnings.length > 0) {
-    parts.push(`\n\n🟡 Warnings (${validationResult.warnings.length}):`);
-    validationResult.warnings.forEach((warn) => {
-      parts.push(`  - ${warn.message}`);
-    });
-  }
-
-  if (validationResult.info.length > 0) {
-    parts.push(`\n\nℹ️ Info (${validationResult.info.length}):`);
-    validationResult.info.forEach((info) => {
-      parts.push(`  - ${info.message}`);
-    });
-  }
-
-  return parts.join('\n');
+  return getValidationSummary(validationResult);
 }
 
 // Short aliases for convenience

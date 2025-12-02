@@ -185,7 +185,8 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
           {m.fix.allowedValues.map((value) => (
             <Button
               key={value}
-              variant="link"
+              variant="secondary"
+              size="sm"
               onClick={() => onApplyFix(m.fix!, value)}
               title={`Replace with ${value}`}
             >
@@ -202,7 +203,8 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
         {m.message}
         {m.fix && onApplyFix && (
           <Button
-            variant="link"
+            variant="secondary"
+            size="sm"
             onClick={() => onApplyFix(m.fix!)}
             title={m.fix.description}
           >
@@ -229,7 +231,8 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
           {quickActions.map((action, i) => (
             <Button
               key={i}
-              variant="link"
+              variant="secondary"
+              size="sm"
               onClick={action.onClick}
               title={action.title}
             >

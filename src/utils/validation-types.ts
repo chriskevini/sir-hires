@@ -38,8 +38,11 @@ export type ValidationFixType =
   | 'insert_top_level_field'
   | 'insert_field_in_entry'
   | 'replace_enum_value_multi'
+  | 'replace_type'
   | 'rename_entry_id'
   | 'rename_section'
+  | 'rename_field'
+  | 'add_section_bullet'
   | 'delete_section';
 
 /**

@@ -1,11 +1,10 @@
 import React, { useCallback, useRef } from 'react';
 import { useJobValidation, ChecklistItem } from '../hooks';
 import { useImmediateSave } from '@/hooks/useImmediateSave';
-import { StreamingTextarea } from '@/components/ui/StreamingTextarea';
+import { ValidatedEditor } from '@/components/ui/ValidatedEditor';
 import { ExtractionLoadingView } from '../components/ExtractionLoadingView';
 import { ExtractionErrorView } from '../components/ExtractionErrorView';
 import { MigrationPromptView } from '../components/MigrationPromptView';
-import { cn } from '@/lib/utils';
 import type { ValidationFix } from '@/utils/validation-types';
 import { applyFix, setCursorAndScroll } from '@/utils/profile-utils';
 
@@ -123,7 +122,7 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   }
 
   // Render normal editing state
-  // Build validation messages for StreamingTextarea (with fix support)
+  // Build validation messages for ValidatedEditor (with fix support)
   const validationMessages = [
     ...(validation?.errors.map((e) => ({
       type: 'error' as const,
@@ -138,29 +137,18 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   ];
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Editor with inline validation */}
-      <div className="flex-1 flex flex-col overflow-hidden border border-border rounded-lg bg-background">
-        <div className="flex-1 flex flex-col p-4">
-          <StreamingTextarea
-            ref={textareaRef}
-            id="jobEditor"
-            data-job-id={job.id}
-            value={editorContent}
-            onChange={setEditorContent}
-            validationMessages={validationMessages}
-            onApplyFix={handleApplyFix}
-            className={cn(
-              'flex-1 border-l-4',
-              validation?.valid
-                ? 'border-l-success'
-                : validation?.errors?.length
-                  ? 'border-l-destructive'
-                  : 'border-l-border'
-            )}
-          />
-        </div>
-      </div>
+    <div className="flex flex-col h-full p-4">
+      <ValidatedEditor
+        ref={textareaRef}
+        id="jobEditor"
+        data-job-id={job.id}
+        value={editorContent}
+        onChange={setEditorContent}
+        isValid={validation?.valid}
+        hasErrors={(validation?.errors?.length ?? 0) > 0}
+        validationMessages={validationMessages}
+        onApplyFix={handleApplyFix}
+      />
     </div>
   );
 };

@@ -25,47 +25,44 @@ export const PROFILE_TEMPLATE = `<PROFILE>
 NAME: Place Holder // required
 ADDRESS: 123 Main Street, Anytown, CA 45678
 EMAIL: name@email.com
-// ex: PHONE, WEBSITE, GITHUB
+// PHONE, WEBSITE, GITHUB
 
-# EDUCATION
-## EDU_1
-DEGREE: Master of Science in Computer Science // required
-SCHOOL: University of Helsinki // required
+### EDUCATION
+
+# Master of Science in Computer Science
+SCHOOL: University of Helsinki
 LOCATION: Helsinki, Finland
 START: September 1988
 END: March 1997
-// ex: GPA
+// GPA
 
-# EXPERIENCE
-## EXP_1
-TYPE: PROFESSIONAL // required [PROFESSIONAL|PROJECT|VOLUNTEER]
-TITLE: Senior Developer // required
+### PROFESSIONAL EXPERIENCE
+
+# Senior Developer
 AT: Tech Solutions Inc.
 START: October 2020
 END: ONGOING
-BULLETS:
 - Built API...
 - Led team...
 
-## EXP_2
-TYPE: PROJECT // required [PROFESSIONAL|PROJECT|VOLUNTEER]
-TITLE: Linux Kernel // required
-BULLETS:
+### TECHNICAL PROJECT EXPERIENCE
+
+# Linux Kernel
 - Architected kernel...
 - Integrated Rust...
 
-## EXP_3
-TYPE: VOLUNTEER // required [PROFESSIONAL|PROJECT|VOLUNTEER]
-TITLE: Community Volunteer // required
+### VOLUNTEER
+
+# Community Volunteer
 AT: Local Non-Profit
-BULLETS:
 - Supported educational...
 - Helped organize...
 
-# INTERESTS:
+### INTERESTS
 - Scuba diving
 - Reading
-// ex: # CERTIFICATIONS:`;
+// ### CERTIFICATIONS
+`;
 
 // =============================================================================
 // LLM PROMPT
@@ -78,19 +75,24 @@ BULLETS:
  * The prompt includes the template schema and few-shot examples inline.
  * Only rawText (resume/CV content) is passed as context.
  */
-export const PROFILE_EXTRACTION_PROMPT = `You are an expert Resume Parser. Transform resumes into the MarkdownDB format shown in TEMPLATE.
+export const PROFILE_EXTRACTION_PROMPT = `
+You are an expert Resume Parser. Transform resumes into the MarkdownDB format shown in TEMPLATE.
 
 ### RULES
 1. **Dates:** "Month Year" format. Use "ONGOING" for current positions.
-2. **Headers:** Number sections as EDU_1, EXP_1, etc.
-3. **Lists:** Create simple lists for SKILLS, CERTIFICATIONS, INTERESTS if present.
-4. **Experience:** ALL work, projects, and volunteering go under # EXPERIENCE with TYPE field.
+2. **Sections:** Use "### SECTION_NAME" for sections (EDUCATION, PROFESSIONAL EXPERIENCE, etc.)
+3. **Items:** Use "# Item Title" for each entry within a section.
+4. **Lists:** Use "- bullet" directly under items. For simple lists (INTERESTS, SKILLS), bullets go directly under section.
 5. **Missing Data:** Omit fields with unknown values entirely.
 
-### EXPERIENCE TYPES (STRICT)
-* PROFESSIONAL: Jobs, employment, paid work
-* PROJECT: Side projects, hackathons, academic projects, courses
+### SECTION TYPES
+* EDUCATION: Degrees, courses
+* PROFESSIONAL EXPERIENCE: Jobs, employment, paid work
+* TECHNICAL PROJECT EXPERIENCE: Side projects, hackathons, academic projects
 * VOLUNTEER: Unpaid work, non-profit, community service
+* INTERESTS: Hobbies, interests (simple list)
+* SKILLS: Technical skills (simple list)
+* CERTIFICATIONS: Professional certifications (simple list)
 
 ### EXAMPLE
 Input: Jordan Lee | SF, CA | jordan@example.com
@@ -105,31 +107,28 @@ NAME: Jordan Lee
 ADDRESS: SF, CA
 EMAIL: jordan@example.com
 
-# EDUCATION
-## EDU_1
-DEGREE: B.S. CS
+### EDUCATION
+
+# B.S. Computer Science
 SCHOOL: UC Berkeley
 START: 2012
 END: 2016
 
-# EXPERIENCE
-## EXP_1
-TYPE: PROFESSIONAL
-TITLE: Engineer
+### PROFESSIONAL EXPERIENCE
+
+# Engineer
 AT: TechFlow
 START: January 2020
 END: ONGOING
-BULLETS:
 - Led migration.
 - Managed 5 devs.
 
-## EXP_2
-TYPE: PROJECT
-TITLE: CryptoTracker
-BULLETS:
+### TECHNICAL PROJECT EXPERIENCE
+
+# CryptoTracker
 - Python script.
 
-# SKILLS:
+### SKILLS
 - Python
 - React
 

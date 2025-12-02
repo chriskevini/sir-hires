@@ -1,116 +1,49 @@
 // Profile Template Validator
 // Validates parsed MarkdownDB Profile Template against schema rules
 // Philosophy: Validate structure, celebrate creativity
+//
+// New format (v2):
+// - ### SECTION for section headers
+// - # Item Title for items within sections
+// - Only NAME is required - everything else optional
+// - Custom sections/fields are encouraged
 
-import type { BaseValidationResult } from './validation-types';
+import type { ParsedProfile } from './profile-parser';
+import type { BaseValidationResult, ValidationFix } from './validation-types';
 
 /**
  * Profile validation result interface
  */
-export interface ProfileValidationResult extends BaseValidationResult {}
-
-/**
- * Profile section schema
- */
-interface SectionSchema {
-  required?: string[];
-  optional?: string[];
-  isList?: boolean;
-  enums?: Record<string, string[]>;
+export interface ProfileValidationResult extends BaseValidationResult {
+  fixes?: ValidationFix[];
 }
 
 /**
- * Entry ID pattern configuration
+ * Standard section names (canonical form)
+ * Used for typo detection and case normalization
  */
-interface EntryIdPattern {
-  pattern: RegExp;
-  expectedFormat: string;
-}
+const STANDARD_SECTIONS = [
+  'EDUCATION',
+  'PROFESSIONAL EXPERIENCE',
+  'TECHNICAL PROJECT EXPERIENCE',
+  'VOLUNTEER',
+  'INTERESTS',
+  'SKILLS',
+  'CERTIFICATIONS',
+];
 
 /**
- * Profile schema definition
+ * Standard top-level field names
  */
-interface ProfileSchema {
-  topLevelRequired: string[];
-  topLevelOptional: string[];
-  standardSections: Record<string, SectionSchema>;
-  entryIdPatterns: Record<string, EntryIdPattern>;
-}
-
-/**
- * Similarity threshold for typo detection (0-1 scale).
- * 0.8 catches single-character substitutions while avoiding false positives
- * on short section names like "SKILLS" vs "INTERESTS".
- */
-const TYPO_SIMILARITY_THRESHOLD = 0.8;
-
-/**
- * Parsed profile data structure
- */
-interface ParsedProfile {
-  type: string | null;
-  topLevelFields: Record<string, string>;
-  sections: Record<
-    string,
-    {
-      list?: string[];
-      entries?: Record<string, { fields: Record<string, string> }>;
-    }
-  >;
-  raw: string;
-  duplicateEntryIds?: Array<{ section: string; entryId: string }>;
-}
-
-/**
- * Validation schema for standard Profile Template fields
- * Note: This is NOT exhaustive - custom fields are ENCOURAGED
- */
-const PROFILE_SCHEMA: ProfileSchema = {
-  // Top-level required fields
-  topLevelRequired: ['NAME'],
-
-  // Top-level optional standard fields
-  topLevelOptional: [
-    'ADDRESS',
-    'EMAIL',
-    'PHONE',
-    'WEBSITE',
-    'GITHUB',
-    'LINKEDIN',
-  ],
-
-  // Standard sections
-  standardSections: {
-    EDUCATION: {
-      required: ['DEGREE', 'SCHOOL'],
-      optional: ['LOCATION', 'START', 'END', 'GPA'],
-    },
-    EXPERIENCE: {
-      required: ['TYPE', 'TITLE'],
-      optional: ['AT', 'START', 'END', 'BULLETS'],
-      enums: {
-        TYPE: ['PROFESSIONAL', 'PROJECT', 'VOLUNTEER'],
-      },
-    },
-    INTERESTS: {
-      isList: true, // Section is just a list, no entries
-    },
-  },
-
-  // Entry ID naming patterns for standard sections.
-  // Custom sections are exempt - users can name entries however they want.
-  // Note: INTERESTS is a list section (no entries), so no pattern needed.
-  entryIdPatterns: {
-    EDUCATION: {
-      pattern: /^EDU_\d+$/,
-      expectedFormat: 'EDU_1, EDU_2, etc.',
-    },
-    EXPERIENCE: {
-      pattern: /^EXP_\d+$/,
-      expectedFormat: 'EXP_1, EXP_2, etc.',
-    },
-  },
-};
+const STANDARD_TOP_LEVEL_FIELDS = [
+  'NAME',
+  'ADDRESS',
+  'EMAIL',
+  'PHONE',
+  'WEBSITE',
+  'GITHUB',
+  'LINKEDIN',
+];
 
 /**
  * Validate a parsed profile template
@@ -127,6 +60,7 @@ function validateProfileTemplate(
     info: [],
     customFields: [],
     customSections: [],
+    fixes: [],
   };
 
   if (!parsedProfile) {
@@ -140,11 +74,10 @@ function validateProfileTemplate(
 
   // Validate type declaration
   if (!parsedProfile.type) {
-    result.errors.push({
+    result.warnings.push({
       type: 'missing_type',
       message: 'Missing <PROFILE> type declaration at the start',
     });
-    result.valid = false;
   } else if (parsedProfile.type !== 'PROFILE') {
     result.warnings.push({
       type: 'unexpected_type',
@@ -152,23 +85,14 @@ function validateProfileTemplate(
     });
   }
 
+  // Validate required field: NAME
+  validateRequiredName(parsedProfile, result);
+
   // Validate top-level fields
   validateTopLevelFields(parsedProfile, result);
 
   // Validate sections
   validateSections(parsedProfile, result);
-
-  // Check for duplicate entry IDs (detected by parser)
-  if (parsedProfile.duplicateEntryIds?.length) {
-    parsedProfile.duplicateEntryIds.forEach(({ section, entryId }) => {
-      result.warnings.push({
-        type: 'duplicate_entry_id',
-        section,
-        entry: entryId,
-        message: `Duplicate entry ID "${entryId}" in ${section}`,
-      });
-    });
-  }
 
   // Add informational messages about custom content
   if (result.customFields.length > 0) {
@@ -189,6 +113,24 @@ function validateProfileTemplate(
 }
 
 /**
+ * Validate NAME field is present (only required field)
+ */
+function validateRequiredName(
+  parsedProfile: ParsedProfile,
+  result: ProfileValidationResult
+): void {
+  const name = parsedProfile.topLevelFields.NAME;
+  if (!name || name.trim() === '') {
+    result.valid = false;
+    result.errors.push({
+      type: 'missing_required_field',
+      field: 'NAME',
+      message: 'Missing required field "NAME"',
+    });
+  }
+}
+
+/**
  * Validate top-level fields
  */
 function validateTopLevelFields(
@@ -196,30 +138,23 @@ function validateTopLevelFields(
   result: ProfileValidationResult
 ): void {
   const fields = parsedProfile.topLevelFields || {};
-  const fieldNames = Object.keys(fields);
 
-  // Check required fields
-  PROFILE_SCHEMA.topLevelRequired.forEach((requiredField) => {
-    if (!fields[requiredField] || fields[requiredField].trim() === '') {
-      result.errors.push({
-        type: 'missing_required_field',
-        field: requiredField,
-        message: `Missing required field "${requiredField}"`,
+  for (const fieldName of Object.keys(fields)) {
+    // Check for lowercase field name
+    if (fieldName !== fieldName.toUpperCase()) {
+      result.warnings.push({
+        type: 'lowercase_key',
+        field: fieldName,
+        suggestedValue: fieldName.toUpperCase(),
+        message: `Field "${fieldName}" should be uppercase`,
       });
-      result.valid = false;
     }
-  });
 
-  // Identify custom fields
-  const standardFields = [
-    ...PROFILE_SCHEMA.topLevelRequired,
-    ...PROFILE_SCHEMA.topLevelOptional,
-  ];
-  fieldNames.forEach((fieldName) => {
-    if (!standardFields.includes(fieldName)) {
+    // Track custom fields
+    if (!STANDARD_TOP_LEVEL_FIELDS.includes(fieldName.toUpperCase())) {
       result.customFields.push(fieldName);
     }
-  });
+  }
 }
 
 /**
@@ -231,240 +166,93 @@ function validateSections(
 ): void {
   const sections = parsedProfile.sections || {};
   const sectionNames = Object.keys(sections);
+  const seenSections = new Set<string>();
 
-  sectionNames.forEach((sectionName) => {
+  for (const sectionName of sectionNames) {
     const section = sections[sectionName];
-    const schema = PROFILE_SCHEMA.standardSections[sectionName];
+    const normalizedName = sectionName.toUpperCase();
 
-    if (!schema) {
-      // Not a recognized standard section - check for typos/case issues
-      validateSectionName(sectionName, result);
-
-      // Custom section - this is encouraged!
-      result.customSections.push(sectionName);
-
-      // Check if custom section is empty (no entries and no list items)
-      const hasEntries = Object.keys(section.entries || {}).length > 0;
-      const hasListItems = (section.list || []).length > 0;
-      if (!hasEntries && !hasListItems) {
-        result.warnings.push({
-          type: 'empty_section',
-          section: sectionName,
-          message: `Section "${sectionName}" is empty`,
-        });
-      }
-      return;
-    }
-
-    // Validate standard section
-    if (schema.isList) {
-      // Section is just a list (e.g., INTERESTS)
-      validateListSection(sectionName, section, result);
-    } else {
-      // Section has entries with fields
-      validateEntrySection(sectionName, section, schema, result);
-    }
-  });
-}
-
-/**
- * Validate a list-type section (e.g., INTERESTS)
- */
-function validateListSection(
-  sectionName: string,
-  section: {
-    list?: string[];
-    entries?: Record<string, { fields: Record<string, string> }>;
-  },
-  result: ProfileValidationResult
-): void {
-  if (!section.list || section.list.length === 0) {
-    result.warnings.push({
-      type: 'empty_section',
-      section: sectionName,
-      message: `Section "${sectionName}" is empty`,
-    });
-  }
-}
-
-/**
- * Validate section name for case issues or potential typos.
- * Called for sections not found in standardSections.
- */
-function validateSectionName(
-  sectionName: string,
-  result: ProfileValidationResult
-): void {
-  const standardSections = Object.keys(PROFILE_SCHEMA.standardSections);
-
-  // Check if this is a case variation of a standard section (e.g., "education" → "EDUCATION")
-  const upperSectionName = sectionName.toUpperCase();
-  if (
-    standardSections.includes(upperSectionName) &&
-    sectionName !== upperSectionName
-  ) {
-    result.warnings.push({
-      type: 'section_name_case',
-      section: sectionName,
-      suggestedValue: upperSectionName,
-      message: `Section "${sectionName}" should be uppercase`,
-    });
-    return;
-  }
-
-  // Check for possible typos using similarity matching
-  for (const standardSection of standardSections) {
-    if (isSimilarString(sectionName.toUpperCase(), standardSection)) {
+    // Check for duplicate sections
+    if (seenSections.has(normalizedName)) {
       result.warnings.push({
-        type: 'possible_section_typo',
+        type: 'duplicate_section',
         section: sectionName,
-        suggestedValue: standardSection,
-        message: `Section "${sectionName}" may be a typo`,
+        message: `Duplicate section "${sectionName}" - consider merging`,
       });
-      return;
+    }
+    seenSections.add(normalizedName);
+
+    // Check for lowercase section header
+    if (sectionName !== normalizedName) {
+      result.warnings.push({
+        type: 'lowercase_section',
+        section: sectionName,
+        suggestedValue: normalizedName,
+        message: `Section "${sectionName}" should be uppercase`,
+      });
+    }
+
+    // Check for empty section
+    const hasItems = section.items && section.items.length > 0;
+    const hasList = section.list && section.list.length > 0;
+    if (!hasItems && !hasList) {
+      result.warnings.push({
+        type: 'empty_section',
+        section: sectionName,
+        message: `Section "${sectionName}" is empty`,
+      });
+      // Add delete fix
+      result.fixes?.push({
+        type: 'delete_section',
+        section: sectionName,
+        buttonLabel: 'Delete',
+        description: `Delete empty section "${sectionName}"`,
+      });
+    }
+
+    // Check for mixed patterns (items + orphan bullets in same section)
+    if (hasItems && hasList) {
+      result.warnings.push({
+        type: 'mixed_patterns',
+        section: sectionName,
+        message: `Section "${sectionName}" has both items and orphan bullets - consider restructuring`,
+      });
+    }
+
+    // Track custom sections
+    if (!STANDARD_SECTIONS.includes(normalizedName)) {
+      result.customSections.push(sectionName);
+    }
+
+    // Validate items within section
+    if (section.items) {
+      for (const item of section.items) {
+        validateItem(sectionName, item, result);
+      }
     }
   }
 }
 
 /**
- * Check if two strings are similar (for typo detection).
- * Uses positional character matching with a similarity threshold.
+ * Validate an item within a section
  */
-function isSimilarString(a: string, b: string): boolean {
-  // Length difference > 2 means unlikely to be a typo
-  if (Math.abs(a.length - b.length) > 2) {
-    return false;
-  }
-
-  // Count characters matching at the same position
-  const maxLen = Math.max(a.length, b.length);
-  const minLen = Math.min(a.length, b.length);
-  let matches = 0;
-
-  for (let i = 0; i < minLen; i++) {
-    if (a[i] === b[i]) {
-      matches++;
-    }
-  }
-
-  const similarity = matches / maxLen;
-
-  // Must be similar but not exact (exact matches are handled elsewhere)
-  return similarity >= TYPO_SIMILARITY_THRESHOLD && similarity < 1.0;
-}
-
-/**
- * Validate entry ID naming convention for standard sections.
- */
-function validateEntryId(
+function validateItem(
   sectionName: string,
-  entryId: string,
+  item: { title: string; fields: Record<string, string>; bullets: string[] },
   result: ProfileValidationResult
 ): void {
-  const pattern = PROFILE_SCHEMA.entryIdPatterns[sectionName];
-
-  // No pattern defined for this section (e.g., custom sections, INTERESTS)
-  if (!pattern) {
-    return;
-  }
-
-  if (!pattern.pattern.test(entryId)) {
-    result.warnings.push({
-      type: 'invalid_entry_id',
-      section: sectionName,
-      entry: entryId,
-      message: `Invalid entry ID "${entryId}" in ${sectionName}`,
-    });
-  }
-}
-
-/**
- * Validate an entry-based section (e.g., EDUCATION, EXPERIENCE)
- */
-function validateEntrySection(
-  sectionName: string,
-  section: {
-    list?: string[];
-    entries?: Record<string, { fields: Record<string, string> }>;
-  },
-  schema: SectionSchema,
-  result: ProfileValidationResult
-): void {
-  const entries = section.entries || {};
-  const entryIds = Object.keys(entries);
-
-  if (entryIds.length === 0) {
-    result.warnings.push({
-      type: 'empty_section',
-      section: sectionName,
-      message: `Section "${sectionName}" is empty`,
-    });
-    return;
-  }
-
-  entryIds.forEach((entryId) => {
-    const entry = entries[entryId];
-    const fields = entry.fields || {};
-
-    // Validate entry ID naming convention (e.g., EDU_1, EXP_2)
-    validateEntryId(sectionName, entryId, result);
-
-    // Check required fields
-    if (schema.required) {
-      schema.required.forEach((requiredField) => {
-        if (!fields[requiredField] || fields[requiredField].trim() === '') {
-          result.errors.push({
-            type: 'missing_required_field',
-            section: sectionName,
-            entry: entryId,
-            field: requiredField,
-            message: `Missing required field "${requiredField}" in ${sectionName}.${entryId}`,
-          });
-          result.valid = false;
-        }
-      });
-    }
-
-    // Validate enum fields
-    if (schema.enums) {
-      Object.keys(schema.enums).forEach((enumField) => {
-        const value = fields[enumField];
-        const allowedValues = schema.enums![enumField];
-
-        if (value && !allowedValues.includes(value)) {
-          result.errors.push({
-            type: 'invalid_enum_value',
-            section: sectionName,
-            entry: entryId,
-            field: enumField,
-            value: value,
-            allowedValues: allowedValues,
-            message: `Invalid value "${value}" for ${enumField} in ${sectionName}.${entryId}`,
-          });
-          result.valid = false;
-        }
-      });
-    }
-
-    // Identify custom fields in this entry
-    const standardFields = [
-      ...(schema.required || []),
-      ...(schema.optional || []),
-    ];
-    const customEntryFields = Object.keys(fields).filter(
-      (f) => !standardFields.includes(f)
-    );
-
-    if (customEntryFields.length > 0) {
-      result.info.push({
-        type: 'custom_entry_fields',
+  // Check for lowercase field keys within item
+  for (const fieldName of Object.keys(item.fields)) {
+    if (fieldName !== fieldName.toUpperCase()) {
+      result.warnings.push({
+        type: 'lowercase_key',
         section: sectionName,
-        entry: entryId,
-        fields: customEntryFields,
-        message: `Custom fields in ${sectionName}.${entryId}: ${customEntryFields.join(', ')}`,
+        field: fieldName,
+        suggestedValue: fieldName.toUpperCase(),
+        message: `Field "${fieldName}" in "${item.title}" should be uppercase`,
       });
     }
-  });
+  }
 }
 
 /**
@@ -478,27 +266,27 @@ function getProfileValidationSummary(
   const parts: string[] = [];
 
   if (validationResult.valid) {
-    parts.push('✅ Profile is valid!');
+    parts.push('Profile is valid!');
   } else {
-    parts.push('❌ Profile has errors that should be fixed.');
+    parts.push('Profile has errors that should be fixed.');
   }
 
   if (validationResult.errors.length > 0) {
-    parts.push(`\n\n🔴 Errors (${validationResult.errors.length}):`);
+    parts.push(`\n\nErrors (${validationResult.errors.length}):`);
     validationResult.errors.forEach((err) => {
       parts.push(`  - ${err.message}`);
     });
   }
 
   if (validationResult.warnings.length > 0) {
-    parts.push(`\n\n🟡 Warnings (${validationResult.warnings.length}):`);
+    parts.push(`\n\nWarnings (${validationResult.warnings.length}):`);
     validationResult.warnings.forEach((warn) => {
       parts.push(`  - ${warn.message}`);
     });
   }
 
   if (validationResult.info.length > 0) {
-    parts.push(`\n\nℹ️ Info (${validationResult.info.length}):`);
+    parts.push(`\n\nInfo (${validationResult.info.length}):`);
     validationResult.info.forEach((info) => {
       parts.push(`  - ${info.message}`);
     });
@@ -515,5 +303,6 @@ export {
   validateProfileTemplate,
   validateProfile,
   getProfileValidationSummary,
-  PROFILE_SCHEMA,
+  STANDARD_SECTIONS,
+  STANDARD_TOP_LEVEL_FIELDS,
 };

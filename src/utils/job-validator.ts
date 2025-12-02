@@ -3,12 +3,14 @@
 // Philosophy: Validate structure, celebrate creativity
 
 import type { JobTemplateData } from './job-parser';
-import type { BaseValidationResult } from './validation-types';
+import type { BaseValidationResult, ValidationFix } from './validation-types';
 
 /**
  * Job validation result interface
  */
-export interface JobValidationResult extends BaseValidationResult {}
+export interface JobValidationResult extends BaseValidationResult {
+  fixes?: ValidationFix[];
+}
 
 /**
  * Job schema definition (SIMPLIFIED)
@@ -66,6 +68,7 @@ function validateJobTemplate(parsedJob: JobTemplateData): JobValidationResult {
     info: [],
     customFields: [],
     customSections: [],
+    fixes: [],
   };
 
   if (!parsedJob) {
@@ -189,6 +192,12 @@ function validateSections(
           section: sectionName,
           message: `Required section "${sectionName}" is empty`,
         });
+        result.fixes?.push({
+          type: 'delete_section',
+          section: sectionName,
+          buttonLabel: 'Delete',
+          description: `Delete empty section "${sectionName}"`,
+        });
       }
     }
   });
@@ -227,6 +236,12 @@ function validateListSection(
         type: 'empty_section',
         section: sectionName,
         message: `Section "${sectionName}" is empty`,
+      });
+      result.fixes?.push({
+        type: 'delete_section',
+        section: sectionName,
+        buttonLabel: 'Delete',
+        description: `Delete empty section "${sectionName}"`,
       });
     }
   }

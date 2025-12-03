@@ -263,37 +263,47 @@ export function useLLMSettings(
   }, []);
 
   // Fetch models from LLM server via background message
-  const fetchModels = useCallback(async () => {
-    setStatus('loading');
-    setErrorMessage('');
+  // showLoading: whether to show loading state (false for background retries to avoid UI flicker)
+  const fetchModels = useCallback(
+    async (showLoading: boolean = true) => {
+      // Only show loading state if requested (user-initiated) or if idle
+      if (showLoading || status === 'idle') {
+        setStatus('loading');
+        setErrorMessage('');
+      }
 
-    try {
-      const currentEndpoint = normalizeEndpoint(serverUrl || DEFAULT_ENDPOINT);
-      const currentModelsEndpoint = getModelsEndpoint(currentEndpoint);
+      try {
+        const currentEndpoint = normalizeEndpoint(
+          serverUrl || DEFAULT_ENDPOINT
+        );
+        const currentModelsEndpoint = getModelsEndpoint(currentEndpoint);
 
-      const response = await browser.runtime.sendMessage({
-        action: 'fetchModels',
-        endpoint: currentModelsEndpoint,
-        apiKey: apiKey || undefined,
-      });
+        const response = await browser.runtime.sendMessage({
+          action: 'fetchModels',
+          endpoint: currentModelsEndpoint,
+          apiKey: apiKey || undefined,
+        });
 
-      if (response.success && response.models) {
-        setAvailableModels(response.models);
-        setStatus('connected');
-      } else {
+        if (response.success && response.models) {
+          setAvailableModels(response.models);
+          setStatus('connected');
+          setErrorMessage('');
+        } else {
+          setAvailableModels([]);
+          setStatus('error');
+          setErrorMessage(response.error || 'Failed to connect');
+        }
+      } catch (error) {
+        console.error('[useLLMSettings] Error fetching models:', error);
         setAvailableModels([]);
         setStatus('error');
-        setErrorMessage(response.error || 'Failed to connect');
+        setErrorMessage((error as Error).message);
+      } finally {
+        setHasInitialized(true);
       }
-    } catch (error) {
-      console.error('[useLLMSettings] Error fetching models:', error);
-      setAvailableModels([]);
-      setStatus('error');
-      setErrorMessage((error as Error).message);
-    } finally {
-      setHasInitialized(true);
-    }
-  }, [serverUrl, apiKey]);
+    },
+    [serverUrl, apiKey, status]
+  );
 
   // Ref callback pattern: keeps ref updated to latest closure on every render
   // without causing the effect below to re-run (avoiding double-firing)
@@ -380,7 +390,8 @@ export function useLLMSettings(
 
     const intervalId = setInterval(() => {
       // Use ref to get latest fetchModels without re-running effect
-      fetchModelsRef.current();
+      // Pass false to suppress loading state during background retries
+      fetchModelsRef.current(false);
     }, interval);
 
     return () => clearInterval(intervalId);

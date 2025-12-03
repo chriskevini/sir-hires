@@ -246,7 +246,7 @@ EMAIL: alex.sterling@email.com
 AT: Innovatech Software Solutions
 LOCATION: Vancouver, BC
 START: June 2023
-END: ONGOING
+END: Present
 - Developed and maintained core features for a high-traffic enterprise SaaS platform.
 - Optimized database queries and indexing, reducing average response time from 500ms to 150ms.
 - Participated in system design meetings and contributed to architectural decisions.
@@ -277,7 +277,7 @@ END: December 2020
 AT: CodeMentor Community
 LOCATION: Online
 START: 2020
-END: ONGOING
+END: Present
 - Provided one-on-one virtual mentorship to beginners learning Python and JavaScript.
 - Reviewed mentees' code and offered constructive suggestions for improvement.
 - Contributed to open-source educational resources and tutorials.
@@ -318,27 +318,4 @@ END: May 2023
 - Maintained code quality through regular peer code reviews and adherence to coding standards.
 - Developed a mobile application front-end using Flutter and Dart.
 - Managed a relational PostgreSQL database schema and performed optimizations.
-
-# SKILLS
-- React
-- Node.js
-- AWS (EC2, S3)
-- PostgreSQL
-- Docker
-- Kubernetes
-- Jenkins
-- Redis
-- Flutter
-- JavaScript
-- Python
-- CSS
-- HTML
-- WordPress
-- Agile/Scrum
-- Test-Driven Development (TDD)
-- A/B Testing
-- System Design
-- Database Optimization
-- CI/CD
-- Cloud Native
 </PROFILE>`;

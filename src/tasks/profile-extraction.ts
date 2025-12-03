@@ -40,7 +40,7 @@ END: 2016
 ## Engineer
 AT: TechFlow
 START: January 2020
-END: ONGOING
+END: Present
 - Led migration.
 - Managed 5 devs.
 
@@ -78,7 +78,7 @@ END: March 1997
 ## Senior Developer
 AT: Tech Solutions Inc.
 START: October 2020
-END: ONGOING
+END: Present
 - Built API...
 - Led team...
 

@@ -13,7 +13,7 @@ Complete the TASK using any auxiliary info that is sent.`,
 
   context: ['job', 'profile', 'task'] as const,
   temperature: 0,
-  maxTokens: 20,
+  maxTokens: 1000,
 
   defaultTask:
     '/no_think Based ONLY on explicitly stated bullet points and without assuming additional information, calculate a precise fit score for this candidate. Output only a number between 0 and 100. You will be punished for bad judgement.',

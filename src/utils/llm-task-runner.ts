@@ -53,6 +53,12 @@ export interface RunTaskOptions {
   /** Override temperature from config */
   temperature?: number;
 
+  /**
+   * Skip thinking/reasoning blocks (default: true)
+   * Set to false to enable "think harder" mode for complex tasks
+   */
+  noThink?: boolean;
+
   /** Callback for document content chunks */
   onChunk?: (delta: string) => void;
 
@@ -251,6 +257,7 @@ export async function runTask(options: RunTaskOptions): Promise<TaskResult> {
     model,
     maxTokens,
     temperature,
+    noThink = true,
     onChunk,
     onThinking,
     signal,
@@ -262,7 +269,10 @@ export async function runTask(options: RunTaskOptions): Promise<TaskResult> {
   }
 
   // Build prompts
-  const systemPrompt = config.systemPrompt;
+  // Prepend /no_think to system prompt to skip thinking blocks (default behavior)
+  const systemPrompt = noThink
+    ? `/no_think ${config.systemPrompt}`
+    : config.systemPrompt;
   const userPrompt = buildUserPrompt(context);
 
   // Generate unique stream ID for cancellation tracking

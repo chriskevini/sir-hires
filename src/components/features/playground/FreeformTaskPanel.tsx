@@ -34,6 +34,7 @@ import {
   EXTRACTED_COMPLETE_JOB,
   EXTRACTED_COMPLETE_PROFILE,
 } from '@/data/fixtures';
+
 import { ArrowLeft, ArrowRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
@@ -495,6 +496,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
         context: contextRecord,
         temperature,
         maxTokens,
+        noThink: !llmSettings.thinkHarder,
       });
     } else {
       // Conversation mode: use executeMessagesTask with raw messages
@@ -513,6 +515,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
     messages,
     temperature,
     maxTokens,
+    llmSettings.thinkHarder,
     executeContextTask,
     executeMessagesTask,
   ]);

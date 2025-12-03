@@ -262,7 +262,7 @@ export function useJobExtraction(
 
       if (!llmSettings.endpoint || llmSettings.endpoint.trim() === '') {
         setError(
-          '⚠️ LLM endpoint not configured. Please configure settings in the popup first.'
+          '⚠️ LLM endpoint not configured. Please configure settings in the Job Details page.'
         );
         setExtracting(false);
         return;

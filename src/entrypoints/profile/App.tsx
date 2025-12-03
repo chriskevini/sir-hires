@@ -745,7 +745,7 @@ BULLETS:
 
       if (!llmSettings?.endpoint || llmSettings.endpoint.trim() === '') {
         throw new Error(
-          'LLM endpoint not configured. Please configure settings in the popup first.'
+          'LLM endpoint not configured. Please configure settings in the Job Details page.'
         );
       }
 

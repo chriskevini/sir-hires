@@ -1,6 +1,6 @@
 // LLM Client for LM Studio API
 // Handles API calls, SSE streaming, and thinking/document separation
-// Reusable across all extension contexts (popup, sidepanel, job-details)
+// Reusable across all extension contexts (sidepanel, job-details, profile)
 
 interface LLMClientConfig {
   endpoint?: string;

@@ -432,13 +432,15 @@ export const App: React.FC = () => {
       />
     );
   }
-  // LLM not connected - show onboarding setup
-  else if (!llmSettings.isConnected && !currentJob) {
+  // LLM not connected - show setup form (transparent to user)
+  else if (!llmSettings.isConnected) {
     mainContent = (
       <div className="flex flex-1 flex-col p-4 overflow-y-auto">
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-foreground mb-1">
-            Welcome to Sir Hires
+            {store.jobs.length === 0
+              ? 'Welcome to Sir Hires'
+              : 'LLM Connection Required'}
           </h2>
           <p className="text-sm text-muted-foreground">
             Connect to an LLM to start extracting job postings.

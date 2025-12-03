@@ -18,7 +18,6 @@ import {
   getSection,
   getSectionItems,
   getSectionList,
-  getSectionText,
   isSectionEmpty,
   type ParsedTemplate,
   type TemplateSection,
@@ -125,24 +124,6 @@ function extractInterests(parsedProfile: ParsedProfile): string[] {
 }
 
 /**
- * Extract skills list from parsed profile
- * @param parsedProfile - Result from parseProfileTemplate()
- * @returns Array of skill strings
- */
-function extractSkills(parsedProfile: ParsedProfile): string[] {
-  return getSectionList(parsedProfile, 'SKILLS');
-}
-
-/**
- * Extract summary text from parsed profile
- * @param parsedProfile - Result from parseProfileTemplate()
- * @returns Summary as a single string (lines joined)
- */
-function extractSummary(parsedProfile: ParsedProfile): string {
-  return getSectionText(parsedProfile, 'SUMMARY').join(' ');
-}
-
-/**
  * Get a specific top-level field value
  * @param parsedProfile - Result from parseProfileTemplate()
  * @param fieldName - Name of the field (e.g., 'NAME', 'EMAIL')
@@ -211,8 +192,6 @@ export {
   extractEducation,
   extractExperience,
   extractInterests,
-  extractSkills,
-  extractSummary,
   getTopLevelField,
   getName,
   getEmail,

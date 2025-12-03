@@ -16,46 +16,15 @@ import {
 export type JobValidationResult = ValidationResult;
 
 /**
- * Standard top-level fields for jobs
- */
-const STANDARD_JOB_FIELDS = [
-  'TITLE',
-  'COMPANY',
-  'ADDRESS',
-  'EMPLOYMENT TYPE',
-  'REMOTE TYPE',
-  'POSTED DATE',
-  'CLOSING DATE',
-  'EXPERIENCE LEVEL',
-  'SALARY RANGE MIN',
-  'SALARY RANGE MAX',
-];
-
-/**
- * Standard section names for jobs
- */
-const STANDARD_JOB_SECTIONS = [
-  'REQUIRED SKILLS',
-  'PREFERRED SKILLS',
-  'DESCRIPTION',
-  'ABOUT COMPANY',
-];
-
-/**
  * Job validation schema
  */
 const JOB_SCHEMA: ValidationSchema = {
   expectedType: 'JOB',
   missingTypeIsError: true,
   requiredFields: ['TITLE', 'COMPANY'],
-  standardFields: STANDARD_JOB_FIELDS,
   sections: {
     'REQUIRED SKILLS': { required: true },
-    'PREFERRED SKILLS': {},
-    DESCRIPTION: {},
-    'ABOUT COMPANY': {},
   },
-  standardSections: STANDARD_JOB_SECTIONS,
   validateItems: false, // Jobs don't have ## items
 };
 
@@ -97,8 +66,6 @@ function validateJobTemplate(parsedJob: JobTemplateData): JobValidationResult {
       errors: [{ type: 'invalid_input', message: 'No parsed job provided' }],
       warnings: [],
       info: [],
-      customFields: [],
-      customSections: [],
       fixes: [],
     };
   }

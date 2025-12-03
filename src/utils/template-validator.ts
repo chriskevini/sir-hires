@@ -36,14 +36,8 @@ export interface ValidationSchema {
   /** Required top-level fields */
   requiredFields: string[];
 
-  /** Standard top-level fields (for tracking custom fields) */
-  standardFields?: string[];
-
   /** Section schemas */
   sections?: Record<string, SectionSchema>;
-
-  /** Standard section names (for tracking custom sections) */
-  standardSections?: string[];
 
   /** Validate items within sections (for PROFILE which has ## items) */
   validateItems?: boolean;
@@ -174,8 +168,6 @@ export function validateTemplate(
     errors: [],
     warnings: [],
     info: [],
-    customFields: [],
-    customSections: [],
     fixes: [],
   };
 
@@ -199,21 +191,6 @@ export function validateTemplate(
 
   // Validate sections
   validateSections(parsed, schema, result);
-
-  // Add info messages about custom content
-  if (result.customFields.length > 0) {
-    result.info.push({
-      type: 'custom_fields',
-      message: `Custom fields: ${result.customFields.join(', ')}`,
-    });
-  }
-
-  if (result.customSections.length > 0) {
-    result.info.push({
-      type: 'custom_sections',
-      message: `Custom sections: ${result.customSections.join(', ')}`,
-    });
-  }
 
   return result;
 }
@@ -282,11 +259,10 @@ function validateRequiredFields(
  */
 function validateFieldCase(
   parsed: ParsedTemplate,
-  schema: ValidationSchema,
+  _schema: ValidationSchema,
   result: ValidationResult
 ): void {
   const fields = parsed.topLevelFields || {};
-  const standardFields = schema.standardFields || [];
 
   for (const fieldName of Object.keys(fields)) {
     // Check for lowercase field name
@@ -299,11 +275,6 @@ function validateFieldCase(
         message: `Field "${fieldName}" should be uppercase`,
         fix,
       });
-    }
-
-    // Track custom fields
-    if (!standardFields.includes(fieldName.toUpperCase())) {
-      result.customFields.push(fieldName);
     }
   }
 }
@@ -318,7 +289,6 @@ function validateSections(
 ): void {
   const sections = parsed.sections || {};
   const sectionSchemas = schema.sections || {};
-  const standardSections = schema.standardSections || [];
   const seenSections = new Set<string>();
 
   // Check for required sections
@@ -399,11 +369,6 @@ function validateSections(
         section: sectionName,
         message: `Section "${sectionName}" has both items and orphan bullets - consider restructuring`,
       });
-    }
-
-    // Track custom sections
-    if (!standardSections.includes(normalizedName)) {
-      result.customSections.push(sectionName);
     }
 
     // Validate items within section (if enabled - for PROFILE)

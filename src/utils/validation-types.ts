@@ -26,8 +26,6 @@ export interface BaseValidationResult {
   errors: ValidationMessage[];
   warnings: ValidationMessage[];
   info: ValidationMessage[];
-  customFields: string[];
-  customSections: string[];
 }
 
 /**

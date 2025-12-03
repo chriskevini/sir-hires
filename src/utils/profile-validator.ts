@@ -15,51 +15,13 @@ import {
 export type ProfileValidationResult = ValidationResult;
 
 /**
- * Standard top-level field names for profiles
- */
-const STANDARD_TOP_LEVEL_FIELDS = [
-  'NAME',
-  'ADDRESS',
-  'EMAIL',
-  'PHONE',
-  'WEBSITE',
-  'GITHUB',
-  'LINKEDIN',
-];
-
-/**
- * Standard section names for profiles
- */
-const STANDARD_SECTIONS = [
-  'EDUCATION',
-  'PROFESSIONAL EXPERIENCE',
-  'TECHNICAL PROJECT EXPERIENCE',
-  'VOLUNTEER',
-  'INTERESTS',
-  'SKILLS',
-  'CERTIFICATIONS',
-  'SUMMARY',
-];
-
-/**
  * Profile validation schema
  */
 const PROFILE_SCHEMA: ValidationSchema = {
   expectedType: 'PROFILE',
   missingTypeIsError: false, // Missing type is a warning for profiles
   requiredFields: ['NAME'],
-  standardFields: STANDARD_TOP_LEVEL_FIELDS,
-  sections: {
-    EDUCATION: {},
-    'PROFESSIONAL EXPERIENCE': {},
-    'TECHNICAL PROJECT EXPERIENCE': {},
-    VOLUNTEER: {},
-    INTERESTS: {},
-    SKILLS: {},
-    CERTIFICATIONS: {},
-    SUMMARY: {},
-  },
-  standardSections: STANDARD_SECTIONS,
+  sections: {},
   validateItems: true, // Profiles have ## items with fields
 };
 
@@ -79,8 +41,6 @@ function validateProfileTemplate(
       ],
       warnings: [],
       info: [],
-      customFields: [],
-      customSections: [],
       fixes: [],
     };
   }
@@ -107,6 +67,4 @@ export {
   validateProfileTemplate,
   validateProfile,
   getProfileValidationSummary,
-  STANDARD_SECTIONS,
-  STANDARD_TOP_LEVEL_FIELDS,
 };

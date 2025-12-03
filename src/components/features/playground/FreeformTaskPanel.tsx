@@ -65,55 +65,40 @@ export interface FreeformTaskPanelProps {
   llmSettings: ReturnType<typeof useLLMSettings>;
 }
 
-interface PresetTask {
-  label: string;
-  prompt: string;
-  contexts: ContextField[];
-  temperature: number;
-  maxTokens: number;
-}
-
 // =============================================================================
 // PRESET TASKS (for "Load from..." dropdown)
 // =============================================================================
 
-const PRESET_TASKS: Record<string, PresetTask> = {
+const PRESET_TASKS = {
   'job-extraction': {
     label: 'Job Extraction',
-    prompt: jobExtraction.systemPrompt,
-    contexts: [{ name: 'rawText', content: '' }],
-    temperature: jobExtraction.temperature,
-    maxTokens: jobExtraction.maxTokens,
+    ...jobExtraction,
+    fixtures: { rawText: RAW_COMPLETE_JOB },
   },
   'profile-extraction': {
     label: 'Profile Extraction',
-    prompt: profileExtraction.systemPrompt,
-    contexts: [{ name: 'rawText', content: '' }],
-    temperature: profileExtraction.temperature,
-    maxTokens: profileExtraction.maxTokens,
+    ...profileExtraction,
+    fixtures: { rawText: RAW_COMPLETE_PROFILE },
   },
   synthesis: {
     label: 'Synthesis',
-    prompt: synthesis.systemPrompt,
-    contexts: [
-      { name: 'profile', content: '' },
-      { name: 'job', content: '' },
-      { name: 'template', content: '' },
-      { name: 'tone', content: '' },
-      { name: 'task', content: '' },
-    ],
-    temperature: synthesis.temperature,
-    maxTokens: synthesis.maxTokens,
+    ...synthesis,
+    fixtures: {
+      job: EXTRACTED_COMPLETE_JOB,
+      profile: EXTRACTED_COMPLETE_PROFILE,
+      template: synthesis.templates.tailoredResume,
+      tone: synthesis.defaultTone,
+      task: synthesis.defaultTask,
+    },
   },
   'fit-calculation': {
     label: 'Fit Calculation',
-    prompt: fitCalculation.defaultTask,
-    contexts: [
-      { name: 'job', content: '' },
-      { name: 'profile', content: '' },
-    ],
-    temperature: fitCalculation.temperature,
-    maxTokens: fitCalculation.maxTokens,
+    ...fitCalculation,
+    fixtures: {
+      job: EXTRACTED_COMPLETE_JOB,
+      profile: EXTRACTED_COMPLETE_PROFILE,
+      task: fitCalculation.defaultTask,
+    },
   },
 };
 
@@ -362,14 +347,19 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
   // LOAD PRESET
   // =============================================================================
 
-  const loadPreset = useCallback((presetKey: string) => {
+  const loadPreset = useCallback((presetKey: keyof typeof PRESET_TASKS) => {
     const preset = PRESET_TASKS[presetKey];
     if (!preset) return;
 
     // Presets always load into context mode
     setMode('context');
-    setSystemPrompt(preset.prompt);
-    setContexts(preset.contexts.map((c) => ({ ...c }))); // Clone
+    setSystemPrompt(preset.systemPrompt);
+    setContexts(
+      preset.context.map((name) => ({
+        name,
+        content: preset.fixtures[name as keyof typeof preset.fixtures] ?? '',
+      }))
+    );
     setTemperature(preset.temperature);
     setMaxTokens(preset.maxTokens);
   }, []);
@@ -547,7 +537,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
             className="text-sm p-1 rounded border bg-card"
             onChange={(e) => {
               if (e.target.value) {
-                loadPreset(e.target.value);
+                loadPreset(e.target.value as keyof typeof PRESET_TASKS);
                 e.target.value = '';
               }
             }}

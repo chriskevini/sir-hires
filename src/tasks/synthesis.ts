@@ -27,6 +27,7 @@ Complete the TASK using any auxiliary info that is sent.`,
 
   defaultTask:
     'Follow the TEMPLATE and TONE and output only the final document.',
+  defaultTone: 'professional',
 
   documents: {
     blank: {
@@ -118,6 +119,7 @@ Sincerely,
   },
 } satisfies TaskConfig & {
   defaultTask: string;
+  defaultTone: string;
   documents: Record<string, DefaultDocConfig>;
   templates: Record<string, string>;
 };

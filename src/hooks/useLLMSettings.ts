@@ -52,6 +52,18 @@ export interface UseLLMSettingsOptions {
    * @default 500
    */
   debounceMs?: number;
+  /**
+   * Interval for health checks when connected (ms)
+   * Set to 0 to disable periodic health checks
+   * @default 30000 (30 seconds)
+   */
+  healthCheckIntervalMs?: number;
+  /**
+   * Interval for retry attempts when disconnected/error (ms)
+   * Set to 0 to disable auto-retry
+   * @default 10000 (10 seconds)
+   */
+  retryIntervalMs?: number;
 }
 
 export interface UseLLMSettingsResult {
@@ -105,7 +117,13 @@ export interface UseLLMSettingsResult {
 export function useLLMSettings(
   options: UseLLMSettingsOptions = {}
 ): UseLLMSettingsResult {
-  const { task, autoConnect = true, debounceMs = 500 } = options;
+  const {
+    task,
+    autoConnect = true,
+    debounceMs = 500,
+    healthCheckIntervalMs = 30000,
+    retryIntervalMs = 10000,
+  } = options;
 
   // Connection state
   const [status, setStatus] = useState<ConnectionStatus>('idle');
@@ -336,6 +354,31 @@ export function useLLMSettings(
     status,
     debounceMs,
   ]);
+
+  // Periodic health check / retry effect
+  // - When connected: check every healthCheckIntervalMs (30s default) to detect dropped connections
+  // - When disconnected: retry every retryIntervalMs (10s default) to auto-reconnect
+  useEffect(() => {
+    // Don't run health checks during initial loading or if no server URL
+    if (isLoading || !serverUrl.trim()) return;
+
+    // Disable if both intervals are 0
+    if (healthCheckIntervalMs === 0 && retryIntervalMs === 0) return;
+
+    // Choose interval based on connection status
+    const interval =
+      status === 'connected' ? healthCheckIntervalMs : retryIntervalMs;
+
+    // Don't set interval if the relevant one is disabled
+    if (interval === 0) return;
+
+    const intervalId = setInterval(() => {
+      // Use ref to get latest fetchModels without re-running effect
+      fetchModelsRef.current();
+    }, interval);
+
+    return () => clearInterval(intervalId);
+  }, [isLoading, serverUrl, status, healthCheckIntervalMs, retryIntervalMs]);
 
   return {
     // Connection state

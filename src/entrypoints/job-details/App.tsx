@@ -16,7 +16,7 @@ import { Dropdown } from '../../components/ui/Dropdown';
 import { Modal } from '../../components/ui/Modal';
 import { ThemeModal } from '../../components/features/ThemeModal';
 import { LLMSettingsForm } from '../../components/features/LLMSettingsForm';
-import { PanelLeft, User } from 'lucide-react';
+import { PanelLeft, User, Wifi, WifiOff } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -487,6 +487,27 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
           >
             {isCalculatingFit ? fitSpinnerChar : ''}
           </span>
+          {/* LLM Connection Status Indicator */}
+          <Button
+            variant="ghost"
+            className="p-2 min-w-9 min-h-9 hover:bg-muted flex items-center justify-center"
+            onClick={() => setIsLLMSettingsModalOpen(true)}
+            title={
+              llmSettings.isConnected
+                ? `Connected to ${llmSettings.model || 'LLM'}`
+                : llmSettings.status === 'loading'
+                  ? 'Connecting...'
+                  : 'LLM not connected - click to configure'
+            }
+          >
+            {llmSettings.isConnected ? (
+              <Wifi className="h-4 w-4 text-green-500" />
+            ) : llmSettings.status === 'loading' ? (
+              <Wifi className="h-4 w-4 text-muted-foreground animate-pulse" />
+            ) : (
+              <WifiOff className="h-4 w-4 text-destructive" />
+            )}
+          </Button>
           <Button
             variant="ghost"
             className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
@@ -525,6 +546,25 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
           />
         </div>
       </header>
+
+      {/* LLM Disconnected Overlay */}
+      {!llmSettings.isConnected && !llmSettings.isLoading && (
+        <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center">
+          <div className="w-full max-w-sm p-6">
+            <div className="text-center mb-6">
+              <WifiOff className="h-12 w-12 text-destructive mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-foreground mb-2">
+                LLM Connection Required
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                {llmSettings.errorMessage ||
+                  'Connect to an LLM server to use extraction and synthesis features.'}
+              </p>
+            </div>
+            <LLMSettingsForm llmSettings={llmSettings} />
+          </div>
+        </div>
+      )}
 
       {/* Main content area */}
       <div className="flex flex-1 overflow-hidden relative">

@@ -6,6 +6,8 @@ import {
   userProfileStorage,
   profileTemplatePanelStorage,
   llmSettingsStorage,
+  jobsStorage,
+  jobInFocusStorage,
 } from '@/utils/storage';
 
 // Import utilities
@@ -26,6 +28,7 @@ import { DEFAULT_TASK_SETTINGS } from '@/utils/llm-utils';
 // Import hooks
 import { useProfileValidation } from './hooks/useProfileValidation';
 import { useTheme } from '@/hooks/useTheme';
+import { useFitScore } from '../job-details/hooks';
 import type { ValidationFix } from '@/utils/validation-types';
 
 // Import components
@@ -100,6 +103,14 @@ export default function App() {
   const [extractionError, setExtractionError] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
+  // State for current job (for fit score calculation)
+  const [currentJobContent, setCurrentJobContent] = useState<
+    string | undefined
+  >(undefined);
+  const [currentJobId, setCurrentJobId] = useState<string | undefined>(
+    undefined
+  );
+
   // Refs
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const lastSavedIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -111,6 +122,57 @@ export default function App() {
 
   // Apply theme from storage
   useTheme();
+
+  // Calculate fit score (watches job content and profile changes)
+  const { isCalculating: isCalculatingFit, spinnerChar: fitSpinnerChar } =
+    useFitScore({
+      jobContent: currentJobContent,
+      jobId: currentJobId,
+    });
+
+  // Watch jobs and jobInFocus storage for fit score calculation
+  useEffect(() => {
+    // Load initial job
+    const loadCurrentJob = async () => {
+      const [jobs, focusId] = await Promise.all([
+        jobsStorage.getValue(),
+        jobInFocusStorage.getValue(),
+      ]);
+      if (focusId && jobs?.[focusId]) {
+        setCurrentJobId(focusId);
+        setCurrentJobContent(jobs[focusId].content);
+      }
+    };
+    loadCurrentJob();
+
+    // Watch for changes to jobs
+    const unwatchJobs = jobsStorage.watch((jobs) => {
+      jobInFocusStorage.getValue().then((focusId) => {
+        if (focusId && jobs?.[focusId]) {
+          setCurrentJobId(focusId);
+          setCurrentJobContent(jobs[focusId].content);
+        }
+      });
+    });
+
+    // Watch for changes to focused job
+    const unwatchFocus = jobInFocusStorage.watch((focusId) => {
+      jobsStorage.getValue().then((jobs) => {
+        if (focusId && jobs?.[focusId]) {
+          setCurrentJobId(focusId);
+          setCurrentJobContent(jobs[focusId].content);
+        } else {
+          setCurrentJobId(undefined);
+          setCurrentJobContent(undefined);
+        }
+      });
+    });
+
+    return () => {
+      unwatchJobs();
+      unwatchFocus();
+    };
+  }, []);
 
   // Immediate save callback - saves to storage on every change
   const saveProfile = useCallback(async (newContent: string) => {
@@ -694,12 +756,12 @@ BULLETS:
 
   return (
     <div className="flex h-screen w-full flex-col bg-muted">
-      {/* Header - matches SidepanelHeader pattern */}
-      <header className="flex items-center justify-between px-3 py-2 bg-background border-b border-border shrink-0 gap-2">
+      {/* Header - matches job-details header */}
+      <header className="flex justify-between items-center py-3 px-6 border-b border-border bg-background shrink-0">
         {/* Left: Back button */}
         <Button
           variant="ghost"
-          className="border border-border rounded px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-muted/80 hover:border-border hover:text-foreground active:bg-muted flex items-center justify-center gap-1.5 shrink-0 transition-all duration-200"
+          className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center gap-1.5"
           onClick={goBack}
           title="Back to Jobs"
         >
@@ -708,23 +770,27 @@ BULLETS:
         </Button>
 
         {/* Center: Title and status */}
-        <div className="flex-1 min-w-0 flex items-center justify-center gap-2 overflow-hidden">
-          <span className="text-sm font-semibold text-foreground">Profile</span>
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-lg font-semibold text-foreground">Profile</h1>
           {statusMessage && (
-            <>
-              <span className="text-muted-foreground">|</span>
-              <span className="text-sm text-warning font-medium truncate">
-                {statusMessage}
-              </span>
-            </>
+            <span className="text-sm text-warning font-medium truncate">
+              {statusMessage}
+            </span>
           )}
         </div>
 
         {/* Right: Action buttons */}
         <div className="flex gap-1 items-center">
+          <span
+            className="text-muted-foreground text-lg font-mono w-6 text-center"
+            title={isCalculatingFit ? 'Calculating fit score...' : undefined}
+            aria-label={isCalculatingFit ? 'Calculating fit score' : undefined}
+          >
+            {isCalculatingFit ? fitSpinnerChar : ''}
+          </span>
           <Button
             variant="ghost"
-            className="rounded p-1.5 text-muted-foreground hover:bg-muted active:bg-muted/80 flex items-center justify-center min-w-8 min-h-8 transition-all duration-200"
+            className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
             onClick={() => toggleTemplatePanel(!isTemplatePanelVisible)}
             title={isTemplatePanelVisible ? 'Hide template' : 'Show template'}
           >
@@ -732,7 +798,7 @@ BULLETS:
           </Button>
           <Button
             variant="ghost"
-            className="rounded p-1.5 text-muted-foreground hover:bg-muted active:bg-muted/80 flex items-center justify-center min-w-8 min-h-8 transition-all duration-200"
+            className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
             onClick={formatProfile}
             title="Fix formatting"
           >
@@ -740,7 +806,7 @@ BULLETS:
           </Button>
           <Button
             variant="ghost"
-            className="rounded p-1.5 text-muted-foreground hover:bg-muted active:bg-muted/80 flex items-center justify-center min-w-8 min-h-8 transition-all duration-200"
+            className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
             onClick={exportMarkdown}
             title="Export as Markdown"
           >
@@ -748,7 +814,7 @@ BULLETS:
           </Button>
           <Button
             variant="ghost"
-            className="rounded p-1.5 text-muted-foreground hover:bg-muted active:bg-muted/80 flex items-center justify-center min-w-8 min-h-8 transition-all duration-200"
+            className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
             onClick={exportText}
             title="Export as Text"
           >

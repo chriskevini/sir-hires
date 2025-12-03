@@ -52,6 +52,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isLLMSettingsOpen, setIsLLMSettingsOpen] = useState(false);
+  const [llmOverlayDismissed, setLLMOverlayDismissed] = useState(false);
 
   // LLM settings for overlay
   const llmSettings = useLLMSettings();
@@ -542,22 +543,25 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
         </div>
       </header>
 
-      {/* LLM Settings Overlay - shows when disconnected (after init) OR manually opened */}
-      {((llmSettings.hasInitialized && !llmSettings.isConnected) ||
+      {/* LLM Settings Overlay - shows when disconnected (after init, unless dismissed) OR manually opened */}
+      {((llmSettings.hasInitialized &&
+        !llmSettings.isConnected &&
+        !llmOverlayDismissed) ||
         isLLMSettingsOpen) && (
         <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center">
           <div className="w-full max-w-sm p-6 relative">
-            {/* Close button - only show when connected (manually opened) */}
-            {llmSettings.isConnected && (
-              <Button
-                variant="ghost"
-                className="absolute top-2 right-2 p-2 min-w-8 min-h-8 text-muted-foreground hover:bg-muted"
-                onClick={() => setIsLLMSettingsOpen(false)}
-                title="Close"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
+            {/* Close button - always available */}
+            <Button
+              variant="ghost"
+              className="absolute top-2 right-2 p-2 min-w-8 min-h-8 text-muted-foreground hover:bg-muted"
+              onClick={() => {
+                setIsLLMSettingsOpen(false);
+                setLLMOverlayDismissed(true);
+              }}
+              title="Close"
+            >
+              <X className="h-4 w-4" />
+            </Button>
             <div className="text-center mb-6">
               {llmSettings.isConnected ? (
                 <>

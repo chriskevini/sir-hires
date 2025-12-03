@@ -455,6 +455,9 @@
   * {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted-foreground) / 0.4) transparent;
+  }
+
+  textarea {
     scrollbar-gutter: stable;
   }
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { documentTemplates } from '@/tasks';
+import { synthesis } from '@/tasks';
 
 export type DocumentTemplateKey = 'blank' | 'tailoredResume' | 'coverLetter';
 
@@ -53,7 +53,7 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
               Resume
             </span>
             <pre className="font-mono text-xs leading-snug text-muted-foreground whitespace-pre-wrap break-words m-0 w-full">
-              {documentTemplates.tailoredResume.trim()}
+              {synthesis.templates.tailoredResume.trim()}
             </pre>
           </Button>
 
@@ -66,7 +66,7 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
               Cover Letter
             </span>
             <pre className="font-mono text-xs leading-snug text-muted-foreground whitespace-pre-wrap break-words m-0 w-full">
-              {documentTemplates.coverLetter.trim()}
+              {synthesis.templates.coverLetter.trim()}
             </pre>
           </Button>
         </div>

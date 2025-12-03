@@ -80,6 +80,10 @@ export interface UseLLMSettingsResult {
   setTaskSettings: (task: LLMTask, settings: Partial<TaskSettings>) => void;
   resetTaskSettings: () => void;
 
+  // Think Harder mode (enables extended reasoning)
+  thinkHarder: boolean;
+  setThinkHarder: (value: boolean) => void;
+
   // Derived
   provider: ProviderType;
   availableModels: string[];
@@ -120,6 +124,9 @@ export function useLLMSettings(
     synthesis: { ...DEFAULT_TASK_SETTINGS.synthesis },
     extraction: { ...DEFAULT_TASK_SETTINGS.extraction },
   });
+
+  // Think Harder mode state
+  const [thinkHarder, setThinkHarder] = useState(false);
 
   // Loading state
   const [isLoading, setIsLoading] = useState(true);
@@ -220,6 +227,9 @@ export function useLLMSettings(
               },
             });
           }
+
+          // Load thinkHarder setting (defaults to false)
+          setThinkHarder(settings.thinkHarder ?? false);
         }
       } catch (error) {
         console.error('[useLLMSettings] Error loading settings:', error);
@@ -290,6 +300,7 @@ export function useLLMSettings(
         modelsEndpoint: getModelsEndpoint(currentEndpoint),
         model: model.trim() || DEFAULT_MODEL,
         tasks: taskSettings,
+        thinkHarder,
         ...(apiKey.trim() && { apiKey: apiKey.trim() }),
       };
 
@@ -299,7 +310,7 @@ export function useLLMSettings(
       console.error('[useLLMSettings] Error saving settings:', error);
       return false;
     }
-  }, [serverUrl, model, apiKey, taskSettings]);
+  }, [serverUrl, model, apiKey, taskSettings, thinkHarder]);
 
   return {
     // Connection state
@@ -325,6 +336,10 @@ export function useLLMSettings(
     taskSettings,
     setTaskSettings,
     resetTaskSettings,
+
+    // Think Harder mode
+    thinkHarder,
+    setThinkHarder,
 
     // Derived
     provider,

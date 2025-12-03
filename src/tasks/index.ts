@@ -3,8 +3,9 @@
  * Re-exports all task-related modules for clean imports
  *
  * Usage:
- *   import { jobExtractionConfig, JOB_TEMPLATE } from '@/tasks';
- *   import { synthesisConfig, documentTemplates } from '@/tasks';
+ *   import { jobExtraction, synthesis } from '@/tasks';
+ *   jobExtraction.template
+ *   synthesis.documents.tailoredResume
  */
 
 // Types
@@ -15,26 +16,11 @@ export type {
   TaskConfig,
 } from './types';
 
-// Job Extraction
-export {
-  JOB_TEMPLATE,
-  JOB_EXTRACTION_PROMPT,
-  jobExtractionConfig,
-} from './job-extraction';
+// Tasks
+export { jobExtraction } from './job-extraction';
+export { profileExtraction } from './profile-extraction';
+export { synthesis } from './synthesis';
+export { fitCalculation } from './fit-calculation';
 
-// Profile Extraction
-export {
-  PROFILE_TEMPLATE,
-  PROFILE_EXTRACTION_PROMPT,
-  profileExtractionConfig,
-} from './profile-extraction';
-
-// Synthesis
-export {
-  SYNTHESIS_DEFAULT_TASK,
-  SYNTHESIS_PROMPT,
-  synthesisConfig,
-  defaultDocuments,
-  documentTemplates,
-} from './synthesis';
+// Re-export document config type
 export type { DefaultDocConfig } from './synthesis';

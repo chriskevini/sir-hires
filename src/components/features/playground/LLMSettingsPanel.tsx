@@ -8,6 +8,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { useLLMSettings } from '@/hooks/useLLMSettings';
 
 interface LLMSettingsPanelProps {
@@ -86,6 +87,26 @@ export const LLMSettingsPanel: React.FC<LLMSettingsPanelProps> = React.memo(
               />
             )}
           </div>
+        </div>
+
+        {/* Think Harder Toggle */}
+        <div className="flex items-center gap-2 mt-3">
+          <Checkbox
+            id="think-harder"
+            checked={llmSettings.thinkHarder}
+            onCheckedChange={(checked: boolean | 'indeterminate') =>
+              llmSettings.setThinkHarder(checked === true)
+            }
+          />
+          <label
+            htmlFor="think-harder"
+            className="text-sm font-medium cursor-pointer"
+          >
+            Think Harder
+          </label>
+          <span className="text-sm text-muted-foreground">
+            (Make sure a thinking model is already loaded.)
+          </span>
         </div>
 
         {llmSettings.errorMessage && (

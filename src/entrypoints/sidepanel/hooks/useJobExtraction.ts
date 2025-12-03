@@ -10,7 +10,7 @@ import type { Job } from '../../job-details/hooks';
 import { normalizeUrl, generateJobId } from '../../../utils/shared-utils';
 import { LLMClient } from '../../../utils/llm-client';
 import { runTask, startKeepalive } from '../../../utils/llm-task-runner';
-import { jobExtractionConfig } from '../../../tasks';
+import { jobExtraction } from '../../../tasks';
 
 /**
  * Ephemeral extraction state (not persisted to storage)
@@ -115,12 +115,13 @@ export function useJobExtraction(
 
         // Run extraction task
         const result = await runTask({
-          config: jobExtractionConfig,
+          config: jobExtraction,
           context: { rawText },
           llmClient,
           model: llmSettings.model || '',
           maxTokens: extractionMaxTokens,
           temperature: extractionTemperature,
+          noThink: !llmSettings.thinkHarder,
           signal: abortControllerRef.current.signal,
           onChunk: (delta) => {
             // Append chunk to ephemeral state

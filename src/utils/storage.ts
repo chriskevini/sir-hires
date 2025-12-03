@@ -40,12 +40,19 @@ export interface TaskSettings {
  * LLM configuration settings
  * - Shared settings: endpoint, model, apiKey (same for all tasks)
  * - Per-task settings: maxTokens, temperature (vary by task type)
+ * - thinkHarder: enables extended reasoning (skips /no_think prefix)
  */
 export interface LLMSettings {
   endpoint: string;
   modelsEndpoint: string;
   model: string;
   apiKey?: string;
+  /**
+   * When true, enables extended reasoning mode by NOT prepending /no_think
+   * to system prompts. This allows models to use thinking blocks.
+   * @default false
+   */
+  thinkHarder?: boolean;
   // Per-task settings
   tasks: {
     synthesis: TaskSettings;

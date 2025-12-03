@@ -1,13 +1,12 @@
-import React, { useCallback } from 'react';
-import { escapeHtml } from '@/utils/shared-utils';
-import { useToggleState, useJobValidation, ChecklistItem } from '../hooks';
+import React, { useCallback, useRef } from 'react';
+import { useJobValidation, ChecklistItem } from '../hooks';
 import { useImmediateSave } from '@/hooks/useImmediateSave';
-import { ValidationPanel } from '@/components/features/ValidationPanel';
-import { StreamingTextarea } from '@/components/ui/StreamingTextarea';
+import { ValidatedEditor } from '@/components/ui/ValidatedEditor';
 import { ExtractionLoadingView } from '../components/ExtractionLoadingView';
 import { ExtractionErrorView } from '../components/ExtractionErrorView';
 import { MigrationPromptView } from '../components/MigrationPromptView';
-import { cn } from '@/lib/utils';
+import type { ValidationFix } from '@/utils/validation-types';
+import { applyFix, setCursorAndScroll } from '@/utils/profile-utils';
 
 interface Job {
   id: string;
@@ -36,9 +35,6 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   onDeleteJob,
   onSaveField,
 }) => {
-  const [isValidationCollapsed, toggleValidationCollapsed] =
-    useToggleState(true);
-
   // Immediate-save hook: saves to storage on every change
   // Uses resetKey to re-initialize only when switching jobs (not on storage reload)
   const { value: editorContent, setValue: setEditorContent } = useImmediateSave(
@@ -68,6 +64,30 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   const handleDelete = () => {
     onDeleteJob(job.id);
   };
+
+  // Ref for the textarea element (for cursor positioning after fix)
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Handle fix button clicks (must be before early returns)
+  const handleApplyFix = useCallback(
+    (fix: ValidationFix) => {
+      const result = applyFix(fix, editorContent, undefined, 'JOB');
+      if (result) {
+        setEditorContent(result.newContent);
+        // Set cursor position after React re-renders
+        requestAnimationFrame(() => {
+          if (textareaRef.current) {
+            setCursorAndScroll(
+              textareaRef.current,
+              result.newContent,
+              result.cursorPosition
+            );
+          }
+        });
+      }
+    },
+    [editorContent, setEditorContent]
+  );
 
   // Render extraction state (streaming)
   if (job.isExtracting) {
@@ -102,73 +122,33 @@ export const ResearchingView: React.FC<ResearchingViewProps> = ({
   }
 
   // Render normal editing state
-  // Build validation messages for StreamingTextarea
+  // Build validation messages for ValidatedEditor (with fix support)
   const validationMessages = [
     ...(validation?.errors.map((e) => ({
       type: 'error' as const,
       message: e.message,
+      fix: e.fix,
     })) || []),
     ...(validation?.warnings.map((w) => ({
       type: 'warning' as const,
       message: w.message,
-    })) || []),
-  ];
-
-  const errorCount = validation?.errors.length || 0;
-  const warningCount = validation?.warnings.length || 0;
-  const infoCount = validation?.info.length || 0;
-
-  const messages = [
-    ...(validation?.errors.map((e) => ({
-      type: 'error' as const,
-      message: e.message,
-    })) || []),
-    ...(validation?.warnings.map((w) => ({
-      type: 'warning' as const,
-      message: w.message,
-    })) || []),
-    ...(validation?.info.map((i) => ({
-      type: 'info' as const,
-      message: i.message,
+      fix: w.fix,
     })) || []),
   ];
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Editor with Validation Panel */}
-      <div className="flex-1 flex flex-col overflow-hidden border border-border rounded-lg bg-background">
-        <div className="flex-1 flex flex-col p-4">
-          <StreamingTextarea
-            id="jobEditor"
-            data-job-id={job.id}
-            value={editorContent}
-            onChange={setEditorContent}
-            validationMessages={validationMessages}
-            className={cn(
-              'flex-1 border-l-4',
-              validation?.valid
-                ? 'border-l-success'
-                : validation?.errors?.length
-                  ? 'border-l-destructive'
-                  : 'border-l-border'
-            )}
-          />
-        </div>
-
-        {/* Validation Panel */}
-        <ValidationPanel
-          isCollapsed={isValidationCollapsed}
-          onToggle={toggleValidationCollapsed}
-          isValid={validation?.valid ?? null}
-          errorCount={errorCount}
-          warningCount={warningCount}
-          infoCount={infoCount}
-          messages={messages.map((m) => ({
-            ...m,
-            message: escapeHtml(m.message),
-          }))}
-        />
-      </div>
+    <div className="flex flex-col h-full p-4">
+      <ValidatedEditor
+        ref={textareaRef}
+        id="jobEditor"
+        data-job-id={job.id}
+        value={editorContent}
+        onChange={setEditorContent}
+        isValid={validation?.valid}
+        hasErrors={(validation?.errors?.length ?? 0) > 0}
+        validationMessages={validationMessages}
+        onApplyFix={handleApplyFix}
+      />
     </div>
   );
 };

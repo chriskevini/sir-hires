@@ -63,6 +63,11 @@ export interface ExecuteContextTaskOptions {
   temperature?: number;
   /** Override maxTokens from config */
   maxTokens?: number;
+  /**
+   * Skip thinking/reasoning blocks (default: true)
+   * Set to false to enable "think harder" mode
+   */
+  noThink?: boolean;
 }
 
 export interface ExecuteMessagesTaskOptions {
@@ -192,6 +197,7 @@ export function usePlaygroundTaskExecution(
           model,
           temperature: taskOptions.temperature,
           maxTokens: taskOptions.maxTokens,
+          noThink: taskOptions.noThink,
           signal: abortControllerRef.current.signal,
           onChunk: (delta) => setOutput((prev) => prev + delta),
           onThinking: (delta) => setThinking((prev) => prev + delta),

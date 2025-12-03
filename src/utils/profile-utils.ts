@@ -2,10 +2,7 @@
  * Profile-specific utility functions for editor manipulation and template insertion
  */
 
-import type {
-  ValidationFix,
-  ValidationMessage,
-} from '@/utils/validation-types';
+import type { ValidationFix } from '@/utils/validation-types';
 
 // Constants
 const DEFAULT_LINE_HEIGHT = 16;
@@ -15,6 +12,21 @@ export const FIELD_ORDER = {
   TOP_LEVEL: ['NAME', 'ADDRESS', 'EMAIL', 'PHONE', 'WEBSITE', 'GITHUB'],
   EDUCATION: ['DEGREE', 'SCHOOL', 'LOCATION', 'START', 'END', 'GPA'],
   EXPERIENCE: ['TYPE', 'TITLE', 'AT', 'START', 'END', 'BULLETS'],
+};
+
+// Job template field order
+export const JOB_FIELD_ORDER = {
+  TOP_LEVEL: [
+    'TITLE',
+    'COMPANY',
+    'LOCATION',
+    'JOB_TYPE',
+    'REMOTE_TYPE',
+    'EXPERIENCE_LEVEL',
+    'SALARY',
+    'POSTED_DATE',
+    'DEADLINE',
+  ],
 };
 
 /**
@@ -213,156 +225,22 @@ export const formatProfileContent = (content: string): string | null => {
 };
 
 /**
- * Generates a validation fix object for a given validation message
- * @param message - The validation message to generate a fix for
- * @param content - The current content (needed for computing next entry IDs)
- * @returns A ValidationFix object or null if no fix is available
+ * Template type for applyFix function
  */
-export const generateFix = (
-  message: ValidationMessage,
-  content: string
-): ValidationFix | null => {
-  if (!message || !message.type) {
-    return null;
-  }
-
-  switch (message.type) {
-    // === ERROR FIXES ===
-    case 'missing_type':
-      return {
-        type: 'insert_at_start',
-        text: '<PROFILE>\n',
-        buttonLabel: 'Add <PROFILE>',
-        description: 'Insert <PROFILE> at the start',
-      };
-
-    case 'missing_required_field':
-      if (message.section && message.entry) {
-        return {
-          type: 'insert_field_in_entry',
-          section: message.section,
-          entry: message.entry,
-          field: message.field!,
-          text: `${message.field}: `,
-          buttonLabel: `Add ${message.field}`,
-          description: `Insert ${message.field} field in ${message.section}.${message.entry}`,
-        };
-      } else {
-        return {
-          type: 'insert_top_level_field',
-          field: message.field!,
-          text: `${message.field}: `,
-          buttonLabel: `Add ${message.field}`,
-          description: `Insert ${message.field} field after <PROFILE>`,
-        };
-      }
-
-    case 'invalid_enum_value':
-      return {
-        type: 'replace_enum_value_multi',
-        section: message.section,
-        entry: message.entry,
-        field: message.field,
-        currentValue: message.value,
-        allowedValues: message.allowedValues,
-        description: 'Replace with correct value',
-      };
-
-    // === WARNING FIXES ===
-    case 'duplicate_entry_id': {
-      // Entry ID is duplicated - rename to next available
-      const entryId = message.entry || '';
-      const prefixMatch = entryId.match(/^([A-Z]+_)/);
-      let prefix = prefixMatch ? prefixMatch[1] : 'ENTRY_';
-      if (!prefixMatch && message.section === 'EDUCATION') prefix = 'EDU_';
-      if (!prefixMatch && message.section === 'EXPERIENCE') prefix = 'EXP_';
-      const nextId = findNextEntryId(content, prefix);
-      const newEntryId = `${prefix}${nextId}`;
-      return {
-        type: 'rename_entry_id',
-        section: message.section,
-        entry: message.entry,
-        currentValue: message.entry,
-        newValue: newEntryId,
-        buttonLabel: `→ ${newEntryId}`,
-        description: `Rename duplicate entry ID "${message.entry}" to "${newEntryId}"`,
-      };
-    }
-
-    case 'possible_section_typo': {
-      // Use suggestedValue from validation message
-      const suggestedSection = message.suggestedValue;
-      if (suggestedSection) {
-        return {
-          type: 'rename_section',
-          section: message.section,
-          currentValue: message.section,
-          newValue: suggestedSection,
-          buttonLabel: `→ ${suggestedSection}`,
-          description: `Rename section "${message.section}" to "${suggestedSection}"`,
-        };
-      }
-      return null;
-    }
-
-    case 'section_name_case': {
-      // Use suggestedValue from validation message
-      const uppercaseSection = message.suggestedValue;
-      if (uppercaseSection) {
-        return {
-          type: 'rename_section',
-          section: message.section,
-          currentValue: message.section,
-          newValue: uppercaseSection,
-          buttonLabel: `→ ${uppercaseSection}`,
-          description: `Rename section "${message.section}" to "${uppercaseSection}"`,
-        };
-      }
-      return null;
-    }
-
-    case 'invalid_entry_id': {
-      // Entry ID doesn't follow naming convention - rename to next available
-      let prefix = 'ENTRY_';
-      if (message.section === 'EDUCATION') prefix = 'EDU_';
-      if (message.section === 'EXPERIENCE') prefix = 'EXP_';
-      if (message.section === 'SKILLS') prefix = 'SKILL_';
-      if (message.section === 'PROJECTS') prefix = 'PROJ_';
-      if (message.section === 'CERTIFICATIONS') prefix = 'CERT_';
-      const nextId = findNextEntryId(content, prefix);
-      const newEntryId = `${prefix}${nextId}`;
-      return {
-        type: 'rename_entry_id',
-        section: message.section,
-        entry: message.entry,
-        currentValue: message.entry,
-        newValue: newEntryId,
-        buttonLabel: `→ ${newEntryId}`,
-        description: `Rename entry ID "${message.entry}" to "${newEntryId}"`,
-      };
-    }
-
-    case 'empty_section':
-      // Empty section - offer to delete
-      return {
-        type: 'delete_section',
-        section: message.section,
-        buttonLabel: 'Delete',
-        description: `Delete empty section "${message.section}"`,
-      };
-
-    default:
-      return null;
-  }
-};
+export type TemplateType = 'JOB' | 'PROFILE';
 
 /**
  * Applies a validation fix to the content
+ * @param fix - The fix to apply
+ * @param currentContent - The current content
+ * @param enumValue - Optional enum value for replace_enum_value_multi fixes
+ * @param templateType - The template type (JOB or PROFILE), defaults to PROFILE for backwards compatibility
  */
 export const applyFix = (
   fix: ValidationFix,
   currentContent: string,
-  enumValue?: string
+  enumValue?: string,
+  templateType: TemplateType = 'PROFILE'
 ): { newContent: string; cursorPosition: number } | null => {
   let newContent = currentContent;
   let cursorPosition = 0;
@@ -388,9 +266,18 @@ export const applyFix = (
     newContent = fix.text! + currentContent;
     cursorPosition = fix.text!.length;
   } else if (fix.type === 'insert_top_level_field') {
-    const profileMatch = currentContent.match(/^<PROFILE>\s*\n/m);
-    if (profileMatch) {
-      const topLevelStart = profileMatch.index! + profileMatch[0].length;
+    // Use template-specific regex and field order
+    const templateTag = templateType === 'JOB' ? 'JOB' : 'PROFILE';
+    const fieldOrder =
+      templateType === 'JOB'
+        ? JOB_FIELD_ORDER.TOP_LEVEL
+        : FIELD_ORDER.TOP_LEVEL;
+
+    const templateMatch = currentContent.match(
+      new RegExp(`^<${templateTag}>\\s*\\n`, 'm')
+    );
+    if (templateMatch) {
+      const topLevelStart = templateMatch.index! + templateMatch[0].length;
       const topLevelEnd = findNextSectionPosition(
         currentContent,
         topLevelStart
@@ -400,14 +287,16 @@ export const applyFix = (
         topLevelStart,
         topLevelEnd,
         fix.field!,
-        FIELD_ORDER.TOP_LEVEL
+        fieldOrder
       );
       const result = insertTextAtPosition(currentContent, insertPos, fix.text!);
       newContent = result.newContent;
       cursorPosition = result.cursorPosition;
     } else {
-      newContent = '<PROFILE>\n' + fix.text! + '\n' + currentContent;
-      cursorPosition = '<PROFILE>\n'.length + fix.text!.length;
+      // No template tag found, insert at start with template tag
+      const templateTag = templateType === 'JOB' ? '<JOB>' : '<PROFILE>';
+      newContent = templateTag + '\n' + fix.text! + '\n' + currentContent;
+      cursorPosition = templateTag.length + 1 + fix.text!.length;
     }
   } else if (fix.type === 'insert_field_in_entry') {
     const entryRegex = new RegExp(`^##\\s+${fix.entry}\\s*$`, 'm');
@@ -440,7 +329,7 @@ export const applyFix = (
     const entryId = fix.currentValue || fix.entry;
     if (!entryId) return null;
 
-    // Use pre-computed newValue from generateFix to ensure consistency
+    // Use pre-computed newValue from template-validator to ensure consistency
     // (avoids race condition if content changes between validation and fix)
     const newEntryId = fix.newValue;
     if (!newEntryId) return null;
@@ -530,6 +419,77 @@ export const applyFix = (
 
         // Clean up multiple consecutive newlines
         newContent = newContent.replace(/\n{3,}/g, '\n\n');
+      }
+    }
+  } else if (fix.type === 'add_section_bullet') {
+    // Add bullet placeholder to empty section
+    const sectionName = fix.section;
+    if (!sectionName) return null;
+
+    // Match section header (with optional trailing colon)
+    const sectionRegex = new RegExp(
+      `^(#\\s+${escapeRegex(sectionName)}:?)\\s*$`,
+      'm'
+    );
+    const sectionMatch = currentContent.match(sectionRegex);
+
+    if (sectionMatch) {
+      const headerEnd = sectionMatch.index! + sectionMatch[0].length;
+      // Insert newline + bullet after header
+      const insertText = '\n' + (fix.text || '- ');
+      newContent =
+        currentContent.slice(0, headerEnd) +
+        insertText +
+        currentContent.slice(headerEnd);
+      // Position cursor after the bullet
+      cursorPosition = headerEnd + insertText.length;
+    }
+  } else if (fix.type === 'replace_type') {
+    // Replace incorrect type declaration (e.g., <PROFILE> -> <JOB>)
+    const currentType = fix.currentValue;
+    const newType = fix.newValue;
+    if (!currentType || !newType) return null;
+
+    // Match the type declaration tag
+    const typeRegex = new RegExp(`<${escapeRegex(currentType)}>`, 'g');
+    const typeMatch = currentContent.match(typeRegex);
+
+    if (typeMatch) {
+      // Replace first occurrence
+      const matchIndex = currentContent.indexOf(`<${currentType}>`);
+      if (matchIndex !== -1) {
+        const replaceEnd = matchIndex + currentType.length + 2; // +2 for < and >
+        const replacement = `<${newType}>`;
+        newContent =
+          currentContent.slice(0, matchIndex) +
+          replacement +
+          currentContent.slice(replaceEnd);
+        cursorPosition = matchIndex + replacement.length;
+      }
+    }
+  } else if (fix.type === 'rename_field') {
+    // Rename a field (e.g., lowercase to uppercase)
+    const currentFieldName = fix.currentValue;
+    const newFieldName = fix.newValue;
+    if (!currentFieldName || !newFieldName) return null;
+
+    // Match the field at the start of a line (with optional leading whitespace)
+    // Pattern: optional whitespace, field name, colon
+    const fieldRegex = new RegExp(
+      `^(\\s*)${escapeRegex(currentFieldName)}:`,
+      'gm'
+    );
+    const fieldMatch = currentContent.match(fieldRegex);
+
+    if (fieldMatch) {
+      // Replace first occurrence
+      newContent = currentContent.replace(fieldRegex, `$1${newFieldName}:`);
+      // Find cursor position after the renamed field
+      const newFieldMatch = newContent.match(
+        new RegExp(`^(\\s*)${escapeRegex(newFieldName)}:`, 'm')
+      );
+      if (newFieldMatch && newFieldMatch.index !== undefined) {
+        cursorPosition = newFieldMatch.index + newFieldMatch[0].length;
       }
     }
   }

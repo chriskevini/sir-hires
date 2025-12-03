@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { defaultDocuments, documentTemplates } from '@/tasks';
+import { synthesis } from '@/tasks';
 import { formatSaveTime } from '@/utils/date-utils';
 import type { DocumentTemplateKey } from '@/components/features/NewDocumentModal';
 
@@ -81,7 +81,8 @@ export const useDocumentManager = ({
         return job.documents[documentKey];
       }
 
-      const config = defaultDocuments[documentKey];
+      const config =
+        synthesis.documents[documentKey as keyof typeof synthesis.documents];
       return {
         title: config
           ? config.defaultTitle(parsedJob.jobTitle, parsedJob.company)
@@ -117,9 +118,12 @@ export const useDocumentManager = ({
       const newKey = `doc_${Date.now()}`;
 
       // Get template config and content
-      const config = defaultDocuments[templateKey] || defaultDocuments.blank;
+      const config =
+        synthesis.documents[templateKey as keyof typeof synthesis.documents] ||
+        synthesis.documents.blank;
       const templateContent =
-        documentTemplates[templateKey as keyof typeof documentTemplates] || '';
+        synthesis.templates[templateKey as keyof typeof synthesis.templates] ||
+        '';
 
       // Calculate order (add to end)
       const existingDocs = job.documents || {};

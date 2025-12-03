@@ -20,14 +20,21 @@ import React, {
   useMemo,
 } from 'react';
 import {
-  jobExtractionConfig,
-  profileExtractionConfig,
-  synthesisConfig,
-  JOB_EXTRACTION_PROMPT,
-  PROFILE_EXTRACTION_PROMPT,
-  SYNTHESIS_PROMPT,
+  jobExtraction,
+  profileExtraction,
+  synthesis,
+  fitCalculation,
 } from '@/tasks';
-import { FIXTURES } from '@/data/playground-fixtures';
+import {
+  RAW_COMPLETE_JOB,
+  RAW_MINIMAL_JOB,
+  RAW_MESSY_JOB,
+  RAW_COMPLETE_PROFILE,
+  RAW_MINIMAL_PROFILE,
+  EXTRACTED_COMPLETE_JOB,
+  EXTRACTED_COMPLETE_PROFILE,
+} from '@/data/fixtures';
+
 import { ArrowLeft, ArrowRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
@@ -59,56 +66,40 @@ export interface FreeformTaskPanelProps {
   llmSettings: ReturnType<typeof useLLMSettings>;
 }
 
-interface PresetTask {
-  label: string;
-  prompt: string;
-  contexts: ContextField[];
-  temperature: number;
-  maxTokens: number;
-}
-
 // =============================================================================
 // PRESET TASKS (for "Load from..." dropdown)
 // =============================================================================
 
-const PRESET_TASKS: Record<string, PresetTask> = {
+const PRESET_TASKS = {
   'job-extraction': {
     label: 'Job Extraction',
-    prompt: JOB_EXTRACTION_PROMPT,
-    contexts: [{ name: 'rawText', content: '' }],
-    temperature: jobExtractionConfig.temperature,
-    maxTokens: jobExtractionConfig.maxTokens,
+    ...jobExtraction,
+    fixtures: { rawText: RAW_COMPLETE_JOB },
   },
   'profile-extraction': {
     label: 'Profile Extraction',
-    prompt: PROFILE_EXTRACTION_PROMPT,
-    contexts: [{ name: 'rawText', content: '' }],
-    temperature: profileExtractionConfig.temperature,
-    maxTokens: profileExtractionConfig.maxTokens,
+    ...profileExtraction,
+    fixtures: { rawText: RAW_COMPLETE_PROFILE },
   },
   synthesis: {
     label: 'Synthesis',
-    prompt: SYNTHESIS_PROMPT,
-    contexts: [
-      { name: 'profile', content: '' },
-      { name: 'job', content: '' },
-      { name: 'template', content: '' },
-      { name: 'tone', content: '' },
-      { name: 'task', content: '' },
-    ],
-    temperature: synthesisConfig.temperature,
-    maxTokens: synthesisConfig.maxTokens,
+    ...synthesis,
+    fixtures: {
+      job: EXTRACTED_COMPLETE_JOB,
+      profile: EXTRACTED_COMPLETE_PROFILE,
+      template: synthesis.templates.tailoredResume,
+      tone: synthesis.defaultTone,
+      task: synthesis.defaultTask,
+    },
   },
   'fit-calculation': {
     label: 'Fit Calculation',
-    prompt:
-      '/no_think Based ONLY on explicitly stated bullet points and without assuming additional information, calculate a precise fit score for this candidate. Output only a number between 0 and 100. You will be punished for bad judgement.',
-    contexts: [
-      { name: 'job', content: '' },
-      { name: 'profile', content: '' },
-    ],
-    temperature: 0,
-    maxTokens: 20,
+    ...fitCalculation,
+    fixtures: {
+      job: EXTRACTED_COMPLETE_JOB,
+      profile: EXTRACTED_COMPLETE_PROFILE,
+      task: fitCalculation.defaultTask,
+    },
   },
 };
 
@@ -357,14 +348,19 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
   // LOAD PRESET
   // =============================================================================
 
-  const loadPreset = useCallback((presetKey: string) => {
+  const loadPreset = useCallback((presetKey: keyof typeof PRESET_TASKS) => {
     const preset = PRESET_TASKS[presetKey];
     if (!preset) return;
 
     // Presets always load into context mode
     setMode('context');
-    setSystemPrompt(preset.prompt);
-    setContexts(preset.contexts.map((c) => ({ ...c }))); // Clone
+    setSystemPrompt(preset.systemPrompt);
+    setContexts(
+      preset.context.map((name) => ({
+        name,
+        content: preset.fixtures[name as keyof typeof preset.fixtures] ?? '',
+      }))
+    );
     setTemperature(preset.temperature);
     setMaxTokens(preset.maxTokens);
   }, []);
@@ -492,7 +488,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
 
       await executeContextTask({
         config: {
-          prompt: systemPrompt,
+          systemPrompt,
           temperature,
           maxTokens,
           context: contextNames,
@@ -500,6 +496,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
         context: contextRecord,
         temperature,
         maxTokens,
+        noThink: llmSettings.thinkHarder !== true,
       });
     } else {
       // Conversation mode: use executeMessagesTask with raw messages
@@ -518,6 +515,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
     messages,
     temperature,
     maxTokens,
+    llmSettings.thinkHarder,
     executeContextTask,
     executeMessagesTask,
   ]);
@@ -542,7 +540,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
             className="text-sm p-1 rounded border bg-card"
             onChange={(e) => {
               if (e.target.value) {
-                loadPreset(e.target.value);
+                loadPreset(e.target.value as keyof typeof PRESET_TASKS);
                 e.target.value = '';
               }
             }}
@@ -708,31 +706,57 @@ interface ContextModeInputsProps {
   moveContext: (fromIndex: number, toIndex: number) => void;
 }
 
-// Flatten fixtures for the dropdown with category grouping
+// Fixture options for the dropdown with category grouping
 const FIXTURE_OPTIONS = [
   {
     category: 'Job Extraction',
-    items: FIXTURES['job-extraction'].map((f, i) => ({
-      key: `job-${i}`,
-      label: f.label,
-      content: f.content,
-    })),
+    items: [
+      {
+        key: 'job-raw-complete',
+        label: 'Complete Job (Raw)',
+        content: RAW_COMPLETE_JOB,
+      },
+      {
+        key: 'job-raw-minimal',
+        label: 'Minimal Job (Raw)',
+        content: RAW_MINIMAL_JOB,
+      },
+      {
+        key: 'job-raw-messy',
+        label: 'Messy Job (Raw)',
+        content: RAW_MESSY_JOB,
+      },
+    ],
   },
   {
     category: 'Profile Extraction',
-    items: FIXTURES['profile-extraction'].map((f, i) => ({
-      key: `profile-${i}`,
-      label: f.label,
-      content: f.content,
-    })),
+    items: [
+      {
+        key: 'profile-raw-complete',
+        label: 'Complete Profile (Raw)',
+        content: RAW_COMPLETE_PROFILE,
+      },
+      {
+        key: 'profile-raw-minimal',
+        label: 'Minimal Profile (Raw)',
+        content: RAW_MINIMAL_PROFILE,
+      },
+    ],
   },
   {
     category: 'Synthesis Templates',
-    items: FIXTURES['synthesis'].map((f, i) => ({
-      key: `synthesis-${i}`,
-      label: f.label,
-      content: f.content,
-    })),
+    items: [
+      {
+        key: 'synthesis-job',
+        label: 'Extracted Job',
+        content: EXTRACTED_COMPLETE_JOB,
+      },
+      {
+        key: 'synthesis-profile',
+        label: 'Extracted Profile',
+        content: EXTRACTED_COMPLETE_PROFILE,
+      },
+    ],
   },
 ];
 

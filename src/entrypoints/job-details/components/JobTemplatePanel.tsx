@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/Button';
 import { CollapsiblePanel } from '@/components/ui/CollapsiblePanel';
 import { X } from 'lucide-react';
 import { escapeHtml } from '@/utils/shared-utils';
-import { JOB_TEMPLATE } from '@/tasks';
+import { jobExtraction } from '@/tasks';
 
 interface JobTemplatePanelProps {
   isVisible: boolean;
@@ -40,7 +40,7 @@ export function JobTemplatePanel({
       className="w-72 border-l border-border bg-muted flex-shrink-0 overflow-y-auto"
     >
       <div className="p-3 font-mono text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
-        {escapeHtml(JOB_TEMPLATE)}
+        {escapeHtml(jobExtraction.template)}
       </div>
     </CollapsiblePanel>
   );

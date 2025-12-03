@@ -105,7 +105,7 @@ export const LLMSettingsPanel: React.FC<LLMSettingsPanelProps> = React.memo(
             Think Harder
           </label>
           <span className="text-sm text-muted-foreground">
-            (Make sure a thinking model is already loaded.)
+            (Requires a thinking model)
           </span>
         </div>
 

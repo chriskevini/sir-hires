@@ -71,6 +71,8 @@ export interface UseLLMSettingsResult {
   status: ConnectionStatus;
   errorMessage: string;
   isConnected: boolean;
+  /** True after the first connection attempt has completed (success or failure) */
+  hasInitialized: boolean;
 
   // Shared settings (same for all tasks)
   serverUrl: string;
@@ -148,6 +150,8 @@ export function useLLMSettings(
 
   // Loading state
   const [isLoading, setIsLoading] = useState(true);
+  // Track whether initial connection attempt has completed
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Derived state
   const provider = detectProvider(serverUrl);
@@ -286,6 +290,8 @@ export function useLLMSettings(
       setAvailableModels([]);
       setStatus('error');
       setErrorMessage((error as Error).message);
+    } finally {
+      setHasInitialized(true);
     }
   }, [serverUrl, apiKey]);
 
@@ -385,6 +391,7 @@ export function useLLMSettings(
     status,
     errorMessage,
     isConnected,
+    hasInitialized,
 
     // Shared settings
     serverUrl,

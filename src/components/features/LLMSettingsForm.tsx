@@ -2,11 +2,10 @@
  * LLMSettingsForm Component
  *
  * Shared form for LLM settings used by popup and modals.
- * Displays connection status, server URL, model selector, and task settings.
+ * Displays server URL, model selector, and task settings.
  */
 
 import { useState } from 'react';
-import { cn } from '@/lib/utils';
 import { DEFAULT_ENDPOINT } from '@/utils/llm-utils';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
@@ -32,7 +31,6 @@ interface LLMSettingsFormProps {
 
 export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
   const {
-    status,
     errorMessage,
     isConnected,
     serverUrl,
@@ -55,23 +53,6 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Connection Status */}
-      <div className="flex items-center justify-center gap-2">
-        <span
-          className={cn(
-            'w-3 h-3 rounded-full',
-            isConnected ? 'bg-green-500' : 'bg-red-500'
-          )}
-        />
-        <span className="text-base font-medium">
-          {status === 'loading'
-            ? 'Connecting...'
-            : isConnected
-              ? 'Connected'
-              : 'Not connected'}
-        </span>
-      </div>
-
       {/* Server URL */}
       <div className="flex flex-col gap-2">
         <label htmlFor="serverUrl" className="text-base text-muted-foreground">

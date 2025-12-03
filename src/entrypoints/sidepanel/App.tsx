@@ -433,7 +433,8 @@ export const App: React.FC = () => {
     );
   }
   // LLM not connected - show setup form (full takeover, no header)
-  else if (!llmSettings.isConnected) {
+  // Only show after initialization to prevent flash on first load
+  else if (llmSettings.hasInitialized && !llmSettings.isConnected) {
     return (
       <div className="flex flex-col h-screen items-center justify-center p-6 overflow-y-auto">
         <div className="w-full max-w-sm">

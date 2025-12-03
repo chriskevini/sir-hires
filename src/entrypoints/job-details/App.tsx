@@ -13,10 +13,9 @@ import {
 import { JobSelector } from '../../components/features/JobSelector';
 import { initDevModeValidation } from '../../utils/dev-validators';
 import { Dropdown } from '../../components/ui/Dropdown';
-import { Modal } from '../../components/ui/Modal';
 import { ThemeModal } from '../../components/features/ThemeModal';
 import { LLMSettingsForm } from '../../components/features/LLMSettingsForm';
-import { PanelLeft, User, Wifi, WifiOff } from 'lucide-react';
+import { PanelLeft, User, Wifi, WifiOff, X } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,9 +51,9 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   const [error, _setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
-  const [isLLMSettingsModalOpen, setIsLLMSettingsModalOpen] = useState(false);
+  const [isLLMSettingsOpen, setIsLLMSettingsOpen] = useState(false);
 
-  // LLM settings for modal
+  // LLM settings for overlay
   const llmSettings = useLLMSettings();
 
   // Dialog state for confirmations and alerts
@@ -491,7 +490,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
           <Button
             variant="ghost"
             className="p-2 min-w-9 min-h-9 hover:bg-muted flex items-center justify-center"
-            onClick={() => setIsLLMSettingsModalOpen(true)}
+            onClick={() => setIsLLMSettingsOpen(true)}
             title={
               llmSettings.isConnected
                 ? `Connected to ${llmSettings.model || 'LLM'}`
@@ -522,10 +521,6 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
             iconOnly={true}
             items={[
               {
-                label: 'LLM Settings',
-                onClick: () => setIsLLMSettingsModalOpen(true),
-              },
-              {
                 label: 'Theme',
                 onClick: () => setIsThemeModalOpen(true),
               },
@@ -547,19 +542,55 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
         </div>
       </header>
 
-      {/* LLM Disconnected Overlay */}
-      {!llmSettings.isConnected && !llmSettings.isLoading && (
+      {/* LLM Settings Overlay - shows when disconnected (after init) OR manually opened */}
+      {((llmSettings.hasInitialized && !llmSettings.isConnected) ||
+        isLLMSettingsOpen) && (
         <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center">
-          <div className="w-full max-w-sm p-6">
+          <div className="w-full max-w-sm p-6 relative">
+            {/* Close button - only show when connected (manually opened) */}
+            {llmSettings.isConnected && (
+              <Button
+                variant="ghost"
+                className="absolute top-2 right-2 p-2 min-w-8 min-h-8 text-muted-foreground hover:bg-muted"
+                onClick={() => setIsLLMSettingsOpen(false)}
+                title="Close"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
             <div className="text-center mb-6">
-              <WifiOff className="h-12 w-12 text-destructive mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-foreground mb-2">
-                LLM Connection Required
-              </h2>
-              <p className="text-muted-foreground text-sm">
-                {llmSettings.errorMessage ||
-                  'Connect to an LLM server to use extraction and synthesis features.'}
-              </p>
+              {llmSettings.isConnected ? (
+                <>
+                  <Wifi className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                  <h2 className="text-xl font-semibold text-foreground mb-2">
+                    LLM Settings
+                  </h2>
+                  <p className="text-muted-foreground text-sm">
+                    Connected to {llmSettings.model || 'LLM server'}
+                  </p>
+                </>
+              ) : llmSettings.status === 'loading' ? (
+                <>
+                  <Wifi className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-pulse" />
+                  <h2 className="text-xl font-semibold text-foreground mb-2">
+                    Connecting...
+                  </h2>
+                  <p className="text-muted-foreground text-sm">
+                    Attempting to connect to LLM server
+                  </p>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="h-12 w-12 text-destructive mx-auto mb-4" />
+                  <h2 className="text-xl font-semibold text-foreground mb-2">
+                    LLM Connection Required
+                  </h2>
+                  <p className="text-muted-foreground text-sm">
+                    {llmSettings.errorMessage ||
+                      'Connect to an LLM server to use extraction and synthesis features.'}
+                  </p>
+                </>
+              )}
             </div>
             <LLMSettingsForm llmSettings={llmSettings} />
           </div>
@@ -646,15 +677,6 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
         isOpen={isThemeModalOpen}
         onClose={() => setIsThemeModalOpen(false)}
       />
-
-      {/* LLM Settings Modal */}
-      <Modal
-        isOpen={isLLMSettingsModalOpen}
-        onClose={() => setIsLLMSettingsModalOpen(false)}
-        title="LLM Settings"
-      >
-        <LLMSettingsForm llmSettings={llmSettings} />
-      </Modal>
     </div>
   );
 };

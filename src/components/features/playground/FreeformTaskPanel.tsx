@@ -27,7 +27,15 @@ import {
   PROFILE_EXTRACTION_PROMPT,
   SYNTHESIS_PROMPT,
 } from '@/tasks';
-import { FIXTURES } from '@/data/playground-fixtures';
+import {
+  RAW_COMPLETE_JOB,
+  RAW_MINIMAL_JOB,
+  RAW_MESSY_JOB,
+  RAW_COMPLETE_PROFILE,
+  RAW_MINIMAL_PROFILE,
+  EXTRACTED_COMPLETE_JOB,
+  EXTRACTED_COMPLETE_PROFILE,
+} from '@/data/fixtures';
 import { ArrowLeft, ArrowRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
@@ -708,31 +716,57 @@ interface ContextModeInputsProps {
   moveContext: (fromIndex: number, toIndex: number) => void;
 }
 
-// Flatten fixtures for the dropdown with category grouping
+// Fixture options for the dropdown with category grouping
 const FIXTURE_OPTIONS = [
   {
     category: 'Job Extraction',
-    items: FIXTURES['job-extraction'].map((f, i) => ({
-      key: `job-${i}`,
-      label: f.label,
-      content: f.content,
-    })),
+    items: [
+      {
+        key: 'job-raw-complete',
+        label: 'Complete Job (Raw)',
+        content: RAW_COMPLETE_JOB,
+      },
+      {
+        key: 'job-raw-minimal',
+        label: 'Minimal Job (Raw)',
+        content: RAW_MINIMAL_JOB,
+      },
+      {
+        key: 'job-raw-messy',
+        label: 'Messy Job (Raw)',
+        content: RAW_MESSY_JOB,
+      },
+    ],
   },
   {
     category: 'Profile Extraction',
-    items: FIXTURES['profile-extraction'].map((f, i) => ({
-      key: `profile-${i}`,
-      label: f.label,
-      content: f.content,
-    })),
+    items: [
+      {
+        key: 'profile-raw-complete',
+        label: 'Complete Profile (Raw)',
+        content: RAW_COMPLETE_PROFILE,
+      },
+      {
+        key: 'profile-raw-minimal',
+        label: 'Minimal Profile (Raw)',
+        content: RAW_MINIMAL_PROFILE,
+      },
+    ],
   },
   {
     category: 'Synthesis Templates',
-    items: FIXTURES['synthesis'].map((f, i) => ({
-      key: `synthesis-${i}`,
-      label: f.label,
-      content: f.content,
-    })),
+    items: [
+      {
+        key: 'synthesis-job',
+        label: 'Extracted Job',
+        content: EXTRACTED_COMPLETE_JOB,
+      },
+      {
+        key: 'synthesis-profile',
+        label: 'Extracted Profile',
+        content: EXTRACTED_COMPLETE_PROFILE,
+      },
+    ],
   },
 ];
 

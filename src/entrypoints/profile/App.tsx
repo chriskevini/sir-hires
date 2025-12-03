@@ -20,7 +20,7 @@ import {
   findNextSectionPosition,
   applyFix as applyFixUtil,
 } from '@/utils/profile-utils';
-import { profileExtraction } from '@/tasks';
+import { profileExtraction, profileOptimization } from '@/tasks';
 import { UI_UPDATE_INTERVAL_MS } from '@/config';
 import { LLMClient } from '@/utils/llm-client';
 import { runTask, startKeepalive } from '@/utils/llm-task-runner';
@@ -46,6 +46,7 @@ import {
   Sparkles,
   WandSparkles,
   ScrollText,
+  RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -116,6 +117,15 @@ export default function App() {
     undefined
   );
 
+  // State for profile optimization suggestions
+  const [baselineFitScore, setBaselineFitScore] = useState<number | null>(null);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optimizationContent, setOptimizationContent] = useState('');
+  const [optimizationError, setOptimizationError] = useState<string | null>(
+    null
+  );
+  const [hasImprovedFit, setHasImprovedFit] = useState(false);
+
   // Refs
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const lastSavedIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -124,16 +134,20 @@ export default function App() {
   const originalContentRef = useRef<string>(''); // Store original before extraction
   const hasReceivedContentRef = useRef<boolean>(false); // Track if real content has started streaming
   const streamedContentRef = useRef<string>(''); // Accumulate streamed content synchronously
+  const optimizationAbortRef = useRef<AbortController | null>(null); // For cancelling optimization
 
   // Apply theme from storage
   useTheme();
 
   // Calculate fit score (watches job content and profile changes)
-  const { isCalculating: isCalculatingFit, spinnerChar: fitSpinnerChar } =
-    useFitScore({
-      jobContent: currentJobContent,
-      jobId: currentJobId,
-    });
+  const {
+    fitScore,
+    isCalculating: isCalculatingFit,
+    spinnerChar: fitSpinnerChar,
+  } = useFitScore({
+    jobContent: currentJobContent,
+    jobId: currentJobId,
+  });
 
   // Watch jobs and jobInFocus storage for fit score calculation
   useEffect(() => {
@@ -178,6 +192,113 @@ export default function App() {
       unwatchFocus();
     };
   }, []);
+
+  // Capture baseline fit score (first valid score after mount)
+  // Also detect improvement when score increases
+  useEffect(() => {
+    if (fitScore === null) return;
+
+    if (baselineFitScore === null) {
+      // First time we get a score - set baseline
+      setBaselineFitScore(fitScore);
+    } else if (fitScore > baselineFitScore) {
+      // Score improved - set hasImprovedFit and update baseline
+      setHasImprovedFit(true);
+      setBaselineFitScore(fitScore);
+    }
+  }, [fitScore, baselineFitScore]);
+
+  // Run optimization when suggestions panel opens
+  const runOptimization = useCallback(async () => {
+    // Check preconditions
+    if (!content.trim() || !currentJobContent) {
+      return;
+    }
+
+    // Cancel any existing optimization
+    if (optimizationAbortRef.current) {
+      optimizationAbortRef.current.abort();
+    }
+
+    // Reset state
+    setIsOptimizing(true);
+    setOptimizationContent('');
+    setOptimizationError(null);
+
+    // Create abort controller
+    const abortController = new AbortController();
+    optimizationAbortRef.current = abortController;
+
+    const stopKeepalive = startKeepalive();
+
+    try {
+      const llmSettings = await llmSettingsStorage.getValue();
+
+      if (!llmSettings?.endpoint || llmSettings.endpoint.trim() === '') {
+        throw new Error('LLM endpoint not configured');
+      }
+
+      const llmClient = new LLMClient({
+        endpoint: llmSettings.endpoint,
+        modelsEndpoint: llmSettings.modelsEndpoint,
+      });
+
+      // Get task-specific settings (use synthesis settings for optimization)
+      const optimizationTemperature =
+        llmSettings.tasks?.synthesis?.temperature ??
+        DEFAULT_TASK_SETTINGS.synthesis.temperature;
+
+      const result = await runTask({
+        config: profileOptimization,
+        context: {
+          job: currentJobContent,
+          profile: content,
+          task: profileOptimization.defaultTask,
+        },
+        llmClient,
+        model: llmSettings.model || '',
+        temperature: optimizationTemperature,
+        noThink: !llmSettings.thinkHarder,
+        signal: abortController.signal,
+        onChunk: (delta) => {
+          setOptimizationContent((prev) => prev + delta);
+        },
+      });
+
+      if (result.cancelled) {
+        console.info('[Profile] Optimization cancelled');
+        return;
+      }
+
+      console.info('[Profile] Optimization complete');
+    } catch (error) {
+      if (abortController.signal.aborted) {
+        return;
+      }
+      console.error('[Profile] Optimization failed:', error);
+      setOptimizationError((error as Error).message);
+    } finally {
+      stopKeepalive();
+      if (optimizationAbortRef.current === abortController) {
+        setIsOptimizing(false);
+        optimizationAbortRef.current = null;
+      }
+    }
+  }, [content, currentJobContent]);
+
+  // Trigger optimization when suggestions panel opens
+  useEffect(() => {
+    if (isSuggestionsPanelVisible && content.trim() && currentJobContent) {
+      runOptimization();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSuggestionsPanelVisible]);
+
+  // Handle refresh button click
+  const handleRefreshOptimization = useCallback(() => {
+    setHasImprovedFit(false);
+    runOptimization();
+  }, [runOptimization]);
 
   // Immediate save callback - saves to storage on every change
   const saveProfile = useCallback(async (newContent: string) => {
@@ -949,7 +1070,8 @@ BULLETS:
           <div
             className={cn(
               'flex flex-col border border-border rounded-lg overflow-hidden bg-card transition-[width] duration-200 ease-in-out shrink-0',
-              isSuggestionsPanelVisible === true ? 'w-80' : 'w-0 border-0'
+              isSuggestionsPanelVisible === true ? 'w-2xl' : 'w-0 border-0',
+              hasImprovedFit && 'animate-breathing-glow'
             )}
           >
             <div className="flex items-center justify-between px-3 py-2 bg-card border-b border-border shrink-0">
@@ -957,16 +1079,65 @@ BULLETS:
                 <ScrollText className="h-4 w-4 text-primary" />
                 Suggestions
               </h3>
-              <Button
-                variant="ghost"
-                className="p-1 text-muted-foreground hover:text-foreground"
-                onClick={() => toggleSuggestionsPanel(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  className="p-1 text-muted-foreground hover:text-foreground"
+                  onClick={handleRefreshOptimization}
+                  disabled={isOptimizing}
+                  title="Refresh suggestions"
+                >
+                  <RefreshCw
+                    className={cn(
+                      'h-4 w-4',
+                      isOptimizing && 'animate-spin',
+                      hasImprovedFit &&
+                        !isOptimizing &&
+                        'animate-breathing-icon'
+                    )}
+                  />
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="p-1 text-muted-foreground hover:text-foreground"
+                  onClick={() => toggleSuggestionsPanel(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-3">
-              {/* Empty for now */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {/* No profile or job - show message */}
+              {!content.trim() || !currentJobContent ? (
+                <p className="font-mono text-sm text-muted-foreground text-center py-4">
+                  {!content.trim() && !currentJobContent
+                    ? 'Add a profile and focus a job to get suggestions.'
+                    : !content.trim()
+                      ? 'Add your profile to get suggestions.'
+                      : 'Focus a job to get suggestions.'}
+                </p>
+              ) : optimizationError ? (
+                /* Error state */
+                <div className="py-2 px-3 bg-destructive/10 border border-destructive/50 rounded text-destructive text-sm font-mono">
+                  <strong className="block mb-1">Error:</strong>
+                  {optimizationError}
+                </div>
+              ) : isOptimizing && !optimizationContent ? (
+                /* Loading state */
+                <p className="font-mono text-sm text-muted-foreground text-center py-4">
+                  Generating suggestions...
+                </p>
+              ) : optimizationContent ? (
+                /* Streaming/completed content */
+                <div className="font-mono text-sm leading-relaxed text-foreground whitespace-pre-wrap">
+                  {optimizationContent}
+                </div>
+              ) : (
+                /* Empty state - should trigger optimization */
+                <p className="font-mono text-sm text-muted-foreground text-center py-4">
+                  Click refresh to generate suggestions.
+                </p>
+              )}
             </div>
           </div>
         </div>

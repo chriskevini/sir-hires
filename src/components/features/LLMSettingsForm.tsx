@@ -309,7 +309,7 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
 
       {/* Error State - Show setup guide or API key prompt */}
       {status === 'error' && (
-        <div className="bg-muted border border-border rounded-lg p-6">
+        <>
           {provider === 'local' ? (
             <>
               <h3 className="text-base font-semibold text-foreground mb-4">
@@ -334,7 +334,7 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
                   Start the server: <strong>Developer → Start Server</strong>
                 </li>
               </ol>
-              <p className="text-base text-muted-foreground mt-4">
+              <p className="text-base text-muted-foreground">
                 <a
                   href="#"
                   onClick={(e) => {
@@ -369,7 +369,7 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
                 />
               </div>
               <p className="text-base text-destructive my-3">{errorMessage}</p>
-              <p className="text-base text-muted-foreground mt-4">
+              <p className="text-base text-muted-foreground">
                 <a
                   href="#"
                   onClick={(e) => {
@@ -384,7 +384,7 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
               </p>
             </>
           )}
-        </div>
+        </>
       )}
 
       {/* Idle State - Initial load */}

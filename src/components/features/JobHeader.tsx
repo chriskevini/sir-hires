@@ -49,7 +49,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({
       </div>
 
       {/* Main header content */}
-      <div className="flex justify-between items-start py-4 px-5 gap-4 max-[480px]:flex-col max-[480px]:gap-3">
+      <div className="flex justify-between items-start py-4 px-6 gap-4 max-w-4xl mx-auto w-full max-[480px]:flex-col max-[480px]:gap-3">
         <div className="flex flex-col gap-1 min-w-0 flex-1">
           <h1 className="text-lg font-semibold text-foreground m-0 leading-tight overflow-hidden text-ellipsis whitespace-nowrap max-[480px]:text-base max-[480px]:whitespace-normal">
             {jobTitle || 'Untitled Position'}

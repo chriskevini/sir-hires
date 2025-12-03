@@ -262,7 +262,7 @@ export async function runTask(options: RunTaskOptions): Promise<TaskResult> {
   }
 
   // Build prompts
-  const systemPrompt = config.prompt;
+  const systemPrompt = config.systemPrompt;
   const userPrompt = buildUserPrompt(context);
 
   // Generate unique stream ID for cancellation tracking

@@ -17,7 +17,7 @@ import {
   findNextSectionPosition,
   applyFix as applyFixUtil,
 } from '@/utils/profile-utils';
-import { PROFILE_TEMPLATE, profileExtractionConfig } from '@/tasks';
+import { profileExtraction } from '@/tasks';
 import { UI_UPDATE_INTERVAL_MS } from '@/config';
 import { LLMClient } from '@/utils/llm-client';
 import { runTask, startKeepalive } from '@/utils/llm-task-runner';
@@ -574,7 +574,7 @@ BULLETS:
 
       // Run extraction task
       const result = await runTask({
-        config: profileExtractionConfig,
+        config: profileExtraction,
         context: { rawText: pastedText },
         llmClient,
         model: llmSettings.model || '',
@@ -844,7 +844,7 @@ BULLETS:
             </Button>
           </div>
           <div className="flex-1 overflow-y-auto p-3 font-mono text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
-            {PROFILE_TEMPLATE}
+            {profileExtraction.template}
           </div>
         </div>
       </div>

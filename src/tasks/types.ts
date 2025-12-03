@@ -25,9 +25,9 @@ export type ContextType = StorageContextType | RuntimeContextType;
  * Defines how to invoke the LLM for a specific task type
  */
 export interface TaskConfig {
-  model?: string; // Override global model
+  systemPrompt: string;
+  context: readonly ContextType[];
   temperature: number;
   maxTokens: number;
-  prompt: string; // System prompt for the task
-  context: ContextType[]; // Context items to include in user prompt
+  model?: string;
 }

@@ -1,11 +1,7 @@
 // Configuration and constants for job details viewer
 // Schema version: 0.3.0
 
-import {
-  jobExtractionConfig,
-  profileExtractionConfig,
-  synthesisConfig,
-} from './tasks';
+import { jobExtraction, profileExtraction, synthesis } from './tasks';
 
 // Re-export types from tasks for backward compatibility
 export type {
@@ -213,9 +209,9 @@ export interface LLMConfig {
   timeoutSeconds: number; // Calculated from timeoutMs
 
   // Task-Specific Parameters (imported from tasks/)
-  jobExtraction: typeof jobExtractionConfig;
-  profileExtraction: typeof profileExtractionConfig;
-  synthesis: typeof synthesisConfig;
+  jobExtraction: typeof jobExtraction;
+  profileExtraction: typeof profileExtraction;
+  synthesis: typeof synthesis;
 }
 
 // LLM configuration for different tasks
@@ -230,9 +226,9 @@ export const llmConfig: LLMConfig = {
   },
 
   // Task configurations imported from src/tasks/
-  jobExtraction: jobExtractionConfig,
-  profileExtraction: profileExtractionConfig,
-  synthesis: synthesisConfig,
+  jobExtraction: jobExtraction,
+  profileExtraction: profileExtraction,
+  synthesis: synthesis,
 };
 
 // Checklist templates for each status

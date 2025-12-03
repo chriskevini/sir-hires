@@ -1,79 +1,12 @@
 /**
  * Job Extraction Task
  * SINGLE SOURCE OF TRUTH for job extraction LLM configuration
- *
- * Contains:
- * - Task configuration (temperature, tokens, context)
- * - LLM extraction prompt
- * - MarkdownDB job template schema
- *
- * NOTE: Parser functions remain in src/utils/job-parser.ts
- * (used by non-LLM components)
  */
 
 import type { TaskConfig } from './types';
 
-// =============================================================================
-// MARKDOWNDB TEMPLATE
-// =============================================================================
-
-/**
- * Standard job template showing all available fields with examples
- * SINGLE SOURCE OF TRUTH for MarkdownDB job schema
- *
- * Format:
- * - <JOB> wrapper
- * - KEY: value for top-level fields
- * - # SECTION NAME for sections (spaces, not underscores)
- * - - bullet for list items
- */
-export const JOB_TEMPLATE = `<JOB>
-TITLE: Senior Cloud Infrastructure Engineer // required
-COMPANY: Stellar Innovations Inc. // required
-ADDRESS: San Francisco, CA
-REMOTE TYPE: HYBRID // [ONSITE|REMOTE|HYBRID]
-SALARY RANGE MIN: 100,000
-SALARY RANGE MAX: 150,000
-PAY PERIOD: ANNUAL // [HOURLY|ANNUAL|MONTHLY|WEEKLY|BIWEEKLY|SEMIMONTHLY]
-EMPLOYMENT TYPE: FULL-TIME // [FULL-TIME|PART-TIME|CONTRACT|INTERNSHIP]
-EXPERIENCE LEVEL: SENIOR // [ENTRY|MID|SENIOR|LEAD]
-POSTED DATE: 2025-11-15
-CLOSING DATE: 2025-12-31
-
-# DESCRIPTION
-- Design, implement, and maintain scalable cloud infrastructure on AWS/Azure.
-- Develop and manage CI/CD pipelines using GitLab or Jenkins.
-- Provide subject matter expertise on security, reliability, and cost optimization.
-
-# REQUIRED SKILLS // required
-- 7+ years of experience in DevOps or SRE roles.
-- Expert-level proficiency with Terraform and Kubernetes.
-- Strong knowledge of Python or Go for scripting.
-
-# PREFERRED SKILLS
-- Experience with FinOps principles and tooling.
-- AWS Certified DevOps Engineer - Professional.
-- Background in the FinTech industry.
-
-# ABOUT COMPANY
-- Stellar Innovations is a high-growth Series C FinTech startup based in the Bay Area.
-- **Culture:** We emphasize radical ownership, transparency, and continuous learning.
-- **Team Structure:** Teams are cross-functional, highly autonomous, and empowered to make core product decisions.
-- **Benefits:** We offer unlimited PTO, 1000% 401(k) matching and excellent health coverage.
-- **Values:** We are committed to fostering diversity, equity, and inclusion in the workplace.`;
-
-// =============================================================================
-// LLM PROMPT
-// =============================================================================
-
-/**
- * Centralized LLM extraction prompt (system prompt)
- * SINGLE SOURCE OF TRUTH for job extraction rules
- *
- * The prompt includes the template schema and few-shot examples inline.
- * Only rawText (job posting content) is passed as context.
- */
-export const JOB_EXTRACTION_PROMPT = `
+export const jobExtraction = {
+  systemPrompt: `
 You are an expert Data Extraction Engine. Parse unstructured job descriptions into the MarkdownDB format shown in TEMPLATE.
 
 ### RULES
@@ -159,19 +92,44 @@ EXPERIENCE LEVEL: MID
 - Offers great benefits.
 
 Output ONLY the <JOB> data block. No conversational text.
-`;
+`,
 
-// =============================================================================
-// TASK CONFIG
-// =============================================================================
-
-/**
- * Task configuration for job extraction
- * Imported by config.ts and used by llm-client
- */
-export const jobExtractionConfig: TaskConfig = {
+  context: ['rawText'] as const,
   temperature: 0.3,
   maxTokens: 2000,
-  prompt: JOB_EXTRACTION_PROMPT,
-  context: ['rawText'],
-};
+
+  template: `<JOB>
+TITLE: Senior Cloud Infrastructure Engineer // required
+COMPANY: Stellar Innovations Inc. // required
+ADDRESS: San Francisco, CA
+REMOTE TYPE: HYBRID // [ONSITE|REMOTE|HYBRID]
+SALARY RANGE MIN: 100,000
+SALARY RANGE MAX: 150,000
+PAY PERIOD: ANNUAL // [HOURLY|ANNUAL|MONTHLY|WEEKLY|BIWEEKLY|SEMIMONTHLY]
+EMPLOYMENT TYPE: FULL-TIME // [FULL-TIME|PART-TIME|CONTRACT|INTERNSHIP]
+EXPERIENCE LEVEL: SENIOR // [ENTRY|MID|SENIOR|LEAD]
+POSTED DATE: 2025-11-15
+CLOSING DATE: 2025-12-31
+
+# DESCRIPTION
+- Design, implement, and maintain scalable cloud infrastructure on AWS/Azure.
+- Develop and manage CI/CD pipelines using GitLab or Jenkins.
+- Provide subject matter expertise on security, reliability, and cost optimization.
+
+# REQUIRED SKILLS // required
+- 7+ years of experience in DevOps or SRE roles.
+- Expert-level proficiency with Terraform and Kubernetes.
+- Strong knowledge of Python or Go for scripting.
+
+# PREFERRED SKILLS
+- Experience with FinOps principles and tooling.
+- AWS Certified DevOps Engineer - Professional.
+- Background in the FinTech industry.
+
+# ABOUT COMPANY
+- Stellar Innovations is a high-growth Series C FinTech startup based in the Bay Area.
+- **Culture:** We emphasize radical ownership, transparency, and continuous learning.
+- **Team Structure:** Teams are cross-functional, highly autonomous, and empowered to make core product decisions.
+- **Benefits:** We offer unlimited PTO, 1000% 401(k) matching and excellent health coverage.
+- **Values:** We are committed to fostering diversity, equity, and inclusion in the workplace.`,
+} satisfies TaskConfig & { template: string };

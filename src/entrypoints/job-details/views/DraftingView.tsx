@@ -20,7 +20,7 @@ import { getRandomTone } from '@/utils/synthesis-utils';
 import { useParsedJob } from '@/components/features/ParsedJobProvider';
 import { getJobTitle, getCompanyName } from '@/utils/job-parser';
 import { formatSaveTime } from '@/utils/date-utils';
-import { defaultDocuments, synthesisConfig } from '@/tasks';
+import { synthesis } from '@/tasks';
 import { countWords } from '@/utils/text-utils';
 import { exportMarkdown, exportPDF } from '@/utils/export-utils';
 import { useImmediateSaveMulti } from '@/hooks/useImmediateSave';
@@ -223,14 +223,13 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   } = useImmediateSaveMulti({
     initialValues: initialDocumentValues,
     onSave: (key: string, content: string) => {
-      // Preserve existing title, fallback to defaultDocuments lookup for known template keys
+      // Preserve existing title, fallback to synthesis.documents lookup for known template keys
       const existingTitle = job.documents?.[key]?.title;
+      const docConfig =
+        synthesis.documents[key as keyof typeof synthesis.documents];
       const title =
         existingTitle ||
-        defaultDocuments[key]?.defaultTitle(
-          parsedJob.jobTitle,
-          parsedJob.company
-        ) ||
+        docConfig?.defaultTitle(parsedJob.jobTitle, parsedJob.company) ||
         'Untitled';
       onSaveDocument(job.id, key, {
         title,
@@ -416,7 +415,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     try {
       // DEBUG: Log entire API call context
       console.info('[DraftingView] Synthesis API call:', {
-        config: synthesisConfig,
+        config: synthesis,
         context,
         model: selectedModel,
         maxTokens,
@@ -428,7 +427,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
       // Run synthesis using runTask()
       const result = await runTask({
-        config: synthesisConfig,
+        config: synthesis,
         context,
         llmClient,
         model: selectedModel,
@@ -485,12 +484,11 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
       // Trigger save - preserve existing title
       const existingTitle = job.documents?.[activeTab]?.title;
+      const docConfig =
+        synthesis.documents[activeTab as keyof typeof synthesis.documents];
       const title =
         existingTitle ||
-        defaultDocuments[activeTab]?.defaultTitle(
-          parsedJob.jobTitle,
-          parsedJob.company
-        ) ||
+        docConfig?.defaultTitle(parsedJob.jobTitle, parsedJob.company) ||
         'Untitled';
       onSaveDocument(job.id, activeTab, {
         title,
@@ -587,7 +585,8 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
               </div>
             ) : (
               documentKeys.map((key) => {
-                const config = defaultDocuments[key];
+                const config =
+                  synthesis.documents[key as keyof typeof synthesis.documents];
                 const isActive = key === activeTab;
                 const placeholder = config
                   ? config.placeholder

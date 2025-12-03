@@ -1,89 +1,12 @@
 /**
  * Profile Extraction Task
  * SINGLE SOURCE OF TRUTH for profile extraction LLM configuration
- *
- * Contains:
- * - Task configuration (temperature, tokens, context)
- * - LLM extraction prompt
- * - MarkdownDB profile template schema
- *
- * NOTE: Parser functions remain in src/utils/profile-parser.ts
- * (used by non-LLM components)
  */
 
 import type { TaskConfig } from './types';
 
-// =============================================================================
-// MARKDOWNDB TEMPLATE
-// =============================================================================
-
-/**
- * Standard profile template showing all available fields with examples
- * SINGLE SOURCE OF TRUTH for MarkdownDB profile schema
- *
- * Format:
- * - <PROFILE> wrapper
- * - KEY: value for top-level fields
- * - # SECTION NAME for sections
- * - ## Item Title for items within sections
- * - KEY: value for fields within items
- * - - bullet for achievements/responsibilities
- */
-export const PROFILE_TEMPLATE = `<PROFILE>
-NAME: Place Holder // required
-ADDRESS: 123 Main Street, Anytown, CA 45678
-EMAIL: name@email.com
-// PHONE, WEBSITE, GITHUB
-
-# EDUCATION
-
-## Master of Science in Computer Science
-SCHOOL: University of Helsinki
-LOCATION: Helsinki, Finland
-START: September 1988
-END: March 1997
-// GPA
-
-# PROFESSIONAL EXPERIENCE
-
-## Senior Developer
-AT: Tech Solutions Inc.
-START: October 2020
-END: ONGOING
-- Built API...
-- Led team...
-
-# TECHNICAL PROJECT EXPERIENCE
-
-## Linux Kernel
-- Architected kernel...
-- Integrated Rust...
-
-# VOLUNTEER
-
-## Community Volunteer
-AT: Local Non-Profit
-- Supported educational...
-- Helped organize...
-
-# INTERESTS
-- Scuba diving
-- Reading
-// # CERTIFICATIONS
-`;
-
-// =============================================================================
-// LLM PROMPT
-// =============================================================================
-
-/**
- * Centralized LLM extraction prompt (system prompt)
- * SINGLE SOURCE OF TRUTH for profile extraction rules
- *
- * The prompt includes the template schema and few-shot examples inline.
- * Only rawText (resume/CV content) is passed as context.
- */
-export const PROFILE_EXTRACTION_PROMPT = `
+export const profileExtraction = {
+  systemPrompt: `
 You are an expert Resume Parser. Transform resumes into the MarkdownDB format shown in TEMPLATE.
 
 ### RULES
@@ -140,19 +63,52 @@ END: ONGOING
 - Python
 - React
 
-Output ONLY the <PROFILE> data block. No conversational text.`;
+Output ONLY the <PROFILE> data block. No conversational text.`,
 
-// =============================================================================
-// TASK CONFIG
-// =============================================================================
-
-/**
- * Task configuration for profile extraction
- * Imported by config.ts and used by llm-client
- */
-export const profileExtractionConfig: TaskConfig = {
+  context: ['rawText'] as const,
   temperature: 0.3,
-  maxTokens: 4000, // Higher default for longer resumes
-  prompt: PROFILE_EXTRACTION_PROMPT,
-  context: ['rawText'],
-};
+  maxTokens: 4000,
+
+  template: `<PROFILE>
+NAME: Place Holder // required
+ADDRESS: 123 Main Street, Anytown, CA 45678
+EMAIL: name@email.com
+// PHONE, WEBSITE, GITHUB
+
+# EDUCATION
+
+## Master of Science in Computer Science
+SCHOOL: University of Helsinki
+LOCATION: Helsinki, Finland
+START: September 1988
+END: March 1997
+// GPA
+
+# PROFESSIONAL EXPERIENCE
+
+## Senior Developer
+AT: Tech Solutions Inc.
+START: October 2020
+END: ONGOING
+- Built API...
+- Led team...
+
+# TECHNICAL PROJECT EXPERIENCE
+
+## Linux Kernel
+- Architected kernel...
+- Integrated Rust...
+
+# VOLUNTEER
+
+## Community Volunteer
+AT: Local Non-Profit
+- Supported educational...
+- Helped organize...
+
+# INTERESTS
+- Scuba diving
+- Reading
+// # CERTIFICATIONS
+`,
+} satisfies TaskConfig & { template: string };

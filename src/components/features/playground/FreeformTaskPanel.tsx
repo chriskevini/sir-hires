@@ -20,12 +20,10 @@ import React, {
   useMemo,
 } from 'react';
 import {
-  jobExtractionConfig,
-  profileExtractionConfig,
-  synthesisConfig,
-  JOB_EXTRACTION_PROMPT,
-  PROFILE_EXTRACTION_PROMPT,
-  SYNTHESIS_PROMPT,
+  jobExtraction,
+  profileExtraction,
+  synthesis,
+  fitCalculation,
 } from '@/tasks';
 import {
   RAW_COMPLETE_JOB,
@@ -82,21 +80,21 @@ interface PresetTask {
 const PRESET_TASKS: Record<string, PresetTask> = {
   'job-extraction': {
     label: 'Job Extraction',
-    prompt: JOB_EXTRACTION_PROMPT,
+    prompt: jobExtraction.systemPrompt,
     contexts: [{ name: 'rawText', content: '' }],
-    temperature: jobExtractionConfig.temperature,
-    maxTokens: jobExtractionConfig.maxTokens,
+    temperature: jobExtraction.temperature,
+    maxTokens: jobExtraction.maxTokens,
   },
   'profile-extraction': {
     label: 'Profile Extraction',
-    prompt: PROFILE_EXTRACTION_PROMPT,
+    prompt: profileExtraction.systemPrompt,
     contexts: [{ name: 'rawText', content: '' }],
-    temperature: profileExtractionConfig.temperature,
-    maxTokens: profileExtractionConfig.maxTokens,
+    temperature: profileExtraction.temperature,
+    maxTokens: profileExtraction.maxTokens,
   },
   synthesis: {
     label: 'Synthesis',
-    prompt: SYNTHESIS_PROMPT,
+    prompt: synthesis.systemPrompt,
     contexts: [
       { name: 'profile', content: '' },
       { name: 'job', content: '' },
@@ -104,19 +102,18 @@ const PRESET_TASKS: Record<string, PresetTask> = {
       { name: 'tone', content: '' },
       { name: 'task', content: '' },
     ],
-    temperature: synthesisConfig.temperature,
-    maxTokens: synthesisConfig.maxTokens,
+    temperature: synthesis.temperature,
+    maxTokens: synthesis.maxTokens,
   },
   'fit-calculation': {
     label: 'Fit Calculation',
-    prompt:
-      '/no_think Based ONLY on explicitly stated bullet points and without assuming additional information, calculate a precise fit score for this candidate. Output only a number between 0 and 100. You will be punished for bad judgement.',
+    prompt: fitCalculation.defaultTask,
     contexts: [
       { name: 'job', content: '' },
       { name: 'profile', content: '' },
     ],
-    temperature: 0,
-    maxTokens: 20,
+    temperature: fitCalculation.temperature,
+    maxTokens: fitCalculation.maxTokens,
   },
 };
 
@@ -500,7 +497,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
 
       await executeContextTask({
         config: {
-          prompt: systemPrompt,
+          systemPrompt,
           temperature,
           maxTokens,
           context: contextNames,

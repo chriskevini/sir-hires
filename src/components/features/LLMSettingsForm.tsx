@@ -349,11 +349,9 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
                   className="w-full text-base h-11"
                 />
               </div>
-              {errorMessage && (
-                <p className="text-base text-destructive my-3">
-                  {errorMessage}
-                </p>
-              )}
+              <p className="text-base text-destructive my-3 min-h-[1.5rem]">
+                {errorMessage}
+              </p>
               <p className="text-base text-muted-foreground">
                 <a
                   href="#"

@@ -576,8 +576,8 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
                     LLM Connection Required
                   </h2>
                   <p className="text-muted-foreground text-sm">
-                    {llmSettings.errorMessage ||
-                      'Connect to an LLM server to use extraction and synthesis features.'}
+                    Connect to an LLM server to use extraction and synthesis
+                    features.
                   </p>
                 </>
               )}

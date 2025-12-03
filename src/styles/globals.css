@@ -217,15 +217,15 @@
     --input: var(--rosy-granite-700);
     --ring: var(--evergreen-500);
 
-    /* Job status colors (lighter for dark mode visibility) */
-    --status-researching: hsl(var(--rosy-granite-400));
-    --status-drafting: hsl(var(--evergreen-400));
-    --status-awaiting-review: hsl(var(--wisteria-blue-400));
-    --status-interviewing: hsl(var(--royal-orchid-400));
-    --status-deciding: hsl(var(--amber-flame-500));
-    --status-accepted: hsl(var(--evergreen-400));
-    --status-rejected: hsl(var(--mahogany-red-400));
-    --status-withdrawn: hsl(var(--rosy-granite-400));
+    /* Job status colors (dimmer for dark mode) */
+    --status-researching: hsl(var(--rosy-granite-600));
+    --status-drafting: hsl(var(--evergreen-600));
+    --status-awaiting-review: hsl(var(--wisteria-blue-600));
+    --status-interviewing: hsl(var(--royal-orchid-600));
+    --status-deciding: hsl(var(--amber-flame-600));
+    --status-accepted: hsl(var(--evergreen-600));
+    --status-rejected: hsl(var(--mahogany-red-600));
+    --status-withdrawn: hsl(var(--rosy-granite-600));
   }
 
   /* 

@@ -81,10 +81,17 @@ export const getStatusFill = (status: string): number => {
 };
 
 /**
- * Get status background color with 20% opacity (for cards, highlights)
+ * Get status background color (25% status mixed with card background)
  */
 export const getStatusBackground = (status: string): string => {
-  return `color-mix(in srgb, ${getStatusColor(status)} 20%, transparent)`;
+  return `color-mix(in srgb, ${getStatusColor(status)} 25%, hsl(var(--card)))`;
+};
+
+/**
+ * Get status background color for hover/selected (50% status mixed with card background)
+ */
+export const getStatusBackgroundHover = (status: string): string => {
+  return `color-mix(in srgb, ${getStatusColor(status)} 50%, hsl(var(--card)))`;
 };
 
 // Navigation button configuration for each status (v0.3.0)

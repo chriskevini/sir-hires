@@ -312,6 +312,31 @@ export function useLLMSettings(
     }
   }, [serverUrl, model, apiKey, taskSettings, thinkHarder]);
 
+  // Ref to latest saveSettings to avoid stale closures in effect
+  const saveSettingsRef = useRef(saveSettings);
+  saveSettingsRef.current = saveSettings;
+
+  // Auto-save when settings change (debounced)
+  // Only saves when connected to avoid saving invalid endpoints
+  useEffect(() => {
+    if (isLoading || status !== 'connected') return;
+
+    const timer = setTimeout(() => {
+      saveSettingsRef.current();
+    }, debounceMs);
+
+    return () => clearTimeout(timer);
+  }, [
+    serverUrl,
+    model,
+    apiKey,
+    taskSettings,
+    thinkHarder,
+    isLoading,
+    status,
+    debounceMs,
+  ]);
+
   return {
     // Connection state
     status,

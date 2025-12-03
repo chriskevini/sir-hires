@@ -613,10 +613,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
         onClose={() => setIsLLMSettingsModalOpen(false)}
         title="LLM Settings"
       >
-        <LLMSettingsForm
-          llmSettings={llmSettings}
-          onSaved={() => setIsLLMSettingsModalOpen(false)}
-        />
+        <LLMSettingsForm llmSettings={llmSettings} />
       </Modal>
     </div>
   );

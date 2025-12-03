@@ -28,14 +28,9 @@ import type { useLLMSettings } from '@/hooks/useLLMSettings';
 
 interface LLMSettingsFormProps {
   llmSettings: ReturnType<typeof useLLMSettings>;
-  /** Called after successful save */
-  onSaved?: () => void;
 }
 
-export function LLMSettingsForm({
-  llmSettings,
-  onSaved,
-}: LLMSettingsFormProps) {
+export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
   const {
     status,
     errorMessage,
@@ -51,31 +46,12 @@ export function LLMSettingsForm({
     taskSettings,
     setTaskSettings,
     resetTaskSettings,
-    fetchModels,
-    saveSettings,
     thinkHarder,
     setThinkHarder,
   } = llmSettings;
 
-  // Local UI state
-  const [saveMessage, setSaveMessage] = useState('');
+  // Local UI state for accordion
   const [taskSettingsOpen, setTaskSettingsOpen] = useState('');
-
-  const handleSave = async () => {
-    const success = await saveSettings();
-    if (success) {
-      setSaveMessage('Saved');
-      setTimeout(() => setSaveMessage(''), 2000);
-      onSaved?.();
-    } else {
-      setSaveMessage('Error saving');
-      setTimeout(() => setSaveMessage(''), 3000);
-    }
-  };
-
-  const handleResetDefaults = () => {
-    resetTaskSettings();
-  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -101,25 +77,14 @@ export function LLMSettingsForm({
         <label htmlFor="serverUrl" className="text-xs text-muted-foreground">
           Server URL
         </label>
-        <div className="flex gap-2 items-stretch">
-          <Input
-            type="text"
-            id="serverUrl"
-            value={serverUrl}
-            onChange={(e) => setServerUrl(e.target.value)}
-            placeholder="http://localhost:1234"
-            className="flex-1 font-mono text-sm"
-          />
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => fetchModels()}
-            disabled={status === 'loading'}
-            title="Connect to server"
-          >
-            {status === 'loading' ? '...' : 'Connect'}
-          </Button>
-        </div>
+        <Input
+          type="text"
+          id="serverUrl"
+          value={serverUrl}
+          onChange={(e) => setServerUrl(e.target.value)}
+          placeholder="http://localhost:1234"
+          className="w-full font-mono text-sm"
+        />
       </div>
 
       {/* Connected State - Show model selector */}
@@ -329,7 +294,7 @@ export function LLMSettingsForm({
                   {/* Reset to Defaults */}
                   <Button
                     variant="link"
-                    onClick={handleResetDefaults}
+                    onClick={resetTaskSettings}
                     className="p-0 h-auto"
                   >
                     Reset to defaults
@@ -338,11 +303,6 @@ export function LLMSettingsForm({
               </AccordionContent>
             </AccordionItem>
           </Accordion>
-
-          {/* Save Button */}
-          <Button variant="primary" onClick={handleSave}>
-            {saveMessage || 'Save'}
-          </Button>
         </>
       )}
 
@@ -371,9 +331,6 @@ export function LLMSettingsForm({
                 </li>
                 <li className="text-sm text-foreground leading-relaxed">
                   Start the server: <strong>Developer → Start Server</strong>
-                </li>
-                <li className="text-sm text-foreground leading-relaxed">
-                  Click Connect above
                 </li>
               </ol>
               <p className="text-xs text-muted-foreground mt-3">

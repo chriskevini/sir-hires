@@ -307,8 +307,8 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
         </>
       )}
 
-      {/* Error State - Show setup guide or API key prompt */}
-      {status === 'error' && (
+      {/* Not connected - Show setup guide or API key prompt */}
+      {!isConnected && (
         <>
           {provider === 'local' ? (
             <>
@@ -368,7 +368,11 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
                   className="w-full text-base h-11"
                 />
               </div>
-              <p className="text-base text-destructive my-3">{errorMessage}</p>
+              {errorMessage && (
+                <p className="text-base text-destructive my-3">
+                  {errorMessage}
+                </p>
+              )}
               <p className="text-base text-muted-foreground">
                 <a
                   href="#"
@@ -385,13 +389,6 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
             </>
           )}
         </>
-      )}
-
-      {/* Idle State - Initial load */}
-      {status === 'idle' && (
-        <div className="text-center py-4 text-muted-foreground text-base">
-          Loading settings...
-        </div>
       )}
     </div>
   );

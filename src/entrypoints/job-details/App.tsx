@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/Button';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { ResearchingView } from './views/ResearchingView';
 import { DraftingView } from './views/DraftingView';
-import { useJobStore } from './hooks';
+import { useJobStore, useFitScore } from './hooks';
 import { useLLMSettings } from '@/hooks/useLLMSettings';
 import { JobViewRouter } from '../../components/features/JobViewRouter';
 import {
@@ -16,7 +16,7 @@ import { Dropdown } from '../../components/ui/Dropdown';
 import { Modal } from '../../components/ui/Modal';
 import { ThemeModal } from '../../components/features/ThemeModal';
 import { LLMSettingsForm } from '../../components/features/LLMSettingsForm';
-import { ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { PanelLeft, User } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,6 +64,16 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
     closeDialog: closeConfirm,
   } = useConfirmDialog();
   const { alertState, alert: showAlert, closeAlert } = useAlertDialog();
+
+  // Get the current job for fit score calculation
+  const currentJob = store.jobs[store.selectedJobIndex];
+
+  // Calculate fit score (watches job content and profile changes)
+  const { isCalculating: isCalculatingFit, spinnerChar: fitSpinnerChar } =
+    useFitScore({
+      jobContent: currentJob?.content,
+      jobId: currentJob?.id,
+    });
 
   // Load sidebar open state from storage on mount (stored as "collapsed")
   useEffect(() => {
@@ -454,23 +464,29 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
     <div className="max-w-full h-screen m-0 bg-background flex flex-col">
       {/* Header with branding and action buttons */}
       <header className="flex justify-between items-center py-3 px-6 border-b border-border bg-background shrink-0">
-        <div className="flex items-baseline gap-3">
-          <Button
-            variant="ghost"
-            className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
-            onClick={() => handleSidebarOpenChange(!sidebarOpen)}
-            title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-            aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
-          >
-            {sidebarOpen ? (
-              <ChevronLeft className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
-          </Button>
-          <h1 className="text-lg font-semibold text-foreground">Sir Hires</h1>
-        </div>
+        {/* Left: Sidebar toggle */}
+        <Button
+          variant="ghost"
+          className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
+          onClick={() => handleSidebarOpenChange(!sidebarOpen)}
+          title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+          aria-label={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+        >
+          <PanelLeft className="h-4 w-4" />
+        </Button>
+
+        {/* Center: Title */}
+        <h1 className="text-lg font-semibold text-foreground">Sir Hires</h1>
+
+        {/* Right: Action buttons */}
         <div className="flex gap-1 items-center">
+          <span
+            className="text-muted-foreground text-lg font-mono w-6 text-center"
+            title={isCalculatingFit ? 'Calculating fit score...' : undefined}
+            aria-label={isCalculatingFit ? 'Calculating fit score' : undefined}
+          >
+            {isCalculatingFit ? fitSpinnerChar : ''}
+          </span>
           <Button
             variant="ghost"
             className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"

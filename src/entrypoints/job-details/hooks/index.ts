@@ -12,6 +12,7 @@ export { useTabState } from './useTabState';
 export { useJobValidation } from './useJobValidation';
 export { useDocumentManager } from './useDocumentManager';
 export { useParsedJob } from './useParsedJob';
+export { useFitScore } from './useFitScore';
 
 // Re-export types from types.ts (source of truth for shared types)
 export type {

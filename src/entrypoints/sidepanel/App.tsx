@@ -32,6 +32,8 @@ import {
 } from '../../components/ui/alert-dialog';
 import { useConfirmDialog, useAlertDialog } from '../../hooks/useConfirmDialog';
 import { useTheme } from '../../hooks/useTheme';
+import { useLLMSettings } from '../../hooks/useLLMSettings';
+import { LLMSettingsForm } from '../../components/features/LLMSettingsForm';
 
 /**
  * Create default checklist for all statuses (adapter for useJobExtraction)
@@ -165,6 +167,9 @@ export const App: React.FC = () => {
 
   // Initialize theme and watch for changes across tabs
   useTheme();
+
+  // LLM settings for onboarding (show setup form when not connected)
+  const llmSettings = useLLMSettings();
 
   // Local UI state
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -427,7 +432,28 @@ export const App: React.FC = () => {
       />
     );
   }
-  // Empty state
+  // LLM not connected - show setup form (full takeover, no header)
+  // Only show after initialization to prevent flash on first load
+  else if (llmSettings.hasInitialized && !llmSettings.isConnected) {
+    return (
+      <div className="flex flex-col h-screen items-center justify-center p-6 overflow-y-auto">
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-foreground mb-2">
+              {store.jobs.length === 0
+                ? 'Welcome to Sir Hires'
+                : 'LLM Connection Required'}
+            </h1>
+            <p className="text-muted-foreground">
+              Connect to an LLM to start extracting job postings.
+            </p>
+          </div>
+          <LLMSettingsForm llmSettings={llmSettings} />
+        </div>
+      </div>
+    );
+  }
+  // Empty state (connected but no jobs)
   else if (!currentJob) {
     mainContent = <EmptyState onRestoreBackup={backup.handleRestoreBackup} />;
   }

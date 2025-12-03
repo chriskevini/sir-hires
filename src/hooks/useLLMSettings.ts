@@ -8,7 +8,7 @@
  * - Connection status state machine
  *
  * Used by:
- * - Popup (LLM settings configuration UI) - no task specified, manages all settings
+ * - LLMSettingsForm (settings overlay in job-details) - no task specified, manages all settings
  * - SynthesisForm (document generation) - task: 'synthesis'
  * - Background extraction - task: 'extraction'
  */
@@ -52,6 +52,18 @@ export interface UseLLMSettingsOptions {
    * @default 500
    */
   debounceMs?: number;
+  /**
+   * Interval for health checks when connected (ms)
+   * Set to 0 to disable periodic health checks
+   * @default 30000 (30 seconds)
+   */
+  healthCheckIntervalMs?: number;
+  /**
+   * Interval for retry attempts when disconnected/error (ms)
+   * Set to 0 to disable auto-retry
+   * @default 10000 (10 seconds)
+   */
+  retryIntervalMs?: number;
 }
 
 export interface UseLLMSettingsResult {
@@ -59,6 +71,8 @@ export interface UseLLMSettingsResult {
   status: ConnectionStatus;
   errorMessage: string;
   isConnected: boolean;
+  /** True after the first connection attempt has completed (success or failure) */
+  hasInitialized: boolean;
 
   // Shared settings (same for all tasks)
   serverUrl: string;
@@ -75,7 +89,7 @@ export interface UseLLMSettingsResult {
   temperature: number;
   setTemperature: (temp: number) => void;
 
-  // All task settings (for UI mode - popup)
+  // All task settings (for settings form UI)
   taskSettings: Record<LLMTask, TaskSettings>;
   setTaskSettings: (task: LLMTask, settings: Partial<TaskSettings>) => void;
   resetTaskSettings: () => void;
@@ -105,7 +119,13 @@ export interface UseLLMSettingsResult {
 export function useLLMSettings(
   options: UseLLMSettingsOptions = {}
 ): UseLLMSettingsResult {
-  const { task, autoConnect = true, debounceMs = 500 } = options;
+  const {
+    task,
+    autoConnect = true,
+    debounceMs = 500,
+    healthCheckIntervalMs = 30000,
+    retryIntervalMs = 10000,
+  } = options;
 
   // Connection state
   const [status, setStatus] = useState<ConnectionStatus>('idle');
@@ -130,6 +150,8 @@ export function useLLMSettings(
 
   // Loading state
   const [isLoading, setIsLoading] = useState(true);
+  // Track whether initial connection attempt has completed
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Derived state
   const provider = detectProvider(serverUrl);
@@ -174,7 +196,7 @@ export function useLLMSettings(
     [task]
   );
 
-  // Generic setter for any task's settings (for popup UI)
+  // Generic setter for any task's settings (for settings form UI)
   const setTaskSettings = useCallback(
     (targetTask: LLMTask, settings: Partial<TaskSettings>) => {
       setTaskSettingsState((prev) => ({
@@ -241,35 +263,47 @@ export function useLLMSettings(
   }, []);
 
   // Fetch models from LLM server via background message
-  const fetchModels = useCallback(async () => {
-    setStatus('loading');
-    setErrorMessage('');
+  // showLoading: whether to show loading state (false for background retries to avoid UI flicker)
+  const fetchModels = useCallback(
+    async (showLoading: boolean = true) => {
+      // Only show loading state if requested (user-initiated) or if idle
+      if (showLoading || status === 'idle') {
+        setStatus('loading');
+        setErrorMessage('');
+      }
 
-    try {
-      const currentEndpoint = normalizeEndpoint(serverUrl || DEFAULT_ENDPOINT);
-      const currentModelsEndpoint = getModelsEndpoint(currentEndpoint);
+      try {
+        const currentEndpoint = normalizeEndpoint(
+          serverUrl || DEFAULT_ENDPOINT
+        );
+        const currentModelsEndpoint = getModelsEndpoint(currentEndpoint);
 
-      const response = await browser.runtime.sendMessage({
-        action: 'fetchModels',
-        endpoint: currentModelsEndpoint,
-        apiKey: apiKey || undefined,
-      });
+        const response = await browser.runtime.sendMessage({
+          action: 'fetchModels',
+          endpoint: currentModelsEndpoint,
+          apiKey: apiKey || undefined,
+        });
 
-      if (response.success && response.models) {
-        setAvailableModels(response.models);
-        setStatus('connected');
-      } else {
+        if (response.success && response.models) {
+          setAvailableModels(response.models);
+          setStatus('connected');
+          setErrorMessage('');
+        } else {
+          setAvailableModels([]);
+          setStatus('error');
+          setErrorMessage(response.error || 'Failed to connect');
+        }
+      } catch (error) {
+        console.error('[useLLMSettings] Error fetching models:', error);
         setAvailableModels([]);
         setStatus('error');
-        setErrorMessage(response.error || 'Failed to connect');
+        setErrorMessage((error as Error).message);
+      } finally {
+        setHasInitialized(true);
       }
-    } catch (error) {
-      console.error('[useLLMSettings] Error fetching models:', error);
-      setAvailableModels([]);
-      setStatus('error');
-      setErrorMessage((error as Error).message);
-    }
-  }, [serverUrl, apiKey]);
+    },
+    [serverUrl, apiKey, status]
+  );
 
   // Ref callback pattern: keeps ref updated to latest closure on every render
   // without causing the effect below to re-run (avoiding double-firing)
@@ -312,11 +346,63 @@ export function useLLMSettings(
     }
   }, [serverUrl, model, apiKey, taskSettings, thinkHarder]);
 
+  // Ref to latest saveSettings to avoid stale closures in effect
+  const saveSettingsRef = useRef(saveSettings);
+  saveSettingsRef.current = saveSettings;
+
+  // Auto-save when settings change (debounced)
+  // Only saves when connected to avoid saving invalid endpoints
+  useEffect(() => {
+    if (isLoading || status !== 'connected') return;
+
+    const timer = setTimeout(() => {
+      saveSettingsRef.current();
+    }, debounceMs);
+
+    return () => clearTimeout(timer);
+  }, [
+    serverUrl,
+    model,
+    apiKey,
+    taskSettings,
+    thinkHarder,
+    isLoading,
+    status,
+    debounceMs,
+  ]);
+
+  // Periodic health check / retry effect
+  // - When connected: check every healthCheckIntervalMs (30s default) to detect dropped connections
+  // - When disconnected: retry every retryIntervalMs (10s default) to auto-reconnect
+  useEffect(() => {
+    // Don't run health checks during initial loading or if no server URL
+    if (isLoading || !serverUrl.trim()) return;
+
+    // Disable if both intervals are 0
+    if (healthCheckIntervalMs === 0 && retryIntervalMs === 0) return;
+
+    // Choose interval based on connection status
+    const interval =
+      status === 'connected' ? healthCheckIntervalMs : retryIntervalMs;
+
+    // Don't set interval if the relevant one is disabled
+    if (interval === 0) return;
+
+    const intervalId = setInterval(() => {
+      // Use ref to get latest fetchModels without re-running effect
+      // Pass false to suppress loading state during background retries
+      fetchModelsRef.current(false);
+    }, interval);
+
+    return () => clearInterval(intervalId);
+  }, [isLoading, serverUrl, status, healthCheckIntervalMs, retryIntervalMs]);
+
   return {
     // Connection state
     status,
     errorMessage,
     isConnected,
+    hasInitialized,
 
     // Shared settings
     serverUrl,
@@ -332,7 +418,7 @@ export function useLLMSettings(
     temperature,
     setTemperature,
 
-    // All task settings (for popup UI)
+    // All task settings (for settings form UI)
     taskSettings,
     setTaskSettings,
     resetTaskSettings,

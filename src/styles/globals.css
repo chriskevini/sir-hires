@@ -10,6 +10,7 @@
   --color-foreground: hsl(var(--foreground));
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
+  --color-card-muted-foreground: hsl(var(--card-muted-foreground));
   --color-popover: hsl(var(--popover));
   --color-popover-foreground: hsl(var(--popover-foreground));
   --color-primary: hsl(var(--primary));
@@ -123,6 +124,7 @@
     --foreground: var(--rosy-granite-900);
     --card: var(--ivory-mist-50);
     --card-foreground: var(--rosy-granite-900);
+    --card-muted-foreground: var(--rosy-granite-600);
     --popover: var(--ivory-mist-50);
     --popover-foreground: var(--rosy-granite-900);
 
@@ -178,6 +180,7 @@
     --foreground: var(--rosy-granite-100);
     --card: var(--rosy-granite-900);
     --card-foreground: var(--rosy-granite-100);
+    --card-muted-foreground: var(--rosy-granite-300);
     --popover: var(--rosy-granite-900);
     --popover-foreground: var(--rosy-granite-100);
 
@@ -236,6 +239,7 @@
     --foreground: var(--parchment-900);
     --card: var(--parchment-100);
     --card-foreground: var(--parchment-900);
+    --card-muted-foreground: var(--parchment-600);
     --popover: var(--parchment-50);
     --popover-foreground: var(--parchment-900);
 
@@ -270,6 +274,7 @@
     --foreground: var(--parchment-100);
     --card: var(--parchment-900);
     --card-foreground: var(--parchment-100);
+    --card-muted-foreground: var(--parchment-300);
     --popover: var(--parchment-900);
     --popover-foreground: var(--parchment-100);
 
@@ -308,6 +313,7 @@
     --foreground: var(--twilight-900);
     --card: var(--twilight-100);
     --card-foreground: var(--twilight-900);
+    --card-muted-foreground: var(--twilight-600);
     --popover: var(--twilight-50);
     --popover-foreground: var(--twilight-900);
 
@@ -342,6 +348,7 @@
     --foreground: var(--twilight-100);
     --card: var(--twilight-900);
     --card-foreground: var(--twilight-100);
+    --card-muted-foreground: var(--twilight-300);
     --popover: var(--twilight-900);
     --popover-foreground: var(--twilight-100);
 
@@ -380,6 +387,7 @@
     --foreground: var(--azure-900);
     --card: var(--azure-100);
     --card-foreground: var(--azure-900);
+    --card-muted-foreground: var(--azure-600);
     --popover: var(--azure-50);
     --popover-foreground: var(--azure-900);
 
@@ -414,6 +422,7 @@
     --foreground: var(--azure-100);
     --card: var(--azure-900);
     --card-foreground: var(--azure-100);
+    --card-muted-foreground: var(--azure-300);
     --popover: var(--azure-900);
     --popover-foreground: var(--azure-100);
 

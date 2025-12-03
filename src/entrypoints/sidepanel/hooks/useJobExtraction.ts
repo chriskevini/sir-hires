@@ -121,6 +121,7 @@ export function useJobExtraction(
           model: llmSettings.model || '',
           maxTokens: extractionMaxTokens,
           temperature: extractionTemperature,
+          noThink: !llmSettings.thinkHarder,
           signal: abortControllerRef.current.signal,
           onChunk: (delta) => {
             // Append chunk to ephemeral state

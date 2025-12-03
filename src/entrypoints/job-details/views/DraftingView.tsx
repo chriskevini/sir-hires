@@ -133,6 +133,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     modelsEndpoint,
     maxTokens: savedMaxTokens,
     temperature: savedTemperature,
+    thinkHarder,
     isLoading: isLoadingSettings,
   } = useLLMSettings({ task: 'synthesis' });
 
@@ -433,6 +434,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
         model: selectedModel,
         maxTokens,
         temperature: savedTemperature,
+        noThink: !thinkHarder,
         signal: abortController.signal,
         onThinking: (_delta: string) => {
           // Optional: could show thinking in a separate panel

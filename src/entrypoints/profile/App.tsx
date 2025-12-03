@@ -580,6 +580,7 @@ BULLETS:
         model: llmSettings.model || '',
         maxTokens,
         temperature: extractionTemperature,
+        noThink: !llmSettings.thinkHarder,
         signal: abortControllerRef.current.signal,
         onChunk: (delta) => {
           hasReceivedContentRef.current = true;

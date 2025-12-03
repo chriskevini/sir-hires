@@ -8,7 +8,7 @@
  * - Connection status state machine
  *
  * Used by:
- * - Popup (LLM settings configuration UI) - no task specified, manages all settings
+ * - LLMSettingsForm (settings overlay in job-details) - no task specified, manages all settings
  * - SynthesisForm (document generation) - task: 'synthesis'
  * - Background extraction - task: 'extraction'
  */
@@ -89,7 +89,7 @@ export interface UseLLMSettingsResult {
   temperature: number;
   setTemperature: (temp: number) => void;
 
-  // All task settings (for UI mode - popup)
+  // All task settings (for settings form UI)
   taskSettings: Record<LLMTask, TaskSettings>;
   setTaskSettings: (task: LLMTask, settings: Partial<TaskSettings>) => void;
   resetTaskSettings: () => void;
@@ -196,7 +196,7 @@ export function useLLMSettings(
     [task]
   );
 
-  // Generic setter for any task's settings (for popup UI)
+  // Generic setter for any task's settings (for settings form UI)
   const setTaskSettings = useCallback(
     (targetTask: LLMTask, settings: Partial<TaskSettings>) => {
       setTaskSettingsState((prev) => ({
@@ -418,7 +418,7 @@ export function useLLMSettings(
     temperature,
     setTemperature,
 
-    // All task settings (for popup UI)
+    // All task settings (for settings form UI)
     taskSettings,
     setTaskSettings,
     resetTaskSettings,

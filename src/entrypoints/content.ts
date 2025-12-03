@@ -618,7 +618,7 @@ interface MessageResponse {
 
 // Setup message listener
 function setupMessageListener() {
-  // Listen for messages from popup
+  // Listen for messages from background script and UI components
   browser.runtime.onMessage.addListener(
     (
       request: MessageRequest,

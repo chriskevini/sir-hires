@@ -1,8 +1,8 @@
 /**
  * Shared LLM utility functions
  *
- * These utilities are extracted from popup/App.tsx to be reused across:
- * - Popup (LLM settings configuration)
+ * These utilities provide shared LLM settings and defaults used across:
+ * - LLMSettingsForm (settings overlay)
  * - SynthesisForm (document generation)
  * - Any future LLM-related features
  */

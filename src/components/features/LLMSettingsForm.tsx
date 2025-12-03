@@ -1,7 +1,7 @@
 /**
  * LLMSettingsForm Component
  *
- * Shared form for LLM settings used by popup and modals.
+ * Shared form for LLM settings used by the settings overlay.
  * Displays server URL, model selector, and task settings.
  */
 

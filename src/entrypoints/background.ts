@@ -4,7 +4,7 @@
 // - Extension lifecycle (installation, context menus)
 // - LLM API calls (non-streaming, for content scripts)
 // - Cross-component state management (jobInFocus, job deletion)
-// - Message routing between content scripts, popup, and sidepanel
+// - Message routing between content scripts and UI components (sidepanel, job-details)
 //
 // Architecture:
 // - Uses hybrid event-driven pattern (see AGENTS.md)
@@ -183,16 +183,18 @@ export default defineBackground(() => {
             );
           });
       } else if (info.menuItemId === 'open-settings') {
-        console.info('[Background] Opening popup for settings');
+        console.info('[Background] Opening job-details for settings');
 
-        // Open popup window (extension popup)
-        browser.action
-          .openPopup()
+        // Open job-details page (settings overlay available there)
+        browser.tabs
+          .create({
+            url: browser.runtime.getURL('/job-details.html'),
+          })
           .then(() => {
-            console.info('[Background] Popup opened successfully');
+            console.info('[Background] Job details page opened for settings');
           })
           .catch((error: unknown) => {
-            console.error('[Background] Error opening popup:', error);
+            console.error('[Background] Error opening job details:', error);
           });
       } else if (info.menuItemId === 'view-all-jobs') {
         console.info('[Background] Opening job details page');

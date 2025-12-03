@@ -235,69 +235,13 @@ Developer at SomeCo (2020-present)
 
 BS Computer Science, State University 2019`;
 
-export const EXTRACTED_COMPLETE_PROFILE = `<PROFILE>
+export const EXTRACTED_COMPLETE_PROFILE = `
+
+<PROFILE>
 NAME: Alexander Sterling
 ADDRESS: 1-98765 Main St., Burnaby, BC V5B2A9
 EMAIL: alex.sterling@email.com
-
-# PROFESSIONAL EXPERIENCE
-
-## Software Engineer
-AT: Innovatech Software Solutions
-LOCATION: Vancouver, BC
-START: June 2023
-END: Present
-- Developed and maintained core features for a high-traffic enterprise SaaS platform.
-- Optimized database queries and indexing, reducing average response time from 500ms to 150ms.
-- Participated in system design meetings and contributed to architectural decisions.
-- Resolved critical production bugs using root cause analysis.
-
-## Junior Developer
-AT: TechServe Consulting
-LOCATION: Surrey, BC
-START: January 2021
-END: May 2023
-- Assisted in the full-stack development of client web applications using React and Node.js.
-- Wrote documentation for new features and maintained existing technical guides.
-- Provided technical support to clients for deployed applications.
-- Configured cloud resources (AWS EC2, S3) for application deployment and hosting.
-
-## Web Development Intern
-AT: Digital Marketing Agency
-LOCATION: Richmond, BC
-START: September 2019
-END: December 2020
-- Built and maintained client marketing websites using WordPress and custom HTML/CSS/JS.
-- Ensured cross-browser compatibility and adherence to accessibility standards (WCAG).
-- Managed domain names, SSL certificates, and basic server configurations.
-
-# VOLUNTEER
-
-## Volunteer Coding Mentor
-AT: CodeMentor Community
-LOCATION: Online
-START: 2020
-END: Present
-- Provided one-on-one virtual mentorship to beginners learning Python and JavaScript.
-- Reviewed mentees' code and offered constructive suggestions for improvement.
-- Contributed to open-source educational resources and tutorials.
-
-## Logistics Assistant
-AT: Greater Vancouver Food Bank
-LOCATION: Vancouver, BC
-START: 2017
-END: 2019
-- Coordinated the sorting and distribution of non-perishable goods.
-- Managed inventory tracking using a custom spreadsheet system.
-- Trained new volunteers on safety protocols and efficient workflow.
-
-# EDUCATION
-
-## Bachelor of Science, Computer Science
-SCHOOL: Simon Fraser University
-LOCATION: Burnaby, BC
-START: September 2019
-END: May 2023
+PHONE: (778) 555-1234
 
 # TECHNICAL PROJECT EXPERIENCE
 
@@ -318,4 +262,57 @@ END: May 2023
 - Maintained code quality through regular peer code reviews and adherence to coding standards.
 - Developed a mobile application front-end using Flutter and Dart.
 - Managed a relational PostgreSQL database schema and performed optimizations.
+
+# PROFESSIONAL EXPERIENCE
+
+## Software Engineer
+AT: Innovatech Software Solutions
+START: June 2023
+END: Present
+- Developed and maintained core features for a high-traffic enterprise SaaS platform.
+- Optimized database queries and indexing, reducing average response time from 500ms to 150ms.
+- Participated in system design meetings and contributed to architectural decisions.
+- Resolved critical production bugs using root cause analysis.
+
+## Junior Developer
+AT: TechServe Consulting
+START: January 2021
+END: May 2023
+- Assisted in the full-stack development of client web applications using React and Node.js.
+- Wrote documentation for new features and maintained existing technical guides.
+- Provided technical support to clients for deployed applications.
+- Configured cloud resources (AWS EC2, S3) for application deployment and hosting.
+
+## Web Development Intern
+AT: Digital Marketing Agency
+START: September 2019
+END: December 2020
+- Built and maintained client marketing websites using WordPress and custom HTML/CSS/JS.
+- Ensured cross-browser compatibility and adherence to accessibility standards (WCAG).
+- Managed domain names, SSL certificates, and basic server configurations.
+
+# VOLUNTEER
+
+## Volunteer Coding Mentor
+AT: CodeMentor Community
+START: 2020
+END: Present
+- Provided one-on-one virtual mentorship to beginners learning Python and JavaScript.
+- Reviewed mentees' code and offered constructive suggestions for improvement.
+- Contributed to open-source educational resources and tutorials.
+
+## Logistics Assistant
+AT: Greater Vancouver Food Bank
+START: 2017
+END: 2019
+- Coordinated the sorting and distribution of non-perishable goods.
+- Managed inventory tracking using a custom spreadsheet system.
+- Trained new volunteers on safety protocols and efficient workflow.
+
+# EDUCATION
+
+## Bachelor of Science, Computer Science
+SCHOOL: Simon Fraser University
+START: September 2019
+END: May 2023
 </PROFILE>`;

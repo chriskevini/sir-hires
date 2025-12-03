@@ -529,6 +529,7 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     selectedModel,
     maxTokens,
     savedTemperature,
+    thinkHarder,
     parsedJob.jobTitle,
     parsedJob.company,
     onSaveDocument,

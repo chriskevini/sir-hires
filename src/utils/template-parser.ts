@@ -146,9 +146,13 @@ export function parseTemplate(content: string): ParsedTemplate {
     // Check for key-value pair (KEY: value or Key Name: value)
     // Supports both SCREAMING_CASE and lowercase (to detect and warn)
     // Pattern: starts with letter, contains letters/numbers/spaces/underscores, ends with letter/number
-    const kvMatch = trimmedLine.match(
-      /^([A-Za-z][A-Za-z0-9_ ]*[A-Za-z0-9]):\s*(.*)$/
-    );
+    // Max field name length of 50 chars to prevent ReDoS with very long inputs
+    const kvMatch =
+      trimmedLine.length <= 500
+        ? trimmedLine.match(
+            /^([A-Za-z][A-Za-z0-9_ ]{0,48}[A-Za-z0-9]):\s*(.*)$/
+          )
+        : null;
     if (kvMatch) {
       const key = kvMatch[1].trim();
       let value = kvMatch[2].trim();

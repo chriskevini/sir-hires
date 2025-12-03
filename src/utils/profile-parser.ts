@@ -30,41 +30,47 @@ export type ProfileSection = TemplateSection;
 export type ParsedProfile = ParsedTemplate;
 
 /**
+ * Check if a line looks like a section header (ALL CAPS with possible spaces)
+ * e.g., "EDUCATION", "PROFESSIONAL EXPERIENCE"
+ */
+function isSectionHeader(text: string): boolean {
+  return /^[A-Z][A-Z ]+$/.test(text);
+}
+
+/**
+ * Convert a single line from old format to new format
+ * - # followed by ALL CAPS = section header, keep as #
+ * - # followed by mixed case = item title, convert to ##
+ */
+function convertLine(line: string): string {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith('# ')) {
+    return line;
+  }
+
+  const headerText = trimmed.slice(2).trim();
+  if (isSectionHeader(headerText)) {
+    return line; // Keep section headers as #
+  }
+
+  // Convert item titles to ##
+  return line.replace(/^(\s*)# /, '$1## ');
+}
+
+/**
  * Normalize content from old format (### section, # item) to new format (# section, ## item)
  * This provides backward compatibility with existing profile templates
  */
 function normalizeProfileFormat(content: string): string {
-  // If content uses old format (### for sections), convert it
-  if (content.includes('### ')) {
-    return (
-      content
-        // Convert ### SECTION to # SECTION (must do this first)
-        .replace(/^### /gm, '# ')
-        // Convert # Item Title to ## Item Title (only for lines that aren't sections)
-        // We need to be careful here - after the above replacement, we need to identify items
-        // Items are lines starting with # that are NOT uppercase section names
-        .split('\n')
-        .map((line) => {
-          const trimmed = line.trim();
-          // Check if this is a # line that's NOT a section (i.e., it's an item title)
-          // Sections are typically ALL CAPS or Title Case with spaces
-          // Items are typically mixed case like "Senior Engineer at Acme Corp"
-          if (trimmed.startsWith('# ')) {
-            const afterHash = trimmed.slice(2).trim();
-            // If it looks like a section name (ALL CAPS with possible spaces), keep as #
-            // Otherwise, convert to ## for item
-            if (afterHash.match(/^[A-Z][A-Z ]+$/)) {
-              return line; // Keep as section
-            } else {
-              return line.replace(/^(\s*)# /, '$1## '); // Convert to item
-            }
-          }
-          return line;
-        })
-        .join('\n')
-    );
+  if (!content.includes('### ')) {
+    return content;
   }
-  return content;
+
+  // Step 1: Convert ### SECTION to # SECTION
+  const sectionsNormalized = content.replace(/^### /gm, '# ');
+
+  // Step 2: Convert # Item to ## Item (for non-section headers)
+  return sectionsNormalized.split('\n').map(convertLine).join('\n');
 }
 
 /**

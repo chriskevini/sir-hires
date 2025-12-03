@@ -496,7 +496,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
         context: contextRecord,
         temperature,
         maxTokens,
-        noThink: !llmSettings.thinkHarder,
+        noThink: llmSettings.thinkHarder !== true,
       });
     } else {
       // Conversation mode: use executeMessagesTask with raw messages

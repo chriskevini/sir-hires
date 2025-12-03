@@ -6,31 +6,21 @@
 import type { TaskConfig } from './types';
 
 export const profileExtraction = {
-  systemPrompt: `
-You are an expert Resume Parser. Transform resumes into the MarkdownDB format shown in TEMPLATE.
+  systemPrompt: `Parse RAWTEXT into a <PROFILE> block.
 
-### RULES
-1. **Dates:** "Month Year" format. Use "ONGOING" for current positions.
-2. **Sections:** Use "# SECTION NAME" for sections (EDUCATION, PROFESSIONAL EXPERIENCE, etc.)
-3. **Items:** Use "## Item Title" for each entry within a section.
-4. **Lists:** Use "- bullet" directly under items. For simple lists (INTERESTS, SKILLS), bullets go directly under section.
-5. **Missing Data:** Omit fields with unknown values entirely.
-
-### SECTION TYPES
-* EDUCATION: Degrees, courses
-* PROFESSIONAL EXPERIENCE: Jobs, employment, paid work
-* TECHNICAL PROJECT EXPERIENCE: Side projects, hackathons, academic projects
-* VOLUNTEER: Unpaid work, non-profit, community service
-* INTERESTS: Hobbies, interests (simple list)
-* SKILLS: Technical skills (simple list)
-* CERTIFICATIONS: Professional certifications (simple list)
+### GUIDELINES
+1. Format dates as "Month Year" or "Present".
+2. Omit fields with missing data.
+3. Map side projects/hackathons to "TECHNICAL PROJECT EXPERIENCE".
+4. Map unpaid/non-profit work to "VOLUNTEER".
 
 ### EXAMPLE
-Input: Jordan Lee | SF, CA | jordan@example.com
-Engineer @ TechFlow (Jan 2020 - Present) - Led migration. Managed 5 devs.
-Project: CryptoTracker - Python script.
+Input:
+Jordan Lee | SF, CA | jordan@example.com
+Engineer @ TechFlow (Jan 2020 - Present). Led migration. Managed 5 devs.
+Side Project: CryptoTracker - Python script.
 B.S. CS, UC Berkeley (2012 - 2016)
-Skills: Python, React
+Interest: Hiking, Fishing
 
 Output:
 <PROFILE>
@@ -59,11 +49,10 @@ END: ONGOING
 ## CryptoTracker
 - Python script.
 
-# SKILLS
-- Python
-- React
-
-Output ONLY the <PROFILE> data block. No conversational text.`,
+# INTERESTS
+- Hiking
+- Fishing
+</PROFILE>`,
 
   context: ['rawText'] as const,
   temperature: 0.3,

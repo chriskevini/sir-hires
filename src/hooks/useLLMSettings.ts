@@ -289,15 +289,22 @@ export function useLLMSettings(
           setStatus('connected');
           setErrorMessage('');
         } else {
-          setAvailableModels([]);
-          setStatus('error');
-          setErrorMessage(response.error || 'Failed to connect');
+          // Only update error state if this was a user-initiated request
+          // Background retries shouldn't flip the UI to error state
+          if (showLoading) {
+            setAvailableModels([]);
+            setStatus('error');
+            setErrorMessage(response.error || 'Failed to connect');
+          }
         }
       } catch (error) {
         console.error('[useLLMSettings] Error fetching models:', error);
-        setAvailableModels([]);
-        setStatus('error');
-        setErrorMessage((error as Error).message);
+        // Only update error state if this was a user-initiated request
+        if (showLoading) {
+          setAvailableModels([]);
+          setStatus('error');
+          setErrorMessage((error as Error).message);
+        }
       } finally {
         setHasInitialized(true);
       }

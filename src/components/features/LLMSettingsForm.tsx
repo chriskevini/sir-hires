@@ -101,7 +101,7 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
                 <SelectTrigger id="model" className="w-full h-11 text-base">
                   <SelectValue placeholder="Select a model" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent side="bottom" avoidCollisions={false}>
                   {!availableModels.includes(model) && model && (
                     <SelectItem value={model}>{model}</SelectItem>
                   )}

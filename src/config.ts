@@ -88,10 +88,10 @@ export const getStatusBackground = (status: string): string => {
 };
 
 /**
- * Get status background color for hover/selected (50% status mixed with card background)
+ * Get status background color for hover/selected (65% status mixed with card background)
  */
 export const getStatusBackgroundHover = (status: string): string => {
-  return `color-mix(in srgb, ${getStatusColor(status)} 50%, hsl(var(--card)))`;
+  return `color-mix(in srgb, ${getStatusColor(status)} 65%, hsl(var(--card)))`;
 };
 
 // Navigation button configuration for each status (v0.3.0)

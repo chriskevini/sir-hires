@@ -76,7 +76,9 @@ export function JobCard({
         <div className="text-sm font-semibold text-foreground overflow-hidden text-ellipsis line-clamp-2 pr-6">
           {title}
         </div>
-        <div className="text-xs text-card-muted-foreground mb-1">{company}</div>
+        <div className="text-xs font-light text-card-foreground mb-1">
+          {company}
+        </div>
         <StatusBadge status={normalizedStatus} size="sm" className="w-fit" />
       </div>
       {showDeleteButton && (

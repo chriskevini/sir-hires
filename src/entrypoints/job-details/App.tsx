@@ -495,15 +495,11 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
             title={
               llmSettings.isConnected
                 ? `Connected to ${llmSettings.model || 'LLM'}`
-                : llmSettings.status === 'loading'
-                  ? 'Connecting...'
-                  : 'LLM not connected - click to configure'
+                : 'LLM not connected - click to configure'
             }
           >
             {llmSettings.isConnected ? (
               <Wifi className="h-4 w-4 text-green-500" />
-            ) : llmSettings.status === 'loading' ? (
-              <Wifi className="h-4 w-4 text-muted-foreground animate-pulse" />
             ) : (
               <WifiOff className="h-4 w-4 text-destructive" />
             )}
@@ -571,16 +567,6 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
                   </h2>
                   <p className="text-muted-foreground text-sm">
                     Connected to {llmSettings.model || 'LLM server'}
-                  </p>
-                </>
-              ) : llmSettings.status === 'loading' ? (
-                <>
-                  <Wifi className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-pulse" />
-                  <h2 className="text-xl font-semibold text-foreground mb-2">
-                    Connecting...
-                  </h2>
-                  <p className="text-muted-foreground text-sm">
-                    Attempting to connect to LLM server
                   </p>
                 </>
               ) : (

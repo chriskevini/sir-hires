@@ -5,6 +5,7 @@ import { browser } from 'wxt/browser';
 import {
   userProfileStorage,
   profileTemplatePanelStorage,
+  profileSuggestionsPanelStorage,
   llmSettingsStorage,
   jobsStorage,
   jobInFocusStorage,
@@ -44,6 +45,7 @@ import {
   BookOpen,
   Sparkles,
   WandSparkles,
+  ScrollText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -97,6 +99,9 @@ export default function App() {
   const [saveStatusText, setSaveStatusText] = useState<string>('');
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [isTemplatePanelVisible, setIsTemplatePanelVisible] = useState<
+    boolean | null
+  >(null);
+  const [isSuggestionsPanelVisible, setIsSuggestionsPanelVisible] = useState<
     boolean | null
   >(null);
   const [isExtracting, setIsExtracting] = useState(false);
@@ -277,6 +282,7 @@ export default function App() {
   useEffect(() => {
     loadProfile();
     loadTemplatePanelPreference();
+    loadSuggestionsPanelPreference();
     startLastSavedInterval();
 
     return () => {
@@ -294,6 +300,16 @@ export default function App() {
   const toggleTemplatePanel = (visible: boolean) => {
     setIsTemplatePanelVisible(visible);
     profileTemplatePanelStorage.setValue(visible);
+  };
+
+  const loadSuggestionsPanelPreference = async () => {
+    const isVisible = await profileSuggestionsPanelStorage.getValue();
+    setIsSuggestionsPanelVisible(isVisible);
+  };
+
+  const toggleSuggestionsPanel = (visible: boolean) => {
+    setIsSuggestionsPanelVisible(visible);
+    profileSuggestionsPanelStorage.setValue(visible);
   };
 
   const loadProfile = async () => {
@@ -799,6 +815,18 @@ BULLETS:
           <Button
             variant="ghost"
             className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
+            onClick={() => toggleSuggestionsPanel(!isSuggestionsPanelVisible)}
+            title={
+              isSuggestionsPanelVisible
+                ? 'Hide suggestions'
+                : 'Show suggestions'
+            }
+          >
+            <ScrollText className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
             onClick={formatProfile}
             title="Fix formatting"
           >
@@ -824,94 +852,122 @@ BULLETS:
       </header>
 
       {/* Main content area */}
-      <div className="flex flex-1 overflow-hidden p-4 gap-4">
-        {/* Editor container - matches DraftingView/ResearchingView pattern */}
-        <div className="flex-1 flex flex-col border border-border rounded-lg overflow-hidden bg-background max-w-4xl mx-auto">
-          {/* Toolbar with insert actions */}
-          <div className="flex items-center justify-between px-3 py-2 bg-card border-b border-border shrink-0">
-            <div className="flex items-center gap-1">
+      <div className="flex-1 overflow-hidden p-4 flex justify-center">
+        {/* Centered container that groups editor and panels */}
+        <div className="flex gap-4 h-full">
+          {/* Editor container - matches DraftingView/ResearchingView pattern */}
+          <div className="flex flex-col border border-border rounded-lg overflow-hidden bg-background w-[56rem]">
+            {/* Toolbar with insert actions */}
+            <div className="flex items-center justify-between px-3 py-2 bg-card border-b border-border shrink-0">
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                  onClick={insertEducationTemplate}
+                  title="Insert education entry"
+                >
+                  + Education
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                  onClick={insertExperienceTemplate}
+                  title="Insert experience entry"
+                >
+                  + Experience
+                </Button>
+              </div>
               <Button
-                variant="ghost"
+                variant={isExtracting ? 'danger' : 'primary'}
                 size="sm"
-                className="text-xs text-muted-foreground hover:text-foreground"
-                onClick={insertEducationTemplate}
-                title="Insert education entry"
+                className="gap-1.5"
+                onClick={handleExtractClick}
+                disabled={isExtracting && !content.trim()}
               >
-                + Education
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs text-muted-foreground hover:text-foreground"
-                onClick={insertExperienceTemplate}
-                title="Insert experience entry"
-              >
-                + Experience
+                <WandSparkles className="h-3.5 w-3.5" />
+                {isExtracting ? 'Cancel' : 'Extract with LLM'}
               </Button>
             </div>
-            <Button
-              variant={isExtracting ? 'danger' : 'primary'}
-              size="sm"
-              className="gap-1.5"
-              onClick={handleExtractClick}
-              disabled={isExtracting && !content.trim()}
-            >
-              <WandSparkles className="h-3.5 w-3.5" />
-              {isExtracting ? 'Cancel' : 'Extract with LLM'}
-            </Button>
-          </div>
 
-          {/* Editor with inline validation */}
-          <div className="flex-1 flex flex-col p-4 overflow-hidden">
-            <ValidatedEditor
-              ref={editorRef}
-              id="profileEditor"
-              value={content}
-              onChange={handleContentChange}
-              placeholder="Paste your resume text here and click 'Extract with LLM' to convert it to the profile format, or follow the template to write it manually."
-              disabled={isExtracting}
-              isStreaming={isExtracting}
-              isValid={isValid}
-              hasErrors={hasErrors}
-              validationMessages={validationMessages}
-              onApplyFix={applyFix}
-            />
-          </div>
-
-          {/* Extraction error display */}
-          {extractionError && (
-            <div className="py-2 px-4 mx-4 mb-2 bg-destructive/10 border border-destructive/50 rounded text-destructive text-sm">
-              <strong className="block mb-1">Extraction Error:</strong>{' '}
-              {extractionError}
+            {/* Editor with inline validation */}
+            <div className="flex-1 flex flex-col p-4 overflow-hidden">
+              <ValidatedEditor
+                ref={editorRef}
+                id="profileEditor"
+                value={content}
+                onChange={handleContentChange}
+                placeholder="Paste your resume text here and click 'Extract with LLM' to convert it to the profile format, or follow the template to write it manually."
+                disabled={isExtracting}
+                isStreaming={isExtracting}
+                isValid={isValid}
+                hasErrors={hasErrors}
+                validationMessages={validationMessages}
+                onApplyFix={applyFix}
+              />
             </div>
-          )}
 
-          {/* Footer with save status */}
-          <EditorFooter saveStatus={saveStatusText} />
-        </div>
+            {/* Extraction error display */}
+            {extractionError && (
+              <div className="py-2 px-4 mx-4 mb-2 bg-destructive/10 border border-destructive/50 rounded text-destructive text-sm">
+                <strong className="block mb-1">Extraction Error:</strong>{' '}
+                {extractionError}
+              </div>
+            )}
 
-        {/* Template Panel - right side, collapsible (hidden until preference loaded) */}
-        <div
-          className={cn(
-            'flex flex-col border border-border rounded-lg overflow-hidden bg-card transition-[width] duration-200 ease-in-out shrink-0',
-            isTemplatePanelVisible === true ? 'w-80' : 'w-0 border-0'
-          )}
-        >
-          <div className="flex items-center justify-between px-3 py-2 bg-card border-b border-border shrink-0">
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-              <BookOpen className="h-4 w-4 text-primary" />
-              Profile Template
-            </h3>
-            <Button
-              variant="ghost"
-              className="p-1 text-muted-foreground hover:text-foreground"
-              onClick={() => toggleTemplatePanel(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            {/* Footer with save status */}
+            <EditorFooter saveStatus={saveStatusText} />
           </div>
-          <div className="flex-1 overflow-y-auto p-3 font-mono text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
-            {profileExtraction.template}
+
+          {/* Template Panel - right side, collapsible (hidden until preference loaded) */}
+          <div
+            className={cn(
+              'flex flex-col border border-border rounded-lg overflow-hidden bg-card transition-[width] duration-200 ease-in-out shrink-0',
+              isTemplatePanelVisible === true ? 'w-80' : 'w-0 border-0'
+            )}
+          >
+            <div className="flex items-center justify-between px-3 py-2 bg-card border-b border-border shrink-0">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                <BookOpen className="h-4 w-4 text-primary" />
+                Profile Template
+              </h3>
+              <Button
+                variant="ghost"
+                className="p-1 text-muted-foreground hover:text-foreground"
+                onClick={() => toggleTemplatePanel(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 font-mono text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+              {profileExtraction.template}
+            </div>
+          </div>
+
+          {/* Suggestions Panel - right side, collapsible (hidden until preference loaded) */}
+          <div
+            className={cn(
+              'flex flex-col border border-border rounded-lg overflow-hidden bg-card transition-[width] duration-200 ease-in-out shrink-0',
+              isSuggestionsPanelVisible === true ? 'w-80' : 'w-0 border-0'
+            )}
+          >
+            <div className="flex items-center justify-between px-3 py-2 bg-card border-b border-border shrink-0">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                <ScrollText className="h-4 w-4 text-primary" />
+                Suggestions
+              </h3>
+              <Button
+                variant="ghost"
+                className="p-1 text-muted-foreground hover:text-foreground"
+                onClick={() => toggleSuggestionsPanel(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3">
+              {/* Empty for now */}
+            </div>
           </div>
         </div>
       </div>

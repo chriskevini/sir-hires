@@ -209,6 +209,17 @@ export const profileTemplatePanelStorage = storage.defineItem<boolean>(
 );
 
 /**
+ * Profile suggestions panel visibility - User preference for showing/hiding the suggestions panel
+ */
+export const profileSuggestionsPanelStorage = storage.defineItem<boolean>(
+  'local:profileSuggestionsPanel',
+  {
+    defaultValue: false,
+    version: 1,
+  }
+);
+
+/**
  * Sidebar collapsed state - User preference for job-details sidebar visibility
  */
 export const sidebarCollapsedStorage = storage.defineItem<boolean>(

@@ -96,6 +96,28 @@
   }
 }
 
+@keyframes breathing-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 8px 2px hsl(var(--success) / 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px 6px hsl(var(--success) / 0.7);
+  }
+}
+
+@keyframes breathing-icon {
+  0%,
+  100% {
+    color: hsl(var(--success) / 0.6);
+    transform: scale(1);
+  }
+  50% {
+    color: hsl(var(--success));
+    transform: scale(1.15);
+  }
+}
+
 /* Utility class for diagonal bounce animation */
 @layer utilities {
   .animate-bounce-diagonal {
@@ -108,6 +130,14 @@
 
   .animate-collapsible-up {
     animation: collapsible-up 0.2s ease-out;
+  }
+
+  .animate-breathing-glow {
+    animation: breathing-glow 2s ease-in-out infinite;
+  }
+
+  .animate-breathing-icon {
+    animation: breathing-icon 2s ease-in-out infinite;
   }
 }
 

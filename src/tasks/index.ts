@@ -19,6 +19,7 @@ export type {
 // Tasks
 export { jobExtraction } from './job-extraction';
 export { profileExtraction } from './profile-extraction';
+export { profileOptimization } from './profile-optimization';
 export { synthesis } from './synthesis';
 export { fitCalculation } from './fit-calculation';
 

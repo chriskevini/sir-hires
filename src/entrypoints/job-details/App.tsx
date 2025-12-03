@@ -4,6 +4,7 @@ import { buttonVariants } from '@/components/ui/button-variants';
 import { ResearchingView } from './views/ResearchingView';
 import { DraftingView } from './views/DraftingView';
 import { useJobStore } from './hooks';
+import { useLLMSettings } from '@/hooks/useLLMSettings';
 import { JobViewRouter } from '../../components/features/JobViewRouter';
 import {
   ParsedJobProvider,
@@ -12,7 +13,9 @@ import {
 import { JobSelector } from '../../components/features/JobSelector';
 import { initDevModeValidation } from '../../utils/dev-validators';
 import { Dropdown } from '../../components/ui/Dropdown';
+import { Modal } from '../../components/ui/Modal';
 import { ThemeModal } from '../../components/features/ThemeModal';
+import { LLMSettingsForm } from '../../components/features/LLMSettingsForm';
 import { ChevronLeft, ChevronRight, User } from 'lucide-react';
 import {
   AlertDialog,
@@ -49,6 +52,10 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   const [error, _setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+  const [isLLMSettingsModalOpen, setIsLLMSettingsModalOpen] = useState(false);
+
+  // LLM settings for modal
+  const llmSettings = useLLMSettings();
 
   // Dialog state for confirmations and alerts
   const {
@@ -478,6 +485,10 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
             iconOnly={true}
             items={[
               {
+                label: 'LLM Settings',
+                onClick: () => setIsLLMSettingsModalOpen(true),
+              },
+              {
                 label: 'Theme',
                 onClick: () => setIsThemeModalOpen(true),
               },
@@ -579,6 +590,18 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
         isOpen={isThemeModalOpen}
         onClose={() => setIsThemeModalOpen(false)}
       />
+
+      {/* LLM Settings Modal */}
+      <Modal
+        isOpen={isLLMSettingsModalOpen}
+        onClose={() => setIsLLMSettingsModalOpen(false)}
+        title="LLM Settings"
+      >
+        <LLMSettingsForm
+          llmSettings={llmSettings}
+          onSaved={() => setIsLLMSettingsModalOpen(false)}
+        />
+      </Modal>
     </div>
   );
 };

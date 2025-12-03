@@ -129,7 +129,7 @@ const Modal: React.FC<ModalProps> = ({
             </DialogClose>
           </DialogHeader>
         )}
-        {children}
+        <div className="px-6 py-4">{children}</div>
       </DialogContent>
     </Dialog>
   );

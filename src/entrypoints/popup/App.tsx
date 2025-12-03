@@ -10,7 +10,14 @@ export function App() {
   const llmSettings = useLLMSettings();
 
   return (
-    <div className="p-4" style={{ width: '380px', minHeight: '250px' }}>
+    <div
+      className="p-4 overflow-y-auto"
+      style={{
+        width: '380px',
+        height: '600px', // Fixed height to prevent popup resizing
+        maxHeight: '600px', // Ensure consistent height
+      }}
+    >
       {/* Header */}
       <header className="flex justify-between items-center mb-4 pb-3 border-b-2 border-border">
         <h1 className="text-lg font-semibold text-primary">

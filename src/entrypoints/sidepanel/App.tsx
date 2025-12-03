@@ -432,21 +432,23 @@ export const App: React.FC = () => {
       />
     );
   }
-  // LLM not connected - show setup form (transparent to user)
+  // LLM not connected - show setup form (full takeover, no header)
   else if (!llmSettings.isConnected) {
-    mainContent = (
-      <div className="flex flex-1 flex-col p-4 overflow-y-auto">
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-foreground mb-1">
-            {store.jobs.length === 0
-              ? 'Welcome to Sir Hires'
-              : 'LLM Connection Required'}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Connect to an LLM to start extracting job postings.
-          </p>
+    return (
+      <div className="flex flex-col h-screen items-center justify-center p-6 overflow-y-auto">
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-foreground mb-2">
+              {store.jobs.length === 0
+                ? 'Welcome to Sir Hires'
+                : 'LLM Connection Required'}
+            </h1>
+            <p className="text-muted-foreground">
+              Connect to an LLM to start extracting job postings.
+            </p>
+          </div>
+          <LLMSettingsForm llmSettings={llmSettings} />
         </div>
-        <LLMSettingsForm llmSettings={llmSettings} />
       </div>
     );
   }

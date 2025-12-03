@@ -54,9 +54,9 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
   const [taskSettingsOpen, setTaskSettingsOpen] = useState('');
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-5">
       {/* Connection Status */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center gap-2">
         <span
           className={cn(
             'w-2 h-2 rounded-full',
@@ -73,8 +73,8 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
       </div>
 
       {/* Server URL */}
-      <div className="flex flex-col gap-1">
-        <label htmlFor="serverUrl" className="text-xs text-muted-foreground">
+      <div className="flex flex-col gap-2">
+        <label htmlFor="serverUrl" className="text-sm text-muted-foreground">
           Server URL
         </label>
         <Input
@@ -92,10 +92,10 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
         <>
           {/* API Key - Only show for cloud providers */}
           {provider === 'cloud' && (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-2">
               <label
                 htmlFor="apiKey-connected"
-                className="text-xs text-muted-foreground"
+                className="text-sm text-muted-foreground"
               >
                 API Key
               </label>
@@ -111,8 +111,8 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
           )}
 
           {/* Model Selector */}
-          <div className="flex flex-col gap-1">
-            <label htmlFor="model" className="text-xs text-muted-foreground">
+          <div className="flex flex-col gap-2">
+            <label htmlFor="model" className="text-sm text-muted-foreground">
               Model
             </label>
             {availableModels.length > 0 ? (
@@ -143,7 +143,7 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
           </div>
 
           {/* Think Harder Toggle */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 py-1">
             <Checkbox
               id="think-harder"
               checked={thinkHarder}
@@ -308,13 +308,13 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
 
       {/* Error State - Show setup guide or API key prompt */}
       {status === 'error' && (
-        <div className="bg-muted border border-border rounded p-4">
+        <div className="bg-muted border border-border rounded-lg p-5">
           {provider === 'local' ? (
             <>
-              <h3 className="text-sm font-semibold text-foreground mb-3">
+              <h3 className="text-sm font-semibold text-foreground mb-4">
                 Getting Started with LM Studio
               </h3>
-              <ol className="list-decimal pl-5 mb-3 space-y-2">
+              <ol className="list-decimal pl-5 mb-4 space-y-3">
                 <li className="text-sm text-foreground leading-relaxed">
                   Download from{' '}
                   <a
@@ -327,13 +327,13 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
                   </a>
                 </li>
                 <li className="text-sm text-foreground leading-relaxed">
-                  Load a model (e.g., Qwen 2.5 7B)
+                  Load a model (e.g., qwen/qwen3-4b-2507)
                 </li>
                 <li className="text-sm text-foreground leading-relaxed">
                   Start the server: <strong>Developer → Start Server</strong>
                 </li>
               </ol>
-              <p className="text-xs text-muted-foreground mt-3">
+              <p className="text-sm text-muted-foreground mt-4">
                 <a
                   href="#"
                   onClick={(e) => {
@@ -348,13 +348,13 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
             </>
           ) : (
             <>
-              <h3 className="text-sm font-semibold text-foreground mb-3">
+              <h3 className="text-sm font-semibold text-foreground mb-4">
                 API Key Required
               </h3>
-              <div className="flex flex-col gap-1 mb-2">
+              <div className="flex flex-col gap-2 mb-3">
                 <label
                   htmlFor="apiKey-error"
-                  className="text-xs text-muted-foreground"
+                  className="text-sm text-muted-foreground"
                 >
                   API Key
                 </label>
@@ -367,8 +367,8 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
                   className="w-full"
                 />
               </div>
-              <p className="text-xs text-destructive my-2">{errorMessage}</p>
-              <p className="text-xs text-muted-foreground mt-3">
+              <p className="text-sm text-destructive my-3">{errorMessage}</p>
+              <p className="text-sm text-muted-foreground mt-4">
                 <a
                   href="#"
                   onClick={(e) => {

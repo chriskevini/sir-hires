@@ -31,7 +31,7 @@ import { userProfileStorage } from '@/utils/storage';
 import { useLLMSettings } from '@/hooks/useLLMSettings';
 import { DEFAULT_MODEL, DEFAULT_TASK_SETTINGS } from '@/utils/llm-utils';
 import { runTask, startKeepalive } from '@/utils/llm-task-runner';
-import { Maximize2, User } from 'lucide-react';
+import { ArrowLeft, Maximize2, User } from 'lucide-react';
 import type { Job } from '../hooks';
 
 interface DraftingViewProps {
@@ -99,7 +99,7 @@ const showToast = (
 export const DraftingView: React.FC<DraftingViewProps> = ({
   job,
   onDeleteJob: _onDeleteJob,
-  onSaveField: _onSaveField,
+  onSaveField,
   onSaveDocument,
   onDeleteDocument,
 }) => {
@@ -550,6 +550,19 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
       {/* Profile Required Overlay */}
       {!hasProfile && (
         <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center">
+          {/* Go Back button - bottom left */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute bottom-4 left-4 gap-1.5 text-muted-foreground hover:text-foreground"
+            onClick={() =>
+              onSaveField(job.id, 'applicationStatus', 'Researching')
+            }
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Go Back
+          </Button>
+
           <div className="w-full max-w-sm p-6 relative text-center">
             <User className="h-12 w-12 text-primary mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-foreground mb-2">

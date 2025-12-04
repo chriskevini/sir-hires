@@ -1064,10 +1064,11 @@ BULLETS:
             <EditorFooter saveStatus={saveStatusText} />
           </div>
 
-          {/* Template Panel - right side, collapsible (hidden until preference loaded) */}
+          {/* Template Panel - inline on xl screens, Sheet overlay on smaller screens */}
+          {/* Inline panel for xl+ screens */}
           <div
             className={cn(
-              'flex flex-col border border-border rounded-lg overflow-hidden bg-card transition-[width] duration-200 ease-in-out shrink-0',
+              'hidden xl:flex flex-col border border-border rounded-lg overflow-hidden bg-card transition-[width] duration-200 ease-in-out shrink-0',
               isTemplatePanelVisible === true ? 'w-80' : 'w-0 border-0'
             )}
           >
@@ -1166,6 +1167,29 @@ BULLETS:
           </div>
         </div>
       </div>
+
+      {/* Sheet overlay for template on smaller screens (< xl) */}
+      {!isWideScreen && (
+        <Sheet
+          open={isTemplatePanelVisible === true}
+          onOpenChange={(open) => toggleTemplatePanel(open)}
+        >
+          <SheetContent
+            side="right"
+            className="w-full sm:w-[400px] sm:max-w-[90vw] p-0 flex flex-col [&>button]:hidden"
+          >
+            <div className="flex items-center justify-between px-4 py-3 bg-card border-b border-border shrink-0">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                <BookOpen className="h-4 w-4 text-primary" />
+                Profile Template
+              </h3>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 font-mono text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+              {profileExtraction.template}
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
 
       {/* Sheet overlay for suggestions on smaller screens (< xl) */}
       {!isWideScreen && (

@@ -10,16 +10,10 @@
  */
 
 import React from 'react';
-import { Check, ArrowRight, HelpCircle } from 'lucide-react';
+import { Check, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { LLMSettingsForm } from './LLMSettingsForm';
 import type { useLLMSettings } from '@/hooks/useLLMSettings';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 
 interface WelcomeViewProps {
   llmSettings: ReturnType<typeof useLLMSettings>;
@@ -152,21 +146,8 @@ export function WelcomeView({ llmSettings, onGetStarted }: WelcomeViewProps) {
       </div>
 
       {/* Footer */}
-      <div className="px-6 py-4 border-t border-border bg-muted/30 shrink-0 flex items-center">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button className="text-muted-foreground hover:text-foreground p-1 -ml-1">
-                <HelpCircle className="w-4 h-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              <p>Using a cloud provider with an API key?</p>
-              <p className="font-light">Use a local proxy like LiteLLM.</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <p className="font-light text-muted-foreground text-center flex-1">
+      <div className="px-6 py-4 border-t border-border bg-muted/30 shrink-0">
+        <p className="font-light text-muted-foreground text-center">
           All data stays on your device. No cloud accounts required.
         </p>
       </div>

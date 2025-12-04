@@ -74,7 +74,6 @@ interface SidepanelContentProps {
   onExtract: () => void;
   onDelete: () => void;
   onMaximize: () => void;
-  onShowHelp: () => void;
   onSelectJob: (jobId: string) => void;
   onDeleteJobFromSelector: (jobId: string) => void;
   pendingExtraction: { url: string } | null;
@@ -99,7 +98,6 @@ function SidepanelContent({
   onExtract,
   onDelete,
   onMaximize,
-  onShowHelp,
   onSelectJob,
   onDeleteJobFromSelector,
   pendingExtraction,
@@ -124,7 +122,6 @@ function SidepanelContent({
         onExtract={onExtract}
         onDelete={onDelete}
         onMaximize={onMaximize}
-        onShowHelp={onShowHelp}
         extracting={extracting}
         hasJob={hasJob}
         selectorOpen={selectorOpen}
@@ -506,7 +503,12 @@ export const App: React.FC = () => {
   }
   // Empty state (connected but no jobs)
   else if (!currentJob) {
-    mainContent = <EmptyState onRestoreBackup={backup.handleRestoreBackup} />;
+    mainContent = (
+      <EmptyState
+        onRestoreBackup={backup.handleRestoreBackup}
+        onShowHelp={handleShowWelcome}
+      />
+    );
   }
   // Main job view
   else {
@@ -528,7 +530,6 @@ export const App: React.FC = () => {
         onExtract={extraction.handleExtractJob}
         onDelete={handleDeleteJob}
         onMaximize={handleOpenJobDetails}
-        onShowHelp={handleShowWelcome}
         onSelectJob={handleSelectJob}
         onDeleteJobFromSelector={handleDeleteJobFromSelector}
         pendingExtraction={extraction.pendingExtraction}

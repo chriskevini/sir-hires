@@ -5,7 +5,6 @@ import {
   Loader2,
   Trash2,
   Maximize2,
-  HelpCircle,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
@@ -19,8 +18,6 @@ interface SidepanelHeaderProps {
   onDelete: () => void;
   /** Open full job details page */
   onMaximize: () => void;
-  /** Show welcome/help view */
-  onShowHelp?: () => void;
   /** Whether extraction is in progress */
   extracting: boolean;
   /** Whether there is a current job to delete */
@@ -49,7 +46,6 @@ export function SidepanelHeader({
   onExtract,
   onDelete,
   onMaximize,
-  onShowHelp,
   extracting,
   hasJob,
   selectorOpen,
@@ -151,22 +147,6 @@ export function SidepanelHeader({
           </TooltipTrigger>
           <TooltipContent side="bottom">Open dashboard</TooltipContent>
         </Tooltip>
-
-        {onShowHelp && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                className="rounded p-1.5 text-base text-muted-foreground hover:bg-muted active:bg-muted/80 flex items-center justify-center min-w-8 min-h-8 transition-all duration-200"
-                onClick={onShowHelp}
-                aria-label="Help"
-              >
-                <HelpCircle className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Getting started</TooltipContent>
-          </Tooltip>
-        )}
       </div>
     </header>
   );

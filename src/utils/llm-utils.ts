@@ -139,3 +139,94 @@ export function getModelsEndpoint(chatEndpoint: string): string {
 export function getBaseUrl(endpoint: string): string {
   return endpoint.replace('/v1/chat/completions', '').replace(/\/+$/, '');
 }
+
+// ===== Error Simplification =====
+
+/**
+ * Simplifies technical LLM error messages into user-friendly text.
+ *
+ * This function transforms cryptic API errors into actionable messages
+ * that help users understand what went wrong and how to fix it.
+ *
+ * @param error - The raw error message from LLM operations
+ * @returns A user-friendly error message
+ *
+ * @example
+ * simplifyLLMError('HTTP 500: Internal Server Error')
+ * // Returns: "The AI server encountered an error. Please try again."
+ *
+ * @example
+ * simplifyLLMError('Cannot connect to LM Studio...')
+ * // Returns the original message (already user-friendly)
+ */
+export function simplifyLLMError(error: string): string {
+  // Already user-friendly messages - pass through
+  if (
+    error.includes('Cannot connect to LM Studio') ||
+    error.includes('is not loaded in LM Studio')
+  ) {
+    return error;
+  }
+
+  // HTTP status code errors
+  const httpMatch = error.match(/HTTP\s*(\d{3})/i);
+  if (httpMatch) {
+    const status = parseInt(httpMatch[1], 10);
+    switch (status) {
+      case 400:
+        return 'Invalid request sent to AI server. This may be a bug - please try again.';
+      case 401:
+      case 403:
+        return 'Authentication failed. Please check your API key in settings.';
+      case 404:
+        return 'AI endpoint not found. Please check your server URL in settings.';
+      case 429:
+        return 'Too many requests. Please wait a moment and try again.';
+      case 500:
+        return 'The AI server encountered an error. Please try again.';
+      case 502:
+      case 503:
+      case 504:
+        return 'The AI server is temporarily unavailable. Please try again in a moment.';
+      default:
+        return `Server error (${status}). Please try again.`;
+    }
+  }
+
+  // Network/connection errors
+  if (
+    error.toLowerCase().includes('failed to fetch') ||
+    error.toLowerCase().includes('network') ||
+    error.toLowerCase().includes('econnrefused')
+  ) {
+    return 'Could not connect to the AI server. Please check that it is running.';
+  }
+
+  // Timeout errors
+  if (error.toLowerCase().includes('timeout')) {
+    return 'The request timed out. The AI server may be overloaded - please try again.';
+  }
+
+  // Response body errors
+  if (error.toLowerCase().includes('response body is null')) {
+    return 'Received an empty response from the AI server. Please try again.';
+  }
+
+  // Generic API errors - extract meaningful part if possible
+  if (error.includes('LLM API error:')) {
+    const cleanedError = error.replace(/LLM API error:\s*/i, '').trim();
+    // If it's still technical, simplify it
+    if (cleanedError.length > 100 || cleanedError.includes('{')) {
+      return 'The AI server returned an error. Please try again.';
+    }
+    return cleanedError || 'The AI server returned an error. Please try again.';
+  }
+
+  // If the error is very long or contains JSON, simplify it
+  if (error.length > 150 || error.includes('{') || error.includes('<')) {
+    return 'An unexpected error occurred. Please try again.';
+  }
+
+  // Return original if it seems reasonable
+  return error;
+}

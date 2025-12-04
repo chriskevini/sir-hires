@@ -22,6 +22,7 @@ import React, {
 import {
   jobExtraction,
   profileExtraction,
+  profileOptimization,
   synthesis,
   fitCalculation,
 } from '@/tasks';
@@ -99,6 +100,15 @@ const PRESET_TASKS = {
       job: EXTRACTED_COMPLETE_JOB,
       profile: EXTRACTED_COMPLETE_PROFILE,
       task: fitCalculation.defaultTask,
+    },
+  },
+  'profile-optimization': {
+    label: 'Profile Optimization',
+    ...profileOptimization,
+    fixtures: {
+      job: EXTRACTED_COMPLETE_JOB,
+      profile: EXTRACTED_COMPLETE_PROFILE,
+      task: profileOptimization.defaultTask,
     },
   },
 };
@@ -744,17 +754,52 @@ const FIXTURE_OPTIONS = [
     ],
   },
   {
-    category: 'Synthesis Templates',
+    category: 'Extracted Data',
     items: [
       {
-        key: 'synthesis-job',
+        key: 'extracted-job',
         label: 'Extracted Job',
         content: EXTRACTED_COMPLETE_JOB,
       },
       {
-        key: 'synthesis-profile',
+        key: 'extracted-profile',
         label: 'Extracted Profile',
         content: EXTRACTED_COMPLETE_PROFILE,
+      },
+    ],
+  },
+  {
+    category: 'Document Templates',
+    items: [
+      {
+        key: 'template-resume',
+        label: 'Resume Template',
+        content: synthesis.templates.tailoredResume,
+      },
+      {
+        key: 'template-cover-letter',
+        label: 'Cover Letter Template',
+        content: synthesis.templates.coverLetter,
+      },
+    ],
+  },
+  {
+    category: 'Task Prompts',
+    items: [
+      {
+        key: 'task-synthesis',
+        label: 'Synthesis Task',
+        content: synthesis.defaultTask,
+      },
+      {
+        key: 'task-fit-calculation',
+        label: 'Fit Calculation Task',
+        content: fitCalculation.defaultTask,
+      },
+      {
+        key: 'task-profile-optimization',
+        label: 'Profile Optimization Task',
+        content: profileOptimization.defaultTask,
       },
     ],
   },

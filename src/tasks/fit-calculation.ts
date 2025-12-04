@@ -4,17 +4,18 @@
  */
 
 import type { TaskConfig } from './types';
+import { CAREER_STRATEGIST_SYSTEM_PROMPT } from './shared';
 
 export const fitCalculation = {
-  systemPrompt: `You are an elite career strategist.
-The user will send their PROFILE and a JOB listing.
-You will analyze fit, gaps, company culture, ATS keywords, transferable achievements, etc.
-Complete the TASK using any auxiliary info that is sent.`,
+  systemPrompt: CAREER_STRATEGIST_SYSTEM_PROMPT,
 
   context: ['job', 'profile', 'task'] as const,
   temperature: 0,
   maxTokens: 1000,
 
-  defaultTask:
-    '/no_think Based ONLY on explicitly stated bullet points and without assuming additional information, calculate a precise fit score for this candidate. Output only a number between 0 and 100. You will be punished for bad judgement.',
+  defaultTask: `/no_think DO NOT make any assumptions.
+Based ONLY on explicitly stated bullet points,
+calculate a precise fit score for this candidate.
+Output only a number between 0 and 100.
+You will be punished for bad judgement.`,
 } satisfies TaskConfig & { defaultTask: string };

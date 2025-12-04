@@ -4,6 +4,7 @@
  */
 
 import type { TaskConfig } from './types';
+import { CAREER_STRATEGIST_SYSTEM_PROMPT } from './shared';
 
 /**
  * Configuration for a default document type
@@ -16,10 +17,7 @@ export interface DefaultDocConfig {
 }
 
 export const synthesis = {
-  systemPrompt: `You are an elite career strategist.
-The user will send their PROFILE and a JOB listing.
-You will analyze fit, gaps, company culture, ATS keywords, transferable achievements, etc.
-Complete the TASK using any auxiliary info that is sent.`,
+  systemPrompt: CAREER_STRATEGIST_SYSTEM_PROMPT,
 
   context: ['job', 'profile', 'template', 'tone', 'task'] as const,
   temperature: 0.7,
@@ -42,7 +40,7 @@ Complete the TASK using any auxiliary info that is sent.`,
       defaultTitle: (jobTitle = 'Untitled', company = 'Unknown') =>
         `Resume - ${jobTitle} - ${company}`,
       placeholder:
-        'Write your tailored resume here using Markdown formatting...\n\nExample:\n# Your Name\nemail@example.com | linkedin.com/in/yourprofile\n\n## Summary\nExperienced software engineer...',
+        'Paste an old resume that you would like the LLM to try to match or start with a template.',
     },
     coverLetter: {
       label: 'Cover Letter',
@@ -50,14 +48,13 @@ Complete the TASK using any auxiliary info that is sent.`,
       defaultTitle: (jobTitle = 'Untitled', company = 'Unknown') =>
         `Cover Letter - ${jobTitle} - ${company}`,
       placeholder:
-        'Write your cover letter here using Markdown formatting...\n\nExample:\nDear Hiring Manager,\n\nI am writing to express my interest...',
+        'Paste an old cover letter that you would like the LLM to try to match or start with a template.',
     },
   } satisfies Record<string, DefaultDocConfig>,
 
   templates: {
     blank: '',
-    tailoredResume: `
-# **[Name]**
+    tailoredResume: `# **[Name]**
 [Address]
 [Phone] | [Email]
 
@@ -89,8 +86,7 @@ Complete the TASK using any auxiliary info that is sent.`,
 *[Month Year] - [Month Year]*
 `,
 
-    coverLetter: `
-# **[Name]**
+    coverLetter: `# **[Name]**
 [Address]
 [Phone] | [Email]
 

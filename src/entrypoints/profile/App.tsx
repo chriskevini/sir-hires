@@ -9,6 +9,7 @@ import {
   llmSettingsStorage,
   jobsStorage,
   jobInFocusStorage,
+  chivalryPointsStorage,
 } from '@/utils/storage';
 
 // Import utilities
@@ -143,6 +144,11 @@ export default function App() {
   );
   const [hasImprovedFit, setHasImprovedFit] = useState(false);
 
+  // State for chivalry points
+  const [chivalryPoints, setChivalryPoints] = useState(0);
+  const [pendingChivalry, setPendingChivalry] = useState(0);
+  const [chivalryAnimating, setChivalryAnimating] = useState(false);
+
   // Refs
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const lastSavedIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -211,7 +217,7 @@ export default function App() {
   }, []);
 
   // Capture baseline fit score (first valid score after mount)
-  // Also detect improvement when score increases
+  // Also detect improvement when score increases and track pending chivalry
   useEffect(() => {
     if (fitScore === null) return;
 
@@ -219,7 +225,9 @@ export default function App() {
       // First time we get a score - set baseline
       setBaselineFitScore(fitScore);
     } else if (fitScore > baselineFitScore) {
-      // Score improved - set hasImprovedFit and update baseline
+      // Score improved - accumulate the difference as pending chivalry
+      const improvement = fitScore - baselineFitScore;
+      setPendingChivalry((prev) => prev + improvement);
       setHasImprovedFit(true);
       setBaselineFitScore(fitScore);
     }
@@ -318,9 +326,19 @@ export default function App() {
 
   // Handle refresh button click
   const handleRefreshOptimization = useCallback(() => {
+    // Award pending chivalry points
+    if (pendingChivalry > 0) {
+      const newTotal = chivalryPoints + pendingChivalry;
+      setChivalryPoints(newTotal);
+      chivalryPointsStorage.setValue(newTotal);
+      setPendingChivalry(0);
+      // Trigger pop animation
+      setChivalryAnimating(true);
+      setTimeout(() => setChivalryAnimating(false), 300);
+    }
     setHasImprovedFit(false);
     runOptimization();
-  }, [runOptimization]);
+  }, [runOptimization, pendingChivalry, chivalryPoints]);
 
   // Immediate save callback - saves to storage on every change
   const saveProfile = useCallback(async (newContent: string) => {
@@ -426,6 +444,7 @@ export default function App() {
     loadProfile();
     loadTemplatePanelPreference();
     loadSuggestionsPanelPreference();
+    loadChivalryPoints();
     startLastSavedInterval();
 
     return () => {
@@ -434,6 +453,11 @@ export default function App() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const loadChivalryPoints = async () => {
+    const points = await chivalryPointsStorage.getValue();
+    setChivalryPoints(points);
+  };
 
   const loadTemplatePanelPreference = async () => {
     const isVisible = await profileTemplatePanelStorage.getValue();
@@ -879,6 +903,19 @@ BULLETS:
           >
             {isCalculatingFit ? fitSpinnerChar : ''}
           </span>
+          {/* Chivalry counter - only visible when > 0 */}
+          {chivalryPoints > 0 && (
+            <span
+              className={cn(
+                'text-sm font-semibold px-2 py-0.5 rounded transition-transform duration-300',
+                chivalryAnimating && 'animate-chivalry-pop'
+              )}
+              style={{ color: 'hsl(var(--wisteria-blue-500))' }}
+              title="Chivalry"
+            >
+              {chivalryPoints}
+            </span>
+          )}
           <Button
             variant="ghost"
             className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"

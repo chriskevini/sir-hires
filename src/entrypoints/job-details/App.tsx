@@ -641,7 +641,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
         {/* Detail panel */}
         <div className="flex-1 overflow-hidden flex flex-col">
           <div
-            className="flex-1 overflow-hidden bg-background"
+            className="flex-1 overflow-hidden flex flex-col bg-background"
             id="detailPanel"
           >
             {renderJobView()}

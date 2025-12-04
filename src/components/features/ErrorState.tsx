@@ -8,17 +8,15 @@ interface ErrorStateProps {
   onRetry: () => void;
 }
 
-const QUICK_START_URL = 'https://github.com/chriskevini/sir-hires#quick-start';
-
 /**
  * ErrorState Component
- * Displays a friendly error message when LLM connection fails,
- * with instructions for accessing LLM Settings and a link to the Quick Start Guide.
+ * Displays a friendly error message when extraction fails due to stale content script,
+ * typically after extension reload while the page's content script is still running.
  */
 export const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry }) => {
   // Log technical error for developers
   useEffect(() => {
-    console.error('[ErrorState] LLM connection error:', error);
+    console.error('[ErrorState] Extraction error:', error);
   }, [error]);
 
   return (
@@ -27,23 +25,9 @@ export const ErrorState: React.FC<ErrorStateProps> = ({ error, onRetry }) => {
       <div className="flex flex-1 flex-col items-center justify-center p-4">
         <Alert variant="destructive" className="max-w-sm">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Couldn't connect to LLM</AlertTitle>
-          <AlertDescription className="mt-2 space-y-3">
-            <p>
-              Right-click the extension icon and select "
-              <strong className="text-destructive">Open LLM Settings</strong>"
-            </p>
-            <p className="text-destructive/70">
-              New to LM Studio?{' '}
-              <a
-                href={QUICK_START_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-destructive"
-              >
-                Quick Start Guide ↗
-              </a>
-            </p>
+          <AlertTitle>Something went wrong</AlertTitle>
+          <AlertDescription className="mt-2">
+            <p>Refresh the page and then try again.</p>
           </AlertDescription>
         </Alert>
       </div>

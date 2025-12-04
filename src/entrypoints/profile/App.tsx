@@ -478,6 +478,11 @@ export default function App() {
   const toggleTemplatePanel = (visible: boolean) => {
     setIsTemplatePanelVisible(visible);
     profileTemplatePanelStorage.setValue(visible);
+    // Close suggestions panel when opening template panel
+    if (visible) {
+      setIsSuggestionsPanelVisible(false);
+      profileSuggestionsPanelStorage.setValue(false);
+    }
   };
 
   const loadSuggestionsPanelPreference = async () => {
@@ -488,6 +493,11 @@ export default function App() {
   const toggleSuggestionsPanel = (visible: boolean) => {
     setIsSuggestionsPanelVisible(visible);
     profileSuggestionsPanelStorage.setValue(visible);
+    // Close template panel when opening suggestions panel
+    if (visible) {
+      setIsTemplatePanelVisible(false);
+      profileTemplatePanelStorage.setValue(false);
+    }
   };
 
   const loadProfile = async () => {

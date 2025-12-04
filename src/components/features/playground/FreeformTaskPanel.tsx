@@ -22,6 +22,7 @@ import React, {
 import {
   jobExtraction,
   profileExtraction,
+  profileOptimization,
   synthesis,
   fitCalculation,
 } from '@/tasks';
@@ -99,6 +100,15 @@ const PRESET_TASKS = {
       job: EXTRACTED_COMPLETE_JOB,
       profile: EXTRACTED_COMPLETE_PROFILE,
       task: fitCalculation.defaultTask,
+    },
+  },
+  'profile-optimization': {
+    label: 'Profile Optimization',
+    ...profileOptimization,
+    fixtures: {
+      job: EXTRACTED_COMPLETE_JOB,
+      profile: EXTRACTED_COMPLETE_PROFILE,
+      task: profileOptimization.defaultTask,
     },
   },
 };

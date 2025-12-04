@@ -153,6 +153,11 @@ function SidepanelContent({
       <div className="flex-1 relative overflow-hidden flex flex-col">
         {mainContent}
 
+        {/* First extraction banner - shown once after first successful extraction */}
+        {showFirstExtractionBanner && (
+          <FirstExtractionBanner onDismiss={onDismissFirstExtractionBanner} />
+        )}
+
         {/* Job selector overlay - positioned relative to content area */}
         <JobSelector
           jobs={jobs}
@@ -165,11 +170,6 @@ function SidepanelContent({
           mode="overlay"
         />
       </div>
-
-      {/* First extraction banner - shown once after first successful extraction */}
-      {showFirstExtractionBanner && (
-        <FirstExtractionBanner onDismiss={onDismissFirstExtractionBanner} />
-      )}
 
       {/* Duplicate Job Modal */}
       {pendingExtraction && (

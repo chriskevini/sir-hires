@@ -21,9 +21,12 @@ export function FirstExtractionBanner({
       <div className="flex items-start gap-3">
         <div className="flex-1 text-sm text-primary-foreground">
           You can continue extracting jobs or click{' '}
-          <LucideMaximize2 className="inline h-3.5 w-3.5 mx-0.5" />
-          then <User className="inline h-3.5 w-3.5 mx-0.5" /> to create your
-          profile and begin synthesizing documents.
+          <LucideMaximize2
+            className="inline h-3.5 w-3.5 mx-0.5"
+            aria-hidden="true"
+          />
+          then <User className="inline h-3.5 w-3.5 mx-0.5" aria-hidden="true" />{' '}
+          to create your profile and begin synthesizing documents.
         </div>
         <Button
           variant="ghost"

@@ -80,7 +80,7 @@ export function WelcomeView({ llmSettings, onGetStarted }: WelcomeViewProps) {
   const isConnected = llmSettings.isConnected;
 
   return (
-    <div className="flex flex-col h-screen justify-center overflow-y-auto">
+    <div className="flex flex-col h-full justify-center overflow-y-auto">
       {/* Header */}
       <div className="px-6 pt-8 pb-6 shrink-0">
         <h1 className="text-2xl font-bold text-foreground mb-2">

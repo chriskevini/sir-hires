@@ -4,23 +4,23 @@
  */
 
 import type { TaskConfig } from './types';
+import { CAREER_STRATEGIST_SYSTEM_PROMPT } from './shared';
 
 export const profileOptimization = {
-  systemPrompt: `You are an elite career strategist.
-The user will send their PROFILE and a JOB listing.
-You will analyze fit, gaps, company culture, ATS keywords, transferable achievements, etc.
-Complete the TASK using any auxiliary info that is sent.`,
+  systemPrompt: CAREER_STRATEGIST_SYSTEM_PROMPT,
 
   context: ['job', 'profile', 'task'] as const,
   temperature: 0,
   maxTokens: 1000,
 
-  defaultTask: `You are helping the user refine their profile. This is not a final document. Do not focus on the structure.
-Suggest 5 edits to a specific bullet point, experience or project. Output only a list with this exact format:
-## Heading in imperative tense
-- New or improved bullet
+  defaultTask: `You are helping the user refine their profile.
+Suggest edits to a specific bullet point, experience or project.
+Output only 5 items with this exact format:
+
+## Header in imperative tense
+- New or improved bullet (20 words max)
 
 *This ...*
 
-## Heading ...`,
+## Header ...`,
 } satisfies TaskConfig & { defaultTask: string };

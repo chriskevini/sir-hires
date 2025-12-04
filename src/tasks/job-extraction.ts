@@ -6,39 +6,37 @@
 import type { TaskConfig } from './types';
 
 export const jobExtraction = {
-  systemPrompt: `
-You are an expert Data Extraction Engine. Parse unstructured job descriptions into the MarkdownDB format shown in TEMPLATE.
+  systemPrompt: `Parse RAWTEXT into a <JOB> block.
 
-### RULES
-1. **Missing Data:** Omit any field or section where data is not available. Do not output "N/A", "UNKNOWN", or placeholders.
-2. **Dates:** YYYY-MM-DD format. Assume current year if not specified.
-3. **Salary:** Numbers only (no symbols). Set PAY PERIOD to HOURLY or ANNUAL.
-4. **Location:** Expand abbreviations (e.g., "NYC" -> "New York, NY").
-5. **Lists:** Format as bullet points.
-6. **Section Names:** Use spaces, not underscores (e.g., "# REQUIRED SKILLS" not "# REQUIRED_SKILLS").
+### GUIDELINES
+1. Format dates as YYYY-MM-DD.
+2. Omit fields and sections with missing data.
 
-### ENUMERATIONS (STRICT)
-* REMOTE TYPE: [ONSITE | REMOTE | HYBRID]. Default: ONSITE.
-* EMPLOYMENT TYPE: [FULL-TIME | PART-TIME | CONTRACT | INTERNSHIP]. Default: FULL-TIME.
-  - "Intern", "Co-op", "Student Position" -> INTERNSHIP
-  - "Freelance", "C2C" -> CONTRACT
-* EXPERIENCE LEVEL: [ENTRY | MID | SENIOR | LEAD].
-  - 0-2 years -> ENTRY, 3-5 -> MID, 5-8 -> SENIOR, 8+ -> LEAD
+### ENUMERATIONS
+* REMOTE TYPE: [On-site|Remote|Hybrid]
+* PAY PERIOD: [Annual|Hourly]
+* EMPLOYMENT TYPE: [Full-time|Part-time|Contract|Internship]
+  - Intern, Co-op, Student Position -> Internship
+  - Freelance, C2C -> Contract
+* EXPERIENCE LEVEL: [Entry|Mid|Senior|Lead].
+  - 0-2 years -> Entry, 3-5 -> Mid, 5-8 -> Senior, 8+ -> Lead
+
+### DEFAULTS
+On-site, Annual, Full-time
 
 ### EXAMPLES
-
 **Input:** "Hiring a Junior Web Dev at TechStart! $60k-$80k. You must know React and HTML. Work from home available. Apply by Dec 1st."
 
 **Output:**
 <JOB>
 TITLE: Junior Web Developer
 COMPANY: TechStart
-REMOTE TYPE: REMOTE
-SALARY RANGE MIN: 60,000
-SALARY RANGE MAX: 80,000
-PAY PERIOD: ANNUAL
-EMPLOYMENT TYPE: FULL-TIME
-EXPERIENCE LEVEL: ENTRY
+REMOTE TYPE: Remote
+SALARY MIN: 60,000
+SALARY MAX: 80,000
+PAY PERIOD: Annual
+EMPLOYMENT TYPE: Full-time
+EXPERIENCE LEVEL: Entry
 CLOSING DATE: 2025-12-01
 
 # DESCRIPTION
@@ -47,6 +45,7 @@ CLOSING DATE: 2025-12-01
 # REQUIRED SKILLS
 - React
 - HTML
+</JOB>
 
 **Input:** "Principal Architect needed. 10+ years exp required. Contract role for 6 months. New York City. Pay is 150/hr."
 
@@ -54,12 +53,12 @@ CLOSING DATE: 2025-12-01
 <JOB>
 TITLE: Principal Architect
 ADDRESS: New York City, NY
-REMOTE TYPE: ONSITE
-SALARY RANGE MIN: 150
-SALARY RANGE MAX: 150
-PAY PERIOD: HOURLY
-EMPLOYMENT TYPE: CONTRACT
-EXPERIENCE LEVEL: LEAD
+REMOTE TYPE: On-site
+SALARY MIN: 150
+SALARY MAX: 150
+PAY PERIOD: Hourly
+EMPLOYMENT TYPE: Contract
+EXPERIENCE LEVEL: Lead
 
 # DESCRIPTION
 - Lead architectural design for complex systems.
@@ -75,12 +74,12 @@ EXPERIENCE LEVEL: LEAD
 TITLE: Marketing Manager
 COMPANY: Acme Corp
 ADDRESS: San Francisco, CA
-REMOTE TYPE: HYBRID
-SALARY RANGE MIN: 120,000
-SALARY RANGE MAX: 120,000
-PAY PERIOD: ANNUAL
-EMPLOYMENT TYPE: FULL-TIME
-EXPERIENCE LEVEL: MID
+REMOTE TYPE: Hybrid
+SALARY MIN: 120,000
+SALARY MAX: 120,000
+PAY PERIOD: Annual
+EMPLOYMENT TYPE: Full-time
+EXPERIENCE LEVEL: Mid
 
 # DESCRIPTION
 - Manage marketing campaigns and strategy.
@@ -90,9 +89,7 @@ EXPERIENCE LEVEL: MID
 
 # ABOUT COMPANY
 - Offers great benefits.
-
-Output ONLY the <JOB> data block. No conversational text.
-`,
+</JOB>`,
 
   context: ['rawText'] as const,
   temperature: 0.3,

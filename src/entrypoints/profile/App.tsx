@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { browser } from 'wxt/browser';
 
 // Import WXT storage
@@ -21,6 +21,7 @@ import {
   findNextSectionPosition,
   applyFix as applyFixUtil,
 } from '@/utils/profile-utils';
+import { parseJobTemplate } from '@/utils/job-parser';
 import { profileExtraction, profileOptimization } from '@/tasks';
 import { UI_UPDATE_INTERVAL_MS } from '@/config';
 import { LLMClient } from '@/utils/llm-client';
@@ -171,6 +172,16 @@ export default function App() {
     jobContent: currentJobContent,
     jobId: currentJobId,
   });
+
+  // Derive job title and company from current job content
+  const currentJobInfo = useMemo(() => {
+    if (!currentJobContent) return null;
+    const parsed = parseJobTemplate(currentJobContent);
+    const title = parsed.topLevelFields.TITLE;
+    const company = parsed.topLevelFields.COMPANY;
+    if (!title && !company) return null;
+    return { title, company };
+  }, [currentJobContent]);
 
   // Watch jobs and jobInFocus storage for fit score calculation
   useEffect(() => {
@@ -907,10 +918,9 @@ BULLETS:
           {chivalryPoints > 0 && (
             <span
               className={cn(
-                'text-sm font-semibold px-2 py-0.5 rounded transition-transform duration-300',
-                chivalryAnimating && 'animate-chivalry-pop'
+                'text-sm font-semibold px-2 py-0.5 rounded transition-transform duration-300 text-primary',
+                chivalryAnimating ? 'animate-chivalry-pop' : 'animate-text-glow'
               )}
-              style={{ color: 'hsl(var(--wisteria-blue-500))' }}
               title="Chivalry"
             >
               {chivalryPoints}
@@ -926,7 +936,14 @@ BULLETS:
                 : 'Show suggestions'
             }
           >
-            <ScrollText className="h-4 w-4" />
+            <ScrollText
+              className={cn(
+                'h-4 w-4',
+                !isSuggestionsPanelVisible &&
+                  chivalryPoints === 0 &&
+                  'animate-breathing-icon'
+              )}
+            />
           </Button>
           <Button
             variant="ghost"
@@ -1052,11 +1069,19 @@ BULLETS:
             )}
           >
             <div className="flex items-center justify-between px-3 py-2 bg-card border-b border-border shrink-0">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                <ScrollText className="h-4 w-4 text-primary" />
-                Suggestions
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5 min-w-0 overflow-hidden">
+                <ScrollText className="h-4 w-4 text-primary shrink-0" />
+                <span className="shrink-0">Suggestions</span>
+                {currentJobInfo && (
+                  <span className="text-muted-foreground font-normal truncate">
+                    <span className="px-1.5">|</span>
+                    {currentJobInfo.title}
+                    {currentJobInfo.title && currentJobInfo.company && ' at '}
+                    {currentJobInfo.company}
+                  </span>
+                )}
               </h3>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 shrink-0">
                 <Button
                   variant="ghost"
                   className="p-1 text-muted-foreground hover:text-foreground"
@@ -1083,7 +1108,7 @@ BULLETS:
                 </Button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4 scrollbar-gutter-stable">
               {/* No profile or job - show message */}
               {!content.trim() || !currentJobContent ? (
                 <p className="font-mono text-sm text-muted-foreground text-center py-4">
@@ -1157,9 +1182,17 @@ BULLETS:
             )}
           >
             <div className="flex items-center justify-between px-4 py-3 bg-card border-b border-border shrink-0">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                <ScrollText className="h-4 w-4 text-primary" />
-                Suggestions
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5 min-w-0 overflow-hidden">
+                <ScrollText className="h-4 w-4 text-primary shrink-0" />
+                <span className="shrink-0">Suggestions</span>
+                {currentJobInfo && (
+                  <span className="text-muted-foreground font-normal truncate">
+                    <span className="px-1.5">|</span>
+                    {currentJobInfo.title}
+                    {currentJobInfo.title && currentJobInfo.company && ' at '}
+                    {currentJobInfo.company}
+                  </span>
+                )}
               </h3>
               <Button
                 variant="ghost"
@@ -1177,7 +1210,7 @@ BULLETS:
                 />
               </Button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4 scrollbar-gutter-stable">
               {/* No profile or job - show message */}
               {!content.trim() || !currentJobContent ? (
                 <p className="font-mono text-sm text-muted-foreground text-center py-4">

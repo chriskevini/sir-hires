@@ -130,6 +130,16 @@
   }
 }
 
+@keyframes text-glow {
+  0%,
+  100% {
+    text-shadow: 0 0 4px hsl(var(--primary) / 0.5);
+  }
+  50% {
+    text-shadow: 0 0 12px hsl(var(--primary) / 0.8);
+  }
+}
+
 /* Utility class for diagonal bounce animation */
 @layer utilities {
   .animate-bounce-diagonal {
@@ -154,6 +164,10 @@
 
   .animate-chivalry-pop {
     animation: chivalry-pop 0.3s ease-out;
+  }
+
+  .animate-text-glow {
+    animation: text-glow 2s ease-in-out infinite;
   }
 }
 

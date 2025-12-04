@@ -6,6 +6,7 @@ import { DraftingView } from './views/DraftingView';
 import { useJobStore, useFitScore } from './hooks';
 import { useLLMSettings } from '@/hooks/useLLMSettings';
 import { JobViewRouter } from '../../components/features/JobViewRouter';
+import { JobFooter } from '../../components/features/JobFooter';
 import {
   ParsedJobProvider,
   useGetParsedJob,
@@ -16,6 +17,7 @@ import { Dropdown } from '../../components/ui/Dropdown';
 import { ThemeModal } from '../../components/features/ThemeModal';
 import { LLMSettingsForm } from '../../components/features/LLMSettingsForm';
 import { PanelLeft, User, Wifi, WifiOff, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +34,7 @@ import {
   restoreStorageFromBackup,
   clearAllStorage,
   sidebarCollapsedStorage,
+  userProfileStorage,
 } from '../../utils/storage';
 import { defaults } from '@/config';
 import type { JobStore } from './hooks/useJobStore';
@@ -53,6 +56,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isLLMSettingsOpen, setIsLLMSettingsOpen] = useState(false);
   const [llmOverlayDismissed, setLLMOverlayDismissed] = useState(false);
+  const [hasProfile, setHasProfile] = useState(false);
 
   // LLM settings for overlay
   const llmSettings = useLLMSettings();
@@ -80,6 +84,21 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
     sidebarCollapsedStorage.getValue().then((collapsed) => {
       setSidebarOpen(!collapsed);
     });
+  }, []);
+
+  // Load and watch profile state for animation trigger
+  useEffect(() => {
+    // Initial load
+    userProfileStorage.getValue().then((profile) => {
+      setHasProfile(!!profile?.content?.trim());
+    });
+
+    // Watch for changes
+    const unwatch = userProfileStorage.watch((profile) => {
+      setHasProfile(!!profile?.content?.trim());
+    });
+
+    return unwatch;
   }, []);
 
   // Handle sidebar open change with storage persistence
@@ -139,6 +158,9 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   /**
    * Handle checklist toggle item
    */
+  /**
+   * Handle checklist toggle item
+   */
   const handleChecklistToggleItem = useCallback(
     async (jobId: string, itemId: string) => {
       const job = store.jobs.find((j: Job) => j.id === jobId);
@@ -153,6 +175,19 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
       const status = job.applicationStatus || defaults.status;
       await store.toggleChecklistItem(jobId, status, itemId);
       console.info(`[App] Toggled checklist item ${itemId}`);
+    },
+    [store]
+  );
+
+  /**
+   * Handle navigation to a new status (from JobFooter)
+   */
+  const handleNavigate = useCallback(
+    async (targetStatus: string) => {
+      const job = store.jobs[store.selectedJobIndex];
+      if (!job) return;
+      await store.updateJobField(job.id, 'applicationStatus', targetStatus);
+      console.info(`[App] Navigated to ${targetStatus}`);
     },
     [store]
   );
@@ -399,15 +434,12 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
     return (
       <JobViewRouter
         job={job}
-        isChecklistExpanded={store.checklistExpanded}
         ResearchingView={ResearchingView}
         DraftingView={DraftingView}
         onDeleteJob={handleDeleteJob}
         onSaveField={handleSaveField}
         onSaveDocument={handleSaveDocument}
         onDeleteDocument={handleDeleteDocument}
-        onToggleChecklistExpand={handleChecklistToggleExpand}
-        onToggleChecklistItem={handleChecklistToggleItem}
         emptyStateMessage={
           store.jobs.length === 0 ? 'No jobs yet' : 'No job selected'
         }
@@ -510,7 +542,12 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
             onClick={handleProfileClick}
             title="Profile"
           >
-            <User className="h-5 w-5" />
+            <User
+              className={cn(
+                'h-5 w-5',
+                store.jobs.length > 0 && !hasProfile && 'animate-breathing-icon'
+              )}
+            />
           </Button>
           <Dropdown
             buttonLabel="More options"
@@ -602,13 +639,25 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
         />
 
         {/* Detail panel */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden flex flex-col">
           <div
-            className="h-full overflow-hidden bg-background"
+            className="flex-1 overflow-hidden flex flex-col bg-background"
             id="detailPanel"
           >
             {renderJobView()}
           </div>
+          {/* Job footer - navigation and checklist */}
+          {currentJob && (
+            <JobFooter
+              status={currentJob.applicationStatus || defaults.status}
+              checklist={currentJob.checklist}
+              jobId={currentJob.id}
+              isChecklistExpanded={store.checklistExpanded}
+              onNavigate={handleNavigate}
+              onToggleChecklist={handleChecklistToggleExpand}
+              onToggleChecklistItem={handleChecklistToggleItem}
+            />
+          )}
         </div>
       </div>
 

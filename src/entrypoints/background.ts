@@ -425,15 +425,32 @@ export default defineBackground(() => {
           try {
             const { jobInFocusStorage } = await import('../utils/storage');
 
-            // Delete job from storage
+            // Get current jobs and determine the next job to focus
             const jobs = await jobsStorage.getValue();
+            const jobIds = Object.keys(jobs);
+            const currentIndex = jobIds.indexOf(jobId);
+
+            // Delete job from storage
             delete jobs[jobId];
             await jobsStorage.setValue(jobs);
 
-            // Clear jobInFocus if the deleted job was focused
+            // Update jobInFocus if the deleted job was focused
             const currentFocus = await jobInFocusStorage.getValue();
             if (currentFocus === jobId) {
-              await jobInFocusStorage.setValue(null);
+              const remainingJobIds = Object.keys(jobs);
+              if (remainingJobIds.length === 0) {
+                // No jobs left, clear focus
+                await jobInFocusStorage.setValue(null);
+              } else {
+                // Select next job (or previous if we deleted the last one)
+                const newIndex = Math.min(
+                  currentIndex,
+                  remainingJobIds.length - 1
+                );
+                const newJobId = remainingJobIds[newIndex];
+                await jobInFocusStorage.setValue(newJobId);
+                console.info('[Background] Updated jobInFocus to:', newJobId);
+              }
             }
 
             console.info('[Background] Job deleted successfully:', jobId);

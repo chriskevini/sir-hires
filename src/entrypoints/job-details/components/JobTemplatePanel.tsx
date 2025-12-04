@@ -39,7 +39,7 @@ export function JobTemplatePanel({
       }
       className="w-72 border-l border-border bg-muted flex-shrink-0 overflow-y-auto"
     >
-      <div className="p-3 font-mono text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+      <div className="p-3 font-mono text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
         {escapeHtml(jobExtraction.template)}
       </div>
     </CollapsiblePanel>

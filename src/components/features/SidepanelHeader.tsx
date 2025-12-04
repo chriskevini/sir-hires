@@ -7,6 +7,8 @@ import {
   Maximize2,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface SidepanelHeaderProps {
   /** Toggle job selector panel visibility */
@@ -27,6 +29,10 @@ interface SidepanelHeaderProps {
   jobTitle?: string;
   /** Company name to display */
   company?: string;
+  /** Whether to show breathing animation on maximize button (profile creation funnel) */
+  shouldAnimateMaximize?: boolean;
+  /** Whether to show breathing animation on extract button (empty state) */
+  shouldAnimateExtract?: boolean;
 }
 
 /**
@@ -50,23 +56,31 @@ export function SidepanelHeader({
   selectorOpen,
   jobTitle,
   company,
+  shouldAnimateMaximize,
+  shouldAnimateExtract,
 }: SidepanelHeaderProps) {
   return (
     <header className="flex items-center justify-between px-3 py-2 bg-muted border-b border-border shrink-0 gap-2">
       {/* Left: Toggle button */}
-      <Button
-        variant="ghost"
-        className="border border-border rounded px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-muted/80 hover:border-border hover:text-foreground active:bg-muted flex items-center justify-center min-w-9 min-h-8 shrink-0 transition-all duration-200"
-        onClick={onToggleSelector}
-        title={selectorOpen ? 'Close job list' : 'Open job list'}
-        aria-label={selectorOpen ? 'Close job list' : 'Open job list'}
-      >
-        {selectorOpen ? (
-          <PanelLeftClose className="h-4 w-4" />
-        ) : (
-          <PanelLeft className="h-4 w-4" />
-        )}
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            className="border border-border rounded px-2.5 py-1.5 text-sm text-muted-foreground hover:bg-muted/80 hover:border-border hover:text-foreground active:bg-muted flex items-center justify-center min-w-9 min-h-8 shrink-0 transition-all duration-200"
+            onClick={onToggleSelector}
+            aria-label={selectorOpen ? 'Close job list' : 'Open job list'}
+          >
+            {selectorOpen ? (
+              <PanelLeftClose className="h-4 w-4" />
+            ) : (
+              <PanelLeft className="h-4 w-4" />
+            )}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {selectorOpen ? 'Close job list' : 'Open job list'}
+        </TooltipContent>
+      </Tooltip>
 
       {/* Center: Job info */}
       {hasJob && (jobTitle || company) && (
@@ -89,41 +103,67 @@ export function SidepanelHeader({
 
       {/* Right: Action buttons */}
       <div className="flex gap-1 items-center">
-        <Button
-          variant="ghost"
-          className="rounded p-1.5 text-base text-muted-foreground hover:bg-muted active:bg-muted/80 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center min-w-8 min-h-8 transition-all duration-200"
-          onClick={onExtract}
-          disabled={extracting}
-          title={extracting ? 'Extracting...' : 'Extract job from current tab'}
-          aria-label="Extract job"
-        >
-          {extracting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Download className="h-4 w-4" />
-          )}
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              className="rounded p-1.5 text-base text-muted-foreground hover:bg-muted active:bg-muted/80 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center min-w-8 min-h-8 transition-all duration-200"
+              onClick={onExtract}
+              disabled={extracting}
+              aria-label="Extract job"
+            >
+              {extracting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download
+                  className={cn(
+                    'h-4 w-4',
+                    shouldAnimateExtract && 'animate-breathing-icon'
+                  )}
+                />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {extracting ? 'Extracting...' : 'Extract job from current tab'}
+          </TooltipContent>
+        </Tooltip>
 
-        <Button
-          variant="ghost"
-          className="rounded p-1.5 text-base text-muted-foreground hover:bg-muted active:bg-muted/80 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center min-w-8 min-h-8 transition-all duration-200"
-          onClick={onDelete}
-          disabled={!hasJob}
-          title={hasJob ? 'Delete this job' : 'No job to delete'}
-          aria-label="Delete job"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              className="rounded p-1.5 text-base text-muted-foreground hover:bg-muted active:bg-muted/80 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center min-w-8 min-h-8 transition-all duration-200"
+              onClick={onDelete}
+              disabled={!hasJob}
+              aria-label="Delete job"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            {hasJob ? 'Delete this job' : 'No job to delete'}
+          </TooltipContent>
+        </Tooltip>
 
-        <Button
-          variant="ghost"
-          className="rounded p-1.5 text-base text-muted-foreground hover:bg-muted active:bg-muted/80 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center min-w-8 min-h-8 transition-all duration-200"
-          onClick={onMaximize}
-          title="Open dashboard"
-          aria-label="Open dashboard"
-        >
-          <Maximize2 className="h-4 w-4" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              className="rounded p-1.5 text-base text-muted-foreground hover:bg-muted active:bg-muted/80 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center min-w-8 min-h-8 transition-all duration-200"
+              onClick={onMaximize}
+              aria-label="Open dashboard"
+            >
+              <Maximize2
+                className={cn(
+                  'h-4 w-4',
+                  shouldAnimateMaximize && 'animate-breathing-icon'
+                )}
+              />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Open dashboard</TooltipContent>
+        </Tooltip>
       </div>
     </header>
   );

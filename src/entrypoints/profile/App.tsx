@@ -1007,7 +1007,7 @@ BULLETS:
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-xs text-muted-foreground hover:text-foreground"
+                  className="text-sm text-muted-foreground hover:text-foreground"
                   onClick={insertEducationTemplate}
                   title="Insert education entry"
                 >
@@ -1016,7 +1016,7 @@ BULLETS:
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-xs text-muted-foreground hover:text-foreground"
+                  className="text-sm text-muted-foreground hover:text-foreground"
                   onClick={insertExperienceTemplate}
                   title="Insert experience entry"
                 >

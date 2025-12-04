@@ -72,21 +72,23 @@ export function JobCard({
       onMouseLeave={() => setIsHovered(false)}
       onClick={onClick}
     >
-      <div className="flex flex-col gap-1">
-        <div className="text-sm font-semibold text-foreground overflow-hidden text-ellipsis line-clamp-2 pr-6">
+      <div className="flex flex-col">
+        <div className="text-base font-semibold text-foreground overflow-hidden text-ellipsis line-clamp-2 pr-6">
           {title}
         </div>
-        <div className="text-xs font-light text-card-foreground mb-1">
-          {company}
-        </div>
-        <StatusBadge status={normalizedStatus} size="sm" className="w-fit" />
+        <div className="text-sm font-light text-card-foreground">{company}</div>
+        <StatusBadge
+          status={normalizedStatus}
+          size="sm"
+          className="w-fit mt-1"
+        />
       </div>
       {showDeleteButton && (
         <button
           type="button"
           className={cn(
             'absolute top-1 right-1 w-5 h-5 rounded-full',
-            'bg-muted-foreground text-background text-xs leading-none',
+            'bg-muted-foreground text-background text-sm leading-none',
             'flex items-center justify-center opacity-70',
             'hover:bg-destructive hover:opacity-100',
             'active:scale-90',

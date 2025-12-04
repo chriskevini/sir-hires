@@ -241,6 +241,30 @@ export const themePreferenceStorage = storage.defineItem<ThemePreference>(
   }
 );
 
+/**
+ * Welcome completed - Whether user has completed the welcome/onboarding flow
+ * Used to determine if we should show the welcome view on app load
+ */
+export const welcomeCompletedStorage = storage.defineItem<boolean>(
+  'local:welcomeCompleted',
+  {
+    defaultValue: false,
+    version: 1,
+  }
+);
+
+/**
+ * First extraction message shown - Whether we've shown the post-first-extraction guidance banner
+ * Used to show a one-time message after user extracts their first job
+ */
+export const firstExtractionMessageShownStorage = storage.defineItem<boolean>(
+  'local:firstExtractionMessageShown',
+  {
+    defaultValue: false,
+    version: 1,
+  }
+);
+
 // ===== Helper Functions =====
 
 /**
@@ -340,6 +364,8 @@ export async function clearAllStorage(): Promise<void> {
     dataVersionStorage.removeValue(),
     keepaliveStorage.removeValue(),
     themePreferenceStorage.removeValue(),
+    welcomeCompletedStorage.removeValue(),
+    firstExtractionMessageShownStorage.removeValue(),
   ]);
 }
 

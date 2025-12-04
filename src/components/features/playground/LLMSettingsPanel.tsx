@@ -38,7 +38,7 @@ export const LLMSettingsPanel: React.FC<LLMSettingsPanelProps> = React.memo(
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* Endpoint */}
           <div>
-            <label className="block text-xs text-muted-foreground mb-1">
+            <label className="block text-sm text-muted-foreground mb-1">
               Server URL
             </label>
             <div className="flex gap-2">
@@ -62,7 +62,7 @@ export const LLMSettingsPanel: React.FC<LLMSettingsPanelProps> = React.memo(
 
           {/* Model */}
           <div>
-            <label className="block text-xs text-muted-foreground mb-1">
+            <label className="block text-sm text-muted-foreground mb-1">
               Model
             </label>
             {llmSettings.availableModels.length > 0 ? (

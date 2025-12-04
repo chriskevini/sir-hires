@@ -4,13 +4,12 @@ import { getJobTitle, getCompanyName } from '../../utils/job-parser';
 import type { Job } from '../../entrypoints/job-details/hooks';
 import { defaults } from '@/config';
 import { JobHeader } from './JobHeader';
-import { JobFooter } from './JobFooter';
 import { Button } from '../ui/Button';
 import { cn } from '@/lib/utils';
 
 /**
  * Common props for view components (ID-based callbacks)
- * Views now only render content - header/footer handled by router
+ * Views now only render content - header/footer handled by parent
  */
 interface ViewComponentProps {
   job: Job;
@@ -23,7 +22,6 @@ interface ViewComponentProps {
  */
 export interface JobViewRouterProps {
   job: Job | null;
-  isChecklistExpanded: boolean;
   ResearchingView: React.ComponentType<ViewComponentProps>;
   DraftingView: React.ComponentType<
     ViewComponentProps & {
@@ -43,48 +41,38 @@ export interface JobViewRouterProps {
     documentData: { title: string; text: string }
   ) => void;
   onDeleteDocument: (jobId: string, documentKey: string) => void;
-  onToggleChecklistExpand: (isExpanded: boolean) => void;
-  onToggleChecklistItem: (jobId: string, itemId: string) => void;
   emptyStateMessage?: string;
   /** Show the JobHeader component (default: true) */
   showHeader?: boolean;
-  /** Show the JobFooter component (default: true) */
-  showFooter?: boolean;
 }
 
 /**
  * JobViewRouter - Routes to appropriate view based on job status
  *
- * Architecture (v2):
+ * Architecture (v3):
  * ┌─────────────────────────────────┐
  * │ JobHeader                       │ - Progress bar, title, status, link
  * ├─────────────────────────────────┤
  * │ View Content (scrollable)       │ - ResearchingView / DraftingView
  * │                                 │
- * ├─────────────────────────────────┤
- * │ JobFooter                       │ - Nav buttons, checklist drawer
  * └─────────────────────────────────┘
  *
- * Views are now "content-only" - they don't render headers, footers, or overlays.
- * All navigation and status chrome is handled at the router level.
+ * Footer is now rendered by the parent, allowing flexible composition
+ * (e.g., inserting banners between content and footer).
  *
  * @param props - Router configuration and handlers
  * @returns Appropriate view component for the job's status
  */
 export function JobViewRouter({
   job,
-  isChecklistExpanded,
   ResearchingView,
   DraftingView,
   onDeleteJob,
   onSaveField,
   onSaveDocument,
   onDeleteDocument,
-  onToggleChecklistExpand,
-  onToggleChecklistItem,
   emptyStateMessage = 'No job selected',
   showHeader = true,
-  showFooter = true,
 }: JobViewRouterProps) {
   // Parse job at top level (hooks must be called unconditionally)
   const parsed = useParsedJob(job?.id || null);
@@ -107,11 +95,6 @@ export function JobViewRouter({
   const company = parsed
     ? getCompanyName(parsed) || 'Unknown Company'
     : 'Unknown Company';
-
-  // Navigation handler - updates applicationStatus field
-  const handleNavigate = (targetStatus: string) => {
-    onSaveField(job.id, 'applicationStatus', targetStatus);
-  };
 
   // Helper to render the appropriate view content based on status
   const renderViewContent = () => {
@@ -168,7 +151,7 @@ export function JobViewRouter({
   return (
     <div
       className={cn(
-        'flex flex-col h-full relative',
+        'flex flex-col flex-1 min-h-0 relative',
         isCompact ? 'bg-transparent' : 'bg-muted'
       )}
     >
@@ -191,18 +174,6 @@ export function JobViewRouter({
           {renderViewContent()}
         </div>
       </div>
-
-      {showFooter && (
-        <JobFooter
-          status={status}
-          checklist={job.checklist}
-          jobId={job.id}
-          isChecklistExpanded={isChecklistExpanded}
-          onNavigate={handleNavigate}
-          onToggleChecklist={onToggleChecklistExpand}
-          onToggleChecklistItem={onToggleChecklistItem}
-        />
-      )}
     </div>
   );
 }

@@ -612,7 +612,7 @@ export const FreeformTaskPanel: React.FC<FreeformTaskPanelProps> = ({
               Conversation
             </button>
           </div>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-sm text-muted-foreground">
             {mode === 'context'
               ? 'System prompt + named context fields'
               : 'Raw message array (system/user/assistant)'}
@@ -818,7 +818,7 @@ const ContextModeInputs: React.FC<ContextModeInputsProps> = ({
           className={cn(
             'relative flex items-center justify-center px-4 py-2',
             'border border-b-0 rounded-t-lg cursor-pointer',
-            'text-xs font-medium transition-all duration-150',
+            'text-sm font-medium transition-all duration-150',
             '-mb-px',
             selectedTab === 'system'
               ? cn(
@@ -850,7 +850,7 @@ const ContextModeInputs: React.FC<ContextModeInputsProps> = ({
               className={cn(
                 'relative flex items-center justify-center px-4 py-2',
                 'border border-b-0 rounded-t-lg cursor-pointer',
-                'text-xs font-medium transition-all duration-150',
+                'text-sm font-medium transition-all duration-150',
                 '-mb-px',
                 isSelected
                   ? cn(
@@ -875,7 +875,7 @@ const ContextModeInputs: React.FC<ContextModeInputsProps> = ({
         <button
           type="button"
           onClick={handleAddContext}
-          className="px-3 py-2 text-xs rounded-t-lg border border-b-0 border-dashed border-muted-foreground/50 text-muted-foreground hover:bg-muted-foreground/10 hover:text-foreground -mb-px"
+          className="px-3 py-2 text-sm rounded-t-lg border border-b-0 border-dashed border-muted-foreground/50 text-muted-foreground hover:bg-muted-foreground/10 hover:text-foreground -mb-px"
           title="Add context field"
         >
           +
@@ -893,7 +893,7 @@ const ContextModeInputs: React.FC<ContextModeInputsProps> = ({
         {selectedTab === 'system' && (
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">
+              <span className="text-sm text-muted-foreground">
                 System Prompt
               </span>
             </div>
@@ -921,7 +921,7 @@ const ContextModeInputs: React.FC<ContextModeInputsProps> = ({
 
               {/* Load Fixture dropdown */}
               <select
-                className="text-xs p-1.5 rounded border bg-card min-w-0"
+                className="text-sm p-1.5 rounded border bg-card min-w-0"
                 onChange={(e) => {
                   const value = e.target.value;
                   if (!value) return;
@@ -1058,7 +1058,7 @@ const ConversationModeInputs: React.FC<ConversationModeInputsProps> = ({
               className={cn(
                 'relative flex items-center justify-center px-4 py-2',
                 'border border-b-0 rounded-t-lg cursor-pointer',
-                'text-xs font-medium transition-all duration-150',
+                'text-sm font-medium transition-all duration-150',
                 '-mb-px',
                 isSelected
                   ? cn(
@@ -1084,7 +1084,7 @@ const ConversationModeInputs: React.FC<ConversationModeInputsProps> = ({
           <button
             type="button"
             onClick={() => addMessage('system')}
-            className="px-2 py-2 text-xs rounded-t-lg border border-b-0 border-dashed border-blue-500/50 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 -mb-px"
+            className="px-2 py-2 text-sm rounded-t-lg border border-b-0 border-dashed border-blue-500/50 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 -mb-px"
             title="Add system message"
           >
             +S
@@ -1092,7 +1092,7 @@ const ConversationModeInputs: React.FC<ConversationModeInputsProps> = ({
           <button
             type="button"
             onClick={() => addMessage('user')}
-            className="px-2 py-2 text-xs rounded-t-lg border border-b-0 border-dashed border-green-500/50 text-green-600 dark:text-green-400 hover:bg-green-500/10 -mb-px"
+            className="px-2 py-2 text-sm rounded-t-lg border border-b-0 border-dashed border-green-500/50 text-green-600 dark:text-green-400 hover:bg-green-500/10 -mb-px"
             title="Add user message"
           >
             +U
@@ -1100,7 +1100,7 @@ const ConversationModeInputs: React.FC<ConversationModeInputsProps> = ({
           <button
             type="button"
             onClick={() => addMessage('assistant')}
-            className="px-2 py-2 text-xs rounded-t-lg border border-b-0 border-dashed border-purple-500/50 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 -mb-px"
+            className="px-2 py-2 text-sm rounded-t-lg border border-b-0 border-dashed border-purple-500/50 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 -mb-px"
             title="Add assistant message"
           >
             +A
@@ -1136,7 +1136,7 @@ const ConversationModeInputs: React.FC<ConversationModeInputsProps> = ({
                 disabled={
                   messages.findIndex((m) => m.id === selectedMessageId) === 0
                 }
-                className="px-2 py-1 text-xs rounded border bg-background hover:bg-muted disabled:opacity-30"
+                className="px-2 py-1 text-sm rounded border bg-background hover:bg-muted disabled:opacity-30"
                 title="Move left"
               >
                 ← Move
@@ -1153,7 +1153,7 @@ const ConversationModeInputs: React.FC<ConversationModeInputsProps> = ({
                   messages.findIndex((m) => m.id === selectedMessageId) ===
                   messages.length - 1
                 }
-                className="px-2 py-1 text-xs rounded border bg-background hover:bg-muted disabled:opacity-30"
+                className="px-2 py-1 text-sm rounded border bg-background hover:bg-muted disabled:opacity-30"
                 title="Move right"
               >
                 Move →
@@ -1182,7 +1182,7 @@ const ConversationModeInputs: React.FC<ConversationModeInputsProps> = ({
                   size="sm"
                   onClick={() => insertThinkTag(selectedMsg.id)}
                   title="Insert <think> tag to skip thinking phase"
-                  className="text-xs"
+                  className="text-sm"
                 >
                   Insert &lt;think&gt;
                 </Button>
@@ -1195,7 +1195,7 @@ const ConversationModeInputs: React.FC<ConversationModeInputsProps> = ({
                 type="button"
                 onClick={() => removeMessage(selectedMsg.id)}
                 disabled={messages.length === 1}
-                className="px-2 py-1 text-xs rounded border border-destructive/50 text-destructive hover:bg-destructive/10 disabled:opacity-30"
+                className="px-2 py-1 text-sm rounded border border-destructive/50 text-destructive hover:bg-destructive/10 disabled:opacity-30"
                 title="Delete message"
               >
                 Delete

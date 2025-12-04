@@ -4,6 +4,7 @@ import { ResearchingView } from '../job-details/views/ResearchingView';
 import { DraftingView } from '../job-details/views/DraftingView';
 import { useJobStore } from '../job-details/hooks/useJobStore';
 import { JobViewRouter } from '../../components/features/JobViewRouter';
+import { JobFooter } from '../../components/features/JobFooter';
 import {
   ParsedJobProvider,
   useGetParsedJob,
@@ -16,8 +17,17 @@ import { EmptyState } from '@/components/features/EmptyState';
 import { ExtractionLoadingView } from '../job-details/components/ExtractionLoadingView';
 import { ErrorState } from '@/components/features/ErrorState';
 import { DuplicateJobModal } from '@/components/features/DuplicateJobModal';
+import { WelcomeView } from '@/components/features/WelcomeView';
+import { LLMSettingsForm } from '@/components/features/LLMSettingsForm';
+import { FirstExtractionBanner } from '@/components/features/FirstExtractionBanner';
 import { checklistTemplates, defaults } from '@/config';
-import { jobsStorage, restoreStorageFromBackup } from '../../utils/storage';
+import {
+  jobsStorage,
+  restoreStorageFromBackup,
+  welcomeCompletedStorage,
+  userProfileStorage,
+  firstExtractionMessageShownStorage,
+} from '../../utils/storage';
 import { generateItemId } from '../../utils/shared-utils';
 import { buttonVariants } from '@/components/ui/button-variants';
 import {
@@ -33,7 +43,9 @@ import {
 import { useConfirmDialog, useAlertDialog } from '../../hooks/useConfirmDialog';
 import { useTheme } from '../../hooks/useTheme';
 import { useLLMSettings } from '../../hooks/useLLMSettings';
-import { LLMSettingsForm } from '../../components/features/LLMSettingsForm';
+import { runTask, startKeepalive } from '../../utils/llm-task-runner';
+import { jobExtraction } from '../../tasks';
+import { LLMClient } from '../../utils/llm-client';
 
 /**
  * Create default checklist for all statuses (adapter for useJobExtraction)
@@ -62,6 +74,8 @@ interface SidepanelContentProps {
   mainContent: React.ReactNode;
   jobs: Job[];
   selectedJobId: string | null;
+  currentJob: Job | null;
+  isChecklistExpanded: boolean;
   selectorOpen: boolean;
   extracting: boolean;
   hasJob: boolean;
@@ -71,11 +85,22 @@ interface SidepanelContentProps {
   onMaximize: () => void;
   onSelectJob: (jobId: string) => void;
   onDeleteJobFromSelector: (jobId: string) => void;
+  onNavigate: (targetStatus: string) => void;
+  onToggleChecklistExpand: (isExpanded: boolean) => void;
+  onToggleChecklistItem: (jobId: string, itemId: string) => void;
   pendingExtraction: { url: string } | null;
   showDuplicateModal: boolean;
   onRefresh: () => void;
   onExtractNew: () => void;
   onCancelDuplicate: () => void;
+  /** Whether to animate the maximize button (profile creation funnel) */
+  shouldAnimateMaximize: boolean;
+  /** Whether to animate the extract button (empty state) */
+  shouldAnimateExtract: boolean;
+  /** Whether to show the first extraction banner */
+  showFirstExtractionBanner: boolean;
+  /** Handler to dismiss the first extraction banner */
+  onDismissFirstExtractionBanner: () => void;
 }
 
 /**
@@ -86,6 +111,8 @@ function SidepanelContent({
   mainContent,
   jobs,
   selectedJobId,
+  currentJob,
+  isChecklistExpanded,
   selectorOpen,
   extracting,
   hasJob,
@@ -95,11 +122,18 @@ function SidepanelContent({
   onMaximize,
   onSelectJob,
   onDeleteJobFromSelector,
+  onNavigate,
+  onToggleChecklistExpand,
+  onToggleChecklistItem,
   pendingExtraction,
   showDuplicateModal,
   onRefresh,
   onExtractNew,
   onCancelDuplicate,
+  shouldAnimateMaximize,
+  shouldAnimateExtract,
+  showFirstExtractionBanner,
+  onDismissFirstExtractionBanner,
 }: SidepanelContentProps) {
   // Get parsed job accessor from context (must be inside ParsedJobProvider)
   const getParsedJob = useGetParsedJob();
@@ -108,6 +142,9 @@ function SidepanelContent({
   const parsedJob = selectedJobId ? getParsedJob(selectedJobId) : null;
   const jobTitle = parsedJob?.topLevelFields['TITLE'];
   const company = parsedJob?.topLevelFields['COMPANY'];
+
+  // Get current job status for footer
+  const currentStatus = currentJob?.applicationStatus || defaults.status;
 
   return (
     <div className="flex flex-col h-screen">
@@ -122,11 +159,31 @@ function SidepanelContent({
         selectorOpen={selectorOpen}
         jobTitle={jobTitle}
         company={company}
+        shouldAnimateMaximize={shouldAnimateMaximize}
+        shouldAnimateExtract={shouldAnimateExtract}
       />
 
       {/* Main content area with JobSelector overlay */}
       <div className="flex-1 relative overflow-hidden flex flex-col">
         {mainContent}
+
+        {/* First extraction banner - shown once after first successful extraction */}
+        {showFirstExtractionBanner && (
+          <FirstExtractionBanner onDismiss={onDismissFirstExtractionBanner} />
+        )}
+
+        {/* Job footer - navigation and checklist */}
+        {currentJob && (
+          <JobFooter
+            status={currentStatus}
+            checklist={currentJob.checklist}
+            jobId={currentJob.id}
+            isChecklistExpanded={isChecklistExpanded}
+            onNavigate={onNavigate}
+            onToggleChecklist={onToggleChecklistExpand}
+            onToggleChecklistItem={onToggleChecklistItem}
+          />
+        )}
 
         {/* Job selector overlay - positioned relative to content area */}
         <JobSelector
@@ -174,6 +231,38 @@ export const App: React.FC = () => {
   // Local UI state
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [selectorOpen, setSelectorOpen] = useState(false);
+  const [showWelcome, setShowWelcome] = useState<boolean | null>(null); // null = loading
+  const [hasProfile, setHasProfile] = useState(false);
+  const [showFirstExtractionBanner, setShowFirstExtractionBanner] =
+    useState(false);
+  // Track previous job count to detect first extraction (0 → 1+)
+  const [prevJobCount, setPrevJobCount] = useState<number | null>(null);
+
+  /**
+   * Load welcome completed state on mount
+   */
+  useEffect(() => {
+    welcomeCompletedStorage.getValue().then((completed) => {
+      setShowWelcome(!completed);
+    });
+  }, []);
+
+  /**
+   * Load and watch profile state for animation trigger
+   */
+  useEffect(() => {
+    // Initial load
+    userProfileStorage.getValue().then((profile) => {
+      setHasProfile(!!profile?.content?.trim());
+    });
+
+    // Watch for changes
+    const unwatch = userProfileStorage.watch((profile) => {
+      setHasProfile(!!profile?.content?.trim());
+    });
+
+    return unwatch;
+  }, []);
 
   // Dialog state for confirmations
   const {
@@ -315,9 +404,12 @@ export const App: React.FC = () => {
   /**
    * Handle toggling checklist expansion
    */
-  const handleChecklistToggleExpand = useCallback(async () => {
-    await store.setChecklistExpanded(!store.checklistExpanded);
-  }, [store]);
+  const handleChecklistToggleExpand = useCallback(
+    async (isExpanded: boolean) => {
+      await store.setChecklistExpanded(isExpanded);
+    },
+    [store]
+  );
 
   /**
    * Handle toggling a checklist item (ID-based)
@@ -330,6 +422,22 @@ export const App: React.FC = () => {
       await store.toggleChecklistItem(jobId, status, itemId);
     },
     [store]
+  );
+
+  /**
+   * Handle navigation to a new status (from JobFooter)
+   */
+  const handleNavigate = useCallback(
+    async (targetStatus: string) => {
+      if (!currentJob) return;
+      await store.updateJobField(
+        currentJob.id,
+        'applicationStatus',
+        targetStatus
+      );
+      console.info(`[Sidepanel] Navigated to ${targetStatus}`);
+    },
+    [currentJob, store]
   );
 
   /**
@@ -366,24 +474,50 @@ export const App: React.FC = () => {
   }, [store.isLoading, isInitialLoad]);
 
   /**
+   * Detect first extraction (0 → 1+ jobs) and show banner
+   * Only triggers once per user (persisted to storage)
+   */
+  useEffect(() => {
+    // Skip until initial load is complete
+    if (store.isLoading) return;
+
+    const currentJobCount = store.jobs.length;
+
+    // Initialize prevJobCount on first render after load
+    if (prevJobCount === null) {
+      setPrevJobCount(currentJobCount);
+      return;
+    }
+
+    // Check for first extraction: 0 → 1+
+    if (prevJobCount === 0 && currentJobCount > 0) {
+      // Check if banner has been shown before
+      firstExtractionMessageShownStorage.getValue().then((shown) => {
+        if (!shown) {
+          setShowFirstExtractionBanner(true);
+        }
+      });
+    }
+
+    // Update prev count for next comparison
+    setPrevJobCount(currentJobCount);
+  }, [store.isLoading, store.jobs.length, prevJobCount]);
+
+  /**
    * Render the job view
    */
   const renderJobView = () => {
     return (
       <JobViewRouter
         job={currentJob}
-        isChecklistExpanded={store.checklistExpanded}
         ResearchingView={ResearchingView}
         DraftingView={DraftingView}
         onDeleteJob={handleDeleteJob}
         onSaveField={handleSaveField}
         onSaveDocument={handleSaveDocument}
         onDeleteDocument={handleDeleteDocument}
-        onToggleChecklistExpand={handleChecklistToggleExpand}
-        onToggleChecklistItem={handleChecklistToggleItem}
         emptyStateMessage="No job selected"
         showHeader={false}
-        showFooter={true}
       />
     );
   };
@@ -399,8 +533,81 @@ export const App: React.FC = () => {
     extraction.cancelExtraction();
   }, [extraction]);
 
+  /**
+   * Handler for completing the welcome flow
+   * Called when user clicks "Get Started" after connecting LLM
+   *
+   * Also triggers a fire-and-forget LLM warmup to pre-load the model
+   * in LM Studio, making the first extraction faster.
+   */
+  const handleCompleteWelcome = useCallback(async () => {
+    await welcomeCompletedStorage.setValue(true);
+    setShowWelcome(false);
+
+    // Fire-and-forget LLM warmup to trigger JIT model loading in LM Studio
+    // Uses minimal tokens to just wake up the model without doing real work
+    if (llmSettings.endpoint && llmSettings.model) {
+      const stopKeepalive = startKeepalive();
+      const warmupClient = new LLMClient({
+        endpoint: llmSettings.endpoint,
+      });
+
+      runTask({
+        config: jobExtraction,
+        context: { rawText: 'warmup' },
+        llmClient: warmupClient,
+        model: llmSettings.model,
+        maxTokens: 1,
+        temperature: 0,
+        onChunk: () => {}, // Discard output
+      })
+        .catch(() => {
+          // Silently ignore warmup failures - this is best-effort
+        })
+        .finally(() => {
+          stopKeepalive();
+        });
+    }
+  }, [llmSettings.endpoint, llmSettings.model]);
+
+  /**
+   * Handler to re-open the welcome view (from help button)
+   */
+  const handleShowWelcome = useCallback(() => {
+    setShowWelcome(true);
+  }, []);
+
+  /**
+   * Handler to dismiss the first extraction banner
+   * Persists to storage so it only shows once
+   */
+  const handleDismissFirstExtractionBanner = useCallback(async () => {
+    setShowFirstExtractionBanner(false);
+    await firstExtractionMessageShownStorage.setValue(true);
+  }, []);
+
   // Determine loading state
   const isLoading = store.isLoading && isInitialLoad;
+
+  // Wait for welcome state and LLM settings to initialize before rendering
+  // This prevents flash of empty state before WelcomeView
+  if (showWelcome === null || !llmSettings.hasInitialized) {
+    return (
+      <div className="flex flex-col h-screen items-center justify-center">
+        <div className="text-muted-foreground italic">Loading...</div>
+      </div>
+    );
+  }
+
+  // Show welcome view for first-time users (full takeover, no header)
+  if (showWelcome === true) {
+    return (
+      <WelcomeView
+        llmSettings={llmSettings}
+        onGetStarted={handleCompleteWelcome}
+      />
+    );
+  }
 
   // Render main content based on state
   let mainContent;
@@ -432,20 +639,17 @@ export const App: React.FC = () => {
       />
     );
   }
-  // LLM not connected - show setup form (full takeover, no header)
-  // Only show after initialization to prevent flash on first load
-  else if (llmSettings.hasInitialized && !llmSettings.isConnected) {
+  // LLM not connected (returning users only - first-time users see WelcomeView)
+  else if (!llmSettings.isConnected) {
     return (
       <div className="flex flex-col h-screen items-center justify-center p-6 overflow-y-auto">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-foreground mb-2">
-              {store.jobs.length === 0
-                ? 'Welcome to Sir Hires'
-                : 'LLM Connection Required'}
+              LLM Connection Required
             </h1>
             <p className="text-muted-foreground">
-              Connect to an LLM to start extracting job postings.
+              Connect to an LLM to continue using Sir Hires.
             </p>
           </div>
           <LLMSettingsForm llmSettings={llmSettings} />
@@ -455,7 +659,12 @@ export const App: React.FC = () => {
   }
   // Empty state (connected but no jobs)
   else if (!currentJob) {
-    mainContent = <EmptyState onRestoreBackup={backup.handleRestoreBackup} />;
+    mainContent = (
+      <EmptyState
+        onRestoreBackup={backup.handleRestoreBackup}
+        onShowHelp={handleShowWelcome}
+      />
+    );
   }
   // Main job view
   else {
@@ -470,6 +679,8 @@ export const App: React.FC = () => {
         mainContent={mainContent}
         jobs={store.jobs}
         selectedJobId={store.jobInFocusId}
+        currentJob={currentJob}
+        isChecklistExpanded={store.checklistExpanded}
         selectorOpen={selectorOpen}
         extracting={extraction.extracting}
         hasJob={!!currentJob}
@@ -479,11 +690,18 @@ export const App: React.FC = () => {
         onMaximize={handleOpenJobDetails}
         onSelectJob={handleSelectJob}
         onDeleteJobFromSelector={handleDeleteJobFromSelector}
+        onNavigate={handleNavigate}
+        onToggleChecklistExpand={handleChecklistToggleExpand}
+        onToggleChecklistItem={handleChecklistToggleItem}
         pendingExtraction={extraction.pendingExtraction}
         showDuplicateModal={extraction.showDuplicateModal}
         onRefresh={extraction.handleRefreshJob}
         onExtractNew={extraction.handleExtractNew}
         onCancelDuplicate={extraction.handleCancelDuplicate}
+        shouldAnimateMaximize={store.jobs.length > 0 && !hasProfile}
+        shouldAnimateExtract={store.jobs.length === 0}
+        showFirstExtractionBanner={showFirstExtractionBanner}
+        onDismissFirstExtractionBanner={handleDismissFirstExtractionBanner}
       />
 
       {/* Confirmation Dialog */}

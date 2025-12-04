@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import { Search } from 'lucide-react';
 import { DEFAULT_ENDPOINT } from '@/utils/llm-utils';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
@@ -166,14 +167,14 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
                     <h4 className="text-sm font-semibold text-foreground mb-1">
                       Synthesis (Resume/Cover Letter)
                     </h4>
-                    <p className="text-xs text-muted-foreground mb-2">
+                    <p className="text-sm text-muted-foreground mb-2">
                       Higher creativity for document generation
                     </p>
                     <div className="flex gap-3">
                       <div className="flex-1 flex flex-col gap-1">
                         <label
                           htmlFor="synthesis-tokens"
-                          className="text-xs text-muted-foreground"
+                          className="text-sm text-muted-foreground"
                         >
                           Max Tokens
                         </label>
@@ -195,7 +196,7 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
                       <div className="flex-1 flex flex-col gap-1">
                         <label
                           htmlFor="synthesis-temp"
-                          className="text-xs text-muted-foreground"
+                          className="text-sm text-muted-foreground"
                         >
                           Temperature
                         </label>
@@ -222,14 +223,14 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
                     <h4 className="text-sm font-semibold text-foreground mb-1">
                       Extraction (Job Parsing)
                     </h4>
-                    <p className="text-xs text-muted-foreground mb-2">
+                    <p className="text-sm text-muted-foreground mb-2">
                       Low creativity for consistent parsing
                     </p>
                     <div className="flex gap-3">
                       <div className="flex-1 flex flex-col gap-1">
                         <label
                           htmlFor="extraction-tokens"
-                          className="text-xs text-muted-foreground"
+                          className="text-sm text-muted-foreground"
                         >
                           Max Tokens
                         </label>
@@ -251,7 +252,7 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
                       <div className="flex-1 flex flex-col gap-1">
                         <label
                           htmlFor="extraction-temp"
-                          className="text-xs text-muted-foreground"
+                          className="text-sm text-muted-foreground"
                         >
                           Temperature
                         </label>
@@ -309,7 +310,14 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
                   </a>
                 </li>
                 <li className="text-base text-foreground leading-relaxed">
-                  Load a model (e.g., qwen/qwen3-4b-2507)
+                  Click{' '}
+                  <Search
+                    className="inline h-4 w-4 align-text-bottom mx-0.5"
+                    style={{ color: 'hsl(var(--royal-orchid-500))' }}
+                  />{' '}
+                  and download a model.
+                  <br />
+                  We recommend qwen/qwen3-4b-2507
                 </li>
                 <li className="text-base text-foreground leading-relaxed">
                   Start the server: <strong>Developer → Start Server</strong>
@@ -324,7 +332,7 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
                   }}
                   className="text-primary hover:underline"
                 >
-                  Using OpenAI or another provider?
+                  Using a cloud provider with an API key?
                 </a>
               </p>
             </>

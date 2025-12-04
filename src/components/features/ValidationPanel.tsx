@@ -136,7 +136,7 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
           <span className={`text-base ${status.color}`}>{status.icon}</span>
           <span className={status.color}>{status.text}</span>
         </div>
-        <div className="flex gap-3 text-xs font-medium">
+        <div className="flex gap-3 text-sm font-medium">
           {errorCount > 0 && (
             <span className="text-destructive">
               {errorCount} error{errorCount > 1 ? 's' : ''}
@@ -152,7 +152,7 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
           )}
         </div>
       </div>
-      <span className="text-muted-foreground text-xs">
+      <span className="text-muted-foreground text-sm">
         {isCollapsed ? (
           <ChevronUp className="h-4 w-4" />
         ) : (
@@ -224,7 +224,7 @@ export const ValidationPanel: React.FC<ValidationPanelProps> = ({
     >
       {/* Quick Actions Bar */}
       {quickActions && quickActions.length > 0 && (
-        <div className="flex gap-2 border-b border-border bg-muted px-3 py-2 text-xs -mx-4 -mt-3 mb-3">
+        <div className="flex gap-2 border-b border-border bg-muted px-3 py-2 text-sm -mx-4 -mt-3 mb-3">
           <span className="self-center font-semibold text-muted-foreground">
             Quick Actions:
           </span>

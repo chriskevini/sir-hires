@@ -211,7 +211,7 @@ export function JobSelector({
               onChange={handleSortChange}
             />
           </div>
-          <div className="text-xs text-muted-foreground italic">
+          <div className="text-sm text-muted-foreground italic">
             {filteredCount} of {totalCount} jobs
           </div>
         </div>

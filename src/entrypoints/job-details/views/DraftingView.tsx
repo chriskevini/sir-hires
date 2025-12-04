@@ -31,6 +31,7 @@ import { userProfileStorage } from '@/utils/storage';
 import { useLLMSettings } from '@/hooks/useLLMSettings';
 import { DEFAULT_MODEL, DEFAULT_TASK_SETTINGS } from '@/utils/llm-utils';
 import { runTask, startKeepalive } from '@/utils/llm-task-runner';
+import { ArrowLeft, Maximize2, User } from 'lucide-react';
 import type { Job } from '../hooks';
 
 interface DraftingViewProps {
@@ -98,7 +99,7 @@ const showToast = (
 export const DraftingView: React.FC<DraftingViewProps> = ({
   job,
   onDeleteJob: _onDeleteJob,
-  onSaveField: _onSaveField,
+  onSaveField,
   onSaveDocument,
   onDeleteDocument,
 }) => {
@@ -109,8 +110,10 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   const [tone, setTone] = useState(() => getRandomTone());
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   const [synthesisError, setSynthesisError] = useState<string | null>(null);
-  const [showProfileWarning, setShowProfileWarning] = useState(false);
   const [userProfile, setUserProfile] = useState('');
+
+  // Derived state
+  const hasProfile = userProfile && userProfile.trim().length > 0;
 
   // New document modal state
   const [showNewDocumentModal, setShowNewDocumentModal] = useState(false);
@@ -365,12 +368,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
   // Handle synthesis using runTask()
   const handleSynthesize = useCallback(async () => {
-    // Check if profile is valid
-    if (!userProfile || userProfile.trim().length === 0) {
-      setShowProfileWarning(true);
-      return;
-    }
-
     // Build context BEFORE showing progress message (otherwise getLatestValue returns progress text)
     const context = buildContext();
 
@@ -520,7 +517,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
       hasReceivedContentRef.current = false;
     }
   }, [
-    userProfile,
     getLatestValue,
     activeTab,
     updateContent,
@@ -551,6 +547,38 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
   return (
     <>
+      {/* Profile Required Overlay */}
+      {!hasProfile && (
+        <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center">
+          {/* Go Back button - bottom left */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute bottom-4 left-4 gap-1.5 text-muted-foreground hover:text-foreground"
+            onClick={() =>
+              onSaveField(job.id, 'applicationStatus', 'Researching')
+            }
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Go Back
+          </Button>
+
+          <div className="w-full max-w-sm p-6 relative text-center">
+            <User className="h-12 w-12 text-primary mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-foreground mb-2">
+              Profile Required
+            </h2>
+            <p className="text-muted-foreground text-sm mb-4">
+              Create a profile to start synthesizing tailored documents.
+            </p>
+            <p className="text-muted-foreground text-sm flex items-center justify-center gap-1">
+              Click <Maximize2 className="h-4 w-4 inline" /> then{' '}
+              <User className="h-4 w-4 inline" /> to get started.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col h-full gap-4">
         {/* Drafting Editor */}
         <div className="flex-1 flex flex-col border border-border rounded-lg overflow-hidden bg-background">
@@ -635,47 +663,6 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
           <EditorFooter saveStatus={saveStatusText} wordCount={wordCount} />
         </div>
       </div>
-
-      {/* Profile Warning Modal */}
-      <Modal
-        isOpen={showProfileWarning}
-        onClose={() => setShowProfileWarning(false)}
-        title="Profile Required"
-      >
-        <div className="p-6 flex-1 overflow-y-auto text-center">
-          <p>
-            <strong>
-              Please create a profile before synthesizing documents.
-            </strong>
-          </p>
-          <p>
-            Your profile contains your resume information which is used to
-            generate tailored documents for this job.
-          </p>
-          <Button
-            variant="primary"
-            className="mt-4"
-            onClick={() => {
-              browser.tabs.create({
-                url: browser.runtime.getURL('/profile.html'),
-              });
-              window.close();
-            }}
-          >
-            Create Profile
-          </Button>
-        </div>
-
-        <div className="px-6 py-4 border-t border-border flex justify-between items-center">
-          <Button
-            variant="subtle"
-            className="ml-auto"
-            onClick={() => setShowProfileWarning(false)}
-          >
-            Cancel
-          </Button>
-        </div>
-      </Modal>
 
       {/* New Document Modal */}
       <NewDocumentModal

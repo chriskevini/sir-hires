@@ -46,7 +46,7 @@ export function ExtractionErrorView({
               <strong className="text-sm text-foreground">
                 📄 Partial Content
               </strong>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-sm text-muted-foreground">
                 (You can edit this or re-extract)
               </span>
             </div>

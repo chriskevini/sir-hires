@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { escapeHtml } from '@/utils/shared-utils';
+import { simplifyLLMError } from '@/utils/llm-utils';
 
 interface ExtractionErrorViewProps {
   errorMessage: string;
@@ -28,16 +29,21 @@ export function ExtractionErrorView({
   onDelete,
 }: ExtractionErrorViewProps) {
   const hasPartialContent = partialContent && partialContent.trim().length > 0;
+  const userFriendlyError = simplifyLLMError(errorMessage);
 
   return (
     <Card>
       <CardContent className="flex flex-col items-center text-center pt-6">
         <div className="mb-4">
-          <div className="text-4xl mb-3">⚠️</div>
+          <div className="text-4xl mb-3" aria-hidden="true">
+            ⚠️
+          </div>
           <h3 className="text-lg font-semibold text-foreground mb-2">
             Extraction Failed
           </h3>
-          <p className="text-destructive text-sm">{escapeHtml(errorMessage)}</p>
+          <p className="text-destructive text-sm">
+            {escapeHtml(userFriendlyError)}
+          </p>
         </div>
 
         {hasPartialContent && (

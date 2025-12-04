@@ -24,7 +24,7 @@ import { profileExtraction, profileOptimization } from '@/tasks';
 import { UI_UPDATE_INTERVAL_MS } from '@/config';
 import { LLMClient } from '@/utils/llm-client';
 import { runTask, startKeepalive } from '@/utils/llm-task-runner';
-import { DEFAULT_TASK_SETTINGS } from '@/utils/llm-utils';
+import { DEFAULT_TASK_SETTINGS, simplifyLLMError } from '@/utils/llm-utils';
 
 // Import hooks
 import { useProfileValidation } from './hooks/useProfileValidation';
@@ -294,7 +294,7 @@ export default function App() {
         return;
       }
       console.error('[Profile] Optimization failed:', error);
-      setOptimizationError((error as Error).message);
+      setOptimizationError(simplifyLLMError((error as Error).message));
     } finally {
       stopKeepalive();
       if (optimizationAbortRef.current === abortController) {
@@ -873,7 +873,7 @@ BULLETS:
       setIsExtracting(false);
       progressIndexRef.current = 0;
       hasReceivedContentRef.current = false;
-      setExtractionError((error as Error).message);
+      setExtractionError(simplifyLLMError((error as Error).message));
       setStatusMessage('');
     } finally {
       stopKeepalive();

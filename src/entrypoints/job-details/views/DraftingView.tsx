@@ -29,7 +29,11 @@ import { useDocumentManager } from '../hooks/useDocumentManager';
 import { LLMClient } from '@/utils/llm-client';
 import { userProfileStorage } from '@/utils/storage';
 import { useLLMSettings } from '@/hooks/useLLMSettings';
-import { DEFAULT_MODEL, DEFAULT_TASK_SETTINGS } from '@/utils/llm-utils';
+import {
+  DEFAULT_MODEL,
+  DEFAULT_TASK_SETTINGS,
+  simplifyLLMError,
+} from '@/utils/llm-utils';
 import { runTask, startKeepalive } from '@/utils/llm-task-runner';
 import { ArrowLeft, Maximize2, User } from 'lucide-react';
 import type { Job } from '../hooks';
@@ -507,8 +511,9 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
       // Revert to original content
       updateContent(activeTab, originalContentRef.current);
-      setSynthesisError((error as Error).message);
-      showToast(`Synthesis failed: ${(error as Error).message}`, 'error');
+      const userFriendlyError = simplifyLLMError((error as Error).message);
+      setSynthesisError(userFriendlyError);
+      showToast(`Synthesis failed: ${userFriendlyError}`, 'error');
     } finally {
       stopKeepalive();
       setIsSynthesizing(false);

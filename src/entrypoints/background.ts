@@ -116,23 +116,15 @@ export default defineBackground(() => {
       });
 
       // Extension icon context menu (right-click on extension icon)
-      // User features
       await browser.contextMenus.create({
-        id: 'view-all-jobs',
-        title: 'View All Jobs',
+        id: 'open-dashboard',
+        title: 'Open Dashboard',
         contexts: ['action'],
       });
 
       await browser.contextMenus.create({
         id: 'edit-profile',
         title: 'Edit Profile',
-        contexts: ['action'],
-      });
-
-      // Developer/settings features
-      await browser.contextMenus.create({
-        id: 'open-settings',
-        title: 'Open LLM Settings',
         contexts: ['action'],
       });
 
@@ -182,33 +174,18 @@ export default defineBackground(() => {
               error
             );
           });
-      } else if (info.menuItemId === 'open-settings') {
-        console.info('[Background] Opening job-details for settings');
+      } else if (info.menuItemId === 'open-dashboard') {
+        console.info('[Background] Opening dashboard');
 
-        // Open job-details page (settings overlay available there)
         browser.tabs
           .create({
             url: browser.runtime.getURL('/job-details.html'),
           })
           .then(() => {
-            console.info('[Background] Job details page opened for settings');
+            console.info('[Background] Dashboard opened successfully');
           })
           .catch((error: unknown) => {
-            console.error('[Background] Error opening job details:', error);
-          });
-      } else if (info.menuItemId === 'view-all-jobs') {
-        console.info('[Background] Opening job details page');
-
-        // Open job-details page in a new tab
-        browser.tabs
-          .create({
-            url: browser.runtime.getURL('/job-details.html'),
-          })
-          .then(() => {
-            console.info('[Background] Job details page opened successfully');
-          })
-          .catch((error: unknown) => {
-            console.error('[Background] Error opening job details:', error);
+            console.error('[Background] Error opening dashboard:', error);
           });
       } else if (info.menuItemId === 'edit-profile') {
         console.info('[Background] Opening profile page');

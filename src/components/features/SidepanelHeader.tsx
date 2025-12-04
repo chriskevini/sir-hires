@@ -1,6 +1,6 @@
 import {
-  ChevronLeft,
-  ChevronRight,
+  PanelLeft,
+  PanelLeftClose,
   Download,
   Loader2,
   Trash2,
@@ -62,9 +62,9 @@ export function SidepanelHeader({
         aria-label={selectorOpen ? 'Close job list' : 'Open job list'}
       >
         {selectorOpen ? (
-          <ChevronLeft className="h-4 w-4" />
+          <PanelLeftClose className="h-4 w-4" />
         ) : (
-          <ChevronRight className="h-4 w-4" />
+          <PanelLeft className="h-4 w-4" />
         )}
       </Button>
 
@@ -119,8 +119,8 @@ export function SidepanelHeader({
           variant="ghost"
           className="rounded p-1.5 text-base text-muted-foreground hover:bg-muted active:bg-muted/80 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center min-w-8 min-h-8 transition-all duration-200"
           onClick={onMaximize}
-          title="Open full job details"
-          aria-label="Open full view"
+          title="Open dashboard"
+          aria-label="Open dashboard"
         >
           <Maximize2 className="h-4 w-4" />
         </Button>

@@ -1,7 +1,7 @@
 import { cva } from 'class-variance-authority';
 
 export const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded text-sm font-semibold ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-60 [&_svg]:pointer-events-none [&_svg]:shrink-0',
+  'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded text-sm font-semibold ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-60 [&_svg]:pointer-events-none [&_svg]:shrink-0 cursor-pointer',
   {
     variants: {
       variant: {
@@ -10,7 +10,7 @@ export const buttonVariants = cva(
           'bg-primary text-primary-foreground hover:bg-primary/90 border-none',
         // Secondary - Grey outline (cancel, back)
         secondary:
-          'bg-transparent text-muted-foreground border border-border hover:bg-muted hover:border-border cursor-pointer',
+          'bg-transparent text-muted-foreground border border-border hover:bg-muted hover:border-border',
         // Danger - Red (delete, destructive actions)
         danger:
           'bg-destructive text-destructive-foreground hover:bg-destructive/90 border-none',
@@ -20,7 +20,7 @@ export const buttonVariants = cva(
         // Link - Blue text, no background (inline actions)
         link: 'bg-transparent border-none text-primary hover:text-primary/80 hover:underline px-2 py-1',
         // Ghost - Transparent, fully controlled by parent CSS
-        ghost: 'bg-transparent border-none cursor-pointer',
+        ghost: 'bg-transparent border-none',
       },
       size: {
         sm: 'h-8 px-3 py-1.5 text-xs',

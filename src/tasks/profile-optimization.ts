@@ -10,17 +10,19 @@ export const profileOptimization = {
   systemPrompt: CAREER_STRATEGIST_SYSTEM_PROMPT,
 
   context: ['job', 'profile', 'task'] as const,
-  temperature: 0,
-  maxTokens: 1000,
+  temperature: 0.7,
+  maxTokens: 2000,
 
-  defaultTask: `You are helping the user refine their profile.
-Suggest edits to a specific bullet point, experience or project.
-Output only 5 items with this exact format:
+  defaultTask: `Optimize the profile by modifying or creating new bullets.
+Target 15-20 words per bullet.
+Output up to 7 bullets with this exact format:
 
-## Header in imperative tense
-- New or improved bullet (20 words max)
+## Experience Title or Project Name
+- Optimized bullet
+*Explanation of bullet*
 
-*This ...*
+- Optimized bullet
+*Explanation*
 
-## Header ...`,
+## Experience ...`,
 } satisfies TaskConfig & { defaultTask: string };

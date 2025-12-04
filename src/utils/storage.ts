@@ -265,6 +265,18 @@ export const firstExtractionMessageShownStorage = storage.defineItem<boolean>(
   }
 );
 
+/**
+ * Chivalry points - Accumulated points earned by improving fit score and refreshing suggestions
+ * Points are awarded when the user improves their fit score and clicks the refresh suggestions button
+ */
+export const chivalryPointsStorage = storage.defineItem<number>(
+  'local:chivalryPoints',
+  {
+    defaultValue: 0,
+    version: 1,
+  }
+);
+
 // ===== Helper Functions =====
 
 /**
@@ -281,6 +293,7 @@ export async function getAllStorageData(): Promise<Record<string, unknown>> {
     checklistExpanded,
     dataVersion,
     themePreference,
+    chivalryPoints,
   ] = await Promise.all([
     jobsStorage.getValue(),
     jobInFocusStorage.getValue(),
@@ -290,6 +303,7 @@ export async function getAllStorageData(): Promise<Record<string, unknown>> {
     checklistExpandedStorage.getValue(),
     dataVersionStorage.getValue(),
     themePreferenceStorage.getValue(),
+    chivalryPointsStorage.getValue(),
   ]);
 
   return {
@@ -301,6 +315,7 @@ export async function getAllStorageData(): Promise<Record<string, unknown>> {
     checklistExpanded,
     dataVersion,
     themePreference,
+    chivalryPoints,
   };
 }
 
@@ -320,6 +335,7 @@ export async function restoreStorageFromBackup(
     checklistExpanded,
     dataVersion,
     themePreference,
+    chivalryPoints,
   } = data;
 
   await Promise.all([
@@ -347,6 +363,9 @@ export async function restoreStorageFromBackup(
     themePreference !== undefined
       ? themePreferenceStorage.setValue(themePreference as ThemePreference)
       : Promise.resolve(),
+    chivalryPoints !== undefined
+      ? chivalryPointsStorage.setValue(chivalryPoints as number)
+      : Promise.resolve(),
   ]);
 }
 
@@ -366,7 +385,19 @@ export async function clearAllStorage(): Promise<void> {
     themePreferenceStorage.removeValue(),
     welcomeCompletedStorage.removeValue(),
     firstExtractionMessageShownStorage.removeValue(),
+    chivalryPointsStorage.removeValue(),
+    extractionTriggerStorage.removeValue(),
+    profileTemplatePanelStorage.removeValue(),
+    profileSuggestionsPanelStorage.removeValue(),
+    sidebarCollapsedStorage.removeValue(),
   ]);
+
+  // Also clear browser localStorage drafts
+  try {
+    localStorage.removeItem('userProfileDraft');
+  } catch {
+    // localStorage may not be available in all contexts
+  }
 }
 
 /**

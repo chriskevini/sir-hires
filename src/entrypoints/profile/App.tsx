@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { browser } from 'wxt/browser';
 
 // Import WXT storage
@@ -9,6 +9,7 @@ import {
   llmSettingsStorage,
   jobsStorage,
   jobInFocusStorage,
+  chivalryPointsStorage,
 } from '@/utils/storage';
 
 // Import utilities
@@ -20,6 +21,7 @@ import {
   findNextSectionPosition,
   applyFix as applyFixUtil,
 } from '@/utils/profile-utils';
+import { parseJobTemplate } from '@/utils/job-parser';
 import { profileExtraction, profileOptimization } from '@/tasks';
 import { UI_UPDATE_INTERVAL_MS } from '@/config';
 import { LLMClient } from '@/utils/llm-client';
@@ -40,14 +42,13 @@ import { ValidatedEditor } from '@/components/ui/ValidatedEditor';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import {
   ArrowLeft,
-  Download,
-  FileText,
   X,
   BookOpen,
-  Sparkles,
   WandSparkles,
   ScrollText,
   RefreshCw,
+  HardDriveDownload,
+  BookDashed,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -144,6 +145,11 @@ export default function App() {
   );
   const [hasImprovedFit, setHasImprovedFit] = useState(false);
 
+  // State for chivalry points
+  const [chivalryPoints, setChivalryPoints] = useState(0);
+  const [pendingChivalry, setPendingChivalry] = useState(0);
+  const [chivalryAnimating, setChivalryAnimating] = useState(false);
+
   // Refs
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const lastSavedIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -166,6 +172,16 @@ export default function App() {
     jobContent: currentJobContent,
     jobId: currentJobId,
   });
+
+  // Derive job title and company from current job content
+  const currentJobInfo = useMemo(() => {
+    if (!currentJobContent) return null;
+    const parsed = parseJobTemplate(currentJobContent);
+    const title = parsed.topLevelFields.TITLE;
+    const company = parsed.topLevelFields.COMPANY;
+    if (!title && !company) return null;
+    return { title, company };
+  }, [currentJobContent]);
 
   // Watch jobs and jobInFocus storage for fit score calculation
   useEffect(() => {
@@ -212,7 +228,7 @@ export default function App() {
   }, []);
 
   // Capture baseline fit score (first valid score after mount)
-  // Also detect improvement when score increases
+  // Also detect improvement when score increases and track pending chivalry
   useEffect(() => {
     if (fitScore === null) return;
 
@@ -220,7 +236,9 @@ export default function App() {
       // First time we get a score - set baseline
       setBaselineFitScore(fitScore);
     } else if (fitScore > baselineFitScore) {
-      // Score improved - set hasImprovedFit and update baseline
+      // Score improved - accumulate the difference as pending chivalry
+      const improvement = fitScore - baselineFitScore;
+      setPendingChivalry((prev) => prev + improvement);
       setHasImprovedFit(true);
       setBaselineFitScore(fitScore);
     }
@@ -319,9 +337,19 @@ export default function App() {
 
   // Handle refresh button click
   const handleRefreshOptimization = useCallback(() => {
+    // Award pending chivalry points
+    if (pendingChivalry > 0) {
+      const newTotal = chivalryPoints + pendingChivalry;
+      setChivalryPoints(newTotal);
+      chivalryPointsStorage.setValue(newTotal);
+      setPendingChivalry(0);
+      // Trigger pop animation
+      setChivalryAnimating(true);
+      setTimeout(() => setChivalryAnimating(false), 300);
+    }
     setHasImprovedFit(false);
     runOptimization();
-  }, [runOptimization]);
+  }, [runOptimization, pendingChivalry, chivalryPoints]);
 
   // Immediate save callback - saves to storage on every change
   const saveProfile = useCallback(async (newContent: string) => {
@@ -427,6 +455,7 @@ export default function App() {
     loadProfile();
     loadTemplatePanelPreference();
     loadSuggestionsPanelPreference();
+    loadChivalryPoints();
     startLastSavedInterval();
 
     return () => {
@@ -436,6 +465,11 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const loadChivalryPoints = async () => {
+    const points = await chivalryPointsStorage.getValue();
+    setChivalryPoints(points);
+  };
+
   const loadTemplatePanelPreference = async () => {
     const isVisible = await profileTemplatePanelStorage.getValue();
     setIsTemplatePanelVisible(isVisible);
@@ -444,6 +478,11 @@ export default function App() {
   const toggleTemplatePanel = (visible: boolean) => {
     setIsTemplatePanelVisible(visible);
     profileTemplatePanelStorage.setValue(visible);
+    // Close suggestions panel when opening template panel
+    if (visible) {
+      setIsSuggestionsPanelVisible(false);
+      profileSuggestionsPanelStorage.setValue(false);
+    }
   };
 
   const loadSuggestionsPanelPreference = async () => {
@@ -454,6 +493,11 @@ export default function App() {
   const toggleSuggestionsPanel = (visible: boolean) => {
     setIsSuggestionsPanelVisible(visible);
     profileSuggestionsPanelStorage.setValue(visible);
+    // Close template panel when opening suggestions panel
+    if (visible) {
+      setIsTemplatePanelVisible(false);
+      profileTemplatePanelStorage.setValue(false);
+    }
   };
 
   const loadProfile = async () => {
@@ -522,78 +566,10 @@ export default function App() {
     }
   };
 
-  const formatProfile = () => {
-    if (!content.trim()) {
-      showStatusMessage('Nothing to format', 'error');
-      return;
-    }
-
-    const lines = content.split('\n');
-    const formatted = [];
-
-    for (let line of lines) {
-      line = line.trimEnd();
-
-      if (line.match(/^\s*[A-Z_]+:\s/)) {
-        line = line.replace(/^(\s*)([A-Z_]+):\s+/, '$1$2: ');
-      }
-
-      if (line.match(/^#+\s+/)) {
-        line = line.replace(/^(#+)\s+/, '$1 ');
-      }
-
-      formatted.push(line);
-    }
-
-    let newContent = formatted.join('\n');
-    newContent = newContent.replace(/\n{3,}/g, '\n\n');
-    newContent = newContent.replace(
-      /^(\s*[A-Z_]+:.*)\n\n(\s*[A-Z_]+:)/gm,
-      '$1\n$2'
-    );
-    newContent = newContent.replace(/^(\s*-.*)\n\n(\s*-)/gm, '$1\n$2');
-    newContent = newContent.replace(/^(\s*[A-Z_]+:)\s*\n\n(\s*-)/gm, '$1\n$2');
-    newContent = newContent.replace(
-      /^(#+\s+[A-Z_]+)\s*\n\n(\s*[A-Z_]+:)/gm,
-      '$1\n$2'
-    );
-    newContent = newContent.replace(
-      /^(##\s+[A-Z0-9_]+)\s*\n\n(\s*[A-Z_]+:)/gm,
-      '$1\n$2'
-    );
-
-    if (newContent !== content) {
-      handleContentChange(newContent);
-      showStatusMessage('Formatting fixed', 'success');
-    } else {
-      showStatusMessage('No formatting issues found', 'success');
-    }
-  };
-
   const exportMarkdown = () => {
     exportMarkdownUtil({ title: 'profile', text: content }, (message, type) =>
       showStatusMessage(message, type === 'info' ? 'success' : type)
     );
-  };
-
-  const exportText = async () => {
-    if (!content.trim()) {
-      showStatusMessage('Nothing to export', 'error');
-      return;
-    }
-
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `profile-${timestamp}.txt`;
-
-    await browser.downloads.download({
-      url: url,
-      filename: filename,
-      saveAs: true,
-    });
-
-    showStatusMessage('Exported as ' + filename, 'success');
   };
 
   const insertEducationTemplate = () => {
@@ -948,14 +924,18 @@ BULLETS:
           >
             {isCalculatingFit ? fitSpinnerChar : ''}
           </span>
-          <Button
-            variant="ghost"
-            className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
-            onClick={() => toggleTemplatePanel(!isTemplatePanelVisible)}
-            title={isTemplatePanelVisible ? 'Hide template' : 'Show template'}
-          >
-            <BookOpen className="h-4 w-4" />
-          </Button>
+          {/* Chivalry counter - only visible when > 0 */}
+          {chivalryPoints > 0 && (
+            <span
+              className={cn(
+                'text-sm font-semibold px-2 py-0.5 rounded transition-transform duration-300 text-primary',
+                chivalryAnimating ? 'animate-chivalry-pop' : 'animate-text-glow'
+              )}
+              title="Chivalry"
+            >
+              {chivalryPoints}
+            </span>
+          )}
           <Button
             variant="ghost"
             className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
@@ -966,15 +946,22 @@ BULLETS:
                 : 'Show suggestions'
             }
           >
-            <ScrollText className="h-4 w-4" />
+            <ScrollText
+              className={cn(
+                'h-4 w-4',
+                !isSuggestionsPanelVisible &&
+                  chivalryPoints === 0 &&
+                  'animate-breathing-icon'
+              )}
+            />
           </Button>
           <Button
             variant="ghost"
             className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
-            onClick={formatProfile}
-            title="Fix formatting"
+            onClick={() => toggleTemplatePanel(!isTemplatePanelVisible)}
+            title={isTemplatePanelVisible ? 'Hide template' : 'Show template'}
           >
-            <Sparkles className="h-4 w-4" />
+            <BookDashed className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"
@@ -982,15 +969,7 @@ BULLETS:
             onClick={exportMarkdown}
             title="Export as Markdown"
           >
-            <Download className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
-            onClick={exportText}
-            title="Export as Text"
-          >
-            <FileText className="h-4 w-4" />
+            <HardDriveDownload className="h-4 w-4" />
           </Button>
         </div>
       </header>
@@ -1074,7 +1053,7 @@ BULLETS:
           >
             <div className="flex items-center justify-between px-3 py-2 bg-card border-b border-border shrink-0">
               <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                <BookOpen className="h-4 w-4 text-primary" />
+                <BookDashed className="h-4 w-4 text-primary" />
                 Profile Template
               </h3>
               <Button
@@ -1100,11 +1079,19 @@ BULLETS:
             )}
           >
             <div className="flex items-center justify-between px-3 py-2 bg-card border-b border-border shrink-0">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                <ScrollText className="h-4 w-4 text-primary" />
-                Suggestions
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5 min-w-0 overflow-hidden">
+                <ScrollText className="h-4 w-4 text-primary shrink-0" />
+                <span className="shrink-0">Suggestions</span>
+                {currentJobInfo && (
+                  <span className="text-muted-foreground font-normal truncate">
+                    <span className="px-1.5">|</span>
+                    {currentJobInfo.title}
+                    {currentJobInfo.title && currentJobInfo.company && ' at '}
+                    {currentJobInfo.company}
+                  </span>
+                )}
               </h3>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 shrink-0">
                 <Button
                   variant="ghost"
                   className="p-1 text-muted-foreground hover:text-foreground"
@@ -1131,7 +1118,7 @@ BULLETS:
                 </Button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4 scrollbar-gutter-stable">
               {/* No profile or job - show message */}
               {!content.trim() || !currentJobContent ? (
                 <p className="font-mono text-sm text-muted-foreground text-center py-4">
@@ -1205,9 +1192,17 @@ BULLETS:
             )}
           >
             <div className="flex items-center justify-between px-4 py-3 bg-card border-b border-border shrink-0">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                <ScrollText className="h-4 w-4 text-primary" />
-                Suggestions
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5 min-w-0 overflow-hidden">
+                <ScrollText className="h-4 w-4 text-primary shrink-0" />
+                <span className="shrink-0">Suggestions</span>
+                {currentJobInfo && (
+                  <span className="text-muted-foreground font-normal truncate">
+                    <span className="px-1.5">|</span>
+                    {currentJobInfo.title}
+                    {currentJobInfo.title && currentJobInfo.company && ' at '}
+                    {currentJobInfo.company}
+                  </span>
+                )}
               </h3>
               <Button
                 variant="ghost"
@@ -1225,7 +1220,7 @@ BULLETS:
                 />
               </Button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4 scrollbar-gutter-stable">
               {/* No profile or job - show message */}
               {!content.trim() || !currentJobContent ? (
                 <p className="font-mono text-sm text-muted-foreground text-center py-4">

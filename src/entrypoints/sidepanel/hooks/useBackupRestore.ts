@@ -1,12 +1,7 @@
 import { useCallback } from 'react';
 
 export interface BackupStorage {
-  restoreBackup: (data: {
-    jobs: Record<string, unknown>;
-    userProfile: unknown;
-    llmSettings: unknown;
-    jobInFocus: string | null;
-  }) => Promise<void>;
+  restoreBackup: (data: Record<string, unknown>) => Promise<void>;
 }
 
 export interface BackupDialogCallbacks {
@@ -75,14 +70,8 @@ export function useBackupRestore(
           return;
         }
 
-        // Normalize old format to new format if needed
-        const normalizedData = {
-          jobs: backupData.jobs || {},
-          userProfile:
-            backupData.userProfile || backupData.masterResume || null,
-          llmSettings: backupData.llmSettings || null,
-          jobInFocus: backupData.jobInFocus || null,
-        };
+        // Pass through all backup data
+        const normalizedData = { ...backupData };
 
         // Restore all data using storage helper
         await storage.restoreBackup(normalizedData);

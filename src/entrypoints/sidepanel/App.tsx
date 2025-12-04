@@ -84,6 +84,8 @@ interface SidepanelContentProps {
   onCancelDuplicate: () => void;
   /** Whether to animate the maximize button (profile creation funnel) */
   shouldAnimateMaximize: boolean;
+  /** Whether to animate the extract button (empty state) */
+  shouldAnimateExtract: boolean;
 }
 
 /**
@@ -109,6 +111,7 @@ function SidepanelContent({
   onExtractNew,
   onCancelDuplicate,
   shouldAnimateMaximize,
+  shouldAnimateExtract,
 }: SidepanelContentProps) {
   // Get parsed job accessor from context (must be inside ParsedJobProvider)
   const getParsedJob = useGetParsedJob();
@@ -132,6 +135,7 @@ function SidepanelContent({
         jobTitle={jobTitle}
         company={company}
         shouldAnimateMaximize={shouldAnimateMaximize}
+        shouldAnimateExtract={shouldAnimateExtract}
       />
 
       {/* Main content area with JobSelector overlay */}
@@ -561,6 +565,7 @@ export const App: React.FC = () => {
         onExtractNew={extraction.handleExtractNew}
         onCancelDuplicate={extraction.handleCancelDuplicate}
         shouldAnimateMaximize={store.jobs.length > 0 && !hasProfile}
+        shouldAnimateExtract={store.jobs.length === 0}
       />
 
       {/* Confirmation Dialog */}

@@ -31,6 +31,8 @@ interface SidepanelHeaderProps {
   company?: string;
   /** Whether to show breathing animation on maximize button (profile creation funnel) */
   shouldAnimateMaximize?: boolean;
+  /** Whether to show breathing animation on extract button (empty state) */
+  shouldAnimateExtract?: boolean;
 }
 
 /**
@@ -55,6 +57,7 @@ export function SidepanelHeader({
   jobTitle,
   company,
   shouldAnimateMaximize,
+  shouldAnimateExtract,
 }: SidepanelHeaderProps) {
   return (
     <header className="flex items-center justify-between px-3 py-2 bg-muted border-b border-border shrink-0 gap-2">
@@ -112,7 +115,12 @@ export function SidepanelHeader({
               {extracting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Download className="h-4 w-4" />
+                <Download
+                  className={cn(
+                    'h-4 w-4',
+                    shouldAnimateExtract && 'animate-breathing-icon'
+                  )}
+                />
               )}
             </Button>
           </TooltipTrigger>

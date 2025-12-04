@@ -90,43 +90,40 @@ export const EXTRACTED_COMPLETE_JOB = `<JOB>
 TITLE: Software Engineer
 COMPANY: Quantech
 ADDRESS: San Francisco, CA
-REMOTE TYPE: HYBRID
-SALARY RANGE MIN: 144900
-SALARY RANGE MAX: 168400
-PAY PERIOD: ANNUAL
-EMPLOYMENT TYPE: FULL-TIME
-EXPERIENCE LEVEL: MID
-CLOSING DATE: 2025-12-31
+REMOTE TYPE: Hybrid
+SALARY MIN: 144900
+SALARY MAX: 168400
+PAY PERIOD: Annual
+EMPLOYMENT TYPE: Full-time
+EXPERIENCE LEVEL: Mid
 
 # DESCRIPTION
-- Provide technical solutions to address exciting problems in the advertising industry.
-- Partner with engineers to work on large-scale systems.
-- Collaborate with Product & Business Operations teams to translate business requirements and build robust, scalable products.
-- Gain exposure to existing Quantech systems and technologies used by internal and external customers.
-- Be responsible for day-to-day product operations.
+- Provide technical solutions to address exciting challenges in the advertising industry.
+- Partner with engineers to develop and maintain large-scale systems.
+- Collaborate with Product and Business Operations teams to translate business needs into robust, scalable products.
+- Gain hands-on exposure to existing Quantech systems and technologies used by internal and external customers.
+- Own day-to-day product operations and contribute to the development lifecycle of key products.
 
 # REQUIRED SKILLS
 - Experience with scalable systems and distributed computing
-- Experience with big data and large-scale systems
-- Deep understanding of algorithms and data structures
 - Proficiency in Java or Python
-- Strong verbal and written communication skills
+- Experience with big data and large-scale systems
+- Strong understanding of algorithms and data structures
+- Excellent verbal and written communication skills
+
+# WORKING HOURS
+- In-office days: Tuesday, Wednesday, Thursday
 
 # ABOUT COMPANY
-- Founded in 2006, headquartered in San Francisco.
-- Operates in a hybrid work environment with in-office days on Tuesday, Wednesday, and Thursday.
-- Offices across 10 countries worldwide.
-- Equal Opportunity Employer.
-- Uses AI tools to support hiring processes; final decisions made by humans.
+- Founded in 2006, Quantech is a global leader in digital advertising, operating a world-class AI-driven Demand Side Platform (DSP) and measurement platform.
+- The company serves marketers and publishers with audience insights, predictive targeting, and measurement solutions across the customer journey.
+- Offers a comprehensive benefits package including health, dental, vision, retirement plans, and performance bonuses.
+- Operates in a hybrid environment with offices in 10 countries worldwide.
+- Equal Opportunity Employer. Uses AI tools to support hiring processes but final decisions are made by humans.
 
-# BENEFITS
-- Health insurance
-- Retirement plan
-- Vision insurance
-- Dental insurance
-- Performance bonus
-- Equity
-- Generous vacation, medical, dental, and vision coverage
+# LOCATION REQUIREMENT
+- Must reside within a 60-mile radius of San Francisco, CA.
+- No relocation support available at this time.
 </JOB>`;
 
 export const RAW_MINIMAL_JOB = `Hiring: Web Developer at StartupXYZ
@@ -162,8 +159,7 @@ DM us if interested, no deadline, first come first serve!`;
 // =============================================================================
 
 export const RAW_COMPLETE_PROFILE = `Alexander Sterling
-1-98765 Main St.	(778) 555-1234
-Burnaby, BC V5B2A9	alex.sterling@email.com
+354 Eddy St San Francisco, CA, 94102 alex.sterling@email.com (415) 447-9855
 
 Personal Projects
 
@@ -235,13 +231,49 @@ Developer at SomeCo (2020-present)
 
 BS Computer Science, State University 2019`;
 
-export const EXTRACTED_COMPLETE_PROFILE = `
-
-<PROFILE>
+export const EXTRACTED_COMPLETE_PROFILE = `<PROFILE>
 NAME: Alexander Sterling
-ADDRESS: 1-98765 Main St., Burnaby, BC V5B2A9
+ADDRESS: 354 Eddy St, San Francisco, CA, 94102
 EMAIL: alex.sterling@email.com
-PHONE: (778) 555-1234
+PHONE: (415) 447-9855
+
+# EDUCATION
+
+## Bachelor of Science in Computer Science
+SCHOOL: Simon Fraser University
+START: September 2019
+END: May 2023
+
+# PROFESSIONAL EXPERIENCE
+
+## Software Engineer
+AT: Innovatech Software Solutions
+LOCATION: Vancouver, BC
+START: June 2023
+END: Present
+- Developed and maintained core features for a high-traffic enterprise SaaS platform.
+- Optimized database queries and indexing, reducing average response time from 500ms to 150ms.
+- Participated in system design meetings and contributed to architectural decisions.
+- Resolved critical production bugs using root cause analysis.
+
+## Junior Developer
+AT: TechServe Consulting
+LOCATION: Surrey, BC
+START: January 2021
+END: May 2023
+- Assisted in the full-stack development of client web applications using React and Node.js.
+- Wrote documentation for new features and maintained existing technical guides.
+- Provided technical support to clients for deployed applications.
+- Configured cloud resources (AWS EC2, S3) for application deployment and hosting.
+
+## Web Development Intern
+AT: Digital Marketing Agency
+LOCATION: Richmond, BC
+START: September 2019
+END: December 2020
+- Built and maintained client marketing websites using WordPress and custom HTML/CSS/JS.
+- Ensured cross-browser compatibility and adherence to accessibility standards (WCAG).
+- Managed domain names, SSL certificates, and basic server configurations.
 
 # TECHNICAL PROJECT EXPERIENCE
 
@@ -250,8 +282,8 @@ PHONE: (778) 555-1234
 - Implemented asynchronous programming patterns to improve application responsiveness and efficiency.
 - Refactored legacy codebase, resulting in a 40% reduction in technical debt and improved maintainability.
 - Employed test-driven development (TDD) principles throughout the software lifecycle.
-- Integrated proprietary internal API's for seamless data exchange across microservices.
-- Deployed cloud-native application using Docker containers orchestrated via Kubernetes.
+- Integrated proprietary internal APIs for seamless data exchange across microservices.
+- Deployed a cloud-native application using Docker containers orchestrated via Kubernetes.
 - Established CI/CD pipelines using Jenkins for automated testing and deployment.
 - Developed a caching mechanism using Redis to reduce database read latency by 65%.
 
@@ -263,38 +295,11 @@ PHONE: (778) 555-1234
 - Developed a mobile application front-end using Flutter and Dart.
 - Managed a relational PostgreSQL database schema and performed optimizations.
 
-# PROFESSIONAL EXPERIENCE
-
-## Software Engineer
-AT: Innovatech Software Solutions
-START: June 2023
-END: Present
-- Developed and maintained core features for a high-traffic enterprise SaaS platform.
-- Optimized database queries and indexing, reducing average response time from 500ms to 150ms.
-- Participated in system design meetings and contributed to architectural decisions.
-- Resolved critical production bugs using root cause analysis.
-
-## Junior Developer
-AT: TechServe Consulting
-START: January 2021
-END: May 2023
-- Assisted in the full-stack development of client web applications using React and Node.js.
-- Wrote documentation for new features and maintained existing technical guides.
-- Provided technical support to clients for deployed applications.
-- Configured cloud resources (AWS EC2, S3) for application deployment and hosting.
-
-## Web Development Intern
-AT: Digital Marketing Agency
-START: September 2019
-END: December 2020
-- Built and maintained client marketing websites using WordPress and custom HTML/CSS/JS.
-- Ensured cross-browser compatibility and adherence to accessibility standards (WCAG).
-- Managed domain names, SSL certificates, and basic server configurations.
-
 # VOLUNTEER
 
 ## Volunteer Coding Mentor
 AT: CodeMentor Community
+LOCATION: Online
 START: 2020
 END: Present
 - Provided one-on-one virtual mentorship to beginners learning Python and JavaScript.
@@ -303,16 +308,10 @@ END: Present
 
 ## Logistics Assistant
 AT: Greater Vancouver Food Bank
+LOCATION: Vancouver, BC
 START: 2017
 END: 2019
 - Coordinated the sorting and distribution of non-perishable goods.
 - Managed inventory tracking using a custom spreadsheet system.
 - Trained new volunteers on safety protocols and efficient workflow.
-
-# EDUCATION
-
-## Bachelor of Science, Computer Science
-SCHOOL: Simon Fraser University
-START: September 2019
-END: May 2023
 </PROFILE>`;

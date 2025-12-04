@@ -8,6 +8,11 @@ import {
   FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '@/components/ui/tooltip';
 
 export type SortField = 'date' | 'company' | 'title';
 export type SortDirection = 'asc' | 'desc';
@@ -76,34 +81,37 @@ export function SortIconButtons({
       {fields.map((field) => {
         const isActive = field === sortField;
         return (
-          <ToggleGroupPrimitive.Item
-            key={field}
-            value={field}
-            className={cn(
-              'relative flex items-center justify-center',
-              'w-8 h-7 p-1 border-none rounded',
-              'bg-transparent cursor-pointer',
-              'transition-colors duration-150',
-              'active:scale-95',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
-              isActive
-                ? 'text-primary hover:text-primary/80'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-            title={tooltips[field]}
-            aria-label={`${tooltips[field]}${isActive ? ` (${sortDirection === 'asc' ? 'ascending' : 'descending'})` : ''}`}
-          >
-            {icons[field]}
-            {isActive && (
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5">
-                {sortDirection === 'asc' ? (
-                  <ArrowUp className="h-2.5 w-2.5" />
-                ) : (
-                  <ArrowDown className="h-2.5 w-2.5" />
+          <Tooltip key={field}>
+            <TooltipTrigger asChild>
+              <ToggleGroupPrimitive.Item
+                value={field}
+                className={cn(
+                  'relative flex items-center justify-center',
+                  'w-8 h-7 p-1 border-none rounded',
+                  'bg-transparent cursor-pointer',
+                  'transition-colors duration-150',
+                  'active:scale-95',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                  isActive
+                    ? 'text-primary hover:text-primary/80'
+                    : 'text-muted-foreground hover:text-foreground'
                 )}
-              </span>
-            )}
-          </ToggleGroupPrimitive.Item>
+                aria-label={`${tooltips[field]}${isActive ? ` (${sortDirection === 'asc' ? 'ascending' : 'descending'})` : ''}`}
+              >
+                {icons[field]}
+                {isActive && (
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5">
+                    {sortDirection === 'asc' ? (
+                      <ArrowUp className="h-2.5 w-2.5" />
+                    ) : (
+                      <ArrowDown className="h-2.5 w-2.5" />
+                    )}
+                  </span>
+                )}
+              </ToggleGroupPrimitive.Item>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{tooltips[field]}</TooltipContent>
+          </Tooltip>
         );
       })}
     </ToggleGroupPrimitive.Root>

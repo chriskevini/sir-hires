@@ -3,6 +3,11 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '@/components/ui/tooltip';
 
 // Underlying primitives for composition patterns
 const Dialog = DialogPrimitive.Root;
@@ -119,14 +124,19 @@ const Modal: React.FC<ModalProps> = ({
         {title && (
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
-            <DialogClose asChild>
-              <button
-                className="w-8 h-8 flex items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                aria-label="Close modal"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </DialogClose>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DialogClose asChild>
+                  <button
+                    className="w-8 h-8 flex items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                    aria-label="Close modal"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </DialogClose>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Close</TooltipContent>
+            </Tooltip>
           </DialogHeader>
         )}
         <div className="px-6 py-4">{children}</div>

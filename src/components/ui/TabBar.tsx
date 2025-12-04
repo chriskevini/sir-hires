@@ -1,6 +1,11 @@
 import React from 'react';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '@/components/ui/tooltip';
 
 interface Tab {
   key: string;
@@ -51,43 +56,54 @@ export const TabBar: React.FC<TabBarProps> = ({
             >
               <span className="text-center">{tab.label}</span>
               {isActive && onDeleteTab && (
-                <span
-                  className={cn(
-                    'absolute right-1.5 top-1/2 -translate-y-1/2',
-                    'inline-flex items-center justify-center',
-                    'w-4 h-4 rounded-full text-sm leading-none',
-                    'text-muted-foreground bg-transparent cursor-pointer',
-                    'transition-all duration-150',
-                    'hover:bg-foreground/10 hover:text-destructive'
-                  )}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteTab(tab.key);
-                  }}
-                  title="Delete document"
-                >
-                  ×
-                </span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      className={cn(
+                        'absolute right-1.5 top-1/2 -translate-y-1/2',
+                        'inline-flex items-center justify-center',
+                        'w-4 h-4 rounded-full text-sm leading-none',
+                        'text-muted-foreground bg-transparent cursor-pointer',
+                        'transition-all duration-150',
+                        'hover:bg-foreground/10 hover:text-destructive'
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteTab(tab.key);
+                      }}
+                      role="button"
+                      aria-label="Delete document"
+                    >
+                      ×
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Delete document</TooltipContent>
+                </Tooltip>
               )}
             </TabsPrimitive.Trigger>
           );
         })}
         {onAddTab && (
-          <button
-            type="button"
-            className={cn(
-              'relative flex items-center justify-center px-3 py-1.5',
-              'border border-dashed border-border rounded-t-lg cursor-pointer',
-              'text-lg font-normal leading-none text-muted-foreground',
-              'bg-transparent transition-all duration-150',
-              'hover:bg-muted hover:border-primary hover:text-primary',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
-            )}
-            onClick={onAddTab}
-            title="Add new document"
-          >
-            +
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  'relative flex items-center justify-center px-3 py-1.5',
+                  'border border-dashed border-border rounded-t-lg cursor-pointer',
+                  'text-lg font-normal leading-none text-muted-foreground',
+                  'bg-transparent transition-all duration-150',
+                  'hover:bg-muted hover:border-primary hover:text-primary',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+                )}
+                onClick={onAddTab}
+                aria-label="Add new document"
+              >
+                +
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Add new document</TooltipContent>
+          </Tooltip>
         )}
       </TabsPrimitive.List>
     </TabsPrimitive.Root>

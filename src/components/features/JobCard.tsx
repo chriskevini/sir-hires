@@ -12,6 +12,11 @@ import { X } from 'lucide-react';
 import { useState } from 'react';
 import { StatusBadge } from '../ui/StatusBadge';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '@/components/ui/tooltip';
 
 interface JobCardProps {
   /** Job ID */
@@ -84,25 +89,30 @@ export function JobCard({
         />
       </div>
       {showDeleteButton && (
-        <button
-          type="button"
-          className={cn(
-            'absolute top-1 right-1 w-5 h-5 rounded-full',
-            'bg-muted-foreground text-background text-sm leading-none',
-            'flex items-center justify-center opacity-70',
-            'hover:bg-destructive hover:opacity-100',
-            'active:scale-90',
-            'transition-all duration-200',
-            'cursor-pointer border-none'
-          )}
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          title="Delete this job"
-        >
-          <X className="h-3 w-3" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className={cn(
+                'absolute top-1 right-1 w-5 h-5 rounded-full',
+                'bg-muted-foreground text-background text-sm leading-none',
+                'flex items-center justify-center opacity-70',
+                'hover:bg-destructive hover:opacity-100',
+                'active:scale-90',
+                'transition-all duration-200',
+                'cursor-pointer border-none'
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              aria-label="Delete this job"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="left">Delete this job</TooltipContent>
+        </Tooltip>
       )}
     </div>
   );

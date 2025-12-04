@@ -1,6 +1,11 @@
 import * as ToggleGroupPrimitive from '@radix-ui/react-toggle-group';
 import { statusOrder, getStatusColor } from '@/config';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '@/components/ui/tooltip';
 
 interface StatusFilterDotsProps {
   /** Array of selected statuses. Empty array = all statuses shown */
@@ -42,22 +47,25 @@ export function StatusFilterDots({
         const isFilled = isAllSelected || selectedStatuses.includes(status);
 
         return (
-          <ToggleGroupPrimitive.Item
-            key={status}
-            value={status}
-            className={cn(
-              'w-3 h-3 rounded-full border-2 p-0 cursor-pointer',
-              'transition-all duration-150',
-              'hover:scale-125 active:scale-95',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
-              isFilled ? 'border-transparent' : 'bg-transparent'
-            )}
-            style={
-              isFilled ? { backgroundColor: color } : { borderColor: color }
-            }
-            title={status}
-            aria-label={`${status}${isFilled ? ' (active)' : ''}`}
-          />
+          <Tooltip key={status}>
+            <TooltipTrigger asChild>
+              <ToggleGroupPrimitive.Item
+                value={status}
+                className={cn(
+                  'w-3 h-3 rounded-full border-2 p-0 cursor-pointer',
+                  'transition-all duration-150',
+                  'hover:scale-125 active:scale-95',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                  isFilled ? 'border-transparent' : 'bg-transparent'
+                )}
+                style={
+                  isFilled ? { backgroundColor: color } : { borderColor: color }
+                }
+                aria-label={`${status}${isFilled ? ' (active)' : ''}`}
+              />
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{status}</TooltipContent>
+          </Tooltip>
         );
       })}
     </ToggleGroupPrimitive.Root>

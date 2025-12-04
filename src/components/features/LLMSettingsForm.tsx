@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import { Search } from 'lucide-react';
 import { DEFAULT_ENDPOINT } from '@/utils/llm-utils';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
@@ -309,7 +310,14 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
                   </a>
                 </li>
                 <li className="text-base text-foreground leading-relaxed">
-                  Load a model (e.g., qwen/qwen3-4b-2507)
+                  Click{' '}
+                  <Search
+                    className="inline h-4 w-4 align-text-bottom mx-0.5"
+                    style={{ color: 'hsl(var(--royal-orchid-500))' }}
+                  />{' '}
+                  and download a model.
+                  <br />
+                  We recommend qwen/qwen3-4b-2507
                 </li>
                 <li className="text-base text-foreground leading-relaxed">
                   Start the server: <strong>Developer → Start Server</strong>

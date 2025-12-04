@@ -241,6 +241,18 @@ export const themePreferenceStorage = storage.defineItem<ThemePreference>(
   }
 );
 
+/**
+ * Welcome completed - Whether user has completed the welcome/onboarding flow
+ * Used to determine if we should show the welcome view on app load
+ */
+export const welcomeCompletedStorage = storage.defineItem<boolean>(
+  'local:welcomeCompleted',
+  {
+    defaultValue: false,
+    version: 1,
+  }
+);
+
 // ===== Helper Functions =====
 
 /**
@@ -340,6 +352,7 @@ export async function clearAllStorage(): Promise<void> {
     dataVersionStorage.removeValue(),
     keepaliveStorage.removeValue(),
     themePreferenceStorage.removeValue(),
+    welcomeCompletedStorage.removeValue(),
   ]);
 }
 

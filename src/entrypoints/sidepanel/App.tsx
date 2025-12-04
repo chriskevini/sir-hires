@@ -16,8 +16,14 @@ import { EmptyState } from '@/components/features/EmptyState';
 import { ExtractionLoadingView } from '../job-details/components/ExtractionLoadingView';
 import { ErrorState } from '@/components/features/ErrorState';
 import { DuplicateJobModal } from '@/components/features/DuplicateJobModal';
+import { WelcomeView } from '@/components/features/WelcomeView';
+import { LLMSettingsForm } from '@/components/features/LLMSettingsForm';
 import { checklistTemplates, defaults } from '@/config';
-import { jobsStorage, restoreStorageFromBackup } from '../../utils/storage';
+import {
+  jobsStorage,
+  restoreStorageFromBackup,
+  welcomeCompletedStorage,
+} from '../../utils/storage';
 import { generateItemId } from '../../utils/shared-utils';
 import { buttonVariants } from '@/components/ui/button-variants';
 import {
@@ -33,7 +39,6 @@ import {
 import { useConfirmDialog, useAlertDialog } from '../../hooks/useConfirmDialog';
 import { useTheme } from '../../hooks/useTheme';
 import { useLLMSettings } from '../../hooks/useLLMSettings';
-import { LLMSettingsForm } from '../../components/features/LLMSettingsForm';
 
 /**
  * Create default checklist for all statuses (adapter for useJobExtraction)
@@ -69,6 +74,7 @@ interface SidepanelContentProps {
   onExtract: () => void;
   onDelete: () => void;
   onMaximize: () => void;
+  onShowHelp: () => void;
   onSelectJob: (jobId: string) => void;
   onDeleteJobFromSelector: (jobId: string) => void;
   pendingExtraction: { url: string } | null;
@@ -93,6 +99,7 @@ function SidepanelContent({
   onExtract,
   onDelete,
   onMaximize,
+  onShowHelp,
   onSelectJob,
   onDeleteJobFromSelector,
   pendingExtraction,
@@ -117,6 +124,7 @@ function SidepanelContent({
         onExtract={onExtract}
         onDelete={onDelete}
         onMaximize={onMaximize}
+        onShowHelp={onShowHelp}
         extracting={extracting}
         hasJob={hasJob}
         selectorOpen={selectorOpen}
@@ -174,6 +182,16 @@ export const App: React.FC = () => {
   // Local UI state
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [selectorOpen, setSelectorOpen] = useState(false);
+  const [showWelcome, setShowWelcome] = useState<boolean | null>(null); // null = loading
+
+  /**
+   * Load welcome completed state on mount
+   */
+  useEffect(() => {
+    welcomeCompletedStorage.getValue().then((completed) => {
+      setShowWelcome(!completed);
+    });
+  }, []);
 
   // Dialog state for confirmations
   const {
@@ -399,8 +417,35 @@ export const App: React.FC = () => {
     extraction.cancelExtraction();
   }, [extraction]);
 
+  /**
+   * Handler for completing the welcome flow
+   * Called when user clicks "Get Started" after connecting LLM
+   */
+  const handleCompleteWelcome = useCallback(async () => {
+    await welcomeCompletedStorage.setValue(true);
+    setShowWelcome(false);
+  }, []);
+
+  /**
+   * Handler to re-open the welcome view (from help button)
+   */
+  const handleShowWelcome = useCallback(() => {
+    setShowWelcome(true);
+  }, []);
+
   // Determine loading state
   const isLoading = store.isLoading && isInitialLoad;
+
+  // Show welcome view for first-time users (full takeover, no header)
+  // showWelcome is null while loading from storage
+  if (showWelcome === true && llmSettings.hasInitialized) {
+    return (
+      <WelcomeView
+        llmSettings={llmSettings}
+        onGetStarted={handleCompleteWelcome}
+      />
+    );
+  }
 
   // Render main content based on state
   let mainContent;
@@ -432,20 +477,22 @@ export const App: React.FC = () => {
       />
     );
   }
-  // LLM not connected - show setup form (full takeover, no header)
+  // LLM not connected (returning users only - first-time users see WelcomeView)
   // Only show after initialization to prevent flash on first load
-  else if (llmSettings.hasInitialized && !llmSettings.isConnected) {
+  else if (
+    llmSettings.hasInitialized &&
+    !llmSettings.isConnected &&
+    showWelcome === false
+  ) {
     return (
       <div className="flex flex-col h-screen items-center justify-center p-6 overflow-y-auto">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-foreground mb-2">
-              {store.jobs.length === 0
-                ? 'Welcome to Sir Hires'
-                : 'LLM Connection Required'}
+              LLM Connection Required
             </h1>
             <p className="text-muted-foreground">
-              Connect to an LLM to start extracting job postings.
+              Connect to an LLM to continue using Sir Hires.
             </p>
           </div>
           <LLMSettingsForm llmSettings={llmSettings} />
@@ -477,6 +524,7 @@ export const App: React.FC = () => {
         onExtract={extraction.handleExtractJob}
         onDelete={handleDeleteJob}
         onMaximize={handleOpenJobDetails}
+        onShowHelp={handleShowWelcome}
         onSelectJob={handleSelectJob}
         onDeleteJobFromSelector={handleDeleteJobFromSelector}
         pendingExtraction={extraction.pendingExtraction}

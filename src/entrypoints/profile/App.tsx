@@ -1151,20 +1151,21 @@ BULLETS:
       >
         <div className="p-6">
           <div className="my-4 flex items-start gap-3 rounded-md border border-warning bg-warning/10 p-4">
-            <span className="shrink-0 text-2xl">!</span>
+            <span className="shrink-0 text-2xl text-foreground">!</span>
             <div className="flex-1">
-              <p className="text-sm font-medium text-warning-foreground">
+              <p className="text-sm font-medium text-foreground">
                 LLM extraction may have errors. The current content will be
                 replaced. Save a backup first if needed.
               </p>
             </div>
           </div>
           <div className="my-4 flex items-start gap-3 rounded-md border border-primary bg-primary/10 p-4">
-            <span className="shrink-0 text-lg">Tip:</span>
+            <span className="shrink-0 text-lg text-foreground">Tip:</span>
             <div className="flex-1">
-              <p className="text-sm text-primary">
-                Label your projects clearly in your resume (e.g., &quot;Project:
-                MyApp&quot;) - the LLM may not recognize unlabeled projects.
+              <p className="text-sm text-foreground">
+                You can add custom fields or sections to your profile - the
+                format is flexible as long as you follow the MarkdownDB
+                structure.
               </p>
             </div>
           </div>

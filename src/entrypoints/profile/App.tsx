@@ -1085,7 +1085,7 @@ BULLETS:
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <div className="flex-1 overflow-y-auto p-3 font-mono text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+            <div className="flex-1 overflow-y-auto p-3 font-mono text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
               {profileExtraction.template}
             </div>
           </div>
@@ -1184,7 +1184,7 @@ BULLETS:
                 Profile Template
               </h3>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 font-mono text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+            <div className="flex-1 overflow-y-auto p-4 font-mono text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
               {profileExtraction.template}
             </div>
           </SheetContent>

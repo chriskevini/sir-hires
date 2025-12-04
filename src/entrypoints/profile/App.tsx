@@ -40,14 +40,13 @@ import { ValidatedEditor } from '@/components/ui/ValidatedEditor';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import {
   ArrowLeft,
-  Download,
-  FileText,
   X,
   BookOpen,
-  Sparkles,
   WandSparkles,
   ScrollText,
   RefreshCw,
+  HardDriveDownload,
+  BookDashed,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -522,78 +521,10 @@ export default function App() {
     }
   };
 
-  const formatProfile = () => {
-    if (!content.trim()) {
-      showStatusMessage('Nothing to format', 'error');
-      return;
-    }
-
-    const lines = content.split('\n');
-    const formatted = [];
-
-    for (let line of lines) {
-      line = line.trimEnd();
-
-      if (line.match(/^\s*[A-Z_]+:\s/)) {
-        line = line.replace(/^(\s*)([A-Z_]+):\s+/, '$1$2: ');
-      }
-
-      if (line.match(/^#+\s+/)) {
-        line = line.replace(/^(#+)\s+/, '$1 ');
-      }
-
-      formatted.push(line);
-    }
-
-    let newContent = formatted.join('\n');
-    newContent = newContent.replace(/\n{3,}/g, '\n\n');
-    newContent = newContent.replace(
-      /^(\s*[A-Z_]+:.*)\n\n(\s*[A-Z_]+:)/gm,
-      '$1\n$2'
-    );
-    newContent = newContent.replace(/^(\s*-.*)\n\n(\s*-)/gm, '$1\n$2');
-    newContent = newContent.replace(/^(\s*[A-Z_]+:)\s*\n\n(\s*-)/gm, '$1\n$2');
-    newContent = newContent.replace(
-      /^(#+\s+[A-Z_]+)\s*\n\n(\s*[A-Z_]+:)/gm,
-      '$1\n$2'
-    );
-    newContent = newContent.replace(
-      /^(##\s+[A-Z0-9_]+)\s*\n\n(\s*[A-Z_]+:)/gm,
-      '$1\n$2'
-    );
-
-    if (newContent !== content) {
-      handleContentChange(newContent);
-      showStatusMessage('Formatting fixed', 'success');
-    } else {
-      showStatusMessage('No formatting issues found', 'success');
-    }
-  };
-
   const exportMarkdown = () => {
     exportMarkdownUtil({ title: 'profile', text: content }, (message, type) =>
       showStatusMessage(message, type === 'info' ? 'success' : type)
     );
-  };
-
-  const exportText = async () => {
-    if (!content.trim()) {
-      showStatusMessage('Nothing to export', 'error');
-      return;
-    }
-
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `profile-${timestamp}.txt`;
-
-    await browser.downloads.download({
-      url: url,
-      filename: filename,
-      saveAs: true,
-    });
-
-    showStatusMessage('Exported as ' + filename, 'success');
   };
 
   const insertEducationTemplate = () => {
@@ -951,14 +882,6 @@ BULLETS:
           <Button
             variant="ghost"
             className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
-            onClick={() => toggleTemplatePanel(!isTemplatePanelVisible)}
-            title={isTemplatePanelVisible ? 'Hide template' : 'Show template'}
-          >
-            <BookOpen className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
             onClick={() => toggleSuggestionsPanel(!isSuggestionsPanelVisible)}
             title={
               isSuggestionsPanelVisible
@@ -971,10 +894,10 @@ BULLETS:
           <Button
             variant="ghost"
             className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
-            onClick={formatProfile}
-            title="Fix formatting"
+            onClick={() => toggleTemplatePanel(!isTemplatePanelVisible)}
+            title={isTemplatePanelVisible ? 'Hide template' : 'Show template'}
           >
-            <Sparkles className="h-4 w-4" />
+            <BookDashed className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"
@@ -982,15 +905,7 @@ BULLETS:
             onClick={exportMarkdown}
             title="Export as Markdown"
           >
-            <Download className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            className="p-2 min-w-9 min-h-9 text-muted-foreground hover:bg-muted flex items-center justify-center"
-            onClick={exportText}
-            title="Export as Text"
-          >
-            <FileText className="h-4 w-4" />
+            <HardDriveDownload className="h-4 w-4" />
           </Button>
         </div>
       </header>
@@ -1074,7 +989,7 @@ BULLETS:
           >
             <div className="flex items-center justify-between px-3 py-2 bg-card border-b border-border shrink-0">
               <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                <BookOpen className="h-4 w-4 text-primary" />
+                <BookDashed className="h-4 w-4 text-primary" />
                 Profile Template
               </h3>
               <Button

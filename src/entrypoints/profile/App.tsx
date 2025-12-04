@@ -37,6 +37,7 @@ import { EditorFooter } from '@/components/features/EditorFooter';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { ValidatedEditor } from '@/components/ui/ValidatedEditor';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import {
   ArrowLeft,
   Download,
@@ -93,6 +94,9 @@ const EXTRACTION_PROGRESS_MESSAGES = [
 const isProgressMessage = (text: string): boolean =>
   EXTRACTION_PROGRESS_MESSAGES.some((msg) => text.startsWith(msg));
 
+/** Tailwind xl breakpoint for wide screen detection */
+const XL_BREAKPOINT = 1280;
+
 export default function App() {
   // State
   const [content, setContent] = useState('');
@@ -105,6 +109,20 @@ export default function App() {
   const [isSuggestionsPanelVisible, setIsSuggestionsPanelVisible] = useState<
     boolean | null
   >(null);
+  const [isWideScreen, setIsWideScreen] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= XL_BREAKPOINT : true
+  );
+
+  // Track window resize to update isWideScreen
+  useEffect(() => {
+    const handleResize = () => {
+      setIsWideScreen(window.innerWidth >= XL_BREAKPOINT);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionError, setExtractionError] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -286,9 +304,14 @@ export default function App() {
     }
   }, [content, currentJobContent]);
 
-  // Trigger optimization when suggestions panel opens
+  // Trigger optimization when suggestions panel opens (only if no cached content)
   useEffect(() => {
-    if (isSuggestionsPanelVisible && content.trim() && currentJobContent) {
+    if (
+      isSuggestionsPanelVisible &&
+      content.trim() &&
+      currentJobContent &&
+      !optimizationContent
+    ) {
       runOptimization();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1041,10 +1064,11 @@ BULLETS:
             <EditorFooter saveStatus={saveStatusText} />
           </div>
 
-          {/* Template Panel - right side, collapsible (hidden until preference loaded) */}
+          {/* Template Panel - inline on xl screens, Sheet overlay on smaller screens */}
+          {/* Inline panel for xl+ screens */}
           <div
             className={cn(
-              'flex flex-col border border-border rounded-lg overflow-hidden bg-card transition-[width] duration-200 ease-in-out shrink-0',
+              'hidden xl:flex flex-col border border-border rounded-lg overflow-hidden bg-card transition-[width] duration-200 ease-in-out shrink-0',
               isTemplatePanelVisible === true ? 'w-80' : 'w-0 border-0'
             )}
           >
@@ -1061,15 +1085,16 @@ BULLETS:
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <div className="flex-1 overflow-y-auto p-3 font-mono text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+            <div className="flex-1 overflow-y-auto p-3 font-mono text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
               {profileExtraction.template}
             </div>
           </div>
 
-          {/* Suggestions Panel - right side, collapsible (hidden until preference loaded) */}
+          {/* Suggestions Panel - inline on xl screens, Sheet overlay on smaller screens */}
+          {/* Inline panel for xl+ screens */}
           <div
             className={cn(
-              'flex flex-col border border-border rounded-lg overflow-hidden bg-card transition-[width] duration-200 ease-in-out shrink-0',
+              'hidden xl:flex flex-col border border-border rounded-lg overflow-hidden bg-card transition-[width] duration-200 ease-in-out shrink-0',
               isSuggestionsPanelVisible === true ? 'w-2xl' : 'w-0 border-0',
               hasImprovedFit && 'animate-breathing-glow'
             )}
@@ -1142,6 +1167,100 @@ BULLETS:
           </div>
         </div>
       </div>
+
+      {/* Sheet overlay for template on smaller screens (< xl) */}
+      {!isWideScreen && (
+        <Sheet
+          open={isTemplatePanelVisible === true}
+          onOpenChange={(open) => toggleTemplatePanel(open)}
+        >
+          <SheetContent
+            side="right"
+            className="w-full sm:w-[400px] sm:max-w-[90vw] p-0 flex flex-col [&>button]:hidden"
+          >
+            <div className="flex items-center justify-between px-4 py-3 bg-card border-b border-border shrink-0">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                <BookOpen className="h-4 w-4 text-primary" />
+                Profile Template
+              </h3>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 font-mono text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+              {profileExtraction.template}
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
+
+      {/* Sheet overlay for suggestions on smaller screens (< xl) */}
+      {!isWideScreen && (
+        <Sheet
+          open={isSuggestionsPanelVisible === true}
+          onOpenChange={(open) => toggleSuggestionsPanel(open)}
+        >
+          <SheetContent
+            side="right"
+            className={cn(
+              'w-full sm:w-[540px] sm:max-w-[90vw] p-0 flex flex-col [&>button]:hidden',
+              hasImprovedFit && 'animate-breathing-glow'
+            )}
+          >
+            <div className="flex items-center justify-between px-4 py-3 bg-card border-b border-border shrink-0">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                <ScrollText className="h-4 w-4 text-primary" />
+                Suggestions
+              </h3>
+              <Button
+                variant="ghost"
+                className="p-1 text-muted-foreground hover:text-foreground"
+                onClick={handleRefreshOptimization}
+                disabled={isOptimizing}
+                title="Refresh suggestions"
+              >
+                <RefreshCw
+                  className={cn(
+                    'h-4 w-4',
+                    isOptimizing && 'animate-spin',
+                    hasImprovedFit && !isOptimizing && 'animate-breathing-icon'
+                  )}
+                />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {/* No profile or job - show message */}
+              {!content.trim() || !currentJobContent ? (
+                <p className="font-mono text-sm text-muted-foreground text-center py-4">
+                  {!content.trim() && !currentJobContent
+                    ? 'Add a profile and focus a job to get suggestions.'
+                    : !content.trim()
+                      ? 'Add your profile to get suggestions.'
+                      : 'Focus a job to get suggestions.'}
+                </p>
+              ) : optimizationError ? (
+                /* Error state */
+                <div className="py-2 px-3 bg-destructive/10 border border-destructive/50 rounded text-destructive text-sm font-mono">
+                  <strong className="block mb-1">Error:</strong>
+                  {optimizationError}
+                </div>
+              ) : isOptimizing && !optimizationContent ? (
+                /* Loading state */
+                <p className="font-mono text-sm text-muted-foreground text-center py-4">
+                  Generating suggestions...
+                </p>
+              ) : optimizationContent ? (
+                /* Streaming/completed content */
+                <div className="font-mono text-sm leading-relaxed text-foreground whitespace-pre-wrap">
+                  {optimizationContent}
+                </div>
+              ) : (
+                /* Empty state - should trigger optimization */
+                <p className="font-mono text-sm text-muted-foreground text-center py-4">
+                  Click refresh to generate suggestions.
+                </p>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
 
       {/* Confirmation Dialog */}
       <Modal

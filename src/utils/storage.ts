@@ -253,6 +253,18 @@ export const welcomeCompletedStorage = storage.defineItem<boolean>(
   }
 );
 
+/**
+ * First extraction message shown - Whether we've shown the post-first-extraction guidance banner
+ * Used to show a one-time message after user extracts their first job
+ */
+export const firstExtractionMessageShownStorage = storage.defineItem<boolean>(
+  'local:firstExtractionMessageShown',
+  {
+    defaultValue: false,
+    version: 1,
+  }
+);
+
 // ===== Helper Functions =====
 
 /**
@@ -353,6 +365,7 @@ export async function clearAllStorage(): Promise<void> {
     keepaliveStorage.removeValue(),
     themePreferenceStorage.removeValue(),
     welcomeCompletedStorage.removeValue(),
+    firstExtractionMessageShownStorage.removeValue(),
   ]);
 }
 

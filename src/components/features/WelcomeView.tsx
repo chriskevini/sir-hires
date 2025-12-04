@@ -135,14 +135,10 @@ export function WelcomeView({ llmSettings, onGetStarted }: WelcomeViewProps) {
         <Step
           number={3}
           title="Add your profile"
-          description="Import your resume to unlock tailored document generation."
+          description="Import your resume to unlock tailored document generation. You can do this later from the Profile page."
           isComplete={false}
           isActive={false}
-        >
-          <span className="font-light text-muted-foreground italic">
-            You can do this later from the Profile page
-          </span>
-        </Step>
+        />
       </div>
 
       {/* Footer */}

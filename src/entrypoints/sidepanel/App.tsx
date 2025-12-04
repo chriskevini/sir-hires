@@ -18,12 +18,14 @@ import { ErrorState } from '@/components/features/ErrorState';
 import { DuplicateJobModal } from '@/components/features/DuplicateJobModal';
 import { WelcomeView } from '@/components/features/WelcomeView';
 import { LLMSettingsForm } from '@/components/features/LLMSettingsForm';
+import { FirstExtractionBanner } from '@/components/features/FirstExtractionBanner';
 import { checklistTemplates, defaults } from '@/config';
 import {
   jobsStorage,
   restoreStorageFromBackup,
   welcomeCompletedStorage,
   userProfileStorage,
+  firstExtractionMessageShownStorage,
 } from '../../utils/storage';
 import { generateItemId } from '../../utils/shared-utils';
 import { buttonVariants } from '@/components/ui/button-variants';
@@ -40,6 +42,9 @@ import {
 import { useConfirmDialog, useAlertDialog } from '../../hooks/useConfirmDialog';
 import { useTheme } from '../../hooks/useTheme';
 import { useLLMSettings } from '../../hooks/useLLMSettings';
+import { runTask, startKeepalive } from '../../utils/llm-task-runner';
+import { jobExtraction } from '../../tasks';
+import { LLMClient } from '../../utils/llm-client';
 
 /**
  * Create default checklist for all statuses (adapter for useJobExtraction)
@@ -86,6 +91,10 @@ interface SidepanelContentProps {
   shouldAnimateMaximize: boolean;
   /** Whether to animate the extract button (empty state) */
   shouldAnimateExtract: boolean;
+  /** Whether to show the first extraction banner */
+  showFirstExtractionBanner: boolean;
+  /** Handler to dismiss the first extraction banner */
+  onDismissFirstExtractionBanner: () => void;
 }
 
 /**
@@ -112,6 +121,8 @@ function SidepanelContent({
   onCancelDuplicate,
   shouldAnimateMaximize,
   shouldAnimateExtract,
+  showFirstExtractionBanner,
+  onDismissFirstExtractionBanner,
 }: SidepanelContentProps) {
   // Get parsed job accessor from context (must be inside ParsedJobProvider)
   const getParsedJob = useGetParsedJob();
@@ -155,6 +166,11 @@ function SidepanelContent({
         />
       </div>
 
+      {/* First extraction banner - shown once after first successful extraction */}
+      {showFirstExtractionBanner && (
+        <FirstExtractionBanner onDismiss={onDismissFirstExtractionBanner} />
+      )}
+
       {/* Duplicate Job Modal */}
       {pendingExtraction && (
         <DuplicateJobModal
@@ -190,6 +206,10 @@ export const App: React.FC = () => {
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState<boolean | null>(null); // null = loading
   const [hasProfile, setHasProfile] = useState(false);
+  const [showFirstExtractionBanner, setShowFirstExtractionBanner] =
+    useState(false);
+  // Track previous job count to detect first extraction (0 → 1+)
+  const [prevJobCount, setPrevJobCount] = useState<number | null>(null);
 
   /**
    * Load welcome completed state on mount
@@ -408,6 +428,36 @@ export const App: React.FC = () => {
   }, [store.isLoading, isInitialLoad]);
 
   /**
+   * Detect first extraction (0 → 1+ jobs) and show banner
+   * Only triggers once per user (persisted to storage)
+   */
+  useEffect(() => {
+    // Skip until initial load is complete
+    if (store.isLoading) return;
+
+    const currentJobCount = store.jobs.length;
+
+    // Initialize prevJobCount on first render after load
+    if (prevJobCount === null) {
+      setPrevJobCount(currentJobCount);
+      return;
+    }
+
+    // Check for first extraction: 0 → 1+
+    if (prevJobCount === 0 && currentJobCount > 0) {
+      // Check if banner has been shown before
+      firstExtractionMessageShownStorage.getValue().then((shown) => {
+        if (!shown) {
+          setShowFirstExtractionBanner(true);
+        }
+      });
+    }
+
+    // Update prev count for next comparison
+    setPrevJobCount(currentJobCount);
+  }, [store.isLoading, store.jobs.length, prevJobCount]);
+
+  /**
    * Render the job view
    */
   const renderJobView = () => {
@@ -444,17 +494,54 @@ export const App: React.FC = () => {
   /**
    * Handler for completing the welcome flow
    * Called when user clicks "Get Started" after connecting LLM
+   *
+   * Also triggers a fire-and-forget LLM warmup to pre-load the model
+   * in LM Studio, making the first extraction faster.
    */
   const handleCompleteWelcome = useCallback(async () => {
     await welcomeCompletedStorage.setValue(true);
     setShowWelcome(false);
-  }, []);
+
+    // Fire-and-forget LLM warmup to trigger JIT model loading in LM Studio
+    // Uses minimal tokens to just wake up the model without doing real work
+    if (llmSettings.endpoint && llmSettings.model) {
+      const stopKeepalive = startKeepalive();
+      const warmupClient = new LLMClient({
+        endpoint: llmSettings.endpoint,
+      });
+
+      runTask({
+        config: jobExtraction,
+        context: { rawText: 'warmup' },
+        llmClient: warmupClient,
+        model: llmSettings.model,
+        maxTokens: 1,
+        temperature: 0,
+        onChunk: () => {}, // Discard output
+      })
+        .catch(() => {
+          // Silently ignore warmup failures - this is best-effort
+        })
+        .finally(() => {
+          stopKeepalive();
+        });
+    }
+  }, [llmSettings.endpoint, llmSettings.model]);
 
   /**
    * Handler to re-open the welcome view (from help button)
    */
   const handleShowWelcome = useCallback(() => {
     setShowWelcome(true);
+  }, []);
+
+  /**
+   * Handler to dismiss the first extraction banner
+   * Persists to storage so it only shows once
+   */
+  const handleDismissFirstExtractionBanner = useCallback(async () => {
+    setShowFirstExtractionBanner(false);
+    await firstExtractionMessageShownStorage.setValue(true);
   }, []);
 
   // Determine loading state
@@ -566,6 +653,8 @@ export const App: React.FC = () => {
         onCancelDuplicate={extraction.handleCancelDuplicate}
         shouldAnimateMaximize={store.jobs.length > 0 && !hasProfile}
         shouldAnimateExtract={store.jobs.length === 0}
+        showFirstExtractionBanner={showFirstExtractionBanner}
+        onDismissFirstExtractionBanner={handleDismissFirstExtractionBanner}
       />
 
       {/* Confirmation Dialog */}

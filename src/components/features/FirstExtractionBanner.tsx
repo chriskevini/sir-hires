@@ -6,7 +6,7 @@
  * Only shown once (persisted to storage on dismiss).
  */
 
-import { X } from 'lucide-react';
+import { LucideMaximize2, X, User } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 interface FirstExtractionBannerProps {
@@ -20,8 +20,10 @@ export function FirstExtractionBanner({
     <div className="px-4 py-3 bg-primary border-y border-primary-foreground/20">
       <div className="flex items-start gap-3">
         <div className="flex-1 text-sm text-primary-foreground">
-          You can continue extracting jobs or create a profile to begin
-          synthesizing documents.
+          You can continue extracting jobs or click{' '}
+          <LucideMaximize2 className="inline h-3.5 w-3.5 mx-0.5" />
+          then <User className="inline h-3.5 w-3.5 mx-0.5" /> to create your
+          profile and begin synthesizing documents.
         </div>
         <Button
           variant="ghost"

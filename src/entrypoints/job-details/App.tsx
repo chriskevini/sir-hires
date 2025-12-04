@@ -16,6 +16,7 @@ import { Dropdown } from '../../components/ui/Dropdown';
 import { ThemeModal } from '../../components/features/ThemeModal';
 import { LLMSettingsForm } from '../../components/features/LLMSettingsForm';
 import { PanelLeft, User, Wifi, WifiOff, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +33,7 @@ import {
   restoreStorageFromBackup,
   clearAllStorage,
   sidebarCollapsedStorage,
+  userProfileStorage,
 } from '../../utils/storage';
 import { defaults } from '@/config';
 import type { JobStore } from './hooks/useJobStore';
@@ -53,6 +55,7 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isLLMSettingsOpen, setIsLLMSettingsOpen] = useState(false);
   const [llmOverlayDismissed, setLLMOverlayDismissed] = useState(false);
+  const [hasProfile, setHasProfile] = useState(false);
 
   // LLM settings for overlay
   const llmSettings = useLLMSettings();
@@ -80,6 +83,21 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
     sidebarCollapsedStorage.getValue().then((collapsed) => {
       setSidebarOpen(!collapsed);
     });
+  }, []);
+
+  // Load and watch profile state for animation trigger
+  useEffect(() => {
+    // Initial load
+    userProfileStorage.getValue().then((profile) => {
+      setHasProfile(!!profile?.content?.trim());
+    });
+
+    // Watch for changes
+    const unwatch = userProfileStorage.watch((profile) => {
+      setHasProfile(!!profile?.content?.trim());
+    });
+
+    return unwatch;
   }, []);
 
   // Handle sidebar open change with storage persistence
@@ -510,7 +528,12 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
             onClick={handleProfileClick}
             title="Profile"
           >
-            <User className="h-5 w-5" />
+            <User
+              className={cn(
+                'h-5 w-5',
+                store.jobs.length > 0 && !hasProfile && 'animate-breathing-icon'
+              )}
+            />
           </Button>
           <Dropdown
             buttonLabel="More options"

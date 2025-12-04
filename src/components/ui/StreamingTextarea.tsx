@@ -33,6 +33,8 @@ export interface StreamingTextareaProps
   hasError?: boolean;
   /** Minimum height for the textarea */
   minHeight?: string;
+  /** Custom placeholder element (renders as overlay when value is empty) */
+  placeholderElement?: React.ReactNode;
 }
 
 /**
@@ -57,6 +59,7 @@ const StreamingTextarea = React.forwardRef<
       hasError,
       minHeight = '450px',
       value,
+      placeholderElement: _placeholderElement,
       ...props
     },
     ref

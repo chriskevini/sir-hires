@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface SidepanelHeaderProps {
   /** Toggle job selector panel visibility */
@@ -28,6 +29,8 @@ interface SidepanelHeaderProps {
   jobTitle?: string;
   /** Company name to display */
   company?: string;
+  /** Whether to show breathing animation on maximize button (profile creation funnel) */
+  shouldAnimateMaximize?: boolean;
 }
 
 /**
@@ -51,6 +54,7 @@ export function SidepanelHeader({
   selectorOpen,
   jobTitle,
   company,
+  shouldAnimateMaximize,
 }: SidepanelHeaderProps) {
   return (
     <header className="flex items-center justify-between px-3 py-2 bg-muted border-b border-border shrink-0 gap-2">
@@ -142,7 +146,12 @@ export function SidepanelHeader({
               onClick={onMaximize}
               aria-label="Open dashboard"
             >
-              <Maximize2 className="h-4 w-4" />
+              <Maximize2
+                className={cn(
+                  'h-4 w-4',
+                  shouldAnimateMaximize && 'animate-breathing-icon'
+                )}
+              />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom">Open dashboard</TooltipContent>

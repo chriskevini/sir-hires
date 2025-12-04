@@ -23,6 +23,7 @@ import {
   jobsStorage,
   restoreStorageFromBackup,
   welcomeCompletedStorage,
+  userProfileStorage,
 } from '../../utils/storage';
 import { generateItemId } from '../../utils/shared-utils';
 import { buttonVariants } from '@/components/ui/button-variants';
@@ -81,6 +82,8 @@ interface SidepanelContentProps {
   onRefresh: () => void;
   onExtractNew: () => void;
   onCancelDuplicate: () => void;
+  /** Whether to animate the maximize button (profile creation funnel) */
+  shouldAnimateMaximize: boolean;
 }
 
 /**
@@ -105,6 +108,7 @@ function SidepanelContent({
   onRefresh,
   onExtractNew,
   onCancelDuplicate,
+  shouldAnimateMaximize,
 }: SidepanelContentProps) {
   // Get parsed job accessor from context (must be inside ParsedJobProvider)
   const getParsedJob = useGetParsedJob();
@@ -127,6 +131,7 @@ function SidepanelContent({
         selectorOpen={selectorOpen}
         jobTitle={jobTitle}
         company={company}
+        shouldAnimateMaximize={shouldAnimateMaximize}
       />
 
       {/* Main content area with JobSelector overlay */}
@@ -180,6 +185,7 @@ export const App: React.FC = () => {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState<boolean | null>(null); // null = loading
+  const [hasProfile, setHasProfile] = useState(false);
 
   /**
    * Load welcome completed state on mount
@@ -188,6 +194,23 @@ export const App: React.FC = () => {
     welcomeCompletedStorage.getValue().then((completed) => {
       setShowWelcome(!completed);
     });
+  }, []);
+
+  /**
+   * Load and watch profile state for animation trigger
+   */
+  useEffect(() => {
+    // Initial load
+    userProfileStorage.getValue().then((profile) => {
+      setHasProfile(!!profile?.content?.trim());
+    });
+
+    // Watch for changes
+    const unwatch = userProfileStorage.watch((profile) => {
+      setHasProfile(!!profile?.content?.trim());
+    });
+
+    return unwatch;
   }, []);
 
   // Dialog state for confirmations
@@ -537,6 +560,7 @@ export const App: React.FC = () => {
         onRefresh={extraction.handleRefreshJob}
         onExtractNew={extraction.handleExtractNew}
         onCancelDuplicate={extraction.handleCancelDuplicate}
+        shouldAnimateMaximize={store.jobs.length > 0 && !hasProfile}
       />
 
       {/* Confirmation Dialog */}

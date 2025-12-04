@@ -324,7 +324,7 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
                   }}
                   className="text-primary hover:underline"
                 >
-                  Using OpenAI or another provider?
+                  Using a cloud provider with an API key?
                 </a>
               </p>
             </>

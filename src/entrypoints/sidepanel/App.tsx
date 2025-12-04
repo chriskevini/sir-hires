@@ -4,6 +4,7 @@ import { ResearchingView } from '../job-details/views/ResearchingView';
 import { DraftingView } from '../job-details/views/DraftingView';
 import { useJobStore } from '../job-details/hooks/useJobStore';
 import { JobViewRouter } from '../../components/features/JobViewRouter';
+import { JobFooter } from '../../components/features/JobFooter';
 import {
   ParsedJobProvider,
   useGetParsedJob,
@@ -73,6 +74,8 @@ interface SidepanelContentProps {
   mainContent: React.ReactNode;
   jobs: Job[];
   selectedJobId: string | null;
+  currentJob: Job | null;
+  isChecklistExpanded: boolean;
   selectorOpen: boolean;
   extracting: boolean;
   hasJob: boolean;
@@ -82,6 +85,9 @@ interface SidepanelContentProps {
   onMaximize: () => void;
   onSelectJob: (jobId: string) => void;
   onDeleteJobFromSelector: (jobId: string) => void;
+  onNavigate: (targetStatus: string) => void;
+  onToggleChecklistExpand: (isExpanded: boolean) => void;
+  onToggleChecklistItem: (jobId: string, itemId: string) => void;
   pendingExtraction: { url: string } | null;
   showDuplicateModal: boolean;
   onRefresh: () => void;
@@ -105,6 +111,8 @@ function SidepanelContent({
   mainContent,
   jobs,
   selectedJobId,
+  currentJob,
+  isChecklistExpanded,
   selectorOpen,
   extracting,
   hasJob,
@@ -114,6 +122,9 @@ function SidepanelContent({
   onMaximize,
   onSelectJob,
   onDeleteJobFromSelector,
+  onNavigate,
+  onToggleChecklistExpand,
+  onToggleChecklistItem,
   pendingExtraction,
   showDuplicateModal,
   onRefresh,
@@ -131,6 +142,9 @@ function SidepanelContent({
   const parsedJob = selectedJobId ? getParsedJob(selectedJobId) : null;
   const jobTitle = parsedJob?.topLevelFields['TITLE'];
   const company = parsedJob?.topLevelFields['COMPANY'];
+
+  // Get current job status for footer
+  const currentStatus = currentJob?.applicationStatus || defaults.status;
 
   return (
     <div className="flex flex-col h-screen">
@@ -156,6 +170,19 @@ function SidepanelContent({
         {/* First extraction banner - shown once after first successful extraction */}
         {showFirstExtractionBanner && (
           <FirstExtractionBanner onDismiss={onDismissFirstExtractionBanner} />
+        )}
+
+        {/* Job footer - navigation and checklist */}
+        {currentJob && (
+          <JobFooter
+            status={currentStatus}
+            checklist={currentJob.checklist}
+            jobId={currentJob.id}
+            isChecklistExpanded={isChecklistExpanded}
+            onNavigate={onNavigate}
+            onToggleChecklist={onToggleChecklistExpand}
+            onToggleChecklistItem={onToggleChecklistItem}
+          />
         )}
 
         {/* Job selector overlay - positioned relative to content area */}
@@ -377,9 +404,12 @@ export const App: React.FC = () => {
   /**
    * Handle toggling checklist expansion
    */
-  const handleChecklistToggleExpand = useCallback(async () => {
-    await store.setChecklistExpanded(!store.checklistExpanded);
-  }, [store]);
+  const handleChecklistToggleExpand = useCallback(
+    async (isExpanded: boolean) => {
+      await store.setChecklistExpanded(isExpanded);
+    },
+    [store]
+  );
 
   /**
    * Handle toggling a checklist item (ID-based)
@@ -392,6 +422,22 @@ export const App: React.FC = () => {
       await store.toggleChecklistItem(jobId, status, itemId);
     },
     [store]
+  );
+
+  /**
+   * Handle navigation to a new status (from JobFooter)
+   */
+  const handleNavigate = useCallback(
+    async (targetStatus: string) => {
+      if (!currentJob) return;
+      await store.updateJobField(
+        currentJob.id,
+        'applicationStatus',
+        targetStatus
+      );
+      console.info(`[Sidepanel] Navigated to ${targetStatus}`);
+    },
+    [currentJob, store]
   );
 
   /**
@@ -464,18 +510,14 @@ export const App: React.FC = () => {
     return (
       <JobViewRouter
         job={currentJob}
-        isChecklistExpanded={store.checklistExpanded}
         ResearchingView={ResearchingView}
         DraftingView={DraftingView}
         onDeleteJob={handleDeleteJob}
         onSaveField={handleSaveField}
         onSaveDocument={handleSaveDocument}
         onDeleteDocument={handleDeleteDocument}
-        onToggleChecklistExpand={handleChecklistToggleExpand}
-        onToggleChecklistItem={handleChecklistToggleItem}
         emptyStateMessage="No job selected"
         showHeader={false}
-        showFooter={true}
       />
     );
   };
@@ -637,6 +679,8 @@ export const App: React.FC = () => {
         mainContent={mainContent}
         jobs={store.jobs}
         selectedJobId={store.jobInFocusId}
+        currentJob={currentJob}
+        isChecklistExpanded={store.checklistExpanded}
         selectorOpen={selectorOpen}
         extracting={extraction.extracting}
         hasJob={!!currentJob}
@@ -646,6 +690,9 @@ export const App: React.FC = () => {
         onMaximize={handleOpenJobDetails}
         onSelectJob={handleSelectJob}
         onDeleteJobFromSelector={handleDeleteJobFromSelector}
+        onNavigate={handleNavigate}
+        onToggleChecklistExpand={handleChecklistToggleExpand}
+        onToggleChecklistItem={handleChecklistToggleItem}
         pendingExtraction={extraction.pendingExtraction}
         showDuplicateModal={extraction.showDuplicateModal}
         onRefresh={extraction.handleRefreshJob}

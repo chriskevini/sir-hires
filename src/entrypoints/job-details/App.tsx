@@ -6,6 +6,7 @@ import { DraftingView } from './views/DraftingView';
 import { useJobStore, useFitScore } from './hooks';
 import { useLLMSettings } from '@/hooks/useLLMSettings';
 import { JobViewRouter } from '../../components/features/JobViewRouter';
+import { JobFooter } from '../../components/features/JobFooter';
 import {
   ParsedJobProvider,
   useGetParsedJob,
@@ -157,6 +158,9 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
   /**
    * Handle checklist toggle item
    */
+  /**
+   * Handle checklist toggle item
+   */
   const handleChecklistToggleItem = useCallback(
     async (jobId: string, itemId: string) => {
       const job = store.jobs.find((j: Job) => j.id === jobId);
@@ -171,6 +175,19 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
       const status = job.applicationStatus || defaults.status;
       await store.toggleChecklistItem(jobId, status, itemId);
       console.info(`[App] Toggled checklist item ${itemId}`);
+    },
+    [store]
+  );
+
+  /**
+   * Handle navigation to a new status (from JobFooter)
+   */
+  const handleNavigate = useCallback(
+    async (targetStatus: string) => {
+      const job = store.jobs[store.selectedJobIndex];
+      if (!job) return;
+      await store.updateJobField(job.id, 'applicationStatus', targetStatus);
+      console.info(`[App] Navigated to ${targetStatus}`);
     },
     [store]
   );
@@ -417,15 +434,12 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
     return (
       <JobViewRouter
         job={job}
-        isChecklistExpanded={store.checklistExpanded}
         ResearchingView={ResearchingView}
         DraftingView={DraftingView}
         onDeleteJob={handleDeleteJob}
         onSaveField={handleSaveField}
         onSaveDocument={handleSaveDocument}
         onDeleteDocument={handleDeleteDocument}
-        onToggleChecklistExpand={handleChecklistToggleExpand}
-        onToggleChecklistItem={handleChecklistToggleItem}
         emptyStateMessage={
           store.jobs.length === 0 ? 'No jobs yet' : 'No job selected'
         }
@@ -625,13 +639,25 @@ const AppContent: React.FC<AppContentProps> = ({ store }) => {
         />
 
         {/* Detail panel */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden flex flex-col">
           <div
-            className="h-full overflow-hidden bg-background"
+            className="flex-1 overflow-hidden bg-background"
             id="detailPanel"
           >
             {renderJobView()}
           </div>
+          {/* Job footer - navigation and checklist */}
+          {currentJob && (
+            <JobFooter
+              status={currentJob.applicationStatus || defaults.status}
+              checklist={currentJob.checklist}
+              jobId={currentJob.id}
+              isChecklistExpanded={store.checklistExpanded}
+              onNavigate={handleNavigate}
+              onToggleChecklist={handleChecklistToggleExpand}
+              onToggleChecklistItem={handleChecklistToggleItem}
+            />
+          )}
         </div>
       </div>
 

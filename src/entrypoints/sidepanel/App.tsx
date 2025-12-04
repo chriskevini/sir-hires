@@ -436,9 +436,18 @@ export const App: React.FC = () => {
   // Determine loading state
   const isLoading = store.isLoading && isInitialLoad;
 
+  // Wait for welcome state and LLM settings to initialize before rendering
+  // This prevents flash of empty state before WelcomeView
+  if (showWelcome === null || !llmSettings.hasInitialized) {
+    return (
+      <div className="flex flex-col h-screen items-center justify-center">
+        <div className="text-muted-foreground italic">Loading...</div>
+      </div>
+    );
+  }
+
   // Show welcome view for first-time users (full takeover, no header)
-  // showWelcome is null while loading from storage
-  if (showWelcome === true && llmSettings.hasInitialized) {
+  if (showWelcome === true) {
     return (
       <WelcomeView
         llmSettings={llmSettings}
@@ -478,12 +487,7 @@ export const App: React.FC = () => {
     );
   }
   // LLM not connected (returning users only - first-time users see WelcomeView)
-  // Only show after initialization to prevent flash on first load
-  else if (
-    llmSettings.hasInitialized &&
-    !llmSettings.isConnected &&
-    showWelcome === false
-  ) {
+  else if (!llmSettings.isConnected) {
     return (
       <div className="flex flex-col h-screen items-center justify-center p-6 overflow-y-auto">
         <div className="w-full max-w-sm">

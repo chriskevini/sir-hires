@@ -166,14 +166,14 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
                     <h4 className="text-sm font-semibold text-foreground mb-1">
                       Synthesis (Resume/Cover Letter)
                     </h4>
-                    <p className="text-xs text-muted-foreground mb-2">
+                    <p className="text-sm text-muted-foreground mb-2">
                       Higher creativity for document generation
                     </p>
                     <div className="flex gap-3">
                       <div className="flex-1 flex flex-col gap-1">
                         <label
                           htmlFor="synthesis-tokens"
-                          className="text-xs text-muted-foreground"
+                          className="text-sm text-muted-foreground"
                         >
                           Max Tokens
                         </label>
@@ -195,7 +195,7 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
                       <div className="flex-1 flex flex-col gap-1">
                         <label
                           htmlFor="synthesis-temp"
-                          className="text-xs text-muted-foreground"
+                          className="text-sm text-muted-foreground"
                         >
                           Temperature
                         </label>
@@ -222,14 +222,14 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
                     <h4 className="text-sm font-semibold text-foreground mb-1">
                       Extraction (Job Parsing)
                     </h4>
-                    <p className="text-xs text-muted-foreground mb-2">
+                    <p className="text-sm text-muted-foreground mb-2">
                       Low creativity for consistent parsing
                     </p>
                     <div className="flex gap-3">
                       <div className="flex-1 flex flex-col gap-1">
                         <label
                           htmlFor="extraction-tokens"
-                          className="text-xs text-muted-foreground"
+                          className="text-sm text-muted-foreground"
                         >
                           Max Tokens
                         </label>
@@ -251,7 +251,7 @@ export function LLMSettingsForm({ llmSettings }: LLMSettingsFormProps) {
                       <div className="flex-1 flex flex-col gap-1">
                         <label
                           htmlFor="extraction-temp"
-                          className="text-xs text-muted-foreground"
+                          className="text-sm text-muted-foreground"
                         >
                           Temperature
                         </label>

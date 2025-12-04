@@ -96,7 +96,7 @@ const StreamingTextarea = React.forwardRef<
 
         {/* Streaming indicator */}
         {isStreaming && (
-          <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded">
+          <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-1 bg-primary/10 text-primary text-sm font-medium rounded">
             <span className="inline-block w-2 h-2 bg-primary rounded-full animate-pulse" />
             Streaming...
           </div>

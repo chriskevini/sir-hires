@@ -15,7 +15,7 @@ export const EditorFooter: React.FC<EditorFooterProps> = ({
   const isSaved = saveStatus.toLowerCase().includes('saved');
 
   return (
-    <div className="flex justify-between items-center py-2 px-4 bg-card border-t border-border text-xs text-muted-foreground">
+    <div className="flex justify-between items-center py-2 px-4 bg-card border-t border-border text-sm text-muted-foreground">
       <div className="flex items-center gap-2">
         <span
           className={cn(

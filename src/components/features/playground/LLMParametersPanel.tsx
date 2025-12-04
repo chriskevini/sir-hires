@@ -68,7 +68,7 @@ export const LLMParametersPanel: React.FC<LLMParametersPanelProps> = React.memo(
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 text-xs px-2"
+              className="h-6 text-sm px-2"
               onClick={handleReset}
               disabled={!isModified}
             >
@@ -80,7 +80,7 @@ export const LLMParametersPanel: React.FC<LLMParametersPanelProps> = React.memo(
         {/* Parameter inputs */}
         <div className="flex gap-4">
           <div className="flex-1">
-            <label className="block text-xs text-muted-foreground mb-1">
+            <label className="block text-sm text-muted-foreground mb-1">
               Temperature
             </label>
             <input
@@ -96,7 +96,7 @@ export const LLMParametersPanel: React.FC<LLMParametersPanelProps> = React.memo(
             />
           </div>
           <div className="flex-1">
-            <label className="block text-xs text-muted-foreground mb-1">
+            <label className="block text-sm text-muted-foreground mb-1">
               Max Tokens
             </label>
             <input

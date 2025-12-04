@@ -132,7 +132,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
                 'border border-[var(--nav-color,var(--status-researching))] text-[var(--nav-color,var(--status-researching))]',
                 'hover:bg-[color-mix(in_srgb,var(--nav-color,var(--status-researching))_10%,transparent)]',
                 'active:scale-[0.98]',
-                'max-[480px]:py-1.5 max-[480px]:px-2.5 max-[480px]:text-xs'
+                'max-[480px]:py-1.5 max-[480px]:px-2.5 max-[480px]:text-sm'
               )}
               onClick={() => onNavigate(navButtons.left!.target)}
               style={{ '--nav-color': leftTargetColor } as React.CSSProperties}
@@ -191,7 +191,7 @@ export const JobFooter: React.FC<JobFooterProps> = ({
                   'border border-[var(--nav-color,var(--status-researching))] text-[var(--nav-color,var(--status-researching))]',
                   'hover:bg-[color-mix(in_srgb,var(--nav-color,var(--status-researching))_10%,transparent)]',
                   'active:scale-[0.98]',
-                  'max-[480px]:py-1.5 max-[480px]:px-2.5 max-[480px]:text-xs'
+                  'max-[480px]:py-1.5 max-[480px]:px-2.5 max-[480px]:text-sm'
                 )}
                 onClick={() => onNavigate(button.target)}
                 style={{ '--nav-color': targetColor } as React.CSSProperties}

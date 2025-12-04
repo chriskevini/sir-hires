@@ -10,10 +10,16 @@
  */
 
 import React from 'react';
-import { Check, ArrowRight } from 'lucide-react';
+import { Check, ArrowRight, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { LLMSettingsForm } from './LLMSettingsForm';
 import type { useLLMSettings } from '@/hooks/useLLMSettings';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface WelcomeViewProps {
   llmSettings: ReturnType<typeof useLLMSettings>;
@@ -80,9 +86,9 @@ export function WelcomeView({ llmSettings, onGetStarted }: WelcomeViewProps) {
   const isConnected = llmSettings.isConnected;
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
+    <div className="flex flex-col h-screen justify-center overflow-y-auto">
       {/* Header */}
-      <div className="px-6 pt-8 pb-6">
+      <div className="px-6 pt-8 pb-6 shrink-0">
         <h1 className="text-2xl font-bold text-foreground mb-2">
           Welcome to Sir Hires
         </h1>
@@ -93,7 +99,7 @@ export function WelcomeView({ llmSettings, onGetStarted }: WelcomeViewProps) {
       </div>
 
       {/* Steps */}
-      <div className="flex-1 px-6">
+      <div className="px-6 shrink-0">
         {/* Step 1: Connect LLM */}
         <Step
           number={1}
@@ -135,19 +141,32 @@ export function WelcomeView({ llmSettings, onGetStarted }: WelcomeViewProps) {
         <Step
           number={3}
           title="Add your profile"
-          description="Import your resume to unlock fit scoring and tailored document generation."
+          description="Import your resume to unlock tailored document generation."
           isComplete={false}
           isActive={false}
         >
-          <p className="text-xs text-muted-foreground italic">
+          <span className="font-light text-muted-foreground italic">
             You can do this later from the Profile page
-          </p>
+          </span>
         </Step>
       </div>
 
       {/* Footer */}
-      <div className="px-6 py-4 border-t border-border bg-muted/30">
-        <p className="text-xs text-muted-foreground text-center">
+      <div className="px-6 py-4 border-t border-border bg-muted/30 shrink-0 flex items-center">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="text-muted-foreground hover:text-foreground p-1 -ml-1">
+                <HelpCircle className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>Using a cloud provider with an API key?</p>
+              <p className="font-light">Use a local proxy like LiteLLM.</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <p className="font-light text-muted-foreground text-center flex-1">
           All data stays on your device. No cloud accounts required.
         </p>
       </div>

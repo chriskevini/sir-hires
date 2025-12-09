@@ -32,6 +32,14 @@ export class PrintService {
   async printContent(options: PrintOptions): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
+        // Store original tab title to restore later
+        const originalTitle = document.title;
+
+        // Temporarily change tab title for PDF filename
+        if (options.title) {
+          document.title = options.title;
+        }
+
         // Create hidden iframe
         const iframe = document.createElement('iframe');
         iframe.style.cssText = `
@@ -72,20 +80,28 @@ export class PrintService {
               if (options.removeAfterPrint !== false) {
                 setTimeout(() => {
                   document.body.removeChild(iframe);
+                  // Restore original tab title
+                  document.title = originalTitle;
                   resolve();
                 }, 1000);
               } else {
+                // Restore original tab title
+                document.title = originalTitle;
                 resolve();
               }
             }, 250);
           } catch (error) {
             document.body.removeChild(iframe);
+            // Restore original tab title on error
+            document.title = originalTitle;
             reject(error);
           }
         };
 
         iframe.onerror = () => {
           document.body.removeChild(iframe);
+          // Restore original tab title on error
+          document.title = originalTitle;
           reject(new Error('Failed to load iframe'));
         };
 

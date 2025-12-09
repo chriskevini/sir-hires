@@ -34,15 +34,29 @@ export const PDFStylePreviewModal: React.FC<PDFStylePreviewModalProps> = ({
   documentContent,
   onSelectStyle,
 }) => {
-  // Generate sample content for one page
+  // Generate sample content for one page per style
   const sampleContent = useMemo(
-    () => generateSampleContent(documentContent),
+    () =>
+      PDF_STYLES.reduce(
+        (acc, styleInfo) => ({
+          ...acc,
+          [styleInfo.id]: generateSampleContent(documentContent, styleInfo.id),
+        }),
+        {} as Record<PDFStyle, string>
+      ),
     [documentContent]
   );
 
-  // Convert to HTML once
+  // Convert to HTML once per style
   const htmlContent = useMemo(
-    () => markdownToHtml(sampleContent),
+    () =>
+      PDF_STYLES.reduce(
+        (acc, styleInfo) => ({
+          ...acc,
+          [styleInfo.id]: markdownToHtml(sampleContent[styleInfo.id]),
+        }),
+        {} as Record<PDFStyle, string>
+      ),
     [sampleContent]
   );
 
@@ -80,7 +94,7 @@ export const PDFStylePreviewModal: React.FC<PDFStylePreviewModalProps> = ({
               <StylePreviewCard
                 key={styleInfo.id}
                 style={styleInfo}
-                htmlContent={htmlContent}
+                htmlContent={htmlContent[styleInfo.id]}
                 onClick={() => handleStyleClick(styleInfo.id)}
               />
             ))}

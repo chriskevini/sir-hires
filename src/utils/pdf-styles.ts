@@ -46,7 +46,10 @@ export function getPDFStyleCSS(style: PDFStyle): string {
  * @param markdown - Full markdown content
  * @returns First ~50 lines or 2000 characters, whichever comes first
  */
-export function generateSampleContent(markdown: string): string {
+export function generateSampleContent(
+  markdown: string,
+  style?: PDFStyle
+): string {
   const lines = markdown.split('\n');
   const maxLines = 50;
   const maxChars = 2000;
@@ -54,9 +57,9 @@ export function generateSampleContent(markdown: string): string {
   // Take up to 50 lines
   let content = lines.slice(0, maxLines).join('\n');
 
-  // Insert HR after first H1 if not present (for Modern style letterhead separator)
+  // Insert HR after first H1 if not present (for Modern style letterhead separator only)
   const h1Match = content.match(/^# .+$/m);
-  if (h1Match && h1Match.index !== undefined) {
+  if (h1Match && h1Match.index !== undefined && style === 'modern') {
     const h1End = h1Match.index + h1Match[0].length;
     const afterH1 = content.slice(h1End);
 

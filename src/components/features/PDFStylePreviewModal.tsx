@@ -75,7 +75,7 @@ export const PDFStylePreviewModal: React.FC<PDFStylePreviewModalProps> = ({
         </DialogHeader>
 
         <div className="overflow-x-auto p-6">
-          <div className="flex gap-8 w-max min-w-full">
+          <div className="flex gap-8 justify-center">
             {PDF_STYLES.map((styleInfo) => (
               <StylePreviewCard
                 key={styleInfo.id}

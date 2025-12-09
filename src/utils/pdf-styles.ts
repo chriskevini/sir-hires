@@ -42,6 +42,7 @@ export function getPDFStyleCSS(style: PDFStyle): string {
 /**
  * Generate sample content for style preview
  * Takes content to fill approximately one page
+ * Ensures HR after first H1 for Modern style preview
  * @param markdown - Full markdown content
  * @returns First ~50 lines or 2000 characters, whichever comes first
  */
@@ -52,6 +53,31 @@ export function generateSampleContent(markdown: string): string {
 
   // Take up to 50 lines
   let content = lines.slice(0, maxLines).join('\n');
+
+  // Insert HR after first H1 if not present (for Modern style letterhead separator)
+  const h1Match = content.match(/^# .+$/m);
+  if (h1Match && h1Match.index !== undefined) {
+    const h1End = h1Match.index + h1Match[0].length;
+    const afterH1 = content.slice(h1End);
+
+    // Check if there's already an HR within next 3 lines
+    const nextLines = afterH1.split('\n').slice(0, 4).join('\n');
+    if (!nextLines.includes('---') && !nextLines.includes('***')) {
+      // Find end of next paragraph (contact info) or just after H1
+      const nextSectionIndex = afterH1.search(/\n\n## /);
+      const insertPoint =
+        nextSectionIndex > 0
+          ? h1End + nextSectionIndex
+          : h1End + afterH1.indexOf('\n\n');
+
+      if (insertPoint > h1End) {
+        content =
+          content.slice(0, insertPoint) +
+          '\n\n---' +
+          content.slice(insertPoint);
+      }
+    }
+  }
 
   // If still too long, truncate at character limit
   if (content.length > maxChars) {

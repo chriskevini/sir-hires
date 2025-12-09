@@ -34,7 +34,7 @@ export const PDFStylePreviewModal: React.FC<PDFStylePreviewModalProps> = ({
   documentContent,
   onSelectStyle,
 }) => {
-  // Generate sample content (first 30 lines)
+  // Generate sample content for one page
   const sampleContent = useMemo(
     () => generateSampleContent(documentContent),
     [documentContent]
@@ -54,7 +54,7 @@ export const PDFStylePreviewModal: React.FC<PDFStylePreviewModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="max-w-5xl max-h-[90vh] overflow-y-auto"
+        className="max-w-6xl max-h-[90vh] overflow-y-auto"
         aria-describedby={undefined}
       >
         <DialogHeader>
@@ -74,7 +74,7 @@ export const PDFStylePreviewModal: React.FC<PDFStylePreviewModalProps> = ({
           </Tooltip>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-6 p-6">
+        <div className="grid grid-cols-2 gap-8 p-6">
           {PDF_STYLES.map((styleInfo) => (
             <StylePreviewCard
               key={styleInfo.id}
@@ -103,52 +103,48 @@ const StylePreviewCard: React.FC<StylePreviewCardProps> = ({
   // Generate unique ID for scoped styles
   const containerId = `preview-${style.id}`;
 
+  // US Letter aspect ratio: 8.5" x 11" = 0.773
+  // With 0.8in margins on all sides: actual content area is 6.9" x 9.4" = 0.734
+  // Target height 600px -> width = 600 * 0.773 = 464px
+  const previewHeight = 600;
+  const previewWidth = Math.round(previewHeight * 0.773);
+
   return (
     <button
       onClick={onClick}
-      className="flex flex-col border-2 border-border rounded-lg hover:border-primary hover:shadow-lg transition-all cursor-pointer bg-white overflow-hidden text-left"
+      className="flex flex-col items-center gap-3 p-4 border-2 border-border rounded-lg hover:border-primary hover:shadow-lg transition-all cursor-pointer text-left group"
     >
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-border bg-muted/30">
-        <h3 className="font-semibold text-base text-foreground">
-          {style.name}
-        </h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          {style.description}
-        </p>
+      {/* Style name label */}
+      <div className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+        {style.name}
       </div>
 
-      {/* Preview */}
-      <div className="flex-1 p-4 bg-white overflow-hidden">
+      {/* Preview - mimics printed page with exact aspect ratio */}
+      <div
+        className="preview-container bg-white shadow-lg overflow-hidden relative"
+        style={{
+          width: `${previewWidth}px`,
+          height: `${previewHeight}px`,
+        }}
+      >
+        {/* Page content with proper padding (0.8in = 76.8px at 96dpi) */}
         <div
-          className="preview-container border border-border rounded bg-white shadow-sm overflow-hidden relative"
+          id={containerId}
+          className="preview-content overflow-hidden"
           style={{
-            height: '400px',
+            padding: '76.8px', // 0.8in margins at 96dpi
+            height: '100%',
+            width: '100%',
           }}
         >
-          {/* Scaled preview content */}
-          <div
-            id={containerId}
-            className="preview-content"
-            style={{
-              transform: 'scale(0.8)',
-              transformOrigin: 'top left',
-              width: '125%', // Compensate for 0.8 scale (1/0.8 = 1.25)
-              height: '125%',
-            }}
-          >
-            {/* Scoped styles for this preview */}
-            <style>{`#${containerId} { ${getPDFStyleCSS(style.id)} }`}</style>
-            <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
-          </div>
+          {/* Scoped styles for this preview */}
+          <style>{`
+            #${containerId} * { 
+              ${getPDFStyleCSS(style.id)}
+            }
+          `}</style>
+          <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
         </div>
-      </div>
-
-      {/* Select button */}
-      <div className="px-4 py-3 border-t border-border bg-muted/30">
-        <span className="text-sm font-medium text-primary">
-          Select {style.name} →
-        </span>
       </div>
     </button>
   );

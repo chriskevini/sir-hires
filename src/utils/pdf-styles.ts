@@ -10,19 +10,16 @@ export type PDFStyle = 'modern' | 'classic';
 export interface PDFStyleMetadata {
   id: PDFStyle;
   name: string;
-  description: string;
 }
 
 export const PDF_STYLES: PDFStyleMetadata[] = [
   {
     id: 'modern',
     name: 'Modern',
-    description: 'Clean design with Inter font and blue accents',
   },
   {
     id: 'classic',
     name: 'Classic',
-    description: 'Traditional GitHub-style formatting',
   },
 ];
 
@@ -44,13 +41,29 @@ export function getPDFStyleCSS(style: PDFStyle): string {
 
 /**
  * Generate sample content for style preview
- * Takes first ~30 lines of document to fill 400px preview
+ * Takes content to fill approximately one page
  * @param markdown - Full markdown content
- * @returns First 30 lines of content
+ * @returns First ~50 lines or 2000 characters, whichever comes first
  */
 export function generateSampleContent(markdown: string): string {
   const lines = markdown.split('\n');
-  return lines.slice(0, 30).join('\n');
+  const maxLines = 50;
+  const maxChars = 2000;
+
+  // Take up to 50 lines
+  let content = lines.slice(0, maxLines).join('\n');
+
+  // If still too long, truncate at character limit
+  if (content.length > maxChars) {
+    content = content.slice(0, maxChars);
+    // Try to end at a complete line
+    const lastNewline = content.lastIndexOf('\n');
+    if (lastNewline > maxChars * 0.8) {
+      content = content.slice(0, lastNewline);
+    }
+  }
+
+  return content;
 }
 
 /**
@@ -102,9 +115,9 @@ function getModernStyleCSS(): string {
     h1 + p + hr:first-of-type,
     h1 + hr:first-of-type {
       border: 0;
-      border-bottom: 3px solid var(--accent);
+      background-color: var(--accent);
       margin: 0.5em 0 1.5em 0;
-      height: 0;
+      height: 3px;
     }
 
     h2 {
@@ -366,9 +379,10 @@ function getModernStyleCSS(): string {
       h1 + p + hr:first-of-type,
       h1 + hr:first-of-type {
         visibility: visible;
-        border-bottom: 3px solid var(--accent);
+        border: 0;
+        background-color: var(--accent);
         margin: 0.5em 0 1.5em 0;
-        height: 0;
+        height: 3px;
         page-break-after: auto;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;

@@ -230,6 +230,10 @@ export const exportPDF = async (
         margin: 24px 0;
         background-color: #e1e4e8;
         border: 0;
+      }
+
+      /* Page breaks for all HRs except the first (letterhead separator) */
+      hr:not(:first-of-type) {
         page-break-after: always;
       }
 
@@ -276,8 +280,17 @@ export const exportPDF = async (
           color: #666;
         }
 
-        /* Horizontal rules as page breaks */
-        hr {
+        /* First HR (letterhead separator) stays visible */
+        hr:first-of-type {
+          visibility: visible;
+          height: 2px;
+          margin: 24px 0;
+          background-color: #e1e4e8;
+          page-break-after: auto;
+        }
+
+        /* Subsequent HRs become invisible page breaks */
+        hr:not(:first-of-type) {
           page-break-after: always;
           visibility: hidden;
           margin: 0;

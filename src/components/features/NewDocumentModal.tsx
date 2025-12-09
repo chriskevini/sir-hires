@@ -77,7 +77,7 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
 
   // Shared styles for template option buttons
   const templateOptionClasses =
-    'flex flex-col items-start p-3 px-4 border border-border rounded-lg bg-background cursor-pointer transition-all duration-150 text-left shadow-sm hover:border-primary hover:bg-primary/10 hover:shadow-md active:bg-primary/20';
+    'flex flex-col items-start px-4 py-2 border border-border rounded-lg bg-background cursor-pointer transition-all duration-150 text-left shadow-sm hover:border-primary hover:bg-primary/10 hover:shadow-md active:bg-primary/20';
 
   // Build combined list: custom templates first (newest first), then built-ins
   const builtInTemplates: Array<{
@@ -115,10 +115,13 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
         </Button>
 
         {/* Masonry layout: custom templates first, then built-ins */}
-        <div className="grid grid-cols-2 gap-3 mt-3">
+        <div className="columns-2 gap-3 mt-3">
           {/* Custom templates (newest first) */}
           {sortedTemplates.map((template) => (
-            <div key={template.id} className="relative group">
+            <div
+              key={template.id}
+              className="relative group mb-3 break-inside-avoid"
+            >
               <Button
                 variant="ghost"
                 className={`${templateOptionClasses} w-full h-auto`}
@@ -151,19 +154,20 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
 
           {/* Built-in templates */}
           {builtInTemplates.map((template) => (
-            <Button
-              key={template.key}
-              variant="ghost"
-              className={`${templateOptionClasses} w-full h-auto`}
-              onClick={() => handleSelect(template.key)}
-            >
-              <span className="font-semibold text-sm text-foreground mb-2">
-                {template.label}
-              </span>
-              <pre className="font-mono text-xs leading-snug text-muted-foreground whitespace-pre-wrap break-words m-0 w-full">
-                {template.content}
-              </pre>
-            </Button>
+            <div key={template.key} className="mb-3 break-inside-avoid">
+              <Button
+                variant="ghost"
+                className={`${templateOptionClasses} w-full h-auto`}
+                onClick={() => handleSelect(template.key)}
+              >
+                <span className="font-semibold text-sm text-foreground mb-2">
+                  {template.label}
+                </span>
+                <pre className="font-mono text-xs leading-snug text-muted-foreground whitespace-pre-wrap break-words m-0 w-full">
+                  {template.content}
+                </pre>
+              </Button>
+            </div>
           ))}
         </div>
       </div>

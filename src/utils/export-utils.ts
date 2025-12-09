@@ -3,8 +3,8 @@
  */
 
 import { markdownToHtml } from './markdown-utils';
-import { escapeHtml } from './shared-utils';
 import { browser } from 'wxt/browser';
+import { PrintService } from './print-service';
 
 export interface ExportDocument {
   title: string;
@@ -12,6 +12,25 @@ export interface ExportDocument {
 }
 
 export type ToastType = 'success' | 'error' | 'info';
+
+/**
+ * Detects if document has a letterhead (name, address, contact info, hr separator)
+ * Pattern: # **[Name]** \n [Address] \n [Phone] | [Email] \n \n ---
+ * @param text - Markdown text to check
+ * @returns true if letterhead detected in first 10 lines
+ */
+function hasLetterhead(text: string): boolean {
+  const lines = text.split('\n').slice(0, 10);
+  const firstTenLines = lines.join('\n');
+
+  // Look for pattern: H1 with bold, followed by hr within a few lines
+  // Also check for pipe separator (contact info)
+  const hasH1Bold = /^#\s+\*\*.*\*\*/m.test(firstTenLines);
+  const hasHr = /^---+$/m.test(firstTenLines);
+  const hasPipeSeparator = /\|/.test(firstTenLines);
+
+  return hasH1Bold && hasHr && hasPipeSeparator;
+}
 
 /**
  * Exports a document as Markdown file
@@ -52,231 +71,225 @@ export const exportMarkdown = (
 
 /**
  * Exports a document as PDF using the browser print dialog
+ * Uses hidden iframe to avoid opening new window/tab
  * @param doc - The document to export
  * @param onToast - Optional toast notification callback
  */
-export const exportPDF = (
+export const exportPDF = async (
   doc: ExportDocument,
   onToast?: (message: string, type: ToastType) => void
-): void => {
+): Promise<void> => {
   if (!doc.text || !doc.text.trim()) {
     onToast?.('Document is empty. Nothing to export.', 'error');
     return;
   }
 
   try {
-    const printWindow = window.open('', '_blank');
-
-    if (!printWindow) {
-      onToast?.(
-        'Failed to open print window. Please allow popups for this site.',
-        'error'
-      );
-      return;
-    }
-
     const htmlContent = markdownToHtml(doc.text);
+    const hasLettehead = hasLetterhead(doc.text);
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>${escapeHtml(doc.title)}</title>
-        <meta charset="UTF-8">
-        <style>
-          /* Base Styles */
-          * {
-            box-sizing: border-box;
-          }
+    // Dynamic padding based on letterhead presence
+    const bodyPadding = hasLettehead ? '0' : '20px';
+    const firstElementMargin = hasLettehead ? '0' : '0';
 
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
-            line-height: 1.6;
-            color: #1a1a1a;
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 20px;
-            font-size: 14px;
-          }
+    const printCSS = `
+      /* Base Styles */
+      * {
+        box-sizing: border-box;
+      }
 
-          /* Typography */
-          h1, h2, h3, h4, h5, h6 {
-            margin-top: 24px;
-            margin-bottom: 12px;
-            font-weight: 600;
-            line-height: 1.3;
-            color: #000;
-          }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+        line-height: 1.6;
+        color: #1a1a1a;
+        max-width: 800px;
+        margin: 40px auto;
+        padding: ${bodyPadding};
+        font-size: 14px;
+      }
 
-          h1 { font-size: 28px; border-bottom: 2px solid #e1e4e8; padding-bottom: 8px; }
-          h2 { font-size: 22px; border-bottom: 1px solid #e1e4e8; padding-bottom: 6px; }
-          h3 { font-size: 18px; }
-          h4 { font-size: 16px; }
-          h5 { font-size: 14px; }
-          h6 { font-size: 13px; color: #6a737d; }
+      /* Remove top margin from first element for letterheads */
+      body > *:first-child {
+        margin-top: ${firstElementMargin};
+      }
 
-          p {
-            margin-bottom: 12px;
-            margin-top: 0;
-          }
+      /* Typography */
+      h1, h2, h3, h4, h5, h6 {
+        margin-top: 24px;
+        margin-bottom: 12px;
+        font-weight: 600;
+        line-height: 1.3;
+        color: #000;
+      }
 
-          /* Links */
-          a {
-            color: #0366d6;
-            text-decoration: none;
-          }
+      h1 { font-size: 28px; border-bottom: 2px solid #e1e4e8; padding-bottom: 8px; }
+      h2 { font-size: 22px; border-bottom: 1px solid #e1e4e8; padding-bottom: 6px; }
+      h3 { font-size: 18px; }
+      h4 { font-size: 16px; }
+      h5 { font-size: 14px; }
+      h6 { font-size: 13px; color: #6a737d; }
 
-          a:hover {
-            text-decoration: underline;
-          }
+      p {
+        margin-bottom: 12px;
+        margin-top: 0;
+      }
 
-          /* Lists */
-          ul, ol {
-            margin-top: 0;
-            margin-bottom: 12px;
-            padding-left: 2em;
-          }
+      /* Links */
+      a {
+        color: #0366d6;
+        text-decoration: none;
+      }
 
-          li {
-            margin-bottom: 4px;
-          }
+      a:hover {
+        text-decoration: underline;
+      }
 
-          li > p {
-            margin-bottom: 4px;
-          }
+      /* Lists */
+      ul, ol {
+        margin-top: 0;
+        margin-bottom: 12px;
+        padding-left: 2em;
+      }
 
-          /* Code */
-          code {
-            background-color: #f6f8fa;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
-            font-size: 85%;
-          }
+      li {
+        margin-bottom: 4px;
+      }
 
-          pre {
-            background-color: #f6f8fa;
-            padding: 12px;
-            border-radius: 6px;
-            overflow-x: auto;
-            margin-bottom: 12px;
-            line-height: 1.45;
-          }
+      li > p {
+        margin-bottom: 4px;
+      }
 
-          pre code {
-            background-color: transparent;
-            padding: 0;
-            font-size: 12px;
-          }
+      /* Code */
+      code {
+        background-color: #f6f8fa;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+        font-size: 85%;
+      }
 
-          /* Blockquotes */
-          blockquote {
-            margin: 0 0 12px 0;
-            padding: 0 1em;
-            color: #6a737d;
-            border-left: 4px solid #dfe2e5;
-          }
+      pre {
+        background-color: #f6f8fa;
+        padding: 12px;
+        border-radius: 6px;
+        overflow-x: auto;
+        margin-bottom: 12px;
+        line-height: 1.45;
+      }
 
-          blockquote > :first-child {
-            margin-top: 0;
-          }
+      pre code {
+        background-color: transparent;
+        padding: 0;
+        font-size: 12px;
+      }
 
-          blockquote > :last-child {
-            margin-bottom: 0;
-          }
+      /* Blockquotes */
+      blockquote {
+        margin: 0 0 12px 0;
+        padding: 0 1em;
+        color: #6a737d;
+        border-left: 4px solid #dfe2e5;
+      }
 
-          /* Tables */
-          table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-bottom: 12px;
-            font-size: 13px;
-          }
+      blockquote > :first-child {
+        margin-top: 0;
+      }
 
-          table th,
-          table td {
-            padding: 8px 12px;
-            border: 1px solid #dfe2e5;
-            text-align: left;
-          }
+      blockquote > :last-child {
+        margin-bottom: 0;
+      }
 
-          table th {
-            background-color: #f6f8fa;
-            font-weight: 600;
-          }
+      /* Tables */
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-bottom: 12px;
+        font-size: 13px;
+      }
 
-          table tr:nth-child(even) {
-            background-color: #f9f9f9;
-          }
+      table th,
+      table td {
+        padding: 8px 12px;
+        border: 1px solid #dfe2e5;
+        text-align: left;
+      }
 
-          /* Horizontal Rule */
-          hr {
-            height: 2px;
-            padding: 0;
-            margin: 24px 0;
-            background-color: #e1e4e8;
-            border: 0;
-          }
+      table th {
+        background-color: #f6f8fa;
+        font-weight: 600;
+      }
 
-          /* Images */
-          img {
-            max-width: 100%;
-            height: auto;
-            display: block;
-            margin: 12px 0;
-          }
+      table tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
 
-          /* Print Styles */
-          @media print {
-            body {
-              margin: 0;
-              padding: 20px;
-              font-size: 12pt;
-            }
+      /* Horizontal Rule */
+      hr {
+        height: 2px;
+        padding: 0;
+        margin: 24px 0;
+        background-color: #e1e4e8;
+        border: 0;
+      }
 
-            h1 { font-size: 20pt; page-break-after: avoid; }
-            h2 { font-size: 16pt; page-break-after: avoid; }
-            h3 { font-size: 14pt; page-break-after: avoid; }
-            h4, h5, h6 { page-break-after: avoid; }
+      /* Images */
+      img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 12px 0;
+      }
 
-            p, blockquote, ul, ol, table {
-              page-break-inside: avoid;
-            }
+      /* Print Styles */
+      @media print {
+        body {
+          margin: 0;
+          padding: ${bodyPadding};
+          font-size: 12pt;
+          max-width: 100%;
+        }
 
-            pre {
-              page-break-inside: avoid;
-              white-space: pre-wrap;
-              word-wrap: break-word;
-            }
+        h1 { font-size: 20pt; page-break-after: avoid; }
+        h2 { font-size: 16pt; page-break-after: avoid; }
+        h3 { font-size: 14pt; page-break-after: avoid; }
+        h4, h5, h6 { page-break-after: avoid; }
 
-            a {
-              color: #000;
-              text-decoration: underline;
-            }
+        p, blockquote, ul, ol, table {
+          page-break-inside: avoid;
+        }
 
-            a[href^="http"]:after {
-              content: " (" attr(href) ")";
-              font-size: 90%;
-              color: #666;
-            }
+        pre {
+          page-break-inside: avoid;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+        }
 
-            /* Page margins */
-            @page {
-              margin: 1.5cm;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        ${htmlContent}
-      </body>
-      </html>
-    `);
+        a {
+          color: #000;
+          text-decoration: underline;
+        }
 
-    printWindow.document.close();
-    printWindow.onload = () => {
-      printWindow.print();
-    };
+        a[href^="http"]:after {
+          content: " (" attr(href) ")";
+          font-size: 90%;
+          color: #666;
+        }
+
+        /* Page margins - portrait by default */
+        @page {
+          margin: 0.75in;
+          size: letter portrait;
+        }
+      }
+    `;
+
+    const printService = PrintService.getInstance();
+    await printService.printContent({
+      html: htmlContent,
+      css: printCSS,
+      title: doc.title,
+      removeAfterPrint: true,
+    });
   } catch (error: unknown) {
     console.error('PDF export failed:', error);
     const err = error as Error;

@@ -285,13 +285,13 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
   // Handle export
   const handleExport = useCallback(
-    (exportType: 'md' | 'pdf') => {
+    async (exportType: 'md' | 'pdf') => {
       const doc = getDocument(activeTab);
 
       if (exportType === 'md') {
         exportMarkdown(doc, showToast);
       } else if (exportType === 'pdf') {
-        exportPDF(doc, showToast);
+        await exportPDF(doc, showToast);
       }
     },
     [activeTab, getDocument]

@@ -11,6 +11,7 @@ import {
   NewDocumentModal,
   type DocumentTemplateKey,
 } from '@/components/features/NewDocumentModal';
+import { SaveDocumentTemplateModal } from '@/components/features/SaveDocumentTemplateModal';
 import { EditorToolbar } from '@/components/features/EditorToolbar';
 import { EditorContentPanel } from '@/components/features/EditorContentPanel';
 import { StreamingTextarea } from '@/components/ui/StreamingTextarea';
@@ -26,6 +27,7 @@ import { exportMarkdown, exportPDF } from '@/utils/export-utils';
 import { useImmediateSaveMulti } from '@/hooks/useImmediateSave';
 import { useTabState } from '../hooks/useTabState';
 import { useDocumentManager } from '../hooks/useDocumentManager';
+import { useCustomDocumentTemplates } from '@/hooks/useCustomDocumentTemplates';
 import { LLMClient } from '@/utils/llm-client';
 import { userProfileStorage } from '@/utils/storage';
 import { useLLMSettings } from '@/hooks/useLLMSettings';
@@ -122,9 +124,15 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
   // New document modal state
   const [showNewDocumentModal, setShowNewDocumentModal] = useState(false);
 
+  // Save template modal state
+  const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
+
   // Delete document modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<string | null>(null);
+
+  // Custom templates hook
+  const { addTemplate } = useCustomDocumentTemplates();
 
   // Refs for synthesis
   const originalContentRef = useRef<string>('');
@@ -346,6 +354,28 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
     setShowDeleteModal(false);
     setDocumentToDelete(null);
   }, [documentToDelete, documentKeys, activeTab, deleteDocument, switchTab]);
+
+  // Handle save as template
+  const handleSaveAsTemplate = useCallback(
+    async (name: string) => {
+      try {
+        const content = getLatestValue(activeTab);
+        await addTemplate(name, content);
+        showToast('Template saved successfully', 'success');
+      } catch (error) {
+        console.error('Failed to save template:', error);
+        showToast('Failed to save template. Please try again.', 'error');
+        throw error;
+      }
+    },
+    [activeTab, getLatestValue, addTemplate]
+  );
+
+  // Determine if can save template
+  const canSaveTemplate = useMemo(() => {
+    const content = documentContents[activeTab] || '';
+    return content.trim().length > 0;
+  }, [activeTab, documentContents]);
 
   // Build context for synthesis - uses raw MarkdownDB content
   const buildContext = useCallback((): Record<string, string> => {
@@ -604,6 +634,8 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
             onAddDocument={() => setShowNewDocumentModal(true)}
             onDeleteDocument={handleDeleteRequest}
             onExport={handleExport}
+            onSaveAsTemplate={() => setShowSaveTemplateModal(true)}
+            canSaveTemplate={canSaveTemplate}
           />
 
           {/* Editor wrapper */}
@@ -674,6 +706,14 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
         isOpen={showNewDocumentModal}
         onClose={() => setShowNewDocumentModal(false)}
         onSelectTemplate={handleAddDocument}
+      />
+
+      {/* Save Template Modal */}
+      <SaveDocumentTemplateModal
+        isOpen={showSaveTemplateModal}
+        onClose={() => setShowSaveTemplateModal(false)}
+        content={documentContents[activeTab] || ''}
+        onSave={handleSaveAsTemplate}
       />
 
       {/* Delete Document Confirmation Modal */}

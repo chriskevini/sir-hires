@@ -19,7 +19,8 @@ export function markdownToHtml(text: string): string {
   const textWithPlaceholders = text.replace(/\n\n\n+/g, (match) => {
     const numNewlines = match.length - 1; // Number of newlines (minus 1 for paragraph break)
     const numExtraBreaks = Math.floor(numNewlines / 2); // Each pair becomes extra spacing
-    return '\n\n' + '<!-- EXTRA_BREAK -->'.repeat(numExtraBreaks);
+    // Each placeholder on its own paragraph to not interfere with markdown parsing
+    return '\n\n' + '<!-- EXTRA_BREAK -->\n\n'.repeat(numExtraBreaks);
   });
 
   // Configure marked for better HTML output
@@ -32,7 +33,8 @@ export function markdownToHtml(text: string): string {
   let html = marked.parse(textWithPlaceholders) as string;
 
   // Replace placeholders with actual line breaks
-  html = html.replace(/<!-- EXTRA_BREAK -->/g, '<br><br>');
+  // Marked wraps comments in <p> tags, so we need to replace the entire paragraph
+  html = html.replace(/<p><!-- EXTRA_BREAK --><\/p>\n?/g, '<br><br>');
 
   return html;
 }

@@ -145,14 +145,30 @@ const StylePreviewCard: React.FC<StylePreviewCardProps> = ({
             color: '#2d2d2d',
           }}
         >
-          {/* Scoped styles for this preview - apply to container and all children */}
-          {/* KNOWN ISSUE: Modern style blue HR may not render in preview despite CSS being present */}
-          {/* The HR renders correctly in actual PDF exports */}
+          {/* Scoped styles for this preview */}
           <style>{`
-            #${containerId},
-            #${containerId} * { 
+            /* Apply base styles to container */
+            #${containerId} { 
               ${getPDFStyleCSS(style.id)}
             }
+            
+            /* Override HR styling specifically for Modern style */
+            ${
+              style.id === 'modern'
+                ? `
+              #${containerId} h1 + p + hr:first-of-type,
+              #${containerId} h1 + hr:first-of-type {
+                border: none !important;
+                background-color: #2563eb !important;
+                margin: 0.5em 0 1.5em 0 !important;
+                height: 3px !important;
+                visibility: visible !important;
+                display: block !important;
+              }
+            `
+                : ''
+            }
+            
             /* Force light theme colors */
             #${containerId} {
               background-color: #ffffff !important;

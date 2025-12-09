@@ -137,13 +137,17 @@ function getModernStyleCSS(): string {
       text-align: center;
     }
 
-    /* Letterhead separator styling */
+    /* Letterhead separator styling - increased specificity for scoped environments */
+    body h1 + p + hr:first-of-type,
+    body h1 + hr:first-of-type,
     h1 + p + hr:first-of-type,
     h1 + hr:first-of-type {
-      border: 0;
-      background-color: var(--accent);
-      margin: 0.5em 0 1.5em 0;
-      height: 3px;
+      border: none !important;
+      background-color: var(--accent) !important;
+      margin: 0.5em 0 1.5em 0 !important;
+      height: 3px !important;
+      visibility: visible !important;
+      display: block !important;
     }
 
     h2 {
@@ -306,14 +310,22 @@ function getModernStyleCSS(): string {
       background-color: #f8fafc;
     }
 
-    /* Horizontal Rule - Default (letterhead separator) */
-    hr {
+    /* Horizontal Rule - Default styling (not letterhead separator) */
+    hr:not(h1 + p + hr):not(h1 + hr) {
       height: 0;
       padding: 0;
       margin: 1.5em 0;
       background-color: transparent;
       border: 0;
       border-bottom: 1px solid var(--border);
+    }
+
+    /* Ensure letterhead separator HR is not affected by default styling */
+    h1 + p + hr:first-of-type,
+    h1 + hr:first-of-type {
+      height: 3px !important;
+      background-color: var(--accent) !important;
+      border: none !important;
     }
 
     /* Page breaks for all HRs except the first (letterhead separator) */

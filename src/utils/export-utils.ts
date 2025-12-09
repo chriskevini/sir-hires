@@ -122,8 +122,8 @@ export const exportPDF = async (
         color: #000;
       }
 
-      h1 { font-size: 28px; border-bottom: 2px solid #e1e4e8; padding-bottom: 8px; }
-      h2 { font-size: 22px; border-bottom: 1px solid #e1e4e8; padding-bottom: 6px; }
+      h1 { font-size: 28px; }
+      h2 { font-size: 22px; }
       h3 { font-size: 18px; }
       h4 { font-size: 16px; }
       h5 { font-size: 14px; }

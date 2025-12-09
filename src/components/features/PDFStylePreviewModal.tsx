@@ -103,11 +103,13 @@ const StylePreviewCard: React.FC<StylePreviewCardProps> = ({
   // Generate unique ID for scoped styles
   const containerId = `preview-${style.id}`;
 
-  // US Letter aspect ratio: 8.5" x 11" = 0.773
-  // With 0.8in margins on all sides: actual content area is 6.9" x 9.4" = 0.734
-  // Target height 600px -> width = 600 * 0.773 = 464px
-  const previewHeight = 600;
-  const previewWidth = Math.round(previewHeight * 0.773);
+  // US Letter dimensions at 96dpi: 8.5" × 11" = 816px × 1056px
+  // Scale to fit: 0.5 scale = 408px × 528px (fits nicely in modal)
+  const scale = 0.5;
+  const fullPageWidth = 816; // 8.5in at 96dpi
+  const fullPageHeight = 1056; // 11in at 96dpi
+  const displayWidth = Math.round(fullPageWidth * scale);
+  const displayHeight = Math.round(fullPageHeight * scale);
 
   return (
     <button
@@ -119,31 +121,43 @@ const StylePreviewCard: React.FC<StylePreviewCardProps> = ({
         {style.name}
       </div>
 
-      {/* Preview - mimics printed page with exact aspect ratio */}
+      {/* Preview wrapper - scaled down to fit */}
       <div
-        className="preview-container bg-white shadow-lg overflow-hidden relative"
+        className="preview-wrapper"
         style={{
-          width: `${previewWidth}px`,
-          height: `${previewHeight}px`,
+          width: `${displayWidth}px`,
+          height: `${displayHeight}px`,
+          overflow: 'hidden',
         }}
       >
-        {/* Page content with proper padding (0.8in = 76.8px at 96dpi) */}
+        {/* Full-size page (will be scaled down) */}
         <div
-          id={containerId}
-          className="preview-content overflow-hidden"
+          className="preview-container bg-white shadow-lg overflow-hidden relative"
           style={{
-            padding: '76.8px', // 0.8in margins at 96dpi
-            height: '100%',
-            width: '100%',
+            width: `${fullPageWidth}px`,
+            height: `${fullPageHeight}px`,
+            transform: `scale(${scale})`,
+            transformOrigin: 'top left',
           }}
         >
-          {/* Scoped styles for this preview */}
-          <style>{`
-            #${containerId} * { 
-              ${getPDFStyleCSS(style.id)}
-            }
-          `}</style>
-          <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
+          {/* Page content with proper padding (0.8in = 76.8px at 96dpi) */}
+          <div
+            id={containerId}
+            className="preview-content overflow-hidden"
+            style={{
+              padding: '76.8px', // 0.8in margins at 96dpi
+              height: '100%',
+              width: '100%',
+            }}
+          >
+            {/* Scoped styles for this preview */}
+            <style>{`
+              #${containerId} * { 
+                ${getPDFStyleCSS(style.id)}
+              }
+            `}</style>
+            <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
+          </div>
         </div>
       </div>
     </button>

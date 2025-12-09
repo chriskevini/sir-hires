@@ -20,12 +20,22 @@ export const SaveDocumentTemplateModal: React.FC<
 
   const { templates } = useCustomDocumentTemplates();
 
-  // Validation: Check name uniqueness
+  // Validation: Check name uniqueness and format
   const validateName = (value: string): boolean => {
     const trimmed = value.trim();
 
     if (!trimmed) {
       setError('Template name is required');
+      return false;
+    }
+
+    if (trimmed.length < 2) {
+      setError('Name must be at least 2 characters');
+      return false;
+    }
+
+    if (trimmed.length > 50) {
+      setError('Name must be less than 50 characters');
       return false;
     }
 

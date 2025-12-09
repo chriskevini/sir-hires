@@ -31,6 +31,8 @@ export function useCustomDocumentTemplates() {
     const unwatch = customDocumentTemplatesStorage.watch((newValue) => {
       if (newValue !== null) {
         setTemplates(newValue);
+      } else {
+        setTemplates({});
       }
     });
 

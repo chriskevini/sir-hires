@@ -43,6 +43,7 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
     confirm,
     closeDialog: closeConfirm,
   } = useConfirmDialog();
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
 
   const handleSelect = (key: DocumentTemplateKey) => {
     onSelectTemplate(key);
@@ -66,11 +67,11 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
 
     if (confirmed) {
       try {
+        setDeleteError(null);
         await deleteTemplate(templateId);
       } catch (error) {
         console.error('Failed to delete template:', error);
-        // Show error feedback to user (toast would be ideal)
-        alert('Failed to delete template. Please try again.');
+        setDeleteError('Failed to delete template. Please try again.');
       }
     }
   };
@@ -100,6 +101,13 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="New Document">
       <div className="p-4 max-h-[70vh] overflow-y-auto">
+        {/* Error message */}
+        {deleteError && (
+          <div className="mb-3 p-3 bg-destructive/10 border border-destructive/20 rounded-md text-destructive text-sm">
+            {deleteError}
+          </div>
+        )}
+
         {/* Blank template - full width at top */}
         <Button
           variant="ghost"

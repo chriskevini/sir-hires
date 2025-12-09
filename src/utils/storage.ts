@@ -96,6 +96,16 @@ export interface ThemePreference {
   colorTheme: ColorTheme;
 }
 
+/**
+ * Custom document template (lightweight)
+ */
+export interface CustomDocumentTemplate {
+  id: string; // Unique ID (e.g., "custom_1733712345678")
+  name: string; // User-provided name
+  content: string; // Template content
+  createdAt: string; // ISO timestamp
+}
+
 // ===== Storage Item Definitions =====
 
 /**
@@ -277,6 +287,16 @@ export const chivalryPointsStorage = storage.defineItem<number>(
   }
 );
 
+/**
+ * Custom document templates - User-saved templates for resumes, cover letters, etc.
+ */
+export const customDocumentTemplatesStorage = storage.defineItem<
+  Record<string, CustomDocumentTemplate>
+>('local:customDocumentTemplates', {
+  defaultValue: {},
+  version: 1,
+});
+
 // ===== Helper Functions =====
 
 /**
@@ -390,6 +410,7 @@ export async function clearAllStorage(): Promise<void> {
     profileTemplatePanelStorage.removeValue(),
     profileSuggestionsPanelStorage.removeValue(),
     sidebarCollapsedStorage.removeValue(),
+    customDocumentTemplatesStorage.removeValue(),
   ]);
 
   // Also clear browser localStorage drafts

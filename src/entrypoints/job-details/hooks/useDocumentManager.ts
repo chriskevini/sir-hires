@@ -6,7 +6,12 @@
 import { useCallback, useMemo } from 'react';
 import { synthesis } from '@/tasks';
 import { formatSaveTime } from '@/utils/date-utils';
-import type { DocumentTemplateKey } from '@/components/features/NewDocumentModal';
+import { useCustomDocumentTemplates } from '@/hooks/useCustomDocumentTemplates';
+import type {
+  DocumentTemplateKey,
+  BuiltInTemplateKey,
+  CustomTemplateKey,
+} from '@/components/features/NewDocumentModal';
 
 interface Document {
   title: string;
@@ -53,6 +58,8 @@ export const useDocumentManager = ({
   onAddDocument,
   onDeleteDocument,
 }: UseDocumentManagerProps): UseDocumentManagerReturn => {
+  const { templates: customTemplates } = useCustomDocumentTemplates();
+
   /**
    * Get sorted document keys by order
    * Returns empty array if no documents exist
@@ -117,13 +124,32 @@ export const useDocumentManager = ({
       // Generate unique key with timestamp
       const newKey = `doc_${Date.now()}`;
 
-      // Get template config and content
-      const config =
-        synthesis.documents[templateKey as keyof typeof synthesis.documents] ||
-        synthesis.documents.blank;
-      const templateContent =
-        synthesis.templates[templateKey as keyof typeof synthesis.templates] ||
-        '';
+      // Check if this is a custom template
+      const isCustom = (templateKey as string).startsWith('custom_');
+
+      let title: string;
+      let templateContent: string;
+
+      if (isCustom) {
+        // Handle custom template
+        const customTemplate =
+          customTemplates[templateKey as CustomTemplateKey];
+        if (!customTemplate) {
+          throw new Error(
+            `Custom template "${templateKey}" not found. It may have been deleted.`
+          );
+        }
+        title = `${customTemplate.name} - ${parsedJob.jobTitle || 'Untitled'} - ${parsedJob.company || 'Unknown'}`;
+        templateContent = customTemplate.content;
+      } else {
+        // Handle built-in template
+        const config =
+          synthesis.documents[templateKey as BuiltInTemplateKey] ||
+          synthesis.documents.blank;
+        templateContent =
+          synthesis.templates[templateKey as BuiltInTemplateKey] || '';
+        title = config.defaultTitle(parsedJob.jobTitle, parsedJob.company);
+      }
 
       // Calculate order (add to end)
       const existingDocs = job.documents || {};
@@ -132,7 +158,7 @@ export const useDocumentManager = ({
 
       // Create new document (only pass fields the save handler expects)
       const newDocument = {
-        title: config.defaultTitle(parsedJob.jobTitle, parsedJob.company),
+        title,
         text: templateContent,
         order: maxOrder + 1,
       };
@@ -144,7 +170,14 @@ export const useDocumentManager = ({
 
       return newKey;
     },
-    [job.documents, jobId, onAddDocument, parsedJob.jobTitle, parsedJob.company]
+    [
+      customTemplates,
+      job.documents,
+      jobId,
+      onAddDocument,
+      parsedJob.jobTitle,
+      parsedJob.company,
+    ]
   );
 
   /**

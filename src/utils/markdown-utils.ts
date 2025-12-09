@@ -7,21 +7,12 @@ import { marked } from 'marked';
 /**
  * Convert markdown text to HTML using the marked library
  * Supports full markdown spec including headers, lists, links, code blocks, tables, etc.
- * Preserves consecutive newlines for page break control
+ * Horizontal rules (---) can be used as page break hints in PDF output
  * @param text - The markdown text to convert
  * @returns HTML string
  */
 export function markdownToHtml(text: string): string {
   if (!text) return '';
-
-  // Preserve consecutive newlines by replacing them with placeholders
-  // This allows users to add extra spacing or push content to next page
-  const textWithPlaceholders = text.replace(/\n\n\n+/g, (match) => {
-    const numNewlines = match.length - 1; // Number of newlines (minus 1 for paragraph break)
-    const numExtraBreaks = Math.floor(numNewlines / 2); // Each pair becomes extra spacing
-    // Each placeholder on its own paragraph to not interfere with markdown parsing
-    return '\n\n' + '<!-- EXTRA_BREAK -->\n\n'.repeat(numExtraBreaks);
-  });
 
   // Configure marked for better HTML output
   marked.setOptions({
@@ -30,11 +21,7 @@ export function markdownToHtml(text: string): string {
   });
 
   // Parse markdown
-  let html = marked.parse(textWithPlaceholders) as string;
-
-  // Replace placeholders with actual line breaks
-  // Marked wraps comments in <p> tags, so we need to replace the entire paragraph
-  html = html.replace(/<p><!-- EXTRA_BREAK --><\/p>\n?/g, '<br><br>');
+  const html = marked.parse(text) as string;
 
   return html;
 }

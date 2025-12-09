@@ -230,6 +230,7 @@ export const exportPDF = async (
         margin: 24px 0;
         background-color: #e1e4e8;
         border: 0;
+        page-break-after: always;
       }
 
       /* Images */
@@ -273,6 +274,14 @@ export const exportPDF = async (
           content: " (" attr(href) ")";
           font-size: 90%;
           color: #666;
+        }
+
+        /* Horizontal rules as page breaks */
+        hr {
+          page-break-after: always;
+          visibility: hidden;
+          margin: 0;
+          height: 0;
         }
 
         /* Page margins - portrait by default, 1 inch all around */

@@ -69,6 +69,8 @@ export const NewDocumentModal: React.FC<NewDocumentModalProps> = ({
         await deleteTemplate(templateId);
       } catch (error) {
         console.error('Failed to delete template:', error);
+        // Show error feedback to user (toast would be ideal)
+        alert('Failed to delete template. Please try again.');
       }
     }
   };

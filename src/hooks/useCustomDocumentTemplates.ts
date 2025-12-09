@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   customDocumentTemplatesStorage,
   CustomDocumentTemplate,
@@ -29,7 +29,7 @@ export function useCustomDocumentTemplates() {
 
     // Watch for changes (from other tabs/windows)
     const unwatch = customDocumentTemplatesStorage.watch((newValue) => {
-      if (newValue) {
+      if (newValue !== null) {
         setTemplates(newValue);
       }
     });
@@ -67,10 +67,12 @@ export function useCustomDocumentTemplates() {
     setTemplates(updated);
   };
 
-  // Get sorted array (custom templates newest first)
-  const sortedTemplates = Object.values(templates).sort((a, b) => {
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
+  // Get sorted array (custom templates newest first) - memoized
+  const sortedTemplates = useMemo(() => {
+    return Object.values(templates).sort((a, b) => {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, [templates]);
 
   return {
     templates,

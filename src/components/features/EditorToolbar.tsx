@@ -53,6 +53,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 size="sm"
                 onClick={onSaveAsTemplate}
                 disabled={!canSaveTemplate}
+                aria-label="Save as custom template"
               >
                 <Save className="w-4 h-4 text-muted-foreground" />
               </Button>

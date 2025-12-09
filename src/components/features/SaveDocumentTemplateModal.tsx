@@ -30,7 +30,7 @@ export const SaveDocumentTemplateModal: React.FC<
     }
 
     const isDuplicate = Object.values(templates).some(
-      (t) => t.name.toLowerCase() === trimmed.toLowerCase()
+      (t) => t.name?.toLowerCase() === trimmed.toLowerCase()
     );
 
     if (isDuplicate) {

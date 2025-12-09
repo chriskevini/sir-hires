@@ -135,7 +135,9 @@ export const useDocumentManager = ({
         const customTemplate =
           customTemplates[templateKey as CustomTemplateKey];
         if (!customTemplate) {
-          throw new Error('Custom template not found');
+          throw new Error(
+            `Custom template "${templateKey}" not found. It may have been deleted.`
+          );
         }
         title = `${customTemplate.name} - ${parsedJob.jobTitle || 'Untitled'} - ${parsedJob.company || 'Unknown'}`;
         templateContent = customTemplate.content;

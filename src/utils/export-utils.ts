@@ -100,12 +100,12 @@ export const exportPDF = async (
 
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
-        line-height: 1.6;
+        line-height: 1.15;
         color: #1a1a1a;
-        max-width: 800px;
-        margin: 40px auto;
+        max-width: 100%;
+        margin: 0;
         padding: ${bodyPadding};
-        font-size: 14px;
+        font-size: 12px;
       }
 
       /* Remove top margin from first element for letterheads */
@@ -275,9 +275,9 @@ export const exportPDF = async (
           color: #666;
         }
 
-        /* Page margins - portrait by default */
+        /* Page margins - portrait by default, 1 inch all around */
         @page {
-          margin: 0.75in;
+          margin: 1in;
           size: letter portrait;
         }
       }

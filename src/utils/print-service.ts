@@ -44,6 +44,11 @@ export class PrintService {
           border: none;
         `;
 
+        // Set iframe title for print dialog
+        if (options.title) {
+          iframe.title = options.title;
+        }
+
         document.body.appendChild(iframe);
 
         iframe.onload = () => {

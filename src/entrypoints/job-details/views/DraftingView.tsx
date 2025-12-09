@@ -12,6 +12,7 @@ import {
   type DocumentTemplateKey,
 } from '@/components/features/NewDocumentModal';
 import { SaveDocumentTemplateModal } from '@/components/features/SaveDocumentTemplateModal';
+import { PDFStylePreviewModal } from '@/components/features/PDFStylePreviewModal';
 import { EditorToolbar } from '@/components/features/EditorToolbar';
 import { EditorContentPanel } from '@/components/features/EditorContentPanel';
 import { StreamingTextarea } from '@/components/ui/StreamingTextarea';
@@ -24,6 +25,7 @@ import { formatSaveTime } from '@/utils/date-utils';
 import { synthesis } from '@/tasks';
 import { countWords } from '@/utils/text-utils';
 import { exportMarkdown, exportPDF } from '@/utils/export-utils';
+import type { PDFStyle } from '@/utils/pdf-styles';
 import { useImmediateSaveMulti } from '@/hooks/useImmediateSave';
 import { useTabState } from '../hooks/useTabState';
 import { useDocumentManager } from '../hooks/useDocumentManager';
@@ -126,6 +128,9 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
   // Save template modal state
   const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
+
+  // PDF style preview modal state
+  const [showPDFStyleModal, setShowPDFStyleModal] = useState(false);
 
   // Delete document modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -285,14 +290,24 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
 
   // Handle export
   const handleExport = useCallback(
-    (exportType: 'md' | 'pdf') => {
+    async (exportType: 'md' | 'pdf') => {
       const doc = getDocument(activeTab);
 
       if (exportType === 'md') {
         exportMarkdown(doc, showToast);
       } else if (exportType === 'pdf') {
-        exportPDF(doc, showToast);
+        // Open style selection modal
+        setShowPDFStyleModal(true);
       }
+    },
+    [activeTab, getDocument]
+  );
+
+  // Handle PDF style selection and export
+  const handlePDFStyleSelect = useCallback(
+    async (style: PDFStyle) => {
+      const doc = getDocument(activeTab);
+      await exportPDF(doc, style, showToast);
     },
     [activeTab, getDocument]
   );
@@ -714,6 +729,14 @@ export const DraftingView: React.FC<DraftingViewProps> = ({
         onClose={() => setShowSaveTemplateModal(false)}
         content={documentContents[activeTab] || ''}
         onSave={handleSaveAsTemplate}
+      />
+
+      {/* PDF Style Preview Modal */}
+      <PDFStylePreviewModal
+        isOpen={showPDFStyleModal}
+        onClose={() => setShowPDFStyleModal(false)}
+        documentContent={documentContents[activeTab] || ''}
+        onSelectStyle={handlePDFStyleSelect}
       />
 
       {/* Delete Document Confirmation Modal */}

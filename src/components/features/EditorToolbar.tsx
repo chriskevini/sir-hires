@@ -1,5 +1,5 @@
 import React from 'react';
-import { Save } from 'lucide-react';
+import { Info, Save } from 'lucide-react';
 import { TabBar } from '../ui/TabBar';
 import { Dropdown } from '../ui/Dropdown';
 import { Button } from '../ui/Button';
@@ -61,20 +61,36 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
             <TooltipContent>Save as custom template</TooltipContent>
           </Tooltip>
         )}
-        <Dropdown
-          buttonLabel="Export"
-          className="border-none"
-          items={[
-            {
-              label: 'Export as Markdown (.md)',
-              onClick: () => onExport('md'),
-            },
-            {
-              label: 'Export as PDF (.pdf)',
-              onClick: () => onExport('pdf'),
-            },
-          ]}
-        />
+        <div className="flex items-center gap-1">
+          <Dropdown
+            buttonLabel="Export"
+            className="border-none"
+            items={[
+              {
+                label: 'Export as Markdown (.md)',
+                onClick: () => onExport('md'),
+              },
+              {
+                label: 'Export as PDF (.pdf)',
+                onClick: () => onExport('pdf'),
+              },
+            ]}
+          />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs">
+              <p className="text-xs">
+                <strong>PDF page breaks:</strong> Use{' '}
+                <code className="bg-background/20 px-1 py-0.5 rounded">
+                  ---
+                </code>{' '}
+                (three hyphens) on its own line to insert page breaks
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
       </div>
     </div>
   );

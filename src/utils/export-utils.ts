@@ -3,8 +3,9 @@
  */
 
 import { markdownToHtml } from './markdown-utils';
-import { escapeHtml } from './shared-utils';
 import { browser } from 'wxt/browser';
+import { PrintService } from './print-service';
+import { getPDFStyleCSS, type PDFStyle } from './pdf-styles';
 
 export interface ExportDocument {
   title: string;
@@ -52,63 +53,32 @@ export const exportMarkdown = (
 
 /**
  * Exports a document as PDF using the browser print dialog
+ * Uses hidden iframe to avoid opening new window/tab
  * @param doc - The document to export
+ * @param style - The PDF style to use ('modern' or 'classic')
  * @param onToast - Optional toast notification callback
  */
-export const exportPDF = (
+export const exportPDF = async (
   doc: ExportDocument,
+  style: PDFStyle,
   onToast?: (message: string, type: ToastType) => void
-): void => {
+): Promise<void> => {
   if (!doc.text || !doc.text.trim()) {
     onToast?.('Document is empty. Nothing to export.', 'error');
     return;
   }
 
   try {
-    const printWindow = window.open('', '_blank');
-
-    if (!printWindow) {
-      onToast?.(
-        'Failed to open print window. Please allow popups for this site.',
-        'error'
-      );
-      return;
-    }
-
     const htmlContent = markdownToHtml(doc.text);
+    const printCSS = getPDFStyleCSS(style);
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>${escapeHtml(doc.title)}</title>
-        <style>
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 20px;
-          }
-          h1 { font-size: 24px; margin-bottom: 10px; }
-          h2 { font-size: 20px; margin-top: 20px; margin-bottom: 10px; }
-          h3 { font-size: 16px; margin-top: 15px; margin-bottom: 8px; }
-          p { margin-bottom: 10px; }
-          @media print {
-            body { margin: 0; }
-          }
-        </style>
-      </head>
-      <body>
-        ${htmlContent}
-      </body>
-      </html>
-    `);
-
-    printWindow.document.close();
-    printWindow.onload = () => {
-      printWindow.print();
-    };
+    const printService = PrintService.getInstance();
+    await printService.printContent({
+      html: htmlContent,
+      css: printCSS,
+      title: doc.title,
+      removeAfterPrint: true,
+    });
   } catch (error: unknown) {
     console.error('PDF export failed:', error);
     const err = error as Error;

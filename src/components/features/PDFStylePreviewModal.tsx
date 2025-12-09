@@ -54,7 +54,7 @@ export const PDFStylePreviewModal: React.FC<PDFStylePreviewModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="max-w-6xl max-h-[90vh] overflow-y-auto"
+        className="max-w-6xl max-h-[90vh]"
         aria-describedby={undefined}
       >
         <DialogHeader>
@@ -74,15 +74,17 @@ export const PDFStylePreviewModal: React.FC<PDFStylePreviewModalProps> = ({
           </Tooltip>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-8 p-6">
-          {PDF_STYLES.map((styleInfo) => (
-            <StylePreviewCard
-              key={styleInfo.id}
-              style={styleInfo}
-              htmlContent={htmlContent}
-              onClick={() => handleStyleClick(styleInfo.id)}
-            />
-          ))}
+        <div className="overflow-x-auto p-6">
+          <div className="flex gap-8 w-max min-w-full">
+            {PDF_STYLES.map((styleInfo) => (
+              <StylePreviewCard
+                key={styleInfo.id}
+                style={styleInfo}
+                htmlContent={htmlContent}
+                onClick={() => handleStyleClick(styleInfo.id)}
+              />
+            ))}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -114,7 +116,7 @@ const StylePreviewCard: React.FC<StylePreviewCardProps> = ({
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center gap-3 p-4 border-2 border-border rounded-lg hover:border-primary hover:shadow-lg transition-all cursor-pointer text-left group"
+      className="flex flex-col items-center gap-3 p-4 border-2 border-border rounded-lg hover:border-primary hover:shadow-lg transition-all cursor-pointer text-left group min-w-[440px] flex-shrink-0"
     >
       {/* Style name label */}
       <div className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
@@ -132,30 +134,40 @@ const StylePreviewCard: React.FC<StylePreviewCardProps> = ({
       >
         {/* Full-size page (will be scaled down) */}
         <div
-          className="preview-container bg-white shadow-lg overflow-hidden relative"
+          id={containerId}
+          className="preview-container shadow-lg overflow-hidden relative"
           style={{
             width: `${fullPageWidth}px`,
             height: `${fullPageHeight}px`,
             transform: `scale(${scale})`,
             transformOrigin: 'top left',
+            backgroundColor: '#ffffff',
+            color: '#2d2d2d',
           }}
         >
+          {/* Scoped styles for this preview - apply to container and all children */}
+          <style>{`
+            #${containerId},
+            #${containerId} * { 
+              ${getPDFStyleCSS(style.id)}
+            }
+            /* Force light theme colors */
+            #${containerId} {
+              background-color: #ffffff !important;
+              color: #2d2d2d !important;
+            }
+          `}</style>
+
           {/* Page content with proper padding (0.8in = 76.8px at 96dpi) */}
           <div
-            id={containerId}
             className="preview-content overflow-hidden"
             style={{
               padding: '76.8px', // 0.8in margins at 96dpi
               height: '100%',
               width: '100%',
+              backgroundColor: '#ffffff',
             }}
           >
-            {/* Scoped styles for this preview */}
-            <style>{`
-              #${containerId} * { 
-                ${getPDFStyleCSS(style.id)}
-              }
-            `}</style>
             <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
           </div>
         </div>

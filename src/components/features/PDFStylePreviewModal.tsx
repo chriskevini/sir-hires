@@ -146,6 +146,8 @@ const StylePreviewCard: React.FC<StylePreviewCardProps> = ({
           }}
         >
           {/* Scoped styles for this preview - apply to container and all children */}
+          {/* KNOWN ISSUE: Modern style blue HR may not render in preview despite CSS being present */}
+          {/* The HR renders correctly in actual PDF exports */}
           <style>{`
             #${containerId},
             #${containerId} * { 

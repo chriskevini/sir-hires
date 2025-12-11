@@ -215,7 +215,7 @@ export function useLLMSettings(
     });
   }, []);
 
-  // Load settings on mount
+  // Load settings on mount and watch for changes
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -259,7 +259,50 @@ export function useLLMSettings(
         setIsLoading(false);
       }
     };
+
+    // Initial load
     loadSettings();
+
+    // Watch for changes (from other tabs/windows or same tab)
+    const unwatch = llmSettingsStorage.watch((newSettings) => {
+      if (newSettings) {
+        // Extract base URL from endpoint (remove /v1/chat/completions)
+        const baseUrl = getBaseUrl(newSettings.endpoint);
+        setServerUrl(baseUrl || DEFAULT_ENDPOINT);
+        setModel(newSettings.model || DEFAULT_MODEL);
+        setApiKey(newSettings.apiKey || '');
+
+        // Load per-task settings (with fallback to defaults)
+        if (newSettings.tasks) {
+          setTaskSettingsState({
+            synthesis: {
+              maxTokens:
+                newSettings.tasks.synthesis?.maxTokens ??
+                DEFAULT_TASK_SETTINGS.synthesis.maxTokens,
+              temperature:
+                newSettings.tasks.synthesis?.temperature ??
+                DEFAULT_TASK_SETTINGS.synthesis.temperature,
+            },
+            extraction: {
+              maxTokens:
+                newSettings.tasks.extraction?.maxTokens ??
+                DEFAULT_TASK_SETTINGS.extraction.maxTokens,
+              temperature:
+                newSettings.tasks.extraction?.temperature ??
+                DEFAULT_TASK_SETTINGS.extraction.temperature,
+            },
+          });
+        }
+
+        // Load thinkHarder setting (defaults to false)
+        setThinkHarder(newSettings.thinkHarder ?? false);
+      }
+    });
+
+    // Cleanup watcher on unmount
+    return () => {
+      unwatch();
+    };
   }, []);
 
   // Fetch models from LLM server via background message

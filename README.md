@@ -12,6 +12,42 @@ A cross-browser web extension with job data extraction, application lifecycle tr
 - 📤 **Export freedom**: Your data in JSON anytime
 - 🚫 **No tracking**: We don't collect, store, or transmit your data
 
+## Version 0.4.0 - UI Modernization & Theme System
+
+**Major UI overhaul with shadcn/ui components and theme customization:**
+
+- **Theme System**:
+  - 4 knight-themed color palettes (Sir Hires, Sir Lancelot, Sir Gawain, Sir Yvain)
+  - Light/Dark/System mode toggle with cross-tab synchronization
+  - Status-colored job cards with visual progress feedback
+
+- **UI Framework Migration**:
+  - Complete migration to shadcn/ui + Tailwind CSS
+  - Lucide React icons replacing custom SVG implementations
+  - Native HTML Popover API for dropdowns
+
+- **Enhanced Job Management**:
+  - Job Selector Panel with search, status filtering, and sorting
+  - Icon-based filter/sort controls (calendar, building, document icons)
+  - Status Filter Dots component for togglable status filtering
+
+- **Profile & Document Improvements**:
+  - Resume text extraction - LLM-powered conversion to MarkdownDB format
+  - Autofix validation buttons for profile warnings
+  - Document synthesis with inline streaming and tone selection
+  - New Document Modal for creating documents from templates
+
+- **Architecture Improvements**:
+  - Unified optimistic store replacing useJobState/useJobStorage/useJobHandlers
+  - Immediate-save pattern preventing focus loss and data overwrite
+  - Cross-tab sync with intelligent merging and echo cancellation
+  - 100% TypeScript type safety (eliminated all 'any' types)
+
+- **LLM Integration**:
+  - Model dropdown fetching available models from LLM server
+  - Auto-detect provider type (local vs cloud) from URL
+  - API key support for cloud providers (OpenAI, Anthropic)
+
 ## Version 0.3.0 - WXT Framework Migration
 
 **Complete architectural modernization with WXT framework:**
@@ -45,47 +81,67 @@ A cross-browser web extension with job data extraction, application lifecycle tr
 
 ## Quick Start
 
-### 0. Set up LM Studio
-
-- Download from [lmstudio.ai](https://lmstudio.ai/)
-- Install and launch LM Studio
-- Click the 🔍 icon
-- Install `qwen/qwen3-4b-2507` (or any compatible model)
-- Click the "Server" tab
-- Start the server (default: http://localhost:1234)
-
 ### 1. Install the extension
+
+Download the latest release from [GitHub Releases](https://github.com/chriskevini/sir-hires/releases).
 
 **Chrome/Edge:**
 
-```bash
-npm install
-npm run build
-```
-
+- Download `sir-hires-chrome.zip` and extract it
 - Open `chrome://extensions/` (or `edge://extensions/`)
 - Enable "Developer mode"
 - Click "Load unpacked"
-- Select `.output/chrome-mv3` directory
+- Select the extracted folder
 
 **Firefox:**
 
-```bash
-npm install
-npm run build:firefox
-```
-
+- Download `sir-hires-firefox.zip` and extract it
 - Open `about:debugging#/runtime/this-firefox`
 - Click "Load Temporary Add-on"
-- Select any file in `.output/firefox-mv3` directory
+- Select any file in the extracted folder
 
-### 2. Use it
+### 2. Pin the extension
 
-- Navigate to any job posting (LinkedIn, Indeed, etc.)
-- Click the extension icon in toolbar
-- Click "Extract Job Data" to capture job details
-- View and manage jobs in the sidepanel
-- Track application progress with lifecycle statuses
+- Click the puzzle piece icon in your browser toolbar
+- Find "Sir Hires" and click the pin icon
+- The knight icon should now appear in your toolbar
+
+### 3. Connect an AI provider
+
+Sir Hires requires an AI provider for intelligent features like job extraction and document synthesis.
+
+**Option A: LM Studio (Recommended - Free & Private)**
+
+- Download from [lmstudio.ai](https://lmstudio.ai/)
+- Install a model (we recommend `qwen/qwen3-4b-2507`)
+- Start the local server (default: `http://localhost:1234`)
+
+**Option B: Cloud Providers**
+
+You can also use OpenAI, Anthropic, or other OpenAI-compatible APIs.
+
+**Configure your provider:**
+
+- Right-click the Sir Hires icon in your toolbar
+- Select "LLM Settings"
+- Enter your endpoint URL (and API key for cloud providers)
+- Click "Connect" to verify the connection
+
+### 4. Set up your profile
+
+- Right-click the Sir Hires icon and select "Edit Profile"
+- Paste your resume text and click "Extract" to parse it
+- Review and fix any validation warnings
+- Your profile will be used to generate tailored documents
+
+### 5. Start tracking jobs
+
+- Navigate to any job posting (LinkedIn, Indeed, Greenhouse, etc.)
+- Right-click anywhere on the page and select "Extract Job to Sir Hires"
+- The sidepanel will open with the extracted job details
+- Track your progress through the application lifecycle
+
+**Tip:** Click the Sir Hires icon to open the sidepanel, where you can browse saved jobs and click the Extract button to capture the current page.
 
 ## Development
 
@@ -201,13 +257,16 @@ Local LLM via LM Studio (document synthesis & insights)
 - ✅ LLM-powered document synthesis (cover letters, tailored resumes)
 - ✅ Document export (Markdown, PDF)
 - ✅ WXT framework migration (v0.3.0)
+- ✅ UI modernization with shadcn/ui + Tailwind CSS (v0.4.0)
+- ✅ Theme system with multiple color palettes (v0.4.0)
+- ✅ Profile extraction and validation (v0.4.0)
+- ✅ Better loading screens with status messages (v0.4.0)
+- ✅ Toggleable job selector with animation (v0.4.0)
 
 **Planned:**
 
 - UX improvements:
   - Speed up LLM data extraction
-  - Better loading screens during extraction
-  - Toggleable job selector
   - Interactive merge when restoring backups
   - LLM-free workflow (manual data entry)
 

@@ -12,6 +12,14 @@ A cross-browser web extension with job data extraction, application lifecycle tr
 - 📤 **Export freedom**: Your data in JSON anytime
 - 🚫 **No tracking**: We don't collect, store, or transmit your data
 
+## Screenshots
+
+<img width="1910" height="956" alt="screenshot-2026-03-11_14-06-20" src="https://github.com/user-attachments/assets/a555bddd-28a0-43af-a99e-06e66cc95cd6" />
+<img width="1909" height="957" alt="screenshot-2026-03-11_14-05-14" src="https://github.com/user-attachments/assets/478ed97f-697f-4913-87d6-9d4347c404c9" />
+<img width="1911" height="955" alt="screenshot-2026-03-11_14-03-48" src="https://github.com/user-attachments/assets/b224daca-0955-4a28-b530-90dc29254f0f" />
+<img width="1905" height="955" alt="screenshot-2026-03-11_14-01-12" src="https://github.com/user-attachments/assets/af059e07-0f73-48c0-932c-6635434c42da" />
+
+
 ## Version 0.3.0 - WXT Framework Migration
 
 **Complete architectural modernization with WXT framework:**
